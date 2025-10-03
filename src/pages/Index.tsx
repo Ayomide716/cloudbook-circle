@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -6,8 +6,9 @@ import Navigation from "@/components/Navigation";
 import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
 import FeedFilter from "@/components/FeedFilter";
-import StoriesBar from "@/components/StoriesBar";
 import { Loader2 } from "lucide-react";
+
+const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
 interface Profile {
   id: string;
@@ -228,7 +229,9 @@ const Index = () => {
       
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         <div className="space-y-4">
-          <StoriesBar currentUserId={currentUser.id} />
+          <Suspense fallback={<div className="h-24" />}>
+            <StoriesBar currentUserId={currentUser.id} />
+          </Suspense>
           
           <CreatePost
             currentUser={currentUser}
