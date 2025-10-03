@@ -3,9 +3,11 @@ import { Button } from "@/components/ui/button";
 import { Home, User, LogOut, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import Notifications from "./Notifications";
-import FriendRequests from "./FriendRequests";
-import SearchUsers from "./SearchUsers";
+import { lazy, Suspense } from "react";
+
+const Notifications = lazy(() => import("./Notifications"));
+const FriendRequests = lazy(() => import("./FriendRequests"));
+const SearchUsers = lazy(() => import("./SearchUsers"));
 
 interface NavigationProps {
   currentUserId?: string;
@@ -43,8 +45,12 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
             
             {currentUserId && (
               <>
-                <SearchUsers />
-                <FriendRequests userId={currentUserId} />
+                <Suspense fallback={<div className="w-10" />}>
+                  <SearchUsers />
+                </Suspense>
+                <Suspense fallback={<div className="w-10" />}>
+                  <FriendRequests userId={currentUserId} />
+                </Suspense>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -53,7 +59,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                 >
                   <MessageCircle className="h-5 w-5" />
                 </Button>
-                <Notifications userId={currentUserId} />
+                <Suspense fallback={<div className="w-10" />}>
+                  <Notifications userId={currentUserId} />
+                </Suspense>
                 <Button
                   variant="ghost"
                   size="sm"
