@@ -6,6 +6,7 @@ import Navigation from "@/components/Navigation";
 import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
 import FeedFilter from "@/components/FeedFilter";
+import StoriesBar from "@/components/StoriesBar";
 import { Loader2 } from "lucide-react";
 
 interface Profile {
@@ -227,6 +228,8 @@ const Index = () => {
       
       <div className="container mx-auto px-4 py-6 max-w-2xl">
         <div className="space-y-4">
+          <StoriesBar currentUserId={currentUser.id} />
+          
           <CreatePost
             currentUser={currentUser}
             onPostCreated={() => loadPosts(currentUser.id)}

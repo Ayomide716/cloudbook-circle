@@ -5,17 +5,24 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import PostCard from "@/components/PostCard";
 import FriendshipButton from "@/components/FriendshipButton";
+import EditProfileModal from "@/components/EditProfileModal";
+import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Edit, MessageCircle } from "lucide-react";
+import { Loader2, Edit, MessageCircle, MapPin, Briefcase, GraduationCap, Link as LinkIcon } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 
 interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  cover_url: string | null;
   bio: string | null;
+  location: string | null;
+  website: string | null;
+  work: string | null;
+  education: string | null;
 }
 
 interface Post {
@@ -80,7 +87,16 @@ const Profile = () => {
       return;
     }
 
-    setProfile(profileData);
+    if (profileData) {
+      setProfile({
+        ...profileData,
+        cover_url: null,
+        location: null,
+        website: null,
+        work: null,
+        education: null
+      } as Profile);
+    }
 
     const { data: postsData, error: postsError } = await supabase
       .from("posts")
@@ -173,6 +189,29 @@ const Profile = () => {
     });
   };
 
+  const handleCoverUpload = async (url: string) => {
+    if (!profile) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ cover_url: url } as any)
+      .eq("id", profile.id);
+
+    if (error) {
+      toast({
+        title: "Error updating cover photo",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProfile({ ...profile, cover_url: url });
+    toast({
+      title: "Cover photo updated successfully",
+    });
+  };
+
   const startMessage = () => {
     if (!userId) return;
     navigate("/messages", { state: { selectedUserId: userId } });
@@ -205,68 +244,132 @@ const Profile = () => {
       <Navigation currentUserId={currentUserId || undefined} />
       
       <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Card className="p-6 mb-6">
-          <div className="flex items-start gap-6">
-            <div className="relative">
-              <Avatar className="h-32 w-32">
-                <AvatarImage src={profile.avatar_url || undefined} />
-                <AvatarFallback className="text-4xl">
-                  {profile.full_name?.[0]?.toUpperCase() || "U"}
-                </AvatarFallback>
-              </Avatar>
-              {currentUserId === userId && (
-                <div className="mt-2">
-                  <ImageUpload
-                    bucket="avatars"
-                    userId={currentUserId}
-                    onUploadComplete={handleAvatarUpload}
-                    currentImage={profile.avatar_url || undefined}
-                    label="Change Avatar"
-                  />
-                </div>
-              )}
-            </div>
-            
-            <div className="flex-1">
-              <div className="flex items-start justify-between mb-2">
-                <h1 className="text-3xl font-bold">
-                  {profile.full_name || "Anonymous User"}
-                </h1>
-                {currentUserId === userId ? (
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => setIsEditingProfile(!isEditingProfile)}
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Profile
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <FriendshipButton
-                      currentUserId={currentUserId || ""}
-                      profileUserId={userId || ""}
+        {/* Cover Photo */}
+        <Card className="mb-6 overflow-hidden">
+          <div className="relative h-64 bg-gradient-to-r from-primary to-accent">
+            {profile.cover_url && (
+              <img
+                src={profile.cover_url}
+                alt="Cover"
+                className="w-full h-full object-cover"
+              />
+            )}
+            {currentUserId === userId && (
+              <div className="absolute bottom-4 right-4">
+                <ImageUpload
+                  bucket="avatars"
+                  userId={currentUserId}
+                  onUploadComplete={handleCoverUpload}
+                  currentImage={profile.cover_url || undefined}
+                  label="Edit Cover Photo"
+                />
+              </div>
+            )}
+          </div>
+          
+          <div className="p-6">
+            <div className="flex items-start gap-6 -mt-20">
+              <div className="relative">
+                <Avatar className="h-32 w-32 border-4 border-background">
+                  <AvatarImage src={profile.avatar_url || undefined} />
+                  <AvatarFallback className="text-4xl">
+                    {profile.full_name?.[0]?.toUpperCase() || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                {currentUserId === userId && (
+                  <div className="mt-2">
+                    <ImageUpload
+                      bucket="avatars"
+                      userId={currentUserId}
+                      onUploadComplete={handleAvatarUpload}
+                      currentImage={profile.avatar_url || undefined}
+                      label="Change Avatar"
                     />
+                  </div>
+                )}
+                <div className="absolute -bottom-1 -right-1">
+                  <OnlineStatusIndicator userId={userId || ""} />
+                </div>
+              </div>
+              
+              <div className="flex-1 mt-16">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h1 className="text-3xl font-bold">
+                      {profile.full_name || "Anonymous User"}
+                    </h1>
+                    <OnlineStatusIndicator userId={userId || ""} showText />
+                  </div>
+                  {currentUserId === userId ? (
                     <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={startMessage}
+                      onClick={() => setIsEditingProfile(!isEditingProfile)}
                     >
-                      <MessageCircle className="h-4 w-4 mr-2" />
-                      Message
+                      <Edit className="h-4 w-4 mr-2" />
+                      Edit Profile
                     </Button>
-                  </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <FriendshipButton
+                        currentUserId={currentUserId || ""}
+                        profileUserId={userId || ""}
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={startMessage}
+                      >
+                        <MessageCircle className="h-4 w-4 mr-2" />
+                        Message
+                      </Button>
+                    </div>
+                  )}
+                </div>
+                
+                {profile.bio && (
+                  <p className="text-muted-foreground mb-4">{profile.bio}</p>
                 )}
-              </div>
-              
-              {profile.bio && (
-                <p className="text-muted-foreground mb-4">{profile.bio}</p>
-              )}
-              
-              <div className="flex gap-6 text-sm">
-                <div>
-                  <span className="font-semibold">{posts.length}</span>{" "}
-                  <span className="text-muted-foreground">posts</span>
+                
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  {profile.work && (
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="h-4 w-4" />
+                      <span>{profile.work}</span>
+                    </div>
+                  )}
+                  {profile.education && (
+                    <div className="flex items-center gap-2">
+                      <GraduationCap className="h-4 w-4" />
+                      <span>{profile.education}</span>
+                    </div>
+                  )}
+                  {profile.location && (
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4" />
+                      <span>{profile.location}</span>
+                    </div>
+                  )}
+                  {profile.website && (
+                    <div className="flex items-center gap-2">
+                      <LinkIcon className="h-4 w-4" />
+                      <a 
+                        href={profile.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:underline text-primary"
+                      >
+                        {profile.website}
+                      </a>
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex gap-6 text-sm mt-4">
+                  <div>
+                    <span className="font-semibold">{posts.length}</span>{" "}
+                    <span className="text-muted-foreground">posts</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -295,6 +398,16 @@ const Profile = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Profile Modal */}
+      {profile && (
+        <EditProfileModal
+          profile={profile}
+          isOpen={isEditingProfile}
+          onClose={() => setIsEditingProfile(false)}
+          onUpdate={loadProfile}
+        />
+      )}
     </div>
   );
 };
