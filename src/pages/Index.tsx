@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
+import FeedFilter from "@/components/FeedFilter";
 import { Loader2 } from "lucide-react";
 
 interface Profile {
@@ -31,6 +32,7 @@ const Index = () => {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [feedFilter, setFeedFilter] = useState<'all' | 'friends'>('all');
   const [likesData, setLikesData] = useState<Record<string, { count: number; isLiked: boolean }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
 
@@ -38,6 +40,12 @@ const Index = () => {
     checkAuth();
     setupRealtimeSubscription();
   }, [navigate]);
+
+  useEffect(() => {
+    if (currentUser) {
+      loadPosts(currentUser.id);
+    }
+  }, [feedFilter]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -120,7 +128,7 @@ const Index = () => {
   const loadPosts = async (userId: string) => {
     setIsLoading(true);
 
-    const { data: postsData, error } = await supabase
+    let query = supabase
       .from("posts")
       .select(`
         *,
@@ -129,8 +137,27 @@ const Index = () => {
           full_name,
           avatar_url
         )
-      `)
-      .order("created_at", { ascending: false });
+      `);
+
+    if (feedFilter === 'friends') {
+      const { data: friendships } = await supabase
+        .from("friendships")
+        .select("user_id, friend_id")
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+        .eq("status", "accepted");
+
+      const friendIds = friendships?.map(f => 
+        f.user_id === userId ? f.friend_id : f.user_id
+      ) || [];
+
+      if (friendIds.length > 0) {
+        query = query.in("user_id", [...friendIds, userId]);
+      } else {
+        query = query.eq("user_id", userId);
+      }
+    }
+
+    const { data: postsData, error } = await query.order("created_at", { ascending: false });
 
     if (error) {
       toast({
@@ -203,6 +230,11 @@ const Index = () => {
           <CreatePost
             currentUser={currentUser}
             onPostCreated={() => loadPosts(currentUser.id)}
+          />
+
+          <FeedFilter
+            filter={feedFilter}
+            onFilterChange={setFeedFilter}
           />
 
           {posts.length === 0 ? (

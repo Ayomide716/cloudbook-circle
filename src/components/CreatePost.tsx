@@ -3,9 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Image, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ImageUpload from "./ImageUpload";
 
 interface CreatePostProps {
   currentUser: {
@@ -18,6 +19,7 @@ interface CreatePostProps {
 
 const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [content, setContent] = useState("");
+  const [imageUrl, setImageUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -40,6 +42,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       .insert({
         content: content.trim(),
         user_id: currentUser.id,
+        image_url: imageUrl || null,
       });
 
     setIsLoading(false);
@@ -54,6 +57,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     }
 
     setContent("");
+    setImageUrl("");
     toast({
       title: "Post created!",
     });
@@ -80,18 +84,15 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               disabled={isLoading}
             />
             
-            <div className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="text-muted-foreground"
-                disabled
-              >
-                <Image className="h-5 w-5 mr-2" />
-                Photo
-              </Button>
-              
+            <ImageUpload
+              bucket="post-images"
+              userId={currentUser.id}
+              onUploadComplete={setImageUrl}
+              currentImage={imageUrl}
+              label="Add Photo"
+            />
+            
+            <div className="flex justify-end">
               <Button
                 type="submit"
                 disabled={isLoading || !content.trim()}

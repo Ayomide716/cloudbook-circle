@@ -4,10 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import PostCard from "@/components/PostCard";
+import FriendshipButton from "@/components/FriendshipButton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, Edit } from "lucide-react";
+import { Loader2, Edit, MessageCircle } from "lucide-react";
+import ImageUpload from "@/components/ImageUpload";
 
 interface Profile {
   id: string;
@@ -36,6 +38,7 @@ const Profile = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [likesData, setLikesData] = useState<Record<string, { count: number; isLiked: boolean }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
 
@@ -147,6 +150,34 @@ const Profile = () => {
     setCommentsData(commentsMap);
   };
 
+  const handleAvatarUpload = async (url: string) => {
+    if (!profile) return;
+
+    const { error } = await supabase
+      .from("profiles")
+      .update({ avatar_url: url })
+      .eq("id", profile.id);
+
+    if (error) {
+      toast({
+        title: "Error updating avatar",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setProfile({ ...profile, avatar_url: url });
+    toast({
+      title: "Avatar updated successfully",
+    });
+  };
+
+  const startMessage = () => {
+    if (!userId) return;
+    navigate("/messages", { state: { selectedUserId: userId } });
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -176,23 +207,55 @@ const Profile = () => {
       <div className="container mx-auto px-4 py-8 max-w-4xl">
         <Card className="p-6 mb-6">
           <div className="flex items-start gap-6">
-            <Avatar className="h-32 w-32">
-              <AvatarImage src={profile.avatar_url || undefined} />
-              <AvatarFallback className="text-4xl">
-                {profile.full_name?.[0]?.toUpperCase() || "U"}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-32 w-32">
+                <AvatarImage src={profile.avatar_url || undefined} />
+                <AvatarFallback className="text-4xl">
+                  {profile.full_name?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              {currentUserId === userId && (
+                <div className="mt-2">
+                  <ImageUpload
+                    bucket="avatars"
+                    userId={currentUserId}
+                    onUploadComplete={handleAvatarUpload}
+                    currentImage={profile.avatar_url || undefined}
+                    label="Change Avatar"
+                  />
+                </div>
+              )}
+            </div>
             
             <div className="flex-1">
               <div className="flex items-start justify-between mb-2">
                 <h1 className="text-3xl font-bold">
                   {profile.full_name || "Anonymous User"}
                 </h1>
-                {currentUserId === userId && (
-                  <Button variant="outline" size="sm">
+                {currentUserId === userId ? (
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setIsEditingProfile(!isEditingProfile)}
+                  >
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Profile
                   </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <FriendshipButton
+                      currentUserId={currentUserId || ""}
+                      profileUserId={userId || ""}
+                    />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={startMessage}
+                    >
+                      <MessageCircle className="h-4 w-4 mr-2" />
+                      Message
+                    </Button>
+                  </div>
                 )}
               </div>
               

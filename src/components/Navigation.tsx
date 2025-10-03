@@ -1,8 +1,11 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, User, LogOut } from "lucide-react";
+import { Home, User, LogOut, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import Notifications from "./Notifications";
+import FriendRequests from "./FriendRequests";
+import SearchUsers from "./SearchUsers";
 
 interface NavigationProps {
   currentUserId?: string;
@@ -40,6 +43,17 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
             
             {currentUserId && (
               <>
+                <SearchUsers />
+                <FriendRequests userId={currentUserId} />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary-foreground hover:bg-primary-foreground/10"
+                  onClick={() => navigate("/messages")}
+                >
+                  <MessageCircle className="h-5 w-5" />
+                </Button>
+                <Notifications userId={currentUserId} />
                 <Button
                   variant="ghost"
                   size="sm"
