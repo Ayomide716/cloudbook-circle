@@ -30,7 +30,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       <div className="container mx-auto px-2 sm:px-4">
         <div className="flex items-center justify-between h-14">
           <Link to="/" className="flex items-center gap-2">
-            <h1 className="text-xl sm:text-2xl font-bold">facebook</h1>
+            <h1 className="text-xl sm:text-2xl font-bold">AYO-CHAT</h1>
           </Link>
           
           <div className="flex items-center gap-1 sm:gap-2">

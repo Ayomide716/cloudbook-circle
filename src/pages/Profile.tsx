@@ -88,7 +88,7 @@ const Profile = () => {
     }
 
     if (profileData) {
-      setProfile(profileData as Profile);
+      setProfile(profileData as any);
     }
 
     const { data: postsData, error: postsError } = await supabase
@@ -187,7 +187,7 @@ const Profile = () => {
 
     const { error } = await supabase
       .from("profiles")
-      .update({ cover_url: url })
+      .update({ cover_url: url } as any)
       .eq("id", profile.id);
 
     if (error) {

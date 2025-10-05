@@ -65,7 +65,7 @@ const Auth = () => {
 
         toast({
           title: "Account created!",
-          description: "Welcome to Facebook Clone",
+          description: "Welcome to AYO-CHAT",
         });
       }
     } catch (error: any) {
@@ -83,7 +83,7 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-4">
         <div className="text-center">
-          <h1 className="text-5xl font-bold text-primary mb-2">facebook</h1>
+          <h1 className="text-5xl font-bold text-primary mb-2">AYO-CHAT</h1>
           <p className="text-muted-foreground">
             Connect with friends and the world around you
           </p>
