@@ -58,7 +58,7 @@ const Groups = () => {
     setIsLoading(true);
 
     const { data: groupsData, error } = await supabase
-      .from("groups" as any)
+      .from("groups")
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -74,9 +74,9 @@ const Groups = () => {
 
     // Load member counts for each group
     const groupsWithCounts = await Promise.all(
-      (groupsData || []).map(async (group: any) => {
+      (groupsData || []).map(async (group) => {
         const { count } = await supabase
-          .from("group_members" as any)
+          .from("group_members")
           .select("*", { count: "exact", head: true })
           .eq("group_id", group.id);
 
@@ -84,7 +84,7 @@ const Groups = () => {
       })
     );
 
-    setGroups(groupsWithCounts as any);
+    setGroups(groupsWithCounts);
     setIsLoading(false);
   };
 
@@ -94,13 +94,13 @@ const Groups = () => {
     if (!currentUserId) return;
 
     const { data, error } = await supabase
-      .from("groups" as any)
+      .from("groups")
       .insert({
         name: formData.name,
         description: formData.description,
         privacy: formData.privacy,
         created_by: currentUserId,
-      } as any)
+      })
       .select()
       .single();
 
@@ -115,12 +115,12 @@ const Groups = () => {
 
     // Add creator as admin member
     await supabase
-      .from("group_members" as any)
+      .from("group_members")
       .insert({
-        group_id: (data as any).id,
+        group_id: data.id,
         user_id: currentUserId,
         role: "admin",
-      } as any);
+      });
 
     toast({
       title: "Group created successfully",
