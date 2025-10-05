@@ -65,9 +65,9 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   };
 
   return (
-    <Card className="p-4">
+    <Card className="p-3 sm:p-4">
       <form onSubmit={handleSubmit}>
-        <div className="flex gap-3">
+        <div className="flex gap-2 sm:gap-3">
           <Avatar className="h-10 w-10">
             <AvatarImage src={currentUser.avatar_url || undefined} />
             <AvatarFallback>

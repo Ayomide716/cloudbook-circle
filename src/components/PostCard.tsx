@@ -122,8 +122,8 @@ const PostCard = ({
   };
 
   return (
-    <Card className="p-4">
-      <div className="flex items-start gap-3 mb-3">
+    <Card className="p-3 sm:p-4">
+      <div className="flex items-start gap-2 sm:gap-3 mb-3">
         <Link to={`/profile/${post.profiles.id}`}>
           <Avatar className="h-10 w-10">
             <AvatarImage src={post.profiles.avatar_url || undefined} />
@@ -145,17 +145,17 @@ const PostCard = ({
         </div>
       </div>
 
-      <p className="mb-3 whitespace-pre-wrap">{post.content}</p>
+      <p className="mb-3 whitespace-pre-wrap text-sm sm:text-base break-words">{post.content}</p>
 
       {post.image_url && (
         <img
           src={post.image_url}
           alt="Post content"
-          className="w-full rounded-lg mb-3"
+          className="w-full rounded-lg mb-3 max-h-96 sm:max-h-[500px] object-cover"
         />
       )}
 
-      <div className="flex items-center gap-1 text-sm text-muted-foreground mb-3 border-b pb-2">
+      <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-3 border-b pb-2">
         {likesCount > 0 && (
           <span>{likesCount} {likesCount === 1 ? "like" : "likes"}</span>
         )}
@@ -165,27 +165,27 @@ const PostCard = ({
         )}
       </div>
 
-      <div className="flex gap-2 mb-3">
+      <div className="flex gap-1 sm:gap-2 mb-3">
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1"
+          className="flex-1 text-xs sm:text-sm"
           onClick={handleLike}
         >
           <Heart
-            className={`h-5 w-5 mr-2 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
+            className={`h-4 w-4 sm:h-5 sm:w-5 sm:mr-2 ${isLiked ? "fill-red-500 text-red-500" : ""}`}
           />
-          Like
+          <span className="hidden sm:inline">Like</span>
         </Button>
         
         <Button
           variant="ghost"
           size="sm"
-          className="flex-1"
+          className="flex-1 text-xs sm:text-sm"
           onClick={() => setShowComments(!showComments)}
         >
-          <MessageCircle className="h-5 w-5 mr-2" />
-          Comment
+          <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 sm:mr-2" />
+          <span className="hidden sm:inline">Comment</span>
         </Button>
       </div>
 

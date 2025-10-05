@@ -243,10 +243,10 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-4xl">
         {/* Cover Photo */}
-        <Card className="mb-6 overflow-hidden">
-          <div className="relative h-64 bg-gradient-to-r from-primary to-accent">
+        <Card className="mb-4 sm:mb-6 overflow-hidden">
+          <div className="relative h-40 sm:h-64 bg-gradient-to-r from-primary to-accent">
             {profile.cover_url && (
               <img
                 src={profile.cover_url}
@@ -255,7 +255,7 @@ const Profile = () => {
               />
             )}
             {currentUserId === userId && (
-              <div className="absolute bottom-4 right-4">
+              <div className="absolute bottom-2 right-2 sm:bottom-4 sm:right-4">
                 <ImageUpload
                   bucket="avatars"
                   userId={currentUserId}
@@ -267,12 +267,12 @@ const Profile = () => {
             )}
           </div>
           
-          <div className="p-6">
-            <div className="flex items-start gap-6 -mt-20">
-              <div className="relative">
-                <Avatar className="h-32 w-32 border-4 border-background">
+          <div className="p-3 sm:p-6">
+            <div className="flex flex-col sm:flex-row items-start gap-4 sm:gap-6 -mt-16 sm:-mt-20">
+              <div className="relative flex flex-col items-center sm:items-start">
+                <Avatar className="h-24 w-24 sm:h-32 sm:w-32 border-4 border-background">
                   <AvatarImage src={profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-4xl">
+                  <AvatarFallback className="text-2xl sm:text-4xl">
                     {profile.full_name?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
@@ -292,25 +292,28 @@ const Profile = () => {
                 </div>
               </div>
               
-              <div className="flex-1 mt-16">
-                <div className="flex items-start justify-between mb-2">
-                  <div>
-                    <h1 className="text-3xl font-bold">
+              <div className="flex-1 mt-2 sm:mt-16 w-full">
+                <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-2">
+                  <div className="w-full sm:w-auto">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-center sm:text-left">
                       {profile.full_name || "Anonymous User"}
                     </h1>
-                    <OnlineStatusIndicator userId={userId || ""} showText />
+                    <div className="flex justify-center sm:justify-start">
+                      <OnlineStatusIndicator userId={userId || ""} showText />
+                    </div>
                   </div>
                   {currentUserId === userId ? (
                     <Button 
                       variant="outline" 
                       size="sm"
                       onClick={() => setIsEditingProfile(!isEditingProfile)}
+                      className="w-full sm:w-auto"
                     >
                       <Edit className="h-4 w-4 mr-2" />
                       Edit Profile
                     </Button>
                   ) : (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 w-full sm:w-auto">
                       <FriendshipButton
                         currentUserId={currentUserId || ""}
                         profileUserId={userId || ""}
@@ -319,6 +322,7 @@ const Profile = () => {
                         variant="outline" 
                         size="sm"
                         onClick={startMessage}
+                        className="flex-1 sm:flex-none"
                       >
                         <MessageCircle className="h-4 w-4 mr-2" />
                         Message

@@ -207,11 +207,11 @@ const Messages = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-4 py-6 h-[calc(100vh-88px)]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 h-full">
-          <Card className="md:col-span-1 p-4">
-            <h2 className="text-xl font-bold mb-4">Messages</h2>
-            <ScrollArea className="h-[calc(100vh-200px)]">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 h-[calc(100vh-64px)] sm:h-[calc(100vh-88px)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 h-full">
+          <Card className={`md:col-span-1 p-3 sm:p-4 ${selectedConversation ? 'hidden md:block' : ''}`}>
+            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Messages</h2>
+            <ScrollArea className="h-[calc(100vh-160px)] sm:h-[calc(100vh-200px)]">
               {conversations.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">
                   No conversations yet
@@ -256,11 +256,19 @@ const Messages = () => {
             </ScrollArea>
           </Card>
 
-          <Card className="md:col-span-2 flex flex-col">
+          <Card className={`md:col-span-2 flex flex-col ${!selectedConversation ? 'hidden md:flex' : ''}`}>
             {selectedConversation ? (
               <>
-                <div className="border-b p-4">
+                <div className="border-b p-3 sm:p-4">
                   <div className="flex items-center gap-3">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="md:hidden mr-2 p-2"
+                      onClick={() => setSelectedConversation(null)}
+                    >
+                      ←
+                    </Button>
                     <Avatar className="h-10 w-10">
                       <AvatarImage src={selectedConversation.avatar_url || undefined} />
                       <AvatarFallback>
