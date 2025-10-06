@@ -39,32 +39,41 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   }, [currentUserId]);
 
   const loadStories = async () => {
-    const { data } = await supabase
-      .from("stories" as any)
-      .select(`
-        *,
-        profiles:user_id (
-          id,
-          full_name,
-          avatar_url
-        )
-      `)
-      .gt("expires_at", new Date().toISOString())
-      .order("created_at", { ascending: false });
+    try {
+      const { data, error } = await supabase
+        .from("stories" as any)
+        .select(`
+          *,
+          profiles:user_id (
+            id,
+            full_name,
+            avatar_url
+          )
+        `)
+        .gt("expires_at", new Date().toISOString())
+        .order("created_at", { ascending: false });
 
-    if (data) {
-      // Group stories by user
-      const groupedStories: Story[] = [];
-      const seenUsers = new Set<string>();
-      
-      data.forEach((story: any) => {
-        if (!seenUsers.has(story.user_id)) {
-          groupedStories.push(story);
-          seenUsers.add(story.user_id);
-        }
-      });
-      
-      setStories(groupedStories);
+      if (error) {
+        console.log("Stories not yet available:", error.message);
+        return;
+      }
+
+      if (data) {
+        // Group stories by user
+        const groupedStories: Story[] = [];
+        const seenUsers = new Set<string>();
+        
+        data.forEach((story: any) => {
+          if (!seenUsers.has(story.user_id)) {
+            groupedStories.push(story);
+            seenUsers.add(story.user_id);
+          }
+        });
+        
+        setStories(groupedStories);
+      }
+    } catch (error) {
+      console.log("Error loading stories:", error);
     }
   };
 

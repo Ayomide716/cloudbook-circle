@@ -212,6 +212,42 @@ const Index = () => {
     setIsLoading(false);
   };
 
+  const handleLikeToggle = async (postId: string) => {
+    if (!currentUser) return;
+    
+    // Optimistically update UI
+    setLikesData(prev => ({
+      ...prev,
+      [postId]: {
+        count: prev[postId].isLiked ? prev[postId].count - 1 : prev[postId].count + 1,
+        isLiked: !prev[postId].isLiked
+      }
+    }));
+  };
+
+  const handleCommentAdded = async (postId: string) => {
+    if (!currentUser) return;
+    
+    // Reload comments for this specific post
+    const { data: commentsData } = await supabase
+      .from("comments")
+      .select(`
+        *,
+        profiles:user_id (
+          id,
+          full_name,
+          avatar_url
+        )
+      `)
+      .eq("post_id", postId)
+      .order("created_at", { ascending: true });
+
+    setCommentsData(prev => ({
+      ...prev,
+      [postId]: commentsData || []
+    }));
+  };
+
   if (isLoading || !currentUser) {
     return (
       <div className="min-h-screen bg-background">
@@ -256,8 +292,8 @@ const Index = () => {
                 likesCount={likesData[post.id]?.count || 0}
                 isLiked={likesData[post.id]?.isLiked || false}
                 comments={commentsData[post.id] || []}
-                onLikeToggle={() => loadPosts(currentUser.id)}
-                onCommentAdded={() => loadPosts(currentUser.id)}
+                onLikeToggle={() => handleLikeToggle(post.id)}
+                onCommentAdded={() => handleCommentAdded(post.id)}
               />
             ))
           )}

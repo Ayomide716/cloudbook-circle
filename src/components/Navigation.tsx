@@ -45,11 +45,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
             
             {currentUserId && (
               <>
-                <div className="hidden sm:block">
-                  <Suspense fallback={<div className="w-10" />}>
-                    <SearchUsers />
-                  </Suspense>
-                </div>
+                <Suspense fallback={<div className="w-10" />}>
+                  <SearchUsers />
+                </Suspense>
                 <Suspense fallback={<div className="w-10" />}>
                   <FriendRequests userId={currentUserId} />
                 </Suspense>
