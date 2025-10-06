@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
+import NewConversation from "@/components/NewConversation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -210,8 +211,14 @@ const Messages = () => {
       <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 h-[calc(100vh-64px)] sm:h-[calc(100vh-88px)]">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 h-full">
           <Card className={`md:col-span-1 p-3 sm:p-4 ${selectedConversation ? 'hidden md:block' : ''}`}>
-            <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4">Messages</h2>
-            <ScrollArea className="h-[calc(100vh-160px)] sm:h-[calc(100vh-200px)]">
+            <div className="space-y-3 mb-4">
+              <h2 className="text-lg sm:text-xl font-bold">Messages</h2>
+              <NewConversation 
+                currentUserId={currentUserId!} 
+                onSelectUser={setSelectedConversation}
+              />
+            </div>
+            <ScrollArea className="h-[calc(100vh-240px)] sm:h-[calc(100vh-280px)]">
               {conversations.length === 0 ? (
                 <p className="text-center text-muted-foreground py-4">
                   No conversations yet
