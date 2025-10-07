@@ -143,15 +143,31 @@ const Messages = () => {
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "messages",
         },
-        () => {
-          if (currentUserId) {
-            loadConversations();
-            if (selectedConversation) {
-              loadMessages(selectedConversation.id);
+        (payload) => {
+          const newMessage = payload.new as Message;
+          
+          // Update conversations list
+          loadConversations();
+          
+          // If the message is for the current conversation, append it
+          if (selectedConversation && currentUserId) {
+            if (
+              (newMessage.sender_id === currentUserId && newMessage.receiver_id === selectedConversation.id) ||
+              (newMessage.sender_id === selectedConversation.id && newMessage.receiver_id === currentUserId)
+            ) {
+              setMessages(prev => [...prev, newMessage]);
+              
+              // Mark as read if it's from the other person
+              if (newMessage.sender_id === selectedConversation.id) {
+                supabase
+                  .from("messages")
+                  .update({ read: true })
+                  .eq("id", newMessage.id);
+              }
             }
           }
         }
@@ -190,7 +206,6 @@ const Messages = () => {
     }
 
     setMessageContent("");
-    loadMessages(selectedConversation.id);
   };
 
   if (isLoading) {

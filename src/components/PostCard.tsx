@@ -55,6 +55,9 @@ const PostCard = ({
   const { toast } = useToast();
 
   const handleLike = async () => {
+    // Call the toggle first for instant UI update
+    onLikeToggle();
+    
     if (isLiked) {
       const { error } = await supabase
         .from("likes")
@@ -68,7 +71,8 @@ const PostCard = ({
           description: error.message,
           variant: "destructive",
         });
-        return;
+        // Revert optimistic update on error
+        onLikeToggle();
       }
     } else {
       const { error } = await supabase
@@ -84,11 +88,10 @@ const PostCard = ({
           description: error.message,
           variant: "destructive",
         });
-        return;
+        // Revert optimistic update on error
+        onLikeToggle();
       }
     }
-    
-    onLikeToggle();
   };
 
   const handleComment = async (e: React.FormEvent) => {

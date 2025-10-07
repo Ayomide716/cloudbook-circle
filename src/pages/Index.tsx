@@ -183,12 +183,14 @@ const Index = () => {
   const handleLikeToggle = async (postId: string) => {
     if (!currentUser) return;
     
+    const wasLiked = likesData[postId]?.isLiked || false;
+    
     // Optimistically update UI
     setLikesData(prev => ({
       ...prev,
       [postId]: {
-        count: prev[postId].isLiked ? prev[postId].count - 1 : prev[postId].count + 1,
-        isLiked: !prev[postId].isLiked
+        count: wasLiked ? prev[postId].count - 1 : prev[postId].count + 1,
+        isLiked: !wasLiked
       }
     }));
   };
