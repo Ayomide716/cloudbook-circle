@@ -45,7 +45,7 @@ const Index = () => {
 
   useEffect(() => {
     if (currentUser) {
-      loadPosts(currentUser.id);
+      loadPosts(currentUser.id, false);
     }
   }, [feedFilter]);
 
@@ -65,7 +65,7 @@ const Index = () => {
 
     if (profile) {
       setCurrentUser(profile);
-      loadPosts(session.user.id);
+      loadPosts(session.user.id, true);
     }
   };
 
@@ -83,7 +83,7 @@ const Index = () => {
           const session = supabase.auth.getSession();
           session.then(({ data }) => {
             if (data.session) {
-              loadPosts(data.session.user.id);
+              loadPosts(data.session.user.id, false);
             }
           });
         }
@@ -95,8 +95,10 @@ const Index = () => {
     };
   };
 
-  const loadPosts = async (userId: string) => {
-    setIsLoading(true);
+  const loadPosts = async (userId: string, showLoader = false) => {
+    if (showLoader) {
+      setIsLoading(true);
+    }
 
     let query = supabase
       .from("posts")
@@ -241,7 +243,7 @@ const Index = () => {
           
           <CreatePost
             currentUser={currentUser}
-            onPostCreated={() => loadPosts(currentUser.id)}
+            onPostCreated={() => loadPosts(currentUser.id, false)}
           />
 
           <FeedFilter

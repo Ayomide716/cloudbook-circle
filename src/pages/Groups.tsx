@@ -16,8 +16,7 @@ interface Group {
   id: string;
   name: string;
   description: string | null;
-  cover_url: string | null;
-  privacy: string;
+  image_url: string | null;
   created_by: string;
   member_count?: number;
 }
@@ -32,7 +31,6 @@ const Groups = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    privacy: "public",
   });
 
   useEffect(() => {
@@ -98,7 +96,6 @@ const Groups = () => {
       .insert({
         name: formData.name,
         description: formData.description,
-        privacy: formData.privacy,
         created_by: currentUserId,
       } as any)
       .select()
@@ -126,7 +123,7 @@ const Groups = () => {
       title: "Group created successfully",
     });
     setIsCreating(false);
-    setFormData({ name: "", description: "", privacy: "public" });
+    setFormData({ name: "", description: "" });
     loadGroups();
   };
 
@@ -174,9 +171,9 @@ const Groups = () => {
                 className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
                 onClick={() => navigate(`/groups/${group.id}`)}
               >
-                {group.cover_url && (
+                {group.image_url && (
                   <img
-                    src={group.cover_url}
+                    src={group.image_url}
                     alt={group.name}
                     className="w-full h-32 object-cover rounded-lg mb-3"
                   />
@@ -190,11 +187,6 @@ const Groups = () => {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <Users className="h-4 w-4" />
                   <span>{group.member_count || 0} members</span>
-                  {group.privacy === "private" && (
-                    <span className="ml-auto text-xs bg-secondary px-2 py-1 rounded">
-                      Private
-                    </span>
-                  )}
                 </div>
               </Card>
             ))}
@@ -230,30 +222,6 @@ const Groups = () => {
                 placeholder="What is this group about?"
                 className="min-h-[100px]"
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Privacy</Label>
-              <div className="flex gap-4">
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="public"
-                    checked={formData.privacy === "public"}
-                    onChange={(e) => setFormData({ ...formData, privacy: e.target.value })}
-                  />
-                  <span>Public</span>
-                </label>
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="radio"
-                    value="private"
-                    checked={formData.privacy === "private"}
-                    onChange={(e) => setFormData({ ...formData, privacy: e.target.value })}
-                  />
-                  <span>Private</span>
-                </label>
-              </div>
             </div>
 
             <div className="flex justify-end gap-2">
