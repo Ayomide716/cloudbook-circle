@@ -54,7 +54,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="text-primary-foreground hover:bg-primary-foreground/10 p-2 hidden sm:flex"
+                  className="text-primary-foreground hover:bg-primary-foreground/10 p-2"
                   onClick={() => navigate("/groups")}
                 >
                   <Users className="h-5 w-5" />
