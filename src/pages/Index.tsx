@@ -88,38 +88,6 @@ const Index = () => {
           });
         }
       )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "likes",
-        },
-        () => {
-          const session = supabase.auth.getSession();
-          session.then(({ data }) => {
-            if (data.session) {
-              loadPosts(data.session.user.id);
-            }
-          });
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "comments",
-        },
-        () => {
-          const session = supabase.auth.getSession();
-          session.then(({ data }) => {
-            if (data.session) {
-              loadPosts(data.session.user.id);
-            }
-          });
-        }
-      )
       .subscribe();
 
     return () => {
