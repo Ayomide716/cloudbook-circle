@@ -344,23 +344,38 @@ export type Database = {
         Row: {
           avatar_url: string | null
           bio: string | null
+          cover_url: string | null
           created_at: string | null
+          education: string | null
           full_name: string | null
           id: string
+          location: string | null
+          website: string | null
+          work: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
+          cover_url?: string | null
           created_at?: string | null
+          education?: string | null
           full_name?: string | null
           id: string
+          location?: string | null
+          website?: string | null
+          work?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
+          cover_url?: string | null
           created_at?: string | null
+          education?: string | null
           full_name?: string | null
           id?: string
+          location?: string | null
+          website?: string | null
+          work?: string | null
         }
         Relationships: []
       }
@@ -431,7 +446,15 @@ export type Database = {
           media_url?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "stories_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_views: {
         Row: {
