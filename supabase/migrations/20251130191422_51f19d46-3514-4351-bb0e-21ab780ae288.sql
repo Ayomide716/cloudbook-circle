@@ -1,0 +1,7 @@
+-- Add missing profile fields
+ALTER TABLE public.profiles
+ADD COLUMN IF NOT EXISTS cover_url TEXT,
+ADD COLUMN IF NOT EXISTS location TEXT,
+ADD COLUMN IF NOT EXISTS website TEXT,
+ADD COLUMN IF NOT EXISTS work TEXT,
+ADD COLUMN IF NOT EXISTS education TEXT;
