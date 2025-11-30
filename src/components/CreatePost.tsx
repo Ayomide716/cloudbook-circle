@@ -20,6 +20,7 @@ interface CreatePostProps {
 const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -43,6 +44,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
         content: content.trim(),
         user_id: currentUser.id,
         image_url: imageUrl || null,
+        video_url: videoUrl || null,
       });
 
     setIsLoading(false);
@@ -58,6 +60,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     setContent("");
     setImageUrl("");
+    setVideoUrl("");
     toast({
       title: "Post created!",
     });
@@ -91,6 +94,17 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               currentImage={imageUrl}
               label="Add Photo"
             />
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Video URL (optional)</label>
+              <input
+                type="url"
+                placeholder="Enter video URL"
+                value={videoUrl}
+                onChange={(e) => setVideoUrl(e.target.value)}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              />
+            </div>
             
             <div className="flex justify-end">
               <Button
