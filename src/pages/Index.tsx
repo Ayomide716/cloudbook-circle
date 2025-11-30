@@ -20,7 +20,9 @@ interface Post {
   id: string;
   content: string;
   image_url: string | null;
+  video_url?: string | null;
   created_at: string;
+  user_id: string;
   profiles: {
     id: string;
     full_name: string | null;
@@ -35,7 +37,7 @@ const Index = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [feedFilter, setFeedFilter] = useState<'all' | 'friends'>('all');
-  const [likesData, setLikesData] = useState<Record<string, { count: number; isLiked: boolean }>>({});
+  const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
 
   useEffect(() => {
@@ -145,9 +147,9 @@ const Index = () => {
     
     const postIds = postsData?.map(p => p.id) || [];
 
-    const { data: likesData } = await supabase
-      .from("likes")
-      .select("post_id, user_id")
+    const { data: reactionsData } = await supabase
+      .from("reactions")
+      .select("post_id, user_id, reaction_type")
       .in("post_id", postIds);
 
     const { data: commentsData } = await supabase
@@ -163,12 +165,17 @@ const Index = () => {
       .in("post_id", postIds)
       .order("created_at", { ascending: true });
 
-    const likesMap: Record<string, { count: number; isLiked: boolean }> = {};
+    const reactionsMap: Record<string, { reactions: Record<string, number>; userReaction: string | null }> = {};
     postIds.forEach(id => {
-      const postLikes = likesData?.filter(l => l.post_id === id) || [];
-      likesMap[id] = {
-        count: postLikes.length,
-        isLiked: postLikes.some(l => l.user_id === userId),
+      const postReactions = reactionsData?.filter(r => r.post_id === id) || [];
+      const reactionCounts: Record<string, number> = {};
+      postReactions.forEach(r => {
+        reactionCounts[r.reaction_type] = (reactionCounts[r.reaction_type] || 0) + 1;
+      });
+      const userReaction = postReactions.find(r => r.user_id === userId);
+      reactionsMap[id] = {
+        reactions: reactionCounts,
+        userReaction: userReaction?.reaction_type || null
       };
     });
 
@@ -177,22 +184,30 @@ const Index = () => {
       commentsMap[id] = commentsData?.filter(c => c.post_id === id) || [];
     });
 
-    setLikesData(likesMap);
+    setReactionsData(reactionsMap);
     setCommentsData(commentsMap);
     setIsLoading(false);
   };
 
-  const handleLikeToggle = async (postId: string) => {
+  const handleReactionToggle = async (postId: string, reactionType: string) => {
     if (!currentUser) return;
     
-    const wasLiked = likesData[postId]?.isLiked || false;
+    const wasReaction = reactionsData[postId]?.userReaction;
+    const currentReactions = { ...(reactionsData[postId]?.reactions || {}) };
+    
+    if (wasReaction) {
+      currentReactions[wasReaction] = Math.max(0, (currentReactions[wasReaction] || 1) - 1);
+    }
+    if (wasReaction !== reactionType) {
+      currentReactions[reactionType] = (currentReactions[reactionType] || 0) + 1;
+    }
     
     // Optimistically update UI
-    setLikesData(prev => ({
+    setReactionsData(prev => ({
       ...prev,
       [postId]: {
-        count: wasLiked ? prev[postId].count - 1 : prev[postId].count + 1,
-        isLiked: !wasLiked
+        reactions: currentReactions,
+        userReaction: wasReaction === reactionType ? null : reactionType
       }
     }));
   };
@@ -261,11 +276,12 @@ const Index = () => {
                 key={post.id}
                 post={post}
                 currentUserId={currentUser.id}
-                likesCount={likesData[post.id]?.count || 0}
-                isLiked={likesData[post.id]?.isLiked || false}
+                reactions={reactionsData[post.id]?.reactions || {}}
+                userReaction={reactionsData[post.id]?.userReaction || null}
                 comments={commentsData[post.id] || []}
-                onLikeToggle={() => handleLikeToggle(post.id)}
+                onReactionToggle={(type) => handleReactionToggle(post.id, type)}
                 onCommentAdded={() => handleCommentAdded(post.id)}
+                onDelete={() => loadPosts(currentUser.id, false)}
               />
             ))
           )}

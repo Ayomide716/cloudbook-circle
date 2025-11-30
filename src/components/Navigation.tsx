@@ -1,6 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, User, LogOut, MessageCircle, Users } from "lucide-react";
+import { Home, User, LogOut, MessageCircle, Users, Film } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { lazy, Suspense } from "react";
@@ -51,6 +51,14 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                 <Suspense fallback={<div className="w-10" />}>
                   <FriendRequests userId={currentUserId} />
                 </Suspense>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="text-primary-foreground hover:bg-primary-foreground/10 p-2"
+                  onClick={() => navigate("/reels")}
+                >
+                  <Film className="h-5 w-5" />
+                </Button>
                 <Button
                   variant="ghost"
                   size="sm"
