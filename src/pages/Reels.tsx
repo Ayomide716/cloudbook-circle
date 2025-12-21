@@ -1,13 +1,16 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Heart, MessageCircle, Share2, Play, Upload } from "lucide-react";
+import { Heart, MessageCircle, Share2, Upload, ChevronUp, ChevronDown, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface Reel {
   id: string;
@@ -37,6 +40,7 @@ interface Reel {
 }
 
 export default function Reels() {
+  const navigate = useNavigate();
   const [reels, setReels] = useState<Reel[]>([]);
   const [currentReelIndex, setCurrentReelIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -49,9 +53,18 @@ export default function Reels() {
   const [uploadVideoUrl, setUploadVideoUrl] = useState("");
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data: { user } }) => setUser(user));
+    checkAuth();
     loadReels();
   }, []);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/auth");
+      return;
+    }
+    setUser(session.user);
+  };
 
   const loadReels = async () => {
     setLoading(true);
@@ -140,24 +153,48 @@ export default function Reels() {
     }
   };
 
+  const goToPrevReel = () => {
+    if (currentReelIndex > 0) {
+      setCurrentReelIndex(currentReelIndex - 1);
+      setShowComments(false);
+    }
+  };
+
+  const goToNextReel = () => {
+    if (currentReelIndex < reels.length - 1) {
+      setCurrentReelIndex(currentReelIndex + 1);
+      setShowComments(false);
+    }
+  };
+
   const currentReel = reels[currentReelIndex];
 
   if (loading) {
-    return <div className="container mx-auto p-4">Loading reels...</div>;
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation currentUserId={user?.id} />
+        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-lg relative">
-        <div className="fixed top-4 right-4 z-50">
+      <Navigation currentUserId={user?.id} />
+      
+      <div className="container mx-auto px-2 sm:px-4 py-4 max-w-lg">
+        {/* Upload Button */}
+        <div className="flex justify-end mb-4">
           <Dialog open={showUpload} onOpenChange={setShowUpload}>
             <DialogTrigger asChild>
-              <Button size="lg" className="rounded-full">
-                <Upload className="h-5 w-5 mr-2" />
-                Upload Reel
+              <Button size="sm" className="sm:size-default">
+                <Upload className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Upload Reel</span>
               </Button>
             </DialogTrigger>
-            <DialogContent>
+            <DialogContent className="mx-4 sm:mx-0">
               <DialogHeader>
                 <DialogTitle>Upload New Reel</DialogTitle>
               </DialogHeader>
@@ -186,118 +223,155 @@ export default function Reels() {
           </Dialog>
         </div>
 
-        {currentReel && (
-          <Card className="relative h-[80vh] overflow-hidden">
-            <video
-              src={currentReel.video_url}
-              className="w-full h-full object-cover"
-              controls
-              autoPlay
-              loop
-            />
-
-            <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 to-transparent">
-              <div className="flex items-start gap-3 mb-4">
-                <Avatar>
-                  <AvatarImage src={currentReel.profiles.avatar_url || ""} />
-                  <AvatarFallback>
-                    {currentReel.profiles.full_name?.[0] || "U"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <p className="font-semibold text-white">
-                    {currentReel.profiles.full_name || "Anonymous"}
-                  </p>
-                  {currentReel.caption && (
-                    <p className="text-sm text-white/90">{currentReel.caption}</p>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-6 text-white">
-                <button
-                  onClick={() => handleLike(currentReel.id)}
-                  className="flex items-center gap-2"
-                >
-                  <Heart
-                    className={`h-6 w-6 ${
-                      currentReel.reel_likes.some((like) => like.user_id === user?.id)
-                        ? "fill-red-500 text-red-500"
-                        : ""
-                    }`}
-                  />
-                  <span>{currentReel.reel_likes.length}</span>
-                </button>
-
-                <button
-                  onClick={() => setShowComments(!showComments)}
-                  className="flex items-center gap-2"
-                >
-                  <MessageCircle className="h-6 w-6" />
-                  <span>{currentReel.reel_comments.length}</span>
-                </button>
-
-                <button
-                  onClick={() => handleShare(currentReel.id)}
-                  className="flex items-center gap-2"
-                >
-                  <Share2 className="h-6 w-6" />
-                </button>
-              </div>
-
-              {showComments && (
-                <div className="mt-4 bg-background/95 backdrop-blur rounded-lg p-4 max-h-60 overflow-y-auto">
-                  <div className="space-y-3 mb-3">
-                    {currentReel.reel_comments.map((comment) => (
-                      <div key={comment.id} className="flex gap-2">
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage src={comment.profiles.avatar_url || ""} />
-                          <AvatarFallback>
-                            {comment.profiles.full_name?.[0] || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1">
-                          <p className="text-sm font-semibold text-foreground">
-                            {comment.profiles.full_name || "Anonymous"}
-                          </p>
-                          <p className="text-sm text-muted-foreground">{comment.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Add a comment..."
-                      value={commentText}
-                      onChange={(e) => setCommentText(e.target.value)}
-                      onKeyPress={(e) => e.key === "Enter" && handleComment()}
-                    />
-                    <Button onClick={handleComment} size="sm">
-                      Post
-                    </Button>
-                  </div>
-                </div>
-              )}
-            </div>
+        {reels.length === 0 ? (
+          <Card className="p-8 sm:p-12 text-center">
+            <p className="text-muted-foreground mb-4">No reels yet. Be the first to upload!</p>
+            <Button onClick={() => setShowUpload(true)}>
+              <Upload className="h-4 w-4 mr-2" />
+              Upload Reel
+            </Button>
           </Card>
-        )}
+        ) : (
+          <>
+            {currentReel && (
+              <Card className="relative overflow-hidden">
+                {/* Video Container */}
+                <div className="relative aspect-[9/16] max-h-[70vh] sm:max-h-[75vh] bg-black">
+                  <video
+                    key={currentReel.id}
+                    src={currentReel.video_url}
+                    className="w-full h-full object-contain"
+                    controls
+                    autoPlay
+                    loop
+                    playsInline
+                  />
 
-        <div className="flex justify-center gap-4 mt-4">
-          <Button
-            onClick={() => setCurrentReelIndex(Math.max(0, currentReelIndex - 1))}
-            disabled={currentReelIndex === 0}
-          >
-            Previous
-          </Button>
-          <Button
-            onClick={() =>
-              setCurrentReelIndex(Math.min(reels.length - 1, currentReelIndex + 1))
-            }
-            disabled={currentReelIndex === reels.length - 1}
-          >
-            Next
-          </Button>
-        </div>
+                  {/* Overlay Content */}
+                  <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-4 bg-gradient-to-t from-black/80 to-transparent">
+                    <div className="flex items-start gap-2 sm:gap-3 mb-3">
+                      <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                        <AvatarImage src={currentReel.profiles.avatar_url || ""} />
+                        <AvatarFallback>
+                          {currentReel.profiles.full_name?.[0] || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-white text-sm sm:text-base truncate">
+                          {currentReel.profiles.full_name || "Anonymous"}
+                        </p>
+                        {currentReel.caption && (
+                          <p className="text-xs sm:text-sm text-white/90 line-clamp-2">{currentReel.caption}</p>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex items-center gap-4 sm:gap-6 text-white">
+                      <button
+                        onClick={() => handleLike(currentReel.id)}
+                        className="flex items-center gap-1 sm:gap-2 transition-transform active:scale-110"
+                      >
+                        <Heart
+                          className={`h-5 w-5 sm:h-6 sm:w-6 ${
+                            currentReel.reel_likes.some((like) => like.user_id === user?.id)
+                              ? "fill-red-500 text-red-500"
+                              : ""
+                          }`}
+                        />
+                        <span className="text-sm">{currentReel.reel_likes.length}</span>
+                      </button>
+
+                      <button
+                        onClick={() => setShowComments(!showComments)}
+                        className="flex items-center gap-1 sm:gap-2"
+                      >
+                        <MessageCircle className="h-5 w-5 sm:h-6 sm:w-6" />
+                        <span className="text-sm">{currentReel.reel_comments.length}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleShare(currentReel.id)}
+                        className="flex items-center gap-1 sm:gap-2"
+                      >
+                        <Share2 className="h-5 w-5 sm:h-6 sm:w-6" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Comments Section */}
+                {showComments && (
+                  <div className="p-3 sm:p-4 bg-card border-t max-h-60 overflow-hidden">
+                    <ScrollArea className="h-40 mb-3">
+                      <div className="space-y-3 pr-2">
+                        {currentReel.reel_comments.length === 0 ? (
+                          <p className="text-sm text-muted-foreground text-center py-4">No comments yet</p>
+                        ) : (
+                          currentReel.reel_comments.map((comment) => (
+                            <div key={comment.id} className="flex gap-2">
+                              <Avatar className="h-7 w-7 sm:h-8 sm:w-8 flex-shrink-0">
+                                <AvatarImage src={comment.profiles.avatar_url || ""} />
+                                <AvatarFallback>
+                                  {comment.profiles.full_name?.[0] || "U"}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs sm:text-sm font-semibold truncate">
+                                  {comment.profiles.full_name || "Anonymous"}
+                                </p>
+                                <p className="text-xs sm:text-sm text-muted-foreground break-words">{comment.content}</p>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </ScrollArea>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Add a comment..."
+                        value={commentText}
+                        onChange={(e) => setCommentText(e.target.value)}
+                        onKeyPress={(e) => e.key === "Enter" && handleComment()}
+                        className="text-sm"
+                      />
+                      <Button onClick={handleComment} size="sm">
+                        Post
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex justify-center gap-3 mt-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPrevReel}
+                disabled={currentReelIndex === 0}
+                className="flex-1 max-w-32"
+              >
+                <ChevronUp className="h-4 w-4 mr-1" />
+                <span className="hidden sm:inline">Previous</span>
+              </Button>
+              <span className="flex items-center text-sm text-muted-foreground">
+                {currentReelIndex + 1} / {reels.length}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextReel}
+                disabled={currentReelIndex === reels.length - 1}
+                className="flex-1 max-w-32"
+              >
+                <span className="hidden sm:inline">Next</span>
+                <ChevronDown className="h-4 w-4 ml-1" />
+              </Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );

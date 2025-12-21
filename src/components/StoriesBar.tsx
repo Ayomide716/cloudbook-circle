@@ -146,20 +146,20 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   return (
     <>
-      <Card className="p-4 mb-4 overflow-hidden">
-        <div className="flex gap-3 overflow-x-auto pb-2">
+      <Card className="p-3 sm:p-4 mb-4 overflow-hidden">
+        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide">
           <div
             className="flex-shrink-0 cursor-pointer"
             onClick={() => setIsCreating(true)}
           >
             <div className="relative">
-              <Avatar className="h-16 w-16 border-2 border-primary">
+              <Avatar className="h-14 w-14 sm:h-16 sm:w-16 border-2 border-primary">
                 <AvatarFallback>
-                  <Plus className="h-6 w-6" />
+                  <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
                 </AvatarFallback>
               </Avatar>
             </div>
-            <p className="text-xs text-center mt-1 w-16 truncate">Create Story</p>
+            <p className="text-[10px] sm:text-xs text-center mt-1 w-14 sm:w-16 truncate">Create Story</p>
           </div>
 
           {stories.map((story) => (
@@ -169,14 +169,14 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               onClick={() => handleViewStory(story)}
             >
               <div className="relative">
-                <Avatar className="h-16 w-16 border-4 border-primary">
+                <Avatar className="h-14 w-14 sm:h-16 sm:w-16 border-4 border-primary">
                   <AvatarImage src={story.profiles.avatar_url || undefined} />
                   <AvatarFallback>
                     {story.profiles.full_name?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <p className="text-xs text-center mt-1 w-16 truncate">
+              <p className="text-[10px] sm:text-xs text-center mt-1 w-14 sm:w-16 truncate">
                 {story.user_id === currentUserId
                   ? "Your Story"
                   : story.profiles.full_name || "Anonymous"}
