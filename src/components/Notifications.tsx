@@ -101,12 +101,12 @@ const Notifications = ({ userId }: NotificationsProps) => {
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:bg-primary-foreground/10 relative"
+          size="icon"
+          className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 relative"
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
-            <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 w-5 flex items-center justify-center">
+            <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-xs rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
               {unreadCount}
             </span>
           )}

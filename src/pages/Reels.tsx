@@ -181,10 +181,10 @@ export default function Reels() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-safe">
       <Navigation currentUserId={user?.id} />
       
-      <div className="container mx-auto px-2 sm:px-4 py-4 max-w-lg">
+      <div className="container mx-auto px-2 sm:px-4 py-4 max-w-md">
         {/* Upload Button */}
         <div className="flex justify-end mb-4">
           <Dialog open={showUpload} onOpenChange={setShowUpload}>
