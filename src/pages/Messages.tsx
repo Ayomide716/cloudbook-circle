@@ -220,10 +220,10 @@ const Messages = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-safe">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 h-[calc(100vh-64px)] sm:h-[calc(100vh-88px)]">
+      <div className="container mx-auto px-2 sm:px-4 py-4 h-[calc(100vh-56px-56px)] md:h-[calc(100vh-56px)]">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 h-full">
           <Card className={`md:col-span-1 p-3 sm:p-4 ${selectedConversation ? 'hidden md:block' : ''}`}>
             <div className="space-y-3 mb-4">

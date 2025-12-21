@@ -2,71 +2,69 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Facebook-inspired design system */
 
 @layer base {
   :root {
-    --background: 240 16% 97%;
-    --foreground: 220 13% 13%;
+    --background: 240 6% 97%;
+    --foreground: 224 8% 12%;
 
     --card: 0 0% 100%;
-    --card-foreground: 220 13% 13%;
+    --card-foreground: 224 8% 12%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 220 13% 13%;
+    --popover-foreground: 224 8% 12%;
 
-    --primary: 214 89% 52%;
+    --primary: 214 100% 50%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 14% 96%;
-    --secondary-foreground: 220 13% 13%;
+    --secondary-foreground: 224 8% 12%;
 
     --muted: 220 14% 96%;
     --muted-foreground: 220 9% 46%;
 
-    --accent: 214 89% 52%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 214 100% 96%;
+    --accent-foreground: 214 100% 50%;
 
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 13% 91%;
     --input: 220 13% 91%;
-    --ring: 214 89% 52%;
+    --ring: 214 100% 50%;
 
     --radius: 0.5rem;
   }
 
   .dark {
-    --background: 222 47% 11%;
+    --background: 224 14% 10%;
     --foreground: 210 40% 98%;
 
-    --card: 222 47% 15%;
+    --card: 224 14% 14%;
     --card-foreground: 210 40% 98%;
 
-    --popover: 222 47% 15%;
+    --popover: 224 14% 14%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 214 89% 52%;
+    --primary: 214 100% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 217 33% 17%;
+    --secondary: 224 14% 20%;
     --secondary-foreground: 210 40% 98%;
 
-    --muted: 217 33% 17%;
+    --muted: 224 14% 20%;
     --muted-foreground: 215 20% 65%;
 
-    --accent: 214 89% 52%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 224 14% 20%;
+    --accent-foreground: 210 40% 98%;
 
     --destructive: 0 63% 31%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 214 89% 52%;
+    --border: 224 14% 20%;
+    --input: 224 14% 20%;
+    --ring: 214 100% 50%;
   }
 }
 
@@ -76,6 +74,40 @@ All colors MUST be HSL.
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+  }
+
+  /* Safe area for mobile bottom navigation */
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Hide scrollbar but allow scrolling */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer utilities {
+  /* Facebook-style hover states */
+  .fb-hover {
+    @apply transition-colors hover:bg-accent rounded-lg;
+  }
+
+  /* Responsive padding for bottom nav */
+  .pb-safe {
+    padding-bottom: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* For pages with bottom nav on mobile */
+  @screen md {
+    .pb-safe {
+      padding-bottom: 0;
+    }
   }
 }

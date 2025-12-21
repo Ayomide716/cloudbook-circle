@@ -247,10 +247,10 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background pb-safe">
       <Navigation currentUserId={currentUser.id} />
       
-      <div className="container mx-auto px-4 py-6 max-w-2xl">
+      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-xl">
         <div className="space-y-4">
           <Suspense fallback={<div className="h-24" />}>
             <StoriesBar currentUserId={currentUser.id} />

@@ -58,8 +58,8 @@ const SearchUsers = () => {
       <PopoverTrigger asChild>
         <Button
           variant="ghost"
-          size="sm"
-          className="text-primary-foreground hover:bg-primary-foreground/10"
+          size="icon"
+          className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80"
         >
           <Search className="h-5 w-5" />
         </Button>

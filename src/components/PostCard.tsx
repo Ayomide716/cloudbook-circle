@@ -3,12 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreVertical } from "lucide-react";
+import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
+import { cn } from "@/lib/utils";
 
 interface Comment {
   id: string;
@@ -45,12 +46,12 @@ interface PostCardProps {
 }
 
 const REACTION_TYPES = [
-  { type: 'like', icon: Heart, label: 'Like', color: 'text-blue-500' },
-  { type: 'love', icon: Heart, label: 'Love', color: 'text-red-500' },
-  { type: 'haha', icon: Laugh, label: 'Haha', color: 'text-yellow-500' },
-  { type: 'wow', icon: Sparkles, label: 'Wow', color: 'text-purple-500' },
-  { type: 'sad', icon: Frown, label: 'Sad', color: 'text-gray-500' },
-  { type: 'angry', icon: Angry, label: 'Angry', color: 'text-orange-500' },
+  { type: 'like', icon: ThumbsUp, label: 'Like', color: 'text-primary', bgColor: 'bg-primary' },
+  { type: 'love', icon: Heart, label: 'Love', color: 'text-red-500', bgColor: 'bg-red-500' },
+  { type: 'haha', icon: Laugh, label: 'Haha', color: 'text-yellow-500', bgColor: 'bg-yellow-500' },
+  { type: 'wow', icon: Sparkles, label: 'Wow', color: 'text-yellow-500', bgColor: 'bg-yellow-500' },
+  { type: 'sad', icon: Frown, label: 'Sad', color: 'text-yellow-600', bgColor: 'bg-yellow-600' },
+  { type: 'angry', icon: Angry, label: 'Angry', color: 'text-orange-500', bgColor: 'bg-orange-500' },
 ];
 
 const PostCard = ({
@@ -161,126 +162,151 @@ const PostCard = ({
     }
 
     setCommentContent("");
+    setShowComments(true);
     onCommentAdded();
   };
 
   const totalReactions = Object.values(reactions).reduce((a, b) => a + b, 0);
   const currentReaction = REACTION_TYPES.find(r => r.type === userReaction);
 
+  // Get top 3 reaction types for display
+  const topReactions = Object.entries(reactions)
+    .filter(([_, count]) => count > 0)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3);
+
   return (
-    <Card className="p-3 sm:p-4">
-      <div className="flex items-start gap-2 sm:gap-3 mb-3">
-        <Link to={`/profile/${post.profiles.id}`}>
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={post.profiles.avatar_url || undefined} />
-            <AvatarFallback>
-              {post.profiles.full_name?.[0]?.toUpperCase() || "U"}
-            </AvatarFallback>
-          </Avatar>
-        </Link>
-        
-        <div className="flex-1">
+    <Card className="shadow-sm overflow-hidden">
+      {/* Header */}
+      <div className="p-3 sm:p-4">
+        <div className="flex items-start gap-2 sm:gap-3">
           <Link to={`/profile/${post.profiles.id}`}>
-            <p className="font-semibold hover:underline">
-              {post.profiles.full_name || "Anonymous"}
-            </p>
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={post.profiles.avatar_url || undefined} />
+              <AvatarFallback className="bg-secondary">
+                {post.profiles.full_name?.[0]?.toUpperCase() || "U"}
+              </AvatarFallback>
+            </Avatar>
           </Link>
-          <p className="text-sm text-muted-foreground">
-            {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
-          </p>
+          
+          <div className="flex-1 min-w-0">
+            <Link to={`/profile/${post.profiles.id}`}>
+              <p className="font-semibold text-sm sm:text-base hover:underline">
+                {post.profiles.full_name || "Anonymous"}
+              </p>
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+            </p>
+          </div>
+
+          {currentUserId === post.user_id && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                  <MoreHorizontal className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Post
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
 
-        {currentUserId === post.user_id && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <MoreVertical className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent>
-              <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Post
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        )}
+        {/* Content */}
+        <p className="mt-3 text-sm sm:text-base whitespace-pre-wrap break-words">{post.content}</p>
       </div>
 
-      <p className="mb-3 whitespace-pre-wrap text-sm sm:text-base break-words">{post.content}</p>
-
+      {/* Media */}
       {post.video_url && (
         <video
           src={post.video_url}
           controls
-          className="w-full rounded-lg mb-3 max-h-96 sm:max-h-[500px] object-cover"
+          className="w-full max-h-[500px] object-contain bg-black"
         />
       )}
-
       {post.image_url && (
         <img
           src={post.image_url}
           alt="Post content"
-          className="w-full rounded-lg mb-3 max-h-96 sm:max-h-[500px] object-cover"
+          className="w-full max-h-[500px] object-cover"
         />
       )}
 
-      <div className="flex items-center gap-1 text-xs sm:text-sm text-muted-foreground mb-3 border-b pb-2">
-        {totalReactions > 0 && (
-          <div className="flex items-center gap-1">
-            {Object.entries(reactions).filter(([_, count]) => count > 0).map(([type, count]) => {
-              const reaction = REACTION_TYPES.find(r => r.type === type);
-              if (!reaction) return null;
-              const Icon = reaction.icon;
-              return (
-                <div key={type} className="flex items-center">
-                  <Icon className={`h-3 w-3 ${reaction.color}`} />
-                </div>
-              );
-            })}
-            <span>{totalReactions}</span>
-          </div>
-        )}
-        {comments.length > 0 && totalReactions > 0 && <span>•</span>}
+      {/* Reactions Summary & Comments Count */}
+      <div className="px-3 sm:px-4 py-2 flex items-center justify-between text-sm text-muted-foreground border-b">
+        <div className="flex items-center gap-1">
+          {topReactions.length > 0 && (
+            <>
+              <div className="flex -space-x-1">
+                {topReactions.map(([type]) => {
+                  const reaction = REACTION_TYPES.find(r => r.type === type);
+                  if (!reaction) return null;
+                  const Icon = reaction.icon;
+                  return (
+                    <div
+                      key={type}
+                      className={cn("h-5 w-5 rounded-full flex items-center justify-center", reaction.bgColor)}
+                    >
+                      <Icon className="h-3 w-3 text-white" />
+                    </div>
+                  );
+                })}
+              </div>
+              <span className="ml-1">{totalReactions}</span>
+            </>
+          )}
+        </div>
         {comments.length > 0 && (
-          <span>{comments.length} {comments.length === 1 ? "comment" : "comments"}</span>
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className="hover:underline"
+          >
+            {comments.length} {comments.length === 1 ? "comment" : "comments"}
+          </button>
         )}
       </div>
 
-      <div className="flex gap-1 sm:gap-2 mb-3 relative">
+      {/* Action Buttons */}
+      <div className="px-2 py-1 flex items-center border-b relative">
         <div 
-          className="relative flex-1"
+          className="flex-1 relative"
           onMouseEnter={() => setShowReactions(true)}
           onMouseLeave={() => setShowReactions(false)}
         >
+          {/* Reaction Picker */}
           {showReactions && (
-            <div className="absolute bottom-full left-0 mb-2 bg-background border rounded-full shadow-lg p-2 flex gap-2 z-10">
+            <div className="absolute bottom-full left-0 mb-2 bg-card border rounded-full shadow-lg p-1.5 flex gap-1 z-20 animate-in fade-in-0 zoom-in-95">
               {REACTION_TYPES.map(({ type, icon: Icon, label, color }) => (
                 <button
                   key={type}
                   onClick={() => handleReaction(type)}
-                  className="hover:scale-125 transition-transform"
+                  className="p-1.5 hover:scale-125 transition-transform rounded-full hover:bg-accent"
                   title={label}
                 >
-                  <Icon className={`h-6 w-6 ${color}`} />
+                  <Icon className={cn("h-6 w-6", color)} />
                 </button>
               ))}
             </div>
           )}
+          
           <Button
             variant="ghost"
-            size="sm"
-            className="w-full text-xs sm:text-sm"
+            className="w-full gap-2 text-muted-foreground hover:bg-accent"
             onClick={() => handleReaction('like')}
           >
             {currentReaction ? (
               <>
-                <currentReaction.icon className={`h-4 w-4 sm:h-5 sm:w-5 sm:mr-2 ${currentReaction.color}`} />
-                <span className={`hidden sm:inline ${currentReaction.color}`}>{currentReaction.label}</span>
+                <currentReaction.icon className={cn("h-5 w-5", currentReaction.color)} />
+                <span className={cn("hidden sm:inline", currentReaction.color)}>{currentReaction.label}</span>
               </>
             ) : (
               <>
-                <Heart className="h-4 w-4 sm:h-5 sm:w-5 sm:mr-2" />
+                <ThumbsUp className="h-5 w-5" />
                 <span className="hidden sm:inline">Like</span>
               </>
             )}
@@ -289,74 +315,95 @@ const PostCard = ({
         
         <Button
           variant="ghost"
-          size="sm"
-          className="flex-1 text-xs sm:text-sm"
+          className="flex-1 gap-2 text-muted-foreground hover:bg-accent"
           onClick={() => setShowComments(!showComments)}
         >
-          <MessageCircle className="h-4 w-4 sm:h-5 sm:w-5 sm:mr-2" />
+          <MessageCircle className="h-5 w-5" />
           <span className="hidden sm:inline">Comment</span>
+        </Button>
+
+        <Button
+          variant="ghost"
+          className="flex-1 gap-2 text-muted-foreground hover:bg-accent"
+          onClick={() => {
+            navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
+            toast({ title: "Link copied!" });
+          }}
+        >
+          <Share2 className="h-5 w-5" />
+          <span className="hidden sm:inline">Share</span>
         </Button>
       </div>
 
+      {/* Comments Section */}
       {showComments && (
-        <div className="space-y-3 border-t pt-3">
+        <div className="p-3 sm:p-4 space-y-3 bg-accent/30">
+          {/* Comment Input */}
+          <form onSubmit={handleComment} className="flex gap-2">
+            <Avatar className="h-8 w-8 flex-shrink-0">
+              <AvatarFallback className="bg-secondary text-xs">U</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 flex gap-2">
+              <Textarea
+                placeholder="Write a comment..."
+                value={commentContent}
+                onChange={(e) => setCommentContent(e.target.value)}
+                className="min-h-[36px] h-9 py-2 resize-none rounded-full bg-secondary border-0"
+                disabled={isSubmitting}
+                rows={1}
+              />
+              <Button
+                type="submit"
+                size="sm"
+                disabled={isSubmitting || !commentContent.trim()}
+                className="rounded-full px-4"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Post"
+                )}
+              </Button>
+            </div>
+          </form>
+
+          {/* Comments List */}
           {comments.map((comment) => (
             <div key={comment.id} className="flex gap-2">
               <Link to={`/profile/${comment.profiles.id}`}>
-                <Avatar className="h-8 w-8">
+                <Avatar className="h-8 w-8 flex-shrink-0">
                   <AvatarImage src={comment.profiles.avatar_url || undefined} />
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-secondary text-xs">
                     {comment.profiles.full_name?.[0]?.toUpperCase() || "U"}
                   </AvatarFallback>
                 </Avatar>
               </Link>
               
-              <div className="flex-1">
-                <div className="bg-secondary rounded-lg p-2 relative group">
+              <div className="flex-1 min-w-0">
+                <div className="bg-secondary rounded-2xl px-3 py-2 relative group inline-block max-w-full">
                   <Link to={`/profile/${comment.profiles.id}`}>
-                    <p className="font-semibold text-sm hover:underline">
+                    <p className="font-semibold text-xs sm:text-sm hover:underline">
                       {comment.profiles.full_name || "Anonymous"}
                     </p>
                   </Link>
-                  <p className="text-sm">{comment.content}</p>
+                  <p className="text-sm break-words">{comment.content}</p>
                   {comment.profiles.id === currentUserId && (
                     <Button
                       variant="ghost"
-                      size="sm"
+                      size="icon"
                       onClick={() => handleDeleteComment(comment.id)}
-                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6 p-0"
+                      className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
                     >
-                      <Trash2 className="h-3 w-3 text-destructive" />
+                      <Trash2 className="h-3 w-3 text-muted-foreground" />
                     </Button>
                   )}
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 ml-2">
+                <p className="text-xs text-muted-foreground mt-1 ml-3">
                   {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
                 </p>
               </div>
             </div>
           ))}
-
-          <form onSubmit={handleComment} className="flex gap-2">
-            <Textarea
-              placeholder="Write a comment..."
-              value={commentContent}
-              onChange={(e) => setCommentContent(e.target.value)}
-              className="min-h-[60px] resize-none"
-              disabled={isSubmitting}
-            />
-            <Button
-              type="submit"
-              disabled={isSubmitting || !commentContent.trim()}
-              size="sm"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                "Post"
-              )}
-            </Button>
-          </form>
         </div>
       )}
     </Card>
