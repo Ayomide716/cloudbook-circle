@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2 } from "lucide-react";
@@ -97,12 +98,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
             <div className="space-y-2">
               <label className="text-sm font-medium">Video URL (optional)</label>
-              <input
+              <Input
                 type="url"
                 placeholder="Enter video URL"
                 value={videoUrl}
                 onChange={(e) => setVideoUrl(e.target.value)}
-                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                className="text-sm"
               />
             </div>
             
