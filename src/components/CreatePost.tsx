@@ -7,7 +7,7 @@ import { Loader2, Image, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
-import { Input } from "@/components/ui/input";
+import VideoUpload from "./VideoUpload";
 import {
   Dialog,
   DialogContent,
@@ -143,13 +143,33 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               autoFocus
             />
 
+            <div className="flex items-center justify-between p-3 border rounded-lg">
+              <span className="text-sm font-medium">Add to your post</span>
+              <div className="flex gap-1">
+                <ImageUpload
+                  bucket="post-images"
+                  userId={currentUser.id}
+                  onUploadComplete={(url) => { setImageUrl(url); if (url) setVideoUrl(""); }}
+                  currentImage={imageUrl}
+                  label=""
+                />
+                <VideoUpload
+                  bucket="post-videos"
+                  userId={currentUser.id}
+                  onUploadComplete={(url) => { setVideoUrl(url); if (url) setImageUrl(""); }}
+                  currentVideo={videoUrl}
+                  label=""
+                />
+              </div>
+            </div>
+
             {(imageUrl || videoUrl) && (
               <div className="relative rounded-lg overflow-hidden bg-secondary">
                 {imageUrl && (
                   <img src={imageUrl} alt="Preview" className="w-full max-h-60 object-cover" />
                 )}
                 {videoUrl && (
-                  <video src={videoUrl} className="w-full max-h-60" controls />
+                  <video src={videoUrl} className="w-full max-h-60 bg-black" controls playsInline />
                 )}
                 <Button
                   type="button"
@@ -162,29 +182,6 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 </Button>
               </div>
             )}
-
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <span className="text-sm font-medium">Add to your post</span>
-              <div className="flex gap-2">
-                <ImageUpload
-                  bucket="post-images"
-                  userId={currentUser.id}
-                  onUploadComplete={setImageUrl}
-                  currentImage={imageUrl}
-                  label=""
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Input
-                type="url"
-                placeholder="Video URL (optional)"
-                value={videoUrl}
-                onChange={(e) => setVideoUrl(e.target.value)}
-                className="text-sm"
-              />
-            </div>
             
             <Button
               type="submit"
