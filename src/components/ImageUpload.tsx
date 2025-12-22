@@ -112,18 +112,18 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
           <label htmlFor={`file-upload-${bucket}`}>
             <Button
               type="button"
-              variant="outline"
-              className="w-full"
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full text-green-500 hover:bg-green-500/10"
               disabled={isUploading}
               asChild
             >
               <span>
                 {isUploading ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
-                  <Image className="h-4 w-4 mr-2" />
+                  <Image className="h-5 w-5" />
                 )}
-                {isUploading ? "Uploading..." : label}
               </span>
             </Button>
           </label>

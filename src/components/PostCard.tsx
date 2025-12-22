@@ -226,10 +226,12 @@ const PostCard = ({
         <video
           src={post.video_url}
           controls
+          playsInline
+          preload="metadata"
           className="w-full max-h-[500px] object-contain bg-black"
         />
       )}
-      {post.image_url && (
+      {!post.video_url && post.image_url && (
         <img
           src={post.image_url}
           alt="Post content"
