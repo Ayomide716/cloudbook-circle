@@ -110,4 +110,9 @@
       padding-bottom: 0;
     }
   }
+
+  /* Slow spin animation for music disc */
+  .animate-spin-slow {
+    animation: spin 3s linear infinite;
+  }
 }
