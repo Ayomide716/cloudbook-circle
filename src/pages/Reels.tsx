@@ -4,9 +4,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Plus, X, Music, Send, ArrowLeft } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Music, Send, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import VideoUpload from "@/components/VideoUpload";
 import { cn } from "@/lib/utils";
 import {
   Sheet,
@@ -242,23 +243,33 @@ export default function Reels() {
         >
           {reels.map((reel) => {
             const isLiked = reel.reel_likes.some(l => l.user_id === user?.id);
-            return (
-              <div key={reel.id} className="h-full w-full snap-start relative">
-                {/* Video */}
-                <video
-                  ref={(el) => {
-                    if (el) videoRefs.current.set(reel.id, el);
-                  }}
-                  src={reel.video_url}
-                  className="absolute inset-0 w-full h-full object-cover"
-                  loop
-                  playsInline
-                  muted={reel.id !== activeReelId}
-                  onClick={(e) => {
-                    const video = e.currentTarget;
-                    video.paused ? video.play() : video.pause();
-                  }}
-                />
+              return (
+                <div key={reel.id} className="h-full w-full snap-start relative">
+                  {/* Video */}
+                  <video
+                    ref={(el) => {
+                      if (el) videoRefs.current.set(reel.id, el);
+                    }}
+                    src={reel.video_url}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    loop
+                    playsInline
+                    muted
+                    controls
+                    preload="metadata"
+                    onError={() => {
+                      console.log("Reel video failed to load:", reel.video_url);
+                      toast({
+                        title: "Video couldn't play",
+                        description: "The video failed to load. Please try uploading again.",
+                        variant: "destructive",
+                      });
+                    }}
+                    onClick={(e) => {
+                      const video = e.currentTarget;
+                      video.paused ? video.play() : video.pause();
+                    }}
+                  />
 
                 {/* Overlay gradient */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70 pointer-events-none" />
@@ -416,13 +427,19 @@ export default function Reels() {
           </DialogHeader>
           <div className="space-y-4">
             <div>
-              <label className="text-sm font-medium text-foreground">Video URL</label>
-              <Input
-                placeholder="https://..."
-                value={uploadVideoUrl}
-                onChange={(e) => setUploadVideoUrl(e.target.value)}
-                className="mt-1"
-              />
+              <label className="text-sm font-medium text-foreground">Video</label>
+              <div className="mt-2 flex items-center justify-between rounded-lg border p-3">
+                <p className="text-sm text-muted-foreground">
+                  {uploadVideoUrl ? "Video selected" : "Upload from your device"}
+                </p>
+                <VideoUpload
+                  bucket="post-videos"
+                  userId={user?.id}
+                  currentVideo={uploadVideoUrl}
+                  onUploadComplete={setUploadVideoUrl}
+                  label=""
+                />
+              </div>
             </div>
             <div>
               <label className="text-sm font-medium text-foreground">Caption</label>

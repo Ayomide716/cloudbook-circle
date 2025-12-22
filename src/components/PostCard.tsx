@@ -228,6 +228,8 @@ const PostCard = ({
           controls
           playsInline
           preload="metadata"
+          crossOrigin="anonymous"
+          onError={() => console.log("Post video failed to load:", post.video_url)}
           className="w-full max-h-[500px] object-contain bg-black"
         />
       )}

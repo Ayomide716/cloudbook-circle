@@ -169,7 +169,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   <img src={imageUrl} alt="Preview" className="w-full max-h-60 object-cover" />
                 )}
                 {videoUrl && (
-                  <video src={videoUrl} className="w-full max-h-60 bg-black" controls playsInline />
+                  <video src={videoUrl} className="w-full max-h-60 bg-black" controls playsInline preload="metadata" />
                 )}
                 <Button
                   type="button"
