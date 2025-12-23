@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Plus, Music, Send, ArrowLeft } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Music, Send, ArrowLeft, Volume2, VolumeX, Play, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import VideoUpload from "@/components/VideoUpload";
@@ -61,6 +61,8 @@ export default function Reels() {
   const [showUpload, setShowUpload] = useState(false);
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploadVideoUrl, setUploadVideoUrl] = useState("");
+  const [isMuted, setIsMuted] = useState(true);
+  const [isPaused, setIsPaused] = useState<Record<string, boolean>>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
@@ -70,15 +72,17 @@ export default function Reels() {
   }, []);
 
   useEffect(() => {
-    // Auto-play the active reel, pause others
+    // Auto-play the active reel, pause others, and sync mute state
     videoRefs.current.forEach((video, id) => {
+      video.muted = isMuted;
       if (id === activeReelId) {
         video.play().catch(() => {});
+        setIsPaused((prev) => ({ ...prev, [id]: false }));
       } else {
         video.pause();
       }
     });
-  }, [activeReelId]);
+  }, [activeReelId, isMuted]);
 
   const checkAuth = async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -192,6 +196,32 @@ export default function Reels() {
     }
   };
 
+  const togglePlayPause = (reelId: string) => {
+    const video = videoRefs.current.get(reelId);
+    if (!video) return;
+    if (video.paused) {
+      video.play().catch(() => {});
+      setIsPaused((prev) => ({ ...prev, [reelId]: false }));
+    } else {
+      video.pause();
+      setIsPaused((prev) => ({ ...prev, [reelId]: true }));
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted((prev) => !prev);
+  };
+
+  const handleDeleteReel = async (reelId: string) => {
+    const { error } = await supabase.from("reels").delete().eq("id", reelId);
+    if (error) {
+      toast({ title: "Error deleting reel", variant: "destructive" });
+    } else {
+      toast({ title: "Reel deleted" });
+      setReels((prev) => prev.filter((r) => r.id !== reelId));
+    }
+  };
+
   const handleScroll = () => {
     if (!containerRef.current) return;
     const container = containerRef.current;
@@ -251,38 +281,70 @@ export default function Reels() {
               <div key={reel.id} className="h-full w-full snap-start relative">
                 {/* Video / Placeholder */}
                 {canPlayInline ? (
-                  <video
-                    ref={(el) => {
-                      if (el) videoRefs.current.set(reel.id, el);
-                    }}
-                    src={reel.video_url}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    loop
-                    playsInline
-                    muted
-                    controls
-                    preload="metadata"
-                    onError={() => {
-                      console.log("Reel video failed to load:", reel.video_url);
-                      if (reel.id === activeReelId) {
-                        toast({
-                          title: "Video couldn't play",
-                          description: "This reel video isn't accessible. Please re-upload it from your device.",
-                          variant: "destructive",
-                        });
-                      }
-                    }}
-                    onClick={(e) => {
-                      const video = e.currentTarget;
-                      video.paused ? video.play() : video.pause();
-                    }}
-                  />
+                  <>
+                    <video
+                      ref={(el) => {
+                        if (el) videoRefs.current.set(reel.id, el);
+                      }}
+                      src={reel.video_url}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      loop
+                      playsInline
+                      muted={isMuted}
+                      preload="metadata"
+                      onError={() => {
+                        console.log("Reel video failed to load:", reel.video_url);
+                        if (reel.id === activeReelId) {
+                          toast({
+                            title: "Video couldn't play",
+                            description: "This reel video isn't accessible. Please re-upload it from your device.",
+                            variant: "destructive",
+                          });
+                        }
+                      }}
+                      onClick={() => togglePlayPause(reel.id)}
+                    />
+
+                    {/* Play/Pause overlay (shows when paused) */}
+                    {isPaused[reel.id] && (
+                      <div
+                        className="absolute inset-0 flex items-center justify-center bg-black/20 z-10"
+                        onClick={() => togglePlayPause(reel.id)}
+                      >
+                        <div className="h-20 w-20 rounded-full bg-black/50 flex items-center justify-center">
+                          <Play className="h-10 w-10 text-white ml-1" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Mute/Unmute button */}
+                    <button
+                      onClick={toggleMute}
+                      className="absolute top-20 right-4 z-20 h-10 w-10 rounded-full bg-black/50 flex items-center justify-center border border-white/20"
+                    >
+                      {isMuted ? (
+                        <VolumeX className="h-5 w-5 text-white" />
+                      ) : (
+                        <Volume2 className="h-5 w-5 text-white" />
+                      )}
+                    </button>
+
+                    {/* Delete button for own reels */}
+                    {user?.id === reel.user_id && (
+                      <button
+                        onClick={() => handleDeleteReel(reel.id)}
+                        className="absolute top-20 left-4 z-20 h-10 w-10 rounded-full bg-black/50 flex items-center justify-center border border-white/20"
+                      >
+                        <Trash2 className="h-5 w-5 text-white" />
+                      </button>
+                    )}
+                  </>
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center bg-black">
                     <div className="mx-6 max-w-md rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
-                      <p className="text-white font-semibold">Video can’t play</p>
+                      <p className="text-white font-semibold">Video can't play</p>
                       <p className="mt-1 text-sm text-white/70">
-                        This reel is using a link that browsers can’t stream (like TikTok short-links). Upload a video file instead.
+                        This reel is using a link that browsers can't stream (like TikTok short-links). Upload a video file instead.
                       </p>
                       <Button
                         type="button"
@@ -292,6 +354,19 @@ export default function Reels() {
                       >
                         Upload a reel video
                       </Button>
+
+                      {/* Delete broken reel */}
+                      {user?.id === reel.user_id && (
+                        <Button
+                          type="button"
+                          variant="destructive"
+                          className="mt-2 w-full"
+                          onClick={() => handleDeleteReel(reel.id)}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete this reel
+                        </Button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -300,7 +375,7 @@ export default function Reels() {
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70 pointer-events-none" />
 
                 {/* Right side actions */}
-                <div className="absolute right-3 bottom-32 flex flex-col items-center gap-5">
+                <div className="absolute right-3 bottom-32 flex flex-col items-center gap-5 z-10">
                   {/* Profile */}
                   <button
                     onClick={() => navigate(`/profile/${reel.user_id}`)}
@@ -324,14 +399,14 @@ export default function Reels() {
                   >
                     <div className={cn(
                       "p-2 rounded-full transition-all",
-                      isLiked ? "bg-red-500/20" : "bg-white/10"
+                      isLiked ? "bg-red-500/20" : "bg-black/50"
                     )}>
                       <Heart className={cn(
                         "h-7 w-7 transition-all",
                         isLiked ? "fill-red-500 text-red-500 scale-110" : "text-white"
                       )} />
                     </div>
-                    <span className="text-white text-xs mt-1 font-medium">
+                    <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">
                       {reel.reel_likes.length}
                     </span>
                   </button>
@@ -344,10 +419,10 @@ export default function Reels() {
                     }}
                     className="flex flex-col items-center"
                   >
-                    <div className="p-2 rounded-full bg-white/10">
+                    <div className="p-2 rounded-full bg-black/50">
                       <MessageCircle className="h-7 w-7 text-white" />
                     </div>
-                    <span className="text-white text-xs mt-1 font-medium">
+                    <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">
                       {reel.reel_comments.length}
                     </span>
                   </button>
@@ -357,10 +432,10 @@ export default function Reels() {
                     onClick={() => handleShare(reel.id)}
                     className="flex flex-col items-center"
                   >
-                    <div className="p-2 rounded-full bg-white/10">
+                    <div className="p-2 rounded-full bg-black/50">
                       <Share2 className="h-7 w-7 text-white" />
                     </div>
-                    <span className="text-white text-xs mt-1 font-medium">Share</span>
+                    <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">Share</span>
                   </button>
 
                   {/* Music disc */}
@@ -372,18 +447,18 @@ export default function Reels() {
                 </div>
 
                 {/* Bottom info */}
-                <div className="absolute left-4 right-20 bottom-20">
-                  <p className="text-white font-semibold text-base mb-1">
+                <div className="absolute left-4 right-20 bottom-20 z-10">
+                  <p className="text-white font-semibold text-base mb-1 drop-shadow-lg">
                     @{reel.profiles.full_name || "user"}
                   </p>
                   {reel.caption && (
-                    <p className="text-white/90 text-sm line-clamp-2">
+                    <p className="text-white/90 text-sm line-clamp-2 drop-shadow-lg">
                       {reel.caption}
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-2">
                     <Music className="h-3 w-3 text-white" />
-                    <p className="text-white/80 text-xs">Original audio</p>
+                    <p className="text-white/80 text-xs drop-shadow-lg">Original audio</p>
                   </div>
                 </div>
               </div>
@@ -486,7 +561,7 @@ export default function Reels() {
   );
 }
 
-// Add to make the music icon spin animation
+// Film icon component for empty state
 const Film = ({ className }: { className?: string }) => (
   <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
     <rect width="18" height="18" x="3" y="3" rx="2" />
