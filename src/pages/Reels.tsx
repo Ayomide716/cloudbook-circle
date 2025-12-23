@@ -242,10 +242,15 @@ export default function Reels() {
           className="h-full overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
         >
           {reels.map((reel) => {
-            const isLiked = reel.reel_likes.some(l => l.user_id === user?.id);
-              return (
-                <div key={reel.id} className="h-full w-full snap-start relative">
-                  {/* Video */}
+            const isLiked = reel.reel_likes.some((l) => l.user_id === user?.id);
+            const isTikTokLink = /tiktok\.com|vt\.tiktok\.com/i.test(reel.video_url);
+            const isPublicStorageUrl = reel.video_url.includes("/storage/v1/object/public/");
+            const canPlayInline = !isTikTokLink && isPublicStorageUrl;
+
+            return (
+              <div key={reel.id} className="h-full w-full snap-start relative">
+                {/* Video / Placeholder */}
+                {canPlayInline ? (
                   <video
                     ref={(el) => {
                       if (el) videoRefs.current.set(reel.id, el);
@@ -259,17 +264,37 @@ export default function Reels() {
                     preload="metadata"
                     onError={() => {
                       console.log("Reel video failed to load:", reel.video_url);
-                      toast({
-                        title: "Video couldn't play",
-                        description: "The video failed to load. Please try uploading again.",
-                        variant: "destructive",
-                      });
+                      if (reel.id === activeReelId) {
+                        toast({
+                          title: "Video couldn't play",
+                          description: "This reel video isn't accessible. Please re-upload it from your device.",
+                          variant: "destructive",
+                        });
+                      }
                     }}
                     onClick={(e) => {
                       const video = e.currentTarget;
                       video.paused ? video.play() : video.pause();
                     }}
                   />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black">
+                    <div className="mx-6 max-w-md rounded-2xl border border-white/10 bg-white/5 p-4 text-center">
+                      <p className="text-white font-semibold">Video can’t play</p>
+                      <p className="mt-1 text-sm text-white/70">
+                        This reel is using a link that browsers can’t stream (like TikTok short-links). Upload a video file instead.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        className="mt-3"
+                        onClick={() => setShowUpload(true)}
+                      >
+                        Upload a reel video
+                      </Button>
+                    </div>
+                  </div>
+                )}
 
                 {/* Overlay gradient */}
                 <div className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-black/70 pointer-events-none" />
