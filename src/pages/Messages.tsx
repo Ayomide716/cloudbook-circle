@@ -11,6 +11,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
 import { Loader2, Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -220,37 +221,42 @@ const Messages = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-safe">
+    <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-2 sm:px-4 py-4 h-[calc(100vh-56px-56px)] md:h-[calc(100vh-56px)]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-4 h-full">
-          <Card className={`md:col-span-1 p-3 sm:p-4 ${selectedConversation ? 'hidden md:block' : ''}`}>
-            <div className="space-y-3 mb-4">
-              <h2 className="text-lg sm:text-xl font-bold">Messages</h2>
+      <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 h-[calc(100vh-56px-64px)] md:h-[calc(100vh-56px)]">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 sm:gap-4 h-full">
+          {/* Conversations List */}
+          <Card className={cn(
+            "md:col-span-1 flex flex-col rounded-none sm:rounded-lg",
+            selectedConversation ? 'hidden md:flex' : 'flex'
+          )}>
+            <div className="p-3 sm:p-4 border-b">
+              <h2 className="text-lg sm:text-xl font-bold mb-3">Messages</h2>
               <NewConversation 
                 currentUserId={currentUserId!} 
                 onSelectUser={setSelectedConversation}
               />
             </div>
-            <ScrollArea className="h-[calc(100vh-240px)] sm:h-[calc(100vh-280px)]">
+            <ScrollArea className="flex-1">
               {conversations.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">
+                <p className="text-center text-muted-foreground py-8">
                   No conversations yet
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="divide-y">
                   {conversations.map((conv) => (
                     <div
                       key={conv.profile.id}
-                      className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-colors ${
+                      className={cn(
+                        "flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-colors active:bg-accent/70",
                         selectedConversation?.id === conv.profile.id
                           ? "bg-accent"
                           : "hover:bg-accent/50"
-                      }`}
+                      )}
                       onClick={() => setSelectedConversation(conv.profile)}
                     >
-                      <Avatar className="h-12 w-12">
+                      <Avatar className="h-12 w-12 flex-shrink-0">
                         <AvatarImage src={conv.profile.avatar_url || undefined} />
                         <AvatarFallback>
                           {conv.profile.full_name?.[0]?.toUpperCase() || "U"}
@@ -267,7 +273,7 @@ const Messages = () => {
                         )}
                       </div>
                       {conv.unreadCount > 0 && (
-                        <span className="bg-primary text-primary-foreground text-xs rounded-full h-6 w-6 flex items-center justify-center">
+                        <span className="bg-primary text-primary-foreground text-xs rounded-full h-6 min-w-6 px-2 flex items-center justify-center">
                           {conv.unreadCount}
                         </span>
                       )}
@@ -278,51 +284,53 @@ const Messages = () => {
             </ScrollArea>
           </Card>
 
-          <Card className={`md:col-span-2 flex flex-col ${!selectedConversation ? 'hidden md:flex' : ''}`}>
+          {/* Chat Area */}
+          <Card className={cn(
+            "md:col-span-2 flex flex-col rounded-none sm:rounded-lg",
+            !selectedConversation ? 'hidden md:flex' : 'flex'
+          )}>
             {selectedConversation ? (
               <>
-                <div className="border-b p-3 sm:p-4">
-                  <div className="flex items-center gap-3">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="md:hidden mr-2 p-2"
-                      onClick={() => setSelectedConversation(null)}
-                    >
-                      ←
-                    </Button>
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={selectedConversation.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {selectedConversation.full_name?.[0]?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <p className="font-semibold">
-                      {selectedConversation.full_name || "Anonymous"}
-                    </p>
-                  </div>
+                <div className="border-b p-3 sm:p-4 flex items-center gap-3">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="md:hidden h-9 w-9 touch-target"
+                    onClick={() => setSelectedConversation(null)}
+                  >
+                    ←
+                  </Button>
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={selectedConversation.avatar_url || undefined} />
+                    <AvatarFallback>
+                      {selectedConversation.full_name?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <p className="font-semibold">
+                    {selectedConversation.full_name || "Anonymous"}
+                  </p>
                 </div>
 
-                <ScrollArea className="flex-1 p-4">
-                  <div className="space-y-4">
+                <ScrollArea className="flex-1 p-3 sm:p-4">
+                  <div className="space-y-3 sm:space-y-4">
                     {messages.map((message) => (
                       <div
                         key={message.id}
-                        className={`flex ${
-                          message.sender_id === currentUserId
-                            ? "justify-end"
-                            : "justify-start"
-                        }`}
+                        className={cn(
+                          "flex",
+                          message.sender_id === currentUserId ? "justify-end" : "justify-start"
+                        )}
                       >
                         <div
-                          className={`max-w-[70%] rounded-lg p-3 ${
+                          className={cn(
+                            "max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5",
                             message.sender_id === currentUserId
-                              ? "bg-primary text-primary-foreground"
-                              : "bg-secondary"
-                          }`}
+                              ? "bg-primary text-primary-foreground rounded-br-md"
+                              : "bg-secondary rounded-bl-md"
+                          )}
                         >
-                          <p className="text-sm">{message.content}</p>
-                          <p className="text-xs opacity-70 mt-1">
+                          <p className="text-sm sm:text-base break-words">{message.content}</p>
+                          <p className="text-[10px] sm:text-xs opacity-70 mt-1">
                             {formatDistanceToNow(new Date(message.created_at), {
                               addSuffix: true,
                             })}
@@ -333,17 +341,20 @@ const Messages = () => {
                   </div>
                 </ScrollArea>
 
-                <form onSubmit={handleSendMessage} className="border-t p-4">
+                <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 safe-area-bottom">
                   <div className="flex gap-2">
                     <Input
                       placeholder="Type a message..."
                       value={messageContent}
                       onChange={(e) => setMessageContent(e.target.value)}
                       disabled={isSending}
+                      className="flex-1"
                     />
                     <Button
                       type="submit"
+                      size="icon"
                       disabled={isSending || !messageContent.trim()}
+                      className="touch-target"
                     >
                       {isSending ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
