@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Heart, MessageCircle, Share2, Plus, Music, Send, ArrowLeft, Volume2, VolumeX, Play, Trash2 } from "lucide-react";
+import { Heart, MessageCircle, Share2, Plus, Music, Send, ArrowLeft, Volume2, VolumeX, Play, Trash2, Film } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import VideoUpload from "@/components/VideoUpload";
@@ -63,6 +63,8 @@ export default function Reels() {
   const [uploadVideoUrl, setUploadVideoUrl] = useState("");
   const [isMuted, setIsMuted] = useState(true);
   const [isPaused, setIsPaused] = useState<Record<string, boolean>>({});
+  const [doubleTapHeart, setDoubleTapHeart] = useState<string | null>(null);
+  const lastTapRef = useRef<{ time: number; reelId: string | null }>({ time: 0, reelId: null });
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRefs = useRef<Map<string, HTMLVideoElement>>(new Map());
 
@@ -212,6 +214,31 @@ export default function Reels() {
     setIsMuted((prev) => !prev);
   };
 
+  const handleDoubleTap = useCallback((reelId: string) => {
+    const now = Date.now();
+    const timeSinceLastTap = now - lastTapRef.current.time;
+    const isSameReel = lastTapRef.current.reelId === reelId;
+
+    if (timeSinceLastTap < 300 && isSameReel) {
+      // Double tap detected - like if not already liked
+      const reel = reels.find(r => r.id === reelId);
+      if (reel && user) {
+        const hasLiked = reel.reel_likes.some((l) => l.user_id === user.id);
+        if (!hasLiked) {
+          handleLike(reelId);
+        }
+        // Show heart animation
+        setDoubleTapHeart(reelId);
+        setTimeout(() => setDoubleTapHeart(null), 800);
+      }
+    } else {
+      // Single tap - toggle play/pause
+      togglePlayPause(reelId);
+    }
+
+    lastTapRef.current = { time: now, reelId };
+  }, [reels, user]);
+
   const handleDeleteReel = async (reelId: string) => {
     const { error } = await supabase.from("reels").delete().eq("id", reelId);
     if (error) {
@@ -302,14 +329,21 @@ export default function Reels() {
                           });
                         }
                       }}
-                      onClick={() => togglePlayPause(reel.id)}
+                      onClick={() => handleDoubleTap(reel.id)}
                     />
+
+                    {/* Double-tap heart animation */}
+                    {doubleTapHeart === reel.id && (
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                        <Heart className="h-32 w-32 text-white fill-white animate-like-heart drop-shadow-2xl" />
+                      </div>
+                    )}
 
                     {/* Play/Pause overlay (shows when paused) */}
                     {isPaused[reel.id] && (
                       <div
                         className="absolute inset-0 flex items-center justify-center bg-black/20 z-10"
-                        onClick={() => togglePlayPause(reel.id)}
+                        onClick={() => handleDoubleTap(reel.id)}
                       >
                         <div className="h-20 w-20 rounded-full bg-black/50 flex items-center justify-center">
                           <Play className="h-10 w-10 text-white ml-1" />
@@ -560,17 +594,3 @@ export default function Reels() {
     </div>
   );
 }
-
-// Film icon component for empty state
-const Film = ({ className }: { className?: string }) => (
-  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <rect width="18" height="18" x="3" y="3" rx="2" />
-    <path d="M7 3v18" />
-    <path d="M3 7.5h4" />
-    <path d="M3 12h18" />
-    <path d="M3 16.5h4" />
-    <path d="M17 3v18" />
-    <path d="M17 7.5h4" />
-    <path d="M17 16.5h4" />
-  </svg>
-);
