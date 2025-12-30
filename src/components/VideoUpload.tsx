@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Video, Loader2, X } from "lucide-react";
@@ -15,6 +16,7 @@ interface VideoUploadProps {
 
 const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "Upload Video" }: VideoUploadProps) => {
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [preview, setPreview] = useState<string | null>(currentVideo || null);
   const { toast } = useToast();
 
@@ -43,16 +45,45 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
     }
 
     setIsUploading(true);
+    setUploadProgress(0);
 
     try {
       const fileExt = file.name.split(".").pop();
       const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file);
+      // Use XMLHttpRequest to track upload progress
+      const formData = new FormData();
+      formData.append('file', file);
 
-      if (uploadError) throw uploadError;
+      const { data: sessionData } = await supabase.auth.getSession();
+      const accessToken = sessionData.session?.access_token;
+
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
+      await new Promise<void>((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
+            const percent = Math.round((event.loaded / event.total) * 100);
+            setUploadProgress(percent);
+          }
+        });
+
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error('Upload failed'));
+          }
+        });
+
+        xhr.addEventListener('error', () => reject(new Error('Upload failed')));
+
+        xhr.open('POST', `${supabaseUrl}/storage/v1/object/${bucket}/${fileName}`);
+        xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+        xhr.send(file);
+      });
 
       const { data: { publicUrl } } = supabase.storage
         .from(bucket)
@@ -72,6 +103,7 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
       });
     } finally {
       setIsUploading(false);
+      setUploadProgress(0);
     }
   };
 
@@ -100,7 +132,7 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
           </Button>
         </div>
       ) : (
-        <div>
+        <div className="space-y-2">
           <Input
             type="file"
             accept="video/*"
@@ -127,6 +159,12 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
               </span>
             </Button>
           </label>
+          {isUploading && (
+            <div className="w-full space-y-1">
+              <Progress value={uploadProgress} className="h-2" />
+              <p className="text-xs text-muted-foreground text-center">{uploadProgress}%</p>
+            </div>
+          )}
         </div>
       )}
     </div>

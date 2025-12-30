@@ -223,15 +223,18 @@ const PostCard = ({
 
       {/* Media */}
       {post.video_url && (
-        <video
-          src={post.video_url}
-          controls
-          playsInline
-          preload="metadata"
-          crossOrigin="anonymous"
-          onError={() => console.log("Post video failed to load:", post.video_url)}
-          className="w-full max-h-[500px] object-contain bg-black"
-        />
+        <div className="relative w-full bg-black">
+          <video
+            src={post.video_url}
+            controls
+            playsInline
+            preload="metadata"
+            crossOrigin="anonymous"
+            onError={() => console.log("Post video failed to load:", post.video_url)}
+            className="w-full max-h-[600px] object-contain"
+            style={{ aspectRatio: '16/9' }}
+          />
+        </div>
       )}
       {!post.video_url && post.image_url && (
         <img
