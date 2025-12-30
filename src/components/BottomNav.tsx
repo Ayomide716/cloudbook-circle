@@ -15,12 +15,12 @@ const BottomNav = ({ currentUserId, onMenuClick }: BottomNavProps) => {
     { icon: Home, path: "/", label: "Home" },
     { icon: Users, path: "/groups", label: "Groups" },
     { icon: Film, path: "/reels", label: "Reels" },
-    { icon: MessageCircle, path: "/messages", label: "Messages" },
+    { icon: MessageCircle, path: "/messages", label: "Chats" },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card border-t border-border z-50 md:hidden safe-area-bottom">
-      <div className="flex items-center justify-around h-14">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50 md:hidden">
+      <div className="flex items-center justify-around h-16 px-1 safe-area-bottom">
         {navItems.map((item) => {
           const isActive = location.pathname === item.path;
           return (
@@ -28,24 +28,24 @@ const BottomNav = ({ currentUserId, onMenuClick }: BottomNavProps) => {
               key={item.path}
               onClick={() => navigate(item.path)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full transition-colors",
+                "flex flex-col items-center justify-center flex-1 h-full py-2 touch-target relative transition-colors active:scale-95",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <item.icon className={cn("h-6 w-6", isActive && "text-primary")} />
-              <span className="text-[10px] mt-0.5">{item.label}</span>
               {isActive && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-12 h-0.5 bg-primary rounded-full" />
               )}
+              <item.icon className={cn("h-6 w-6", isActive && "text-primary")} />
+              <span className="text-[10px] mt-1 font-medium">{item.label}</span>
             </button>
           );
         })}
         <button
           onClick={onMenuClick}
-          className="flex flex-col items-center justify-center flex-1 h-full text-muted-foreground"
+          className="flex flex-col items-center justify-center flex-1 h-full py-2 touch-target text-muted-foreground active:scale-95 transition-transform"
         >
           <Menu className="h-6 w-6" />
-          <span className="text-[10px] mt-0.5">Menu</span>
+          <span className="text-[10px] mt-1 font-medium">Menu</span>
         </button>
       </div>
     </nav>

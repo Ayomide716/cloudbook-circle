@@ -40,28 +40,28 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   return (
     <>
       {/* Desktop Header */}
-      <nav className="bg-card border-b border-border shadow-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4">
+      <nav className="bg-card/95 backdrop-blur-md border-b border-border shadow-sm sticky top-0 z-50 safe-area-top">
+        <div className="container mx-auto px-2 sm:px-4">
           <div className="flex items-center justify-between h-14">
             {/* Logo */}
             <Link to="/" className="flex items-center flex-shrink-0">
-              <h1 className="text-xl sm:text-2xl font-bold text-primary">AYO-CHAT</h1>
+              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">AYO-CHAT</h1>
             </Link>
 
             {/* Desktop Center Navigation */}
-            <div className="hidden md:flex items-center justify-center flex-1 max-w-xl mx-8">
+            <div className="hidden md:flex items-center justify-center flex-1 max-w-lg lg:max-w-xl mx-4 lg:mx-8">
               {desktopNavItems.map((item) => (
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className={cn(
-                    "flex items-center justify-center px-8 py-2 mx-1 rounded-lg transition-colors relative",
+                    "flex items-center justify-center px-6 lg:px-8 py-2.5 mx-0.5 lg:mx-1 rounded-lg transition-colors relative touch-target",
                     isActive(item.path)
                       ? "text-primary bg-primary/10"
                       : "text-muted-foreground hover:bg-accent"
                   )}
                 >
-                  <item.icon className="h-6 w-6" />
+                  <item.icon className="h-5 w-5 lg:h-6 lg:w-6" />
                   {isActive(item.path) && (
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-0.5 bg-primary rounded-t-full" />
                   )}
@@ -70,11 +70,11 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
             </div>
 
             {/* Right Side Icons */}
-            <div className="flex items-center gap-1 sm:gap-2">
+            <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
               {currentUserId && (
                 <>
                   {/* Search - Always visible */}
-                  <Suspense fallback={<div className="w-10 h-10" />}>
+                  <Suspense fallback={<div className="w-9 h-9 sm:w-10 sm:h-10" />}>
                     <SearchUsers />
                   </Suspense>
 
@@ -89,7 +89,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80"
+                      className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 touch-target"
                       onClick={() => navigate(`/profile/${currentUserId}`)}
                     >
                       <User className="h-5 w-5" />
@@ -97,7 +97,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80"
+                      className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 touch-target"
                       onClick={handleLogout}
                     >
                       <LogOut className="h-5 w-5" />

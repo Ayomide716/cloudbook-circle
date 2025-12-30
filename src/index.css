@@ -75,11 +75,16 @@
 
   body {
     @apply bg-background text-foreground antialiased;
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* Safe area for mobile bottom navigation */
+  /* Safe area for mobile navigation */
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
   }
 
   /* Hide scrollbar but allow scrolling */
@@ -90,6 +95,12 @@
   
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Touch-friendly targets */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
   }
 }
 
