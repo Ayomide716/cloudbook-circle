@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils";
 
 interface BottomNavProps {
   currentUserId?: string;
-  onMenuClick: () => void;
+  onMenuClick?: () => void;
 }
 
 const BottomNav = ({ currentUserId, onMenuClick }: BottomNavProps) => {
@@ -40,13 +40,15 @@ const BottomNav = ({ currentUserId, onMenuClick }: BottomNavProps) => {
             </button>
           );
         })}
-        <button
-          onClick={onMenuClick}
-          className="flex flex-col items-center justify-center flex-1 h-full py-2 touch-target text-muted-foreground active:scale-95 transition-transform"
-        >
-          <Menu className="h-6 w-6" />
-          <span className="text-[10px] mt-1 font-medium">Menu</span>
-        </button>
+        {onMenuClick && (
+          <button
+            onClick={onMenuClick}
+            className="flex flex-col items-center justify-center flex-1 h-full py-2 touch-target text-muted-foreground active:scale-95 transition-transform"
+          >
+            <Menu className="h-6 w-6" />
+            <span className="text-[10px] mt-1 font-medium">Menu</span>
+          </button>
+        )}
       </div>
     </nav>
   );
