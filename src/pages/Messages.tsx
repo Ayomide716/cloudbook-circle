@@ -1,15 +1,15 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
 import NewConversation from "@/components/NewConversation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, ArrowLeft } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -44,6 +44,16 @@ const Messages = () => {
   const [messageContent, setMessageContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   useEffect(() => {
     checkAuth();
@@ -221,160 +231,168 @@ const Messages = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="fixed inset-0 flex flex-col bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 h-[calc(100vh-56px-64px)] md:h-[calc(100vh-56px)]">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-0 sm:gap-4 h-full">
-          {/* Conversations List */}
-          <Card className={cn(
-            "md:col-span-1 flex flex-col rounded-none sm:rounded-lg",
-            selectedConversation ? 'hidden md:flex' : 'flex'
-          )}>
-            <div className="p-3 sm:p-4 border-b">
-              <h2 className="text-lg sm:text-xl font-bold mb-3">Messages</h2>
-              <NewConversation 
-                currentUserId={currentUserId!} 
-                onSelectUser={setSelectedConversation}
-              />
-            </div>
-            <ScrollArea className="flex-1">
-              {conversations.length === 0 ? (
-                <p className="text-center text-muted-foreground py-8">
-                  No conversations yet
-                </p>
-              ) : (
-                <div className="divide-y">
-                  {conversations.map((conv) => (
-                    <div
-                      key={conv.profile.id}
-                      className={cn(
-                        "flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-colors active:bg-accent/70",
-                        selectedConversation?.id === conv.profile.id
-                          ? "bg-accent"
-                          : "hover:bg-accent/50"
-                      )}
-                      onClick={() => setSelectedConversation(conv.profile)}
-                    >
-                      <Avatar className="h-12 w-12 flex-shrink-0">
-                        <AvatarImage src={conv.profile.avatar_url || undefined} />
-                        <AvatarFallback>
-                          {conv.profile.full_name?.[0]?.toUpperCase() || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">
-                          {conv.profile.full_name || "Anonymous"}
-                        </p>
-                        {conv.lastMessage && (
-                          <p className="text-sm text-muted-foreground truncate">
-                            {conv.lastMessage.content}
-                          </p>
-                        )}
-                      </div>
-                      {conv.unreadCount > 0 && (
-                        <span className="bg-primary text-primary-foreground text-xs rounded-full h-6 min-w-6 px-2 flex items-center justify-center">
-                          {conv.unreadCount}
-                        </span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </Card>
-
-          {/* Chat Area */}
-          <Card className={cn(
-            "md:col-span-2 flex flex-col rounded-none sm:rounded-lg",
-            !selectedConversation ? 'hidden md:flex' : 'flex'
-          )}>
-            {selectedConversation ? (
-              <>
-                <div className="border-b p-3 sm:p-4 flex items-center gap-3">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="md:hidden h-9 w-9 touch-target"
-                    onClick={() => setSelectedConversation(null)}
-                  >
-                    ←
-                  </Button>
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={selectedConversation.avatar_url || undefined} />
-                    <AvatarFallback>
-                      {selectedConversation.full_name?.[0]?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <p className="font-semibold">
-                    {selectedConversation.full_name || "Anonymous"}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 sm:gap-4 flex-1 overflow-hidden">
+            {/* Conversations List */}
+            <Card className={cn(
+              "md:col-span-1 flex flex-col rounded-none sm:rounded-lg overflow-hidden",
+              selectedConversation ? 'hidden md:flex' : 'flex'
+            )}>
+              <div className="p-3 sm:p-4 border-b flex-shrink-0">
+                <h2 className="text-lg sm:text-xl font-bold mb-3">Messages</h2>
+                <NewConversation 
+                  currentUserId={currentUserId!} 
+                  onSelectUser={setSelectedConversation}
+                />
+              </div>
+              <div className="flex-1 overflow-y-auto">
+                {conversations.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No conversations yet
                   </p>
-                </div>
-
-                <ScrollArea className="flex-1 p-3 sm:p-4">
-                  <div className="space-y-3 sm:space-y-4">
-                    {messages.map((message) => (
+                ) : (
+                  <div className="divide-y">
+                    {conversations.map((conv) => (
                       <div
-                        key={message.id}
+                        key={conv.profile.id}
                         className={cn(
-                          "flex",
-                          message.sender_id === currentUserId ? "justify-end" : "justify-start"
+                          "flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-colors active:bg-accent/70",
+                          selectedConversation?.id === conv.profile.id
+                            ? "bg-accent"
+                            : "hover:bg-accent/50"
                         )}
+                        onClick={() => setSelectedConversation(conv.profile)}
                       >
-                        <div
-                          className={cn(
-                            "max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5",
-                            message.sender_id === currentUserId
-                              ? "bg-primary text-primary-foreground rounded-br-md"
-                              : "bg-secondary rounded-bl-md"
-                          )}
-                        >
-                          <p className="text-sm sm:text-base break-words">{message.content}</p>
-                          <p className="text-[10px] sm:text-xs opacity-70 mt-1">
-                            {formatDistanceToNow(new Date(message.created_at), {
-                              addSuffix: true,
-                            })}
+                        <Avatar className="h-12 w-12 flex-shrink-0">
+                          <AvatarImage src={conv.profile.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {conv.profile.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold truncate">
+                            {conv.profile.full_name || "Anonymous"}
                           </p>
+                          {conv.lastMessage && (
+                            <p className="text-sm text-muted-foreground truncate">
+                              {conv.lastMessage.content}
+                            </p>
+                          )}
                         </div>
+                        {conv.unreadCount > 0 && (
+                          <span className="bg-primary text-primary-foreground text-xs rounded-full h-6 min-w-6 px-2 flex items-center justify-center">
+                            {conv.unreadCount}
+                          </span>
+                        )}
                       </div>
                     ))}
                   </div>
-                </ScrollArea>
-
-                <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 safe-area-bottom">
-                  <div className="flex gap-2">
-                    <Input
-                      placeholder="Type a message..."
-                      value={messageContent}
-                      onChange={(e) => setMessageContent(e.target.value)}
-                      disabled={isSending}
-                      className="flex-1"
-                    />
-                    <Button
-                      type="submit"
-                      size="icon"
-                      disabled={isSending || !messageContent.trim()}
-                      className="touch-target"
-                    >
-                      {isSending ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Send className="h-4 w-4" />
-                      )}
-                    </Button>
-                  </div>
-                </form>
-              </>
-            ) : (
-              <div className="flex items-center justify-center h-full">
-                <p className="text-muted-foreground">
-                  Select a conversation to start messaging
-                </p>
+                )}
               </div>
-            )}
-          </Card>
+            </Card>
+
+            {/* Chat Area */}
+            <Card className={cn(
+              "md:col-span-2 flex flex-col rounded-none sm:rounded-lg overflow-hidden",
+              !selectedConversation ? 'hidden md:flex' : 'flex'
+            )}>
+              {selectedConversation ? (
+                <>
+                  <div className="border-b p-3 sm:p-4 flex items-center gap-3 flex-shrink-0 bg-card">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="md:hidden h-9 w-9 touch-target"
+                      onClick={() => setSelectedConversation(null)}
+                    >
+                      <ArrowLeft className="h-5 w-5" />
+                    </Button>
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={selectedConversation.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {selectedConversation.full_name?.[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <p className="font-semibold">
+                      {selectedConversation.full_name || "Anonymous"}
+                    </p>
+                  </div>
+
+                  <div 
+                    ref={messagesContainerRef}
+                    className="flex-1 overflow-y-auto p-3 sm:p-4"
+                  >
+                    <div className="space-y-3 sm:space-y-4 min-h-full flex flex-col justify-end">
+                      {messages.map((message) => (
+                        <div
+                          key={message.id}
+                          className={cn(
+                            "flex",
+                            message.sender_id === currentUserId ? "justify-end" : "justify-start"
+                          )}
+                        >
+                          <div
+                            className={cn(
+                              "max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5",
+                              message.sender_id === currentUserId
+                                ? "bg-primary text-primary-foreground rounded-br-md"
+                                : "bg-secondary rounded-bl-md"
+                            )}
+                          >
+                            <p className="text-sm sm:text-base break-words">{message.content}</p>
+                            <p className="text-[10px] sm:text-xs opacity-70 mt-1">
+                              {formatDistanceToNow(new Date(message.created_at), {
+                                addSuffix: true,
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                      <div ref={messagesEndRef} />
+                    </div>
+                  </div>
+
+                  <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 flex-shrink-0 bg-card safe-area-bottom">
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Type a message..."
+                        value={messageContent}
+                        onChange={(e) => setMessageContent(e.target.value)}
+                        disabled={isSending}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="submit"
+                        size="icon"
+                        disabled={isSending || !messageContent.trim()}
+                        className="touch-target"
+                      >
+                        {isSending ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Send className="h-4 w-4" />
+                        )}
+                      </Button>
+                    </div>
+                  </form>
+                </>
+              ) : (
+                <div className="flex items-center justify-center h-full">
+                  <p className="text-muted-foreground">
+                    Select a conversation to start messaging
+                  </p>
+                </div>
+              )}
+            </Card>
+          </div>
         </div>
       </div>
+      
+      <BottomNav currentUserId={currentUserId || undefined} />
     </div>
   );
 };
