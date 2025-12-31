@@ -40,37 +40,43 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   return (
     <>
       {/* Desktop Header */}
-      <nav className="bg-card/95 backdrop-blur-md border-b border-border shadow-sm sticky top-0 z-50 safe-area-top">
-        <div className="container mx-auto px-2 sm:px-4">
-          <div className="flex items-center justify-between h-14">
+      <nav className="bg-card border-b border-border shadow-sm sticky top-0 z-50 safe-area-top">
+        <div className="container mx-auto px-3 sm:px-4 lg:px-6">
+          <div className="flex items-center justify-between h-14 lg:h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center flex-shrink-0">
-              <h1 className="text-lg sm:text-xl md:text-2xl font-bold text-primary">AYO-CHAT</h1>
+              <h1 className="text-xl md:text-2xl lg:text-[1.75rem] font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                AYO-CHAT
+              </h1>
             </Link>
 
-            {/* Desktop Center Navigation */}
-            <div className="hidden md:flex items-center justify-center flex-1 max-w-lg lg:max-w-xl mx-4 lg:mx-8">
+            {/* Desktop Center Navigation - Facebook style tabs */}
+            <div className="hidden md:flex items-center justify-center flex-1 max-w-md lg:max-w-2xl mx-6 lg:mx-12">
               {desktopNavItems.map((item) => (
                 <button
                   key={item.path}
                   onClick={() => navigate(item.path)}
                   className={cn(
-                    "flex items-center justify-center px-6 lg:px-8 py-2.5 mx-0.5 lg:mx-1 rounded-lg transition-colors relative touch-target",
+                    "group flex-1 flex items-center justify-center py-3 lg:py-4 mx-1 rounded-xl transition-all relative touch-target",
                     isActive(item.path)
-                      ? "text-primary bg-primary/10"
-                      : "text-muted-foreground hover:bg-accent"
+                      ? "text-primary"
+                      : "text-muted-foreground hover:bg-secondary/80"
                   )}
+                  title={item.label}
                 >
-                  <item.icon className="h-5 w-5 lg:h-6 lg:w-6" />
+                  <item.icon className={cn(
+                    "h-6 w-6 lg:h-7 lg:w-7 transition-transform",
+                    isActive(item.path) ? "scale-110" : "group-hover:scale-105"
+                  )} />
                   {isActive(item.path) && (
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 w-full h-0.5 bg-primary rounded-t-full" />
+                    <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-primary rounded-t-full" />
                   )}
                 </button>
               ))}
             </div>
 
             {/* Right Side Icons */}
-            <div className="flex items-center gap-0.5 sm:gap-1 md:gap-2">
+            <div className="flex items-center gap-1 md:gap-2">
               {currentUserId && (
                 <>
                   {/* Search - Always visible */}
@@ -79,7 +85,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   </Suspense>
 
                   {/* Desktop only icons */}
-                  <div className="hidden md:flex items-center gap-1">
+                  <div className="hidden md:flex items-center gap-1.5 lg:gap-2">
                     <Suspense fallback={<div className="w-10 h-10" />}>
                       <FriendRequests userId={currentUserId} />
                     </Suspense>
@@ -89,18 +95,20 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 touch-target"
+                      className="h-10 w-10 lg:h-11 lg:w-11 rounded-full bg-secondary hover:bg-secondary/70 transition-colors touch-target"
                       onClick={() => navigate(`/profile/${currentUserId}`)}
+                      title="Profile"
                     >
-                      <User className="h-5 w-5" />
+                      <User className="h-5 w-5 lg:h-[22px] lg:w-[22px]" />
                     </Button>
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 touch-target"
+                      className="h-10 w-10 lg:h-11 lg:w-11 rounded-full bg-secondary hover:bg-destructive/10 hover:text-destructive transition-colors touch-target"
                       onClick={handleLogout}
+                      title="Logout"
                     >
-                      <LogOut className="h-5 w-5" />
+                      <LogOut className="h-5 w-5 lg:h-[22px] lg:w-[22px]" />
                     </Button>
                   </div>
                 </>

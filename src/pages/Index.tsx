@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense } from "react";
+import { useEffect, useState, lazy, Suspense, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -6,6 +6,7 @@ import Navigation from "@/components/Navigation";
 import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
 import FeedFilter from "@/components/FeedFilter";
+import PullToRefresh from "@/components/PullToRefresh";
 import { Loader2 } from "lucide-react";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
@@ -235,6 +236,12 @@ const Index = () => {
     }));
   };
 
+  const handleRefresh = useCallback(async () => {
+    if (currentUser) {
+      await loadPosts(currentUser.id, false);
+    }
+  }, [currentUser]);
+
   if (isLoading || !currentUser) {
     return (
       <div className="min-h-screen bg-background">
@@ -247,46 +254,48 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-safe">
+    <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
       
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-xl">
-        <div className="space-y-4">
-          <Suspense fallback={<div className="h-24" />}>
-            <StoriesBar currentUserId={currentUser.id} />
-          </Suspense>
-          
-          <CreatePost
-            currentUser={currentUser}
-            onPostCreated={() => loadPosts(currentUser.id, false)}
-          />
+      <PullToRefresh onRefresh={handleRefresh} className="flex-1 pb-safe">
+        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-xl">
+          <div className="space-y-4">
+            <Suspense fallback={<div className="h-24" />}>
+              <StoriesBar currentUserId={currentUser.id} />
+            </Suspense>
+            
+            <CreatePost
+              currentUser={currentUser}
+              onPostCreated={() => loadPosts(currentUser.id, false)}
+            />
 
-          <FeedFilter
-            filter={feedFilter}
-            onFilterChange={setFeedFilter}
-          />
+            <FeedFilter
+              filter={feedFilter}
+              onFilterChange={setFeedFilter}
+            />
 
-          {posts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
-            </div>
-          ) : (
-            posts.map((post) => (
-              <PostCard
-                key={post.id}
-                post={post}
-                currentUserId={currentUser.id}
-                reactions={reactionsData[post.id]?.reactions || {}}
-                userReaction={reactionsData[post.id]?.userReaction || null}
-                comments={commentsData[post.id] || []}
-                onReactionToggle={(type) => handleReactionToggle(post.id, type)}
-                onCommentAdded={() => handleCommentAdded(post.id)}
-                onDelete={() => loadPosts(currentUser.id, false)}
-              />
-            ))
-          )}
+            {posts.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
+              </div>
+            ) : (
+              posts.map((post) => (
+                <PostCard
+                  key={post.id}
+                  post={post}
+                  currentUserId={currentUser.id}
+                  reactions={reactionsData[post.id]?.reactions || {}}
+                  userReaction={reactionsData[post.id]?.userReaction || null}
+                  comments={commentsData[post.id] || []}
+                  onReactionToggle={(type) => handleReactionToggle(post.id, type)}
+                  onCommentAdded={() => handleCommentAdded(post.id)}
+                  onDelete={() => loadPosts(currentUser.id, false)}
+                />
+              ))
+            )}
+          </div>
         </div>
-      </div>
+      </PullToRefresh>
     </div>
   );
 };
