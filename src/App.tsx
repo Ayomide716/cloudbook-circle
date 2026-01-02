@@ -11,6 +11,8 @@ import Messages from "./pages/Messages";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
 import Reels from "./pages/Reels";
+import Notifications from "./pages/Notifications";
+import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -57,6 +59,8 @@ const AppRoutes = () => {
         <Route path="/groups" element={<Groups />} />
         <Route path="/groups/:groupId" element={<GroupDetail />} />
         <Route path="/reels" element={<Reels />} />
+        <Route path="/notifications" element={<Notifications />} />
+        <Route path="/friends" element={<Friends />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>

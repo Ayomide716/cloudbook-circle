@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Check, CheckCheck } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -34,18 +34,27 @@ interface Conversation {
   unreadCount: number;
 }
 
+interface TypingUser {
+  id: string;
+  name: string;
+}
+
 const Messages = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserName, setCurrentUserName] = useState<string>("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Profile | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageContent, setMessageContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -69,7 +78,14 @@ const Messages = () => {
   useEffect(() => {
     if (selectedConversation && currentUserId) {
       loadMessages(selectedConversation.id);
+      setupTypingChannel();
     }
+    
+    return () => {
+      if (typingChannelRef.current) {
+        supabase.removeChannel(typingChannelRef.current);
+      }
+    };
   }, [selectedConversation, currentUserId]);
 
   const checkAuth = async () => {
@@ -79,6 +95,17 @@ const Messages = () => {
       return;
     }
     setCurrentUserId(session.user.id);
+    
+    // Get current user's name for typing indicator
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("full_name")
+      .eq("id", session.user.id)
+      .single();
+    
+    if (profile?.full_name) {
+      setCurrentUserName(profile.full_name);
+    }
   };
 
   const loadConversations = async () => {
@@ -188,6 +215,71 @@ const Messages = () => {
     return () => {
       supabase.removeChannel(channel);
     };
+  };
+
+  const setupTypingChannel = () => {
+    if (!selectedConversation || !currentUserId) return;
+    
+    // Create a unique room for this conversation pair
+    const roomId = [currentUserId, selectedConversation.id].sort().join('-');
+    
+    typingChannelRef.current = supabase
+      .channel(`typing-${roomId}`)
+      .on('presence', { event: 'sync' }, () => {
+        const state = typingChannelRef.current?.presenceState() || {};
+        const typingList: TypingUser[] = [];
+        
+        Object.values(state).forEach((presences: any) => {
+          presences.forEach((presence: any) => {
+            if (presence.userId !== currentUserId && presence.isTyping) {
+              typingList.push({
+                id: presence.userId,
+                name: presence.userName,
+              });
+            }
+          });
+        });
+        
+        setTypingUsers(typingList);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await typingChannelRef.current?.track({
+            userId: currentUserId,
+            userName: currentUserName,
+            isTyping: false,
+          });
+        }
+      });
+  };
+
+  const handleTyping = useCallback(async () => {
+    if (!typingChannelRef.current || !currentUserId) return;
+    
+    await typingChannelRef.current.track({
+      userId: currentUserId,
+      userName: currentUserName,
+      isTyping: true,
+    });
+    
+    // Clear previous timeout
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+    
+    // Stop typing after 2 seconds of inactivity
+    typingTimeoutRef.current = setTimeout(async () => {
+      await typingChannelRef.current?.track({
+        userId: currentUserId,
+        userName: currentUserName,
+        isTyping: false,
+      });
+    }, 2000);
+  }, [currentUserId, currentUserName]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setMessageContent(e.target.value);
+    handleTyping();
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -327,31 +419,66 @@ const Messages = () => {
                     className="flex-1 overflow-y-auto p-3 sm:p-4"
                   >
                     <div className="space-y-3 sm:space-y-4 min-h-full flex flex-col justify-end">
-                      {messages.map((message) => (
-                        <div
-                          key={message.id}
-                          className={cn(
-                            "flex",
-                            message.sender_id === currentUserId ? "justify-end" : "justify-start"
-                          )}
-                        >
+                      {messages.map((message, index) => {
+                        const isCurrentUser = message.sender_id === currentUserId;
+                        const isLastMessage = index === messages.length - 1;
+                        
+                        return (
                           <div
+                            key={message.id}
                             className={cn(
-                              "max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5",
-                              message.sender_id === currentUserId
-                                ? "bg-primary text-primary-foreground rounded-br-md"
-                                : "bg-secondary rounded-bl-md"
+                              "flex",
+                              isCurrentUser ? "justify-end" : "justify-start"
                             )}
                           >
-                            <p className="text-sm sm:text-base break-words">{message.content}</p>
-                            <p className="text-[10px] sm:text-xs opacity-70 mt-1">
-                              {formatDistanceToNow(new Date(message.created_at), {
-                                addSuffix: true,
-                              })}
-                            </p>
+                            <div
+                              className={cn(
+                                "max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5",
+                                isCurrentUser
+                                  ? "bg-primary text-primary-foreground rounded-br-md"
+                                  : "bg-secondary rounded-bl-md"
+                              )}
+                            >
+                              <p className="text-sm sm:text-base break-words">{message.content}</p>
+                              <div className="flex items-center gap-1.5 mt-1">
+                                <p className="text-[10px] sm:text-xs opacity-70">
+                                  {formatDistanceToNow(new Date(message.created_at), {
+                                    addSuffix: true,
+                                  })}
+                                </p>
+                                {isCurrentUser && (
+                                  <span className="opacity-70">
+                                    {message.read ? (
+                                      <CheckCheck className="h-3 w-3 text-blue-400" />
+                                    ) : (
+                                      <Check className="h-3 w-3" />
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                      
+                      {/* Typing indicator */}
+                      {typingUsers.length > 0 && (
+                        <div className="flex justify-start">
+                          <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-2.5">
+                            <div className="flex items-center gap-1">
+                              <div className="flex gap-1">
+                                <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                              </div>
+                              <span className="text-xs text-muted-foreground ml-2">
+                                {typingUsers[0].name} is typing...
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      ))}
+                      )}
+                      
                       <div ref={messagesEndRef} />
                     </div>
                   </div>
@@ -361,7 +488,7 @@ const Messages = () => {
                       <Input
                         placeholder="Type a message..."
                         value={messageContent}
-                        onChange={(e) => setMessageContent(e.target.value)}
+                        onChange={handleInputChange}
                         disabled={isSending}
                         className="flex-1"
                       />
