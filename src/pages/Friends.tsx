@@ -1,0 +1,520 @@
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Loader2, Users, UserPlus, Check, X, UserCheck } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+import { cn } from "@/lib/utils";
+
+interface Profile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+}
+
+interface FriendRequest {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  status: string;
+  created_at: string;
+  profiles: Profile;
+}
+
+interface Friendship {
+  id: string;
+  friend: Profile;
+  created_at: string;
+}
+
+const Friends = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+  const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
+  const [friends, setFriends] = useState<Friendship[]>([]);
+  const [suggestions, setSuggestions] = useState<Profile[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    checkAuth();
+  }, [navigate]);
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadData();
+      setupRealtimeSubscription();
+    }
+  }, [currentUserId]);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      navigate("/auth");
+      return;
+    }
+    setCurrentUserId(session.user.id);
+  };
+
+  const loadData = async () => {
+    await Promise.all([
+      loadPendingRequests(),
+      loadSentRequests(),
+      loadFriends(),
+      loadSuggestions(),
+    ]);
+    setIsLoading(false);
+  };
+
+  const loadPendingRequests = async () => {
+    if (!currentUserId) return;
+
+    const { data } = await supabase
+      .from("friendships")
+      .select(`
+        id,
+        user_id,
+        friend_id,
+        status,
+        created_at,
+        profiles:user_id (id, full_name, avatar_url)
+      `)
+      .eq("friend_id", currentUserId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    setPendingRequests(data as unknown as FriendRequest[] || []);
+  };
+
+  const loadSentRequests = async () => {
+    if (!currentUserId) return;
+
+    const { data } = await supabase
+      .from("friendships")
+      .select(`
+        id,
+        user_id,
+        friend_id,
+        status,
+        created_at,
+        profiles:friend_id (id, full_name, avatar_url)
+      `)
+      .eq("user_id", currentUserId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+
+    setSentRequests(data as unknown as FriendRequest[] || []);
+  };
+
+  const loadFriends = async () => {
+    if (!currentUserId) return;
+
+    const { data: friendships } = await supabase
+      .from("friendships")
+      .select("*")
+      .eq("status", "accepted")
+      .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
+
+    const friendsList: Friendship[] = [];
+
+    for (const friendship of friendships || []) {
+      const friendId = friendship.user_id === currentUserId
+        ? friendship.friend_id
+        : friendship.user_id;
+
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .eq("id", friendId)
+        .single();
+
+      if (profile) {
+        friendsList.push({
+          id: friendship.id,
+          friend: profile,
+          created_at: friendship.created_at,
+        });
+      }
+    }
+
+    setFriends(friendsList);
+  };
+
+  const loadSuggestions = async () => {
+    if (!currentUserId) return;
+
+    // Get existing friendships
+    const { data: existingFriendships } = await supabase
+      .from("friendships")
+      .select("user_id, friend_id")
+      .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
+
+    const connectedUserIds = new Set<string>([currentUserId]);
+    existingFriendships?.forEach((f) => {
+      connectedUserIds.add(f.user_id);
+      connectedUserIds.add(f.friend_id);
+    });
+
+    // Get profiles not connected
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .limit(10);
+
+    const filteredProfiles = (profiles || []).filter(
+      (p) => !connectedUserIds.has(p.id)
+    );
+
+    setSuggestions(filteredProfiles);
+  };
+
+  const setupRealtimeSubscription = () => {
+    const channel = supabase
+      .channel("friends-page")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "friendships",
+        },
+        () => {
+          loadData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const handleAccept = async (requestId: string) => {
+    const { error } = await supabase
+      .from("friendships")
+      .update({ status: "accepted" })
+      .eq("id", requestId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Friend request accepted!" });
+    loadData();
+  };
+
+  const handleDecline = async (requestId: string) => {
+    const { error } = await supabase
+      .from("friendships")
+      .delete()
+      .eq("id", requestId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Friend request declined" });
+    loadData();
+  };
+
+  const handleSendRequest = async (userId: string) => {
+    const { error } = await supabase
+      .from("friendships")
+      .insert({
+        user_id: currentUserId,
+        friend_id: userId,
+        status: "pending",
+      });
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Friend request sent!" });
+    loadData();
+  };
+
+  const handleCancelRequest = async (requestId: string) => {
+    const { error } = await supabase
+      .from("friendships")
+      .delete()
+      .eq("id", requestId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({ title: "Friend request cancelled" });
+    loadData();
+  };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation currentUserId={currentUserId || undefined} />
+        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background pb-20 md:pb-4">
+      <Navigation currentUserId={currentUserId || undefined} />
+      
+      <div className="container max-w-2xl mx-auto px-4 py-4 sm:py-6">
+        <div className="flex items-center gap-3 mb-4 sm:mb-6">
+          <Users className="h-6 w-6 text-primary" />
+          <h1 className="text-xl sm:text-2xl font-bold">Friends</h1>
+        </div>
+
+        <Tabs defaultValue="requests" className="w-full">
+          <TabsList className="w-full grid grid-cols-4 mb-4">
+            <TabsTrigger value="requests" className="relative">
+              Requests
+              {pendingRequests.length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
+                  {pendingRequests.length}
+                </span>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="sent">Sent</TabsTrigger>
+            <TabsTrigger value="friends">Friends</TabsTrigger>
+            <TabsTrigger value="suggestions">Discover</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="requests">
+            <Card>
+              {pendingRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground">
+                    No pending requests
+                  </p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">
+                    When someone sends you a friend request, it'll appear here
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {pendingRequests.map((request) => (
+                    <div key={request.id} className="flex items-center gap-4 p-4">
+                      <Link to={`/profile/${request.profiles.id}`}>
+                        <Avatar className="h-14 w-14">
+                          <AvatarImage src={request.profiles.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {request.profiles.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/profile/${request.profiles.id}`}>
+                          <p className="font-semibold truncate hover:underline">
+                            {request.profiles.full_name || "Anonymous"}
+                          </p>
+                        </Link>
+                        <p className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(request.created_at), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          onClick={() => handleAccept(request.id)}
+                          className="gap-1"
+                        >
+                          <Check className="h-4 w-4" />
+                          Accept
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDecline(request.id)}
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="sent">
+            <Card>
+              {sentRequests.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground">
+                    No sent requests
+                  </p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">
+                    Friend requests you've sent will appear here
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {sentRequests.map((request) => (
+                    <div key={request.id} className="flex items-center gap-4 p-4">
+                      <Link to={`/profile/${request.profiles.id}`}>
+                        <Avatar className="h-14 w-14">
+                          <AvatarImage src={request.profiles.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {request.profiles.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/profile/${request.profiles.id}`}>
+                          <p className="font-semibold truncate hover:underline">
+                            {request.profiles.full_name || "Anonymous"}
+                          </p>
+                        </Link>
+                        <p className="text-xs text-muted-foreground">
+                          Sent {formatDistanceToNow(new Date(request.created_at), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleCancelRequest(request.id)}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="friends">
+            <Card>
+              {friends.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <UserCheck className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground">
+                    No friends yet
+                  </p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">
+                    Start connecting with people!
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {friends.map((friendship) => (
+                    <Link
+                      key={friendship.id}
+                      to={`/profile/${friendship.friend.id}`}
+                      className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
+                    >
+                      <Avatar className="h-14 w-14">
+                        <AvatarImage src={friendship.friend.avatar_url || undefined} />
+                        <AvatarFallback>
+                          {friendship.friend.full_name?.[0]?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold truncate">
+                          {friendship.friend.full_name || "Anonymous"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Friends since {formatDistanceToNow(new Date(friendship.created_at), {
+                            addSuffix: true,
+                          })}
+                        </p>
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="suggestions">
+            <Card>
+              {suggestions.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-16 text-center">
+                  <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
+                  <p className="text-lg font-medium text-muted-foreground">
+                    No suggestions available
+                  </p>
+                  <p className="text-sm text-muted-foreground/70 mt-1">
+                    Check back later for new people to connect with
+                  </p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {suggestions.map((profile) => (
+                    <div key={profile.id} className="flex items-center gap-4 p-4">
+                      <Link to={`/profile/${profile.id}`}>
+                        <Avatar className="h-14 w-14">
+                          <AvatarImage src={profile.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {profile.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
+                      <div className="flex-1 min-w-0">
+                        <Link to={`/profile/${profile.id}`}>
+                          <p className="font-semibold truncate hover:underline">
+                            {profile.full_name || "Anonymous"}
+                          </p>
+                        </Link>
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => handleSendRequest(profile.id)}
+                        className="gap-1"
+                      >
+                        <UserPlus className="h-4 w-4" />
+                        Add
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </TabsContent>
+        </Tabs>
+      </div>
+      
+      <BottomNav currentUserId={currentUserId || undefined} />
+    </div>
+  );
+};
+
+export default Friends;
