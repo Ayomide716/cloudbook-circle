@@ -5,6 +5,9 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
 import NewConversation from "@/components/NewConversation";
+import MessageReactions from "@/components/MessageReactions";
+import ChatImageUpload from "@/components/ChatImageUpload";
+import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,6 +29,7 @@ interface Message {
   content: string;
   created_at: string;
   read: boolean;
+  image_url?: string | null;
 }
 
 interface Conversation {
@@ -51,10 +55,13 @@ const Messages = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -105,6 +112,38 @@ const Messages = () => {
     
     if (profile?.full_name) {
       setCurrentUserName(profile.full_name);
+    }
+
+    // Update online status
+    await updateOnlineStatus(session.user.id, true);
+    
+    // Set up presence heartbeat
+    presenceIntervalRef.current = setInterval(() => {
+      updateOnlineStatus(session.user.id, true);
+    }, 30000);
+
+    // Cleanup on unmount
+    window.addEventListener("beforeunload", () => {
+      updateOnlineStatus(session.user.id, false);
+    });
+  };
+
+  const updateOnlineStatus = async (userId: string, isOnline: boolean) => {
+    const { data: existing } = await supabase
+      .from("user_status")
+      .select("id")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    if (existing) {
+      await supabase
+        .from("user_status")
+        .update({ is_online: isOnline, last_seen: new Date().toISOString() })
+        .eq("user_id", userId);
+    } else {
+      await supabase
+        .from("user_status")
+        .insert({ user_id: userId, is_online: isOnline, last_seen: new Date().toISOString() });
     }
   };
 
@@ -285,7 +324,7 @@ const Messages = () => {
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!messageContent.trim() || !selectedConversation || !currentUserId) return;
+    if ((!messageContent.trim() && !imageUrl) || !selectedConversation || !currentUserId) return;
 
     setIsSending(true);
 
@@ -294,7 +333,8 @@ const Messages = () => {
       .insert({
         sender_id: currentUserId,
         receiver_id: selectedConversation.id,
-        content: messageContent.trim(),
+        content: messageContent.trim() || (imageUrl ? "Sent an image" : ""),
+        image_url: imageUrl,
       });
 
     setIsSending(false);
@@ -309,6 +349,7 @@ const Messages = () => {
     }
 
     setMessageContent("");
+    setImageUrl(null);
   };
 
   if (isLoading) {
@@ -403,15 +444,23 @@ const Messages = () => {
                     >
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
-                    <Avatar className="h-10 w-10">
-                      <AvatarImage src={selectedConversation.avatar_url || undefined} />
-                      <AvatarFallback>
-                        {selectedConversation.full_name?.[0]?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <p className="font-semibold">
-                      {selectedConversation.full_name || "Anonymous"}
-                    </p>
+                    <div className="relative">
+                      <Avatar className="h-10 w-10">
+                        <AvatarImage src={selectedConversation.avatar_url || undefined} />
+                        <AvatarFallback>
+                          {selectedConversation.full_name?.[0]?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute bottom-0 right-0">
+                        <OnlineStatusIndicator userId={selectedConversation.id} />
+                      </div>
+                    </div>
+                    <div>
+                      <p className="font-semibold">
+                        {selectedConversation.full_name || "Anonymous"}
+                      </p>
+                      <OnlineStatusIndicator userId={selectedConversation.id} showText />
+                    </div>
                   </div>
 
                   <div 
@@ -427,35 +476,52 @@ const Messages = () => {
                           <div
                             key={message.id}
                             className={cn(
-                              "flex",
+                              "flex group",
                               isCurrentUser ? "justify-end" : "justify-start"
                             )}
                           >
-                            <div
-                              className={cn(
-                                "max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5",
-                                isCurrentUser
-                                  ? "bg-primary text-primary-foreground rounded-br-md"
-                                  : "bg-secondary rounded-bl-md"
-                              )}
-                            >
-                              <p className="text-sm sm:text-base break-words">{message.content}</p>
-                              <div className="flex items-center gap-1.5 mt-1">
-                                <p className="text-[10px] sm:text-xs opacity-70">
-                                  {formatDistanceToNow(new Date(message.created_at), {
-                                    addSuffix: true,
-                                  })}
-                                </p>
-                                {isCurrentUser && (
-                                  <span className="opacity-70">
-                                    {message.read ? (
-                                      <CheckCheck className="h-3 w-3 text-blue-400" />
-                                    ) : (
-                                      <Check className="h-3 w-3" />
-                                    )}
-                                  </span>
+                            <div className="flex flex-col gap-1">
+                              <div
+                                className={cn(
+                                  "max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5",
+                                  isCurrentUser
+                                    ? "bg-primary text-primary-foreground rounded-br-md"
+                                    : "bg-secondary rounded-bl-md"
                                 )}
+                              >
+                                {message.image_url && (
+                                  <img
+                                    src={message.image_url}
+                                    alt="Shared image"
+                                    className="rounded-lg max-w-full mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                                    onClick={() => window.open(message.image_url!, "_blank")}
+                                  />
+                                )}
+                                {message.content && message.content !== "Sent an image" && (
+                                  <p className="text-sm sm:text-base break-words">{message.content}</p>
+                                )}
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <p className="text-[10px] sm:text-xs opacity-70">
+                                    {formatDistanceToNow(new Date(message.created_at), {
+                                      addSuffix: true,
+                                    })}
+                                  </p>
+                                  {isCurrentUser && (
+                                    <span className="opacity-70">
+                                      {message.read ? (
+                                        <CheckCheck className="h-3 w-3 text-blue-400" />
+                                      ) : (
+                                        <Check className="h-3 w-3" />
+                                      )}
+                                    </span>
+                                  )}
+                                </div>
                               </div>
+                              <MessageReactions
+                                messageId={message.id}
+                                currentUserId={currentUserId!}
+                                isOwnMessage={isCurrentUser}
+                              />
                             </div>
                           </div>
                         );
@@ -484,7 +550,26 @@ const Messages = () => {
                   </div>
 
                   <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 flex-shrink-0 bg-card safe-area-bottom">
-                    <div className="flex gap-2">
+                    {imageUrl && (
+                      <div className="mb-2 relative inline-block">
+                        <img src={imageUrl} alt="Preview" className="h-20 rounded-lg" />
+                        <button
+                          type="button"
+                          onClick={() => setImageUrl(null)}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex gap-2 items-center">
+                      <ChatImageUpload
+                        onImageUploaded={setImageUrl}
+                        onImageCleared={() => setImageUrl(null)}
+                        previewUrl={null}
+                        isUploading={isUploadingImage}
+                        setIsUploading={setIsUploadingImage}
+                      />
                       <Input
                         placeholder="Type a message..."
                         value={messageContent}
@@ -495,7 +580,7 @@ const Messages = () => {
                       <Button
                         type="submit"
                         size="icon"
-                        disabled={isSending || !messageContent.trim()}
+                        disabled={isSending || (!messageContent.trim() && !imageUrl)}
                         className="touch-target"
                       >
                         {isSending ? (
