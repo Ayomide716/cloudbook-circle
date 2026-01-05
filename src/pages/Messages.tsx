@@ -2,17 +2,19 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useVideoCall } from "@/hooks/use-video-call";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
 import NewConversation from "@/components/NewConversation";
 import MessageReactions from "@/components/MessageReactions";
 import ChatImageUpload from "@/components/ChatImageUpload";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
+import VideoCall from "@/components/VideoCall";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Check, CheckCheck } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -62,6 +64,16 @@ const Messages = () => {
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Video call hook
+  const {
+    incomingCall,
+    activeCall,
+    initiateCall,
+    acceptIncomingCall,
+    rejectIncomingCall,
+    endCall,
+  } = useVideoCall(currentUserId);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -455,12 +467,26 @@ const Messages = () => {
                         <OnlineStatusIndicator userId={selectedConversation.id} />
                       </div>
                     </div>
-                    <div>
+                    <div className="flex-1">
                       <p className="font-semibold">
                         {selectedConversation.full_name || "Anonymous"}
                       </p>
                       <OnlineStatusIndicator userId={selectedConversation.id} showText />
                     </div>
+                    
+                    {/* Video Call Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary"
+                      onClick={() => initiateCall(
+                        selectedConversation.id,
+                        selectedConversation.full_name || "Anonymous",
+                        selectedConversation.avatar_url
+                      )}
+                    >
+                      <Video className="h-5 w-5" />
+                    </Button>
                   </div>
 
                   <div 
@@ -605,6 +631,34 @@ const Messages = () => {
       </div>
       
       <BottomNav currentUserId={currentUserId || undefined} />
+
+      {/* Video Call Components */}
+      {activeCall && (
+        <VideoCall
+          currentUserId={currentUserId!}
+          remoteUserId={activeCall.remoteUserId}
+          remoteUserName={activeCall.remoteUserName}
+          remoteUserAvatar={activeCall.remoteUserAvatar}
+          onEnd={endCall}
+          isIncoming={activeCall.isIncoming}
+          onAccept={acceptIncomingCall}
+          onReject={rejectIncomingCall}
+        />
+      )}
+
+      {/* Incoming Call Notification */}
+      {incomingCall && !activeCall && (
+        <VideoCall
+          currentUserId={currentUserId!}
+          remoteUserId={incomingCall.from}
+          remoteUserName={incomingCall.fromName}
+          remoteUserAvatar={incomingCall.fromAvatar}
+          onEnd={rejectIncomingCall}
+          isIncoming={true}
+          onAccept={acceptIncomingCall}
+          onReject={rejectIncomingCall}
+        />
+      )}
     </div>
   );
 };
