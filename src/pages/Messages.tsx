@@ -10,11 +10,13 @@ import MessageReactions from "@/components/MessageReactions";
 import ChatImageUpload from "@/components/ChatImageUpload";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import VideoCall from "@/components/VideoCall";
+import VoiceMessageRecorder from "@/components/VoiceMessageRecorder";
+import VoiceMessagePlayer from "@/components/VoiceMessagePlayer";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -364,6 +366,27 @@ const Messages = () => {
     setImageUrl(null);
   };
 
+  const handleVoiceMessageSent = async (audioUrl: string, duration: number) => {
+    if (!selectedConversation || !currentUserId) return;
+
+    const { error } = await supabase
+      .from("messages")
+      .insert({
+        sender_id: currentUserId,
+        receiver_id: selectedConversation.id,
+        content: `🎤 Voice message (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')})`,
+        image_url: audioUrl,
+      });
+
+    if (error) {
+      toast({
+        title: "Error sending voice message",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -515,7 +538,15 @@ const Messages = () => {
                                     : "bg-secondary rounded-bl-md"
                                 )}
                               >
-                                {message.image_url && (
+                                {/* Voice message */}
+                                {message.image_url && message.content?.startsWith("🎤") && (
+                                  <VoiceMessagePlayer 
+                                    audioUrl={message.image_url} 
+                                    isOwnMessage={isCurrentUser}
+                                  />
+                                )}
+                                {/* Image/Video */}
+                                {message.image_url && !message.content?.startsWith("🎤") && (
                                   <img
                                     src={message.image_url}
                                     alt="Shared image"
@@ -523,7 +554,7 @@ const Messages = () => {
                                     onClick={() => window.open(message.image_url!, "_blank")}
                                   />
                                 )}
-                                {message.content && message.content !== "Sent an image" && (
+                                {message.content && message.content !== "Sent an image" && !message.content?.startsWith("🎤") && (
                                   <p className="text-sm sm:text-base break-words">{message.content}</p>
                                 )}
                                 <div className="flex items-center gap-1.5 mt-1">
@@ -595,6 +626,10 @@ const Messages = () => {
                         previewUrl={null}
                         isUploading={isUploadingImage}
                         setIsUploading={setIsUploadingImage}
+                      />
+                      <VoiceMessageRecorder 
+                        onVoiceMessageSent={handleVoiceMessageSent}
+                        disabled={isSending}
                       />
                       <Input
                         placeholder="Type a message..."

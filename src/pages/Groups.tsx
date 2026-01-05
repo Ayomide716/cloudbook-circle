@@ -142,7 +142,7 @@ const Groups = () => {
     <div className="min-h-screen bg-background pb-safe">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-4xl">
+      <div className="max-w-[1200px] mx-auto px-4 lg:px-6 py-4 sm:py-6">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold">Groups</h1>
           <Button onClick={() => setIsCreating(true)}>
