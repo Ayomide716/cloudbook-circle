@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, User, LogOut, MessageCircle, Users, Film, Bell, UserPlus, Search, Menu } from "lucide-react";
+import { Home, User, LogOut, MessageCircle, Users, Film, Bell, UserPlus, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { lazy, Suspense, useState, useEffect } from "react";
@@ -15,6 +15,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const SearchUsers = lazy(() => import("./SearchUsers"));
 
@@ -106,18 +111,22 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   return (
     <>
-      {/* Desktop Header - Facebook-style */}
-      <nav className="bg-card border-b border-border shadow-sm sticky top-0 z-50 safe-area-top">
-        <div className="container mx-auto px-4 lg:px-6">
-          <div className="flex items-center h-14">
-            {/* Left Section - Logo and Search */}
-            <div className="flex items-center gap-2 flex-shrink-0 w-[280px]">
-              <Link to="/" className="flex items-center">
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-primary via-primary to-primary/60 bg-clip-text text-transparent">
-                  AYO-CHAT
-                </h1>
+      {/* Desktop Header - Sleek Glassmorphism Design */}
+      <nav className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50 safe-area-top">
+        <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
+          <div className="flex items-center justify-between h-14">
+            {/* Left Section - Logo */}
+            <div className="flex items-center gap-3 min-w-[200px]">
+              <Link to="/" className="flex items-center group">
+                <div className="relative">
+                  <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent group-hover:from-primary/80 group-hover:to-primary transition-all duration-300">
+                    AYO-CHAT
+                  </h1>
+                  <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
+                </div>
               </Link>
               
+              {/* Search */}
               {currentUserId && (
                 <div className="hidden lg:block">
                   <Suspense fallback={<div className="w-10 h-10" />}>
@@ -127,33 +136,32 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
               )}
             </div>
 
-            {/* Center Navigation - Facebook style tabs */}
-            <div className="hidden md:flex items-center justify-center flex-1 max-w-[680px] mx-auto">
+            {/* Center Navigation - Clean Pill Style */}
+            <div className="hidden md:flex items-center bg-secondary/50 rounded-full p-1">
               {desktopNavItems.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className={cn(
-                    "group flex-1 flex items-center justify-center h-14 mx-0.5 transition-all relative",
-                    isActive(item.path)
-                      ? "text-primary"
-                      : "text-muted-foreground hover:bg-accent rounded-lg"
-                  )}
-                  title={item.label}
-                >
-                  <item.icon className={cn(
-                    "h-6 w-6 transition-transform",
-                    isActive(item.path) ? "scale-105" : "group-hover:scale-105"
-                  )} />
-                  {isActive(item.path) && (
-                    <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-primary" />
-                  )}
-                </button>
+                <Tooltip key={item.path}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => navigate(item.path)}
+                      className={cn(
+                        "relative flex items-center justify-center h-10 px-6 rounded-full transition-all duration-200",
+                        isActive(item.path)
+                          ? "bg-primary text-primary-foreground shadow-md"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="text-xs">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
               ))}
             </div>
 
             {/* Right Side Icons */}
-            <div className="flex items-center justify-end gap-2 w-[280px]">
+            <div className="flex items-center gap-2 min-w-[200px] justify-end">
               {currentUserId && (
                 <>
                   {/* Mobile Search */}
@@ -164,35 +172,48 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   </div>
 
                   {/* Desktop icons */}
-                  <div className="hidden md:flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 relative"
-                      onClick={() => navigate("/friends")}
-                      title="Friend Requests"
-                    >
-                      <UserPlus className="h-5 w-5" />
-                      {pendingRequests > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
-                          {pendingRequests > 9 ? "9+" : pendingRequests}
-                        </span>
-                      )}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 relative"
-                      onClick={() => navigate("/notifications")}
-                      title="Notifications"
-                    >
-                      <Bell className="h-5 w-5" />
-                      {unreadNotifications > 0 && (
-                        <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
-                          {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                        </span>
-                      )}
-                    </Button>
+                  <div className="hidden md:flex items-center gap-1.5">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-full bg-secondary/70 hover:bg-secondary relative group"
+                          onClick={() => navigate("/friends")}
+                        >
+                          <UserPlus className="h-[18px] w-[18px] group-hover:scale-110 transition-transform" />
+                          {pendingRequests > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center animate-pulse">
+                              {pendingRequests > 9 ? "9+" : pendingRequests}
+                            </span>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        Friend Requests
+                      </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-full bg-secondary/70 hover:bg-secondary relative group"
+                          onClick={() => navigate("/notifications")}
+                        >
+                          <Bell className="h-[18px] w-[18px] group-hover:scale-110 transition-transform" />
+                          {unreadNotifications > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center animate-pulse">
+                              {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                            </span>
+                          )}
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side="bottom" className="text-xs">
+                        Notifications
+                      </TooltipContent>
+                    </Tooltip>
 
                     {/* Profile Dropdown */}
                     <DropdownMenu>
@@ -200,40 +221,40 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-10 w-10 rounded-full p-0 overflow-hidden ring-2 ring-transparent hover:ring-primary/20 transition-all"
+                          className="h-10 w-10 rounded-full p-0 overflow-hidden ring-2 ring-border hover:ring-primary/50 transition-all duration-200"
                         >
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={userProfile?.avatar_url || undefined} />
-                            <AvatarFallback className="bg-secondary text-foreground">
+                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-foreground font-medium">
                               {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
                             </AvatarFallback>
                           </Avatar>
                         </Button>
                       </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-80">
+                      <DropdownMenuContent align="end" className="w-72 p-2">
                         <DropdownMenuItem
-                          className="p-3 cursor-pointer"
+                          className="p-3 cursor-pointer rounded-lg"
                           onClick={() => navigate(`/profile/${currentUserId}`)}
                         >
                           <div className="flex items-center gap-3">
-                            <Avatar className="h-10 w-10">
+                            <Avatar className="h-12 w-12 ring-2 ring-border">
                               <AvatarImage src={userProfile?.avatar_url || undefined} />
-                              <AvatarFallback>
+                              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10">
                                 {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
                               </AvatarFallback>
                             </Avatar>
                             <div>
                               <p className="font-semibold">{userProfile?.full_name || "User"}</p>
-                              <p className="text-sm text-muted-foreground">See your profile</p>
+                              <p className="text-xs text-muted-foreground">View your profile</p>
                             </div>
                           </div>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
+                        <DropdownMenuSeparator className="my-2" />
                         <DropdownMenuItem
-                          className="p-3 cursor-pointer text-destructive focus:text-destructive"
+                          className="p-3 cursor-pointer rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10"
                           onClick={handleLogout}
                         >
-                          <LogOut className="h-5 w-5 mr-3" />
+                          <LogOut className="h-4 w-4 mr-3" />
                           Log Out
                         </DropdownMenuItem>
                       </DropdownMenuContent>
