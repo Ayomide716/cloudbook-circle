@@ -243,7 +243,7 @@ const Profile = () => {
     <div className="min-h-screen bg-background pb-safe">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-3xl">
+      <div className="max-w-[1000px] mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
         {/* Cover Photo */}
         <Card className="mb-4 sm:mb-6 overflow-hidden">
           <div className="relative h-40 sm:h-64 bg-gradient-to-r from-primary to-accent">

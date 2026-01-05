@@ -258,41 +258,94 @@ const Index = () => {
       <Navigation currentUserId={currentUser.id} />
       
       <PullToRefresh onRefresh={handleRefresh} className="flex-1 pb-safe">
-        <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-6 max-w-xl">
-          <div className="space-y-4">
-            <Suspense fallback={<div className="h-24" />}>
-              <StoriesBar currentUserId={currentUser.id} />
-            </Suspense>
-            
-            <CreatePost
-              currentUser={currentUser}
-              onPostCreated={() => loadPosts(currentUser.id, false)}
-            />
-
-            <FeedFilter
-              filter={feedFilter}
-              onFilterChange={setFeedFilter}
-            />
-
-            {posts.length === 0 ? (
-              <div className="text-center py-12">
-                <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
+        <div className="max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[320px_1fr_320px] gap-6">
+            {/* Left Sidebar - Hidden on mobile */}
+            <aside className="hidden lg:block space-y-4">
+              <div className="sticky top-20 space-y-4">
+                <div className="bg-card rounded-xl p-4 border border-border">
+                  <div className="flex items-center gap-3 mb-4">
+                    <img 
+                      src={currentUser.avatar_url || "/placeholder.svg"} 
+                      alt="" 
+                      className="w-10 h-10 rounded-full object-cover"
+                    />
+                    <div>
+                      <p className="font-semibold">{currentUser.full_name}</p>
+                      <p className="text-xs text-muted-foreground">View your profile</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-card rounded-xl p-4 border border-border">
+                  <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">Quick Links</h3>
+                  <nav className="space-y-1">
+                    <a href="/friends" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                      <span className="text-lg">👥</span>
+                      <span className="text-sm font-medium">Friends</span>
+                    </a>
+                    <a href="/groups" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                      <span className="text-lg">👨‍👩‍👧‍👦</span>
+                      <span className="text-sm font-medium">Groups</span>
+                    </a>
+                    <a href="/messages" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                      <span className="text-lg">💬</span>
+                      <span className="text-sm font-medium">Messages</span>
+                    </a>
+                    <a href="/reels" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                      <span className="text-lg">🎬</span>
+                      <span className="text-sm font-medium">Reels</span>
+                    </a>
+                  </nav>
+                </div>
               </div>
-            ) : (
-              posts.map((post) => (
-                <PostCard
-                  key={post.id}
-                  post={post}
-                  currentUserId={currentUser.id}
-                  reactions={reactionsData[post.id]?.reactions || {}}
-                  userReaction={reactionsData[post.id]?.userReaction || null}
-                  comments={commentsData[post.id] || []}
-                  onReactionToggle={(type) => handleReactionToggle(post.id, type)}
-                  onCommentAdded={() => handleCommentAdded(post.id)}
-                  onDelete={() => loadPosts(currentUser.id, false)}
-                />
-              ))
-            )}
+            </aside>
+
+            {/* Main Feed */}
+            <main className="space-y-4 min-w-0">
+              <Suspense fallback={<div className="h-24" />}>
+                <StoriesBar currentUserId={currentUser.id} />
+              </Suspense>
+              
+              <CreatePost
+                currentUser={currentUser}
+                onPostCreated={() => loadPosts(currentUser.id, false)}
+              />
+
+              <FeedFilter
+                filter={feedFilter}
+                onFilterChange={setFeedFilter}
+              />
+
+              {posts.length === 0 ? (
+                <div className="text-center py-12">
+                  <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
+                </div>
+              ) : (
+                posts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    currentUserId={currentUser.id}
+                    reactions={reactionsData[post.id]?.reactions || {}}
+                    userReaction={reactionsData[post.id]?.userReaction || null}
+                    comments={commentsData[post.id] || []}
+                    onReactionToggle={(type) => handleReactionToggle(post.id, type)}
+                    onCommentAdded={() => handleCommentAdded(post.id)}
+                    onDelete={() => loadPosts(currentUser.id, false)}
+                  />
+                ))
+              )}
+            </main>
+
+            {/* Right Sidebar - Hidden on mobile */}
+            <aside className="hidden lg:block">
+              <div className="sticky top-20 space-y-4">
+                <div className="bg-card rounded-xl p-4 border border-border">
+                  <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">Contacts</h3>
+                  <p className="text-sm text-muted-foreground">Your friends will appear here</p>
+                </div>
+              </div>
+            </aside>
           </div>
         </div>
       </PullToRefresh>
