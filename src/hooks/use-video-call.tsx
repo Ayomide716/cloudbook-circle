@@ -58,17 +58,21 @@ export const useVideoCall = (currentUserId: string | null) => {
 
       // Send call request to the remote user's channel
       const channel = supabase.channel(`incoming-calls-${remoteUserId}`);
-      await channel.subscribe();
       
-      channel.send({
-        type: "broadcast",
-        event: "call-request",
-        payload: {
-          from: currentUserId,
-          fromName: profile?.full_name || "Unknown",
-          fromAvatar: profile?.avatar_url,
-          to: remoteUserId,
-        },
+      channel.subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.send({
+            type: "broadcast",
+            event: "call-request",
+            payload: {
+              from: currentUserId,
+              fromName: profile?.full_name || "Unknown",
+              fromAvatar: profile?.avatar_url,
+              to: remoteUserId,
+            },
+          });
+          console.log("Call request sent to", remoteUserId);
+        }
       });
 
       setActiveCall({
