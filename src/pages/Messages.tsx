@@ -90,13 +90,6 @@ const Messages = () => {
   }, [navigate]);
 
   useEffect(() => {
-    if (currentUserId) {
-      loadConversations();
-      setupRealtimeSubscription();
-    }
-  }, [currentUserId]);
-
-  useEffect(() => {
     if (selectedConversation && currentUserId) {
       loadMessages(selectedConversation.id);
       setupTypingChannel();
@@ -161,7 +154,7 @@ const Messages = () => {
     }
   };
 
-  const loadConversations = async () => {
+  const loadConversations = useCallback(async () => {
     if (!currentUserId) return;
 
     const { data: messagesData } = await supabase
@@ -202,7 +195,7 @@ const Messages = () => {
 
     setConversations(Array.from(conversationMap.values()));
     setIsLoading(false);
-  };
+  }, [currentUserId]);
 
   const loadMessages = async (otherUserId: string) => {
     if (!currentUserId) return;
@@ -228,7 +221,7 @@ const Messages = () => {
     loadConversations();
   };
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useCallback(() => {
     const channel = supabase
       .channel("messages-changes")
       .on(
@@ -244,13 +237,24 @@ const Messages = () => {
           // Update conversations list
           loadConversations();
           
-          // If the message is for the current conversation, append it
+          // If the message is for the current conversation, append it (avoid duplicates from optimistic updates)
           if (selectedConversation && currentUserId) {
             if (
               (newMessage.sender_id === currentUserId && newMessage.receiver_id === selectedConversation.id) ||
               (newMessage.sender_id === selectedConversation.id && newMessage.receiver_id === currentUserId)
             ) {
-              setMessages(prev => [...prev, newMessage]);
+              setMessages(prev => {
+                // Avoid adding if already exists (from optimistic update)
+                if (prev.some(m => m.id === newMessage.id)) {
+                  return prev;
+                }
+                // Also check for temp messages that should be replaced
+                const withoutTemp = prev.filter(m => !m.id.startsWith('temp-'));
+                if (withoutTemp.some(m => m.id === newMessage.id)) {
+                  return prev;
+                }
+                return [...prev, newMessage];
+              });
               
               // Mark as read if it's from the other person
               if (newMessage.sender_id === selectedConversation.id) {
@@ -265,10 +269,19 @@ const Messages = () => {
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  };
+    return channel;
+  }, [currentUserId, selectedConversation, loadConversations]);
+
+  // Setup realtime subscription effect
+  useEffect(() => {
+    if (currentUserId) {
+      loadConversations();
+      const channel = setupRealtimeSubscription();
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [currentUserId, loadConversations, setupRealtimeSubscription]);
 
   const setupTypingChannel = () => {
     if (!selectedConversation || !currentUserId) return;
@@ -340,20 +353,41 @@ const Messages = () => {
     
     if ((!messageContent.trim() && !imageUrl) || !selectedConversation || !currentUserId) return;
 
+    const content = messageContent.trim() || (imageUrl ? "Sent an image" : "");
+    const tempId = `temp-${Date.now()}`;
+    
+    // Optimistic update - add message immediately
+    const optimisticMessage: Message = {
+      id: tempId,
+      sender_id: currentUserId,
+      receiver_id: selectedConversation.id,
+      content,
+      image_url: imageUrl,
+      created_at: new Date().toISOString(),
+      read: false,
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
+    setMessageContent("");
+    setImageUrl(null);
     setIsSending(true);
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("messages")
       .insert({
         sender_id: currentUserId,
         receiver_id: selectedConversation.id,
-        content: messageContent.trim() || (imageUrl ? "Sent an image" : ""),
+        content,
         image_url: imageUrl,
-      });
+      })
+      .select()
+      .single();
 
     setIsSending(false);
 
     if (error) {
+      // Remove optimistic message on error
+      setMessages(prev => prev.filter(m => m.id !== tempId));
       toast({
         title: "Error sending message",
         description: error.message,
@@ -362,28 +396,54 @@ const Messages = () => {
       return;
     }
 
-    setMessageContent("");
-    setImageUrl(null);
+    // Replace optimistic message with real one
+    if (data) {
+      setMessages(prev => prev.map(m => m.id === tempId ? data : m));
+    }
   };
 
   const handleVoiceMessageSent = async (audioUrl: string, duration: number) => {
     if (!selectedConversation || !currentUserId) return;
 
-    const { error } = await supabase
+    const content = `🎤 Voice message (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')})`;
+    const tempId = `temp-voice-${Date.now()}`;
+    
+    // Optimistic update
+    const optimisticMessage: Message = {
+      id: tempId,
+      sender_id: currentUserId,
+      receiver_id: selectedConversation.id,
+      content,
+      image_url: audioUrl,
+      created_at: new Date().toISOString(),
+      read: false,
+    };
+    
+    setMessages(prev => [...prev, optimisticMessage]);
+
+    const { data, error } = await supabase
       .from("messages")
       .insert({
         sender_id: currentUserId,
         receiver_id: selectedConversation.id,
-        content: `🎤 Voice message (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, '0')})`,
+        content,
         image_url: audioUrl,
-      });
+      })
+      .select()
+      .single();
 
     if (error) {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
       toast({
         title: "Error sending voice message",
         description: error.message,
         variant: "destructive",
       });
+      return;
+    }
+
+    if (data) {
+      setMessages(prev => prev.map(m => m.id === tempId ? data : m));
     }
   };
 
@@ -606,7 +666,7 @@ const Messages = () => {
                     </div>
                   </div>
 
-                  <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 flex-shrink-0 bg-card safe-area-bottom">
+                  <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 pb-20 md:pb-4 flex-shrink-0 bg-card">
                     {imageUrl && (
                       <div className="mb-2 relative inline-block">
                         <img src={imageUrl} alt="Preview" className="h-20 rounded-lg" />
