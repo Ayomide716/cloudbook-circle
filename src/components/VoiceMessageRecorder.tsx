@@ -105,25 +105,27 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
     setIsUploading(true);
 
     try {
-      const fileName = `voice_${Date.now()}.webm`;
+      const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(7)}.webm`;
       const { data, error } = await supabase.storage
-        .from("post-videos")
+        .from("voice-messages")
         .upload(fileName, audioBlob, {
           contentType: "audio/webm",
+          upsert: false,
         });
 
       if (error) throw error;
 
       const { data: urlData } = supabase.storage
-        .from("post-videos")
+        .from("voice-messages")
         .getPublicUrl(fileName);
 
       onVoiceMessageSent(urlData.publicUrl, recordingDuration);
       cancelRecording();
     } catch (error: any) {
+      console.error("Voice message upload error:", error);
       toast({
         title: "Error sending voice message",
-        description: error.message,
+        description: error.message || "Failed to upload voice message",
         variant: "destructive",
       });
     } finally {

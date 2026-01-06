@@ -262,22 +262,30 @@ const VideoCall = ({
 
   useEffect(() => {
     // Set up signaling channel
-    signalingChannelRef.current = supabase
+    const channel = supabase
       .channel(`video-call-${roomId}`)
       .on("broadcast", { event: "signal" }, ({ payload }) => {
         handleSignal(payload as SignalMessage);
       })
-      .subscribe();
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("Video call signaling channel connected");
+          // If not incoming, initiate the call after channel is ready
+          if (!isIncoming) {
+            // Small delay to ensure both sides are connected
+            setTimeout(() => {
+              initiateCall();
+            }, 500);
+          }
+        }
+      });
 
-    // If not incoming, initiate the call
-    if (!isIncoming) {
-      initiateCall();
-    }
+    signalingChannelRef.current = channel;
 
     return () => {
       cleanup();
     };
-  }, [roomId, isIncoming, initiateCall, handleSignal, cleanup]);
+  }, [roomId, isIncoming]);
 
   return (
     <div
