@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface CallRequest {
   from: string;
   fromName: string;
   fromAvatar?: string | null;
+  isVoiceOnly?: boolean;
 }
 
 export const useVideoCall = (currentUserId: string | null) => {
@@ -14,7 +15,10 @@ export const useVideoCall = (currentUserId: string | null) => {
     remoteUserName: string;
     remoteUserAvatar?: string | null;
     isIncoming: boolean;
+    isVoiceOnly: boolean;
   } | null>(null);
+  
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!currentUserId) return;
@@ -35,18 +39,31 @@ export const useVideoCall = (currentUserId: string | null) => {
             from: payload.from,
             fromName: profile?.full_name || "Unknown",
             fromAvatar: profile?.avatar_url,
+            isVoiceOnly: payload.isVoiceOnly || false,
           });
         }
       })
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") {
+          console.log("Incoming calls channel subscribed");
+        }
+      });
+
+    channelRef.current = channel;
 
     return () => {
       supabase.removeChannel(channel);
+      channelRef.current = null;
     };
   }, [currentUserId, activeCall]);
 
   const initiateCall = useCallback(
-    async (remoteUserId: string, remoteUserName: string, remoteUserAvatar?: string | null) => {
+    async (
+      remoteUserId: string, 
+      remoteUserName: string, 
+      remoteUserAvatar?: string | null,
+      isVoiceOnly: boolean = false
+    ) => {
       if (!currentUserId) return;
 
       // Get current user's profile for the notification
@@ -56,7 +73,7 @@ export const useVideoCall = (currentUserId: string | null) => {
         .eq("id", currentUserId)
         .single();
 
-      // Send call request to the remote user's channel
+      // Create a new channel for sending the call request
       const channel = supabase.channel(`incoming-calls-${remoteUserId}`);
       
       channel.subscribe(async (status) => {
@@ -69,9 +86,15 @@ export const useVideoCall = (currentUserId: string | null) => {
               fromName: profile?.full_name || "Unknown",
               fromAvatar: profile?.avatar_url,
               to: remoteUserId,
+              isVoiceOnly,
             },
           });
-          console.log("Call request sent to", remoteUserId);
+          console.log("Call request sent to", remoteUserId, isVoiceOnly ? "(voice only)" : "(video)");
+          
+          // Clean up the channel after sending
+          setTimeout(() => {
+            supabase.removeChannel(channel);
+          }, 1000);
         }
       });
 
@@ -80,6 +103,7 @@ export const useVideoCall = (currentUserId: string | null) => {
         remoteUserName,
         remoteUserAvatar,
         isIncoming: false,
+        isVoiceOnly,
       });
     },
     [currentUserId]
@@ -93,6 +117,7 @@ export const useVideoCall = (currentUserId: string | null) => {
       remoteUserName: incomingCall.fromName,
       remoteUserAvatar: incomingCall.fromAvatar,
       isIncoming: true,
+      isVoiceOnly: incomingCall.isVoiceOnly || false,
     });
     setIncomingCall(null);
   }, [incomingCall]);

@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -557,6 +557,21 @@ const Messages = () => {
                       <OnlineStatusIndicator userId={selectedConversation.id} showText />
                     </div>
                     
+                    {/* Voice Call Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary"
+                      onClick={() => initiateCall(
+                        selectedConversation.id,
+                        selectedConversation.full_name || "Anonymous",
+                        selectedConversation.avatar_url,
+                        true // voice only
+                      )}
+                    >
+                      <Phone className="h-5 w-5" />
+                    </Button>
+                    
                     {/* Video Call Button */}
                     <Button
                       variant="ghost"
@@ -565,7 +580,8 @@ const Messages = () => {
                       onClick={() => initiateCall(
                         selectedConversation.id,
                         selectedConversation.full_name || "Anonymous",
-                        selectedConversation.avatar_url
+                        selectedConversation.avatar_url,
+                        false // video call
                       )}
                     >
                       <Video className="h-5 w-5" />
@@ -589,13 +605,24 @@ const Messages = () => {
                               isCurrentUser ? "justify-end" : "justify-start"
                             )}
                           >
-                            <div className="flex flex-col gap-1">
+                            <div className={cn(
+                              "flex flex-col gap-0.5",
+                              isCurrentUser ? "items-end" : "items-start"
+                            )}>
+                              {/* Message Bubble - Facebook Style */}
                               <div
                                 className={cn(
-                                  "max-w-[80%] sm:max-w-[70%] rounded-2xl px-4 py-2.5",
+                                  "max-w-[280px] sm:max-w-[320px] relative",
                                   isCurrentUser
-                                    ? "bg-primary text-primary-foreground rounded-br-md"
-                                    : "bg-secondary rounded-bl-md"
+                                    ? "bg-primary text-primary-foreground"
+                                    : "bg-secondary text-foreground",
+                                  // Rounded corners - Facebook style
+                                  "rounded-[18px]",
+                                  isCurrentUser ? "rounded-br-[4px]" : "rounded-bl-[4px]",
+                                  // Padding based on content type
+                                  message.image_url && !message.content?.startsWith("🎤") 
+                                    ? "p-1" 
+                                    : "px-3 py-2"
                                 )}
                               >
                                 {/* Voice message */}
@@ -610,30 +637,38 @@ const Messages = () => {
                                   <img
                                     src={message.image_url}
                                     alt="Shared image"
-                                    className="rounded-lg max-w-full mb-2 cursor-pointer hover:opacity-90 transition-opacity"
+                                    className="rounded-[14px] max-w-full cursor-pointer hover:opacity-90 transition-opacity"
                                     onClick={() => window.open(message.image_url!, "_blank")}
                                   />
                                 )}
                                 {message.content && message.content !== "Sent an image" && !message.content?.startsWith("🎤") && (
-                                  <p className="text-sm sm:text-base break-words">{message.content}</p>
-                                )}
-                                <div className="flex items-center gap-1.5 mt-1">
-                                  <p className="text-[10px] sm:text-xs opacity-70">
-                                    {formatDistanceToNow(new Date(message.created_at), {
-                                      addSuffix: true,
-                                    })}
+                                  <p className="text-[15px] leading-snug break-words whitespace-pre-wrap">
+                                    {message.content}
                                   </p>
-                                  {isCurrentUser && (
-                                    <span className="opacity-70">
-                                      {message.read ? (
-                                        <CheckCheck className="h-3 w-3 text-blue-400" />
-                                      ) : (
-                                        <Check className="h-3 w-3" />
-                                      )}
-                                    </span>
-                                  )}
-                                </div>
+                                )}
                               </div>
+                              
+                              {/* Timestamp and read receipt - Below bubble like Facebook */}
+                              <div className={cn(
+                                "flex items-center gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity",
+                                isCurrentUser ? "flex-row-reverse" : "flex-row"
+                              )}>
+                                <span className="text-[11px] text-muted-foreground">
+                                  {formatDistanceToNow(new Date(message.created_at), {
+                                    addSuffix: true,
+                                  })}
+                                </span>
+                                {isCurrentUser && (
+                                  <span>
+                                    {message.read ? (
+                                      <CheckCheck className="h-3.5 w-3.5 text-primary" />
+                                    ) : (
+                                      <Check className="h-3.5 w-3.5 text-muted-foreground" />
+                                    )}
+                                  </span>
+                                )}
+                              </div>
+                              
                               <MessageReactions
                                 messageId={message.id}
                                 currentUserId={currentUserId!}
@@ -738,6 +773,7 @@ const Messages = () => {
           isIncoming={activeCall.isIncoming}
           onAccept={acceptIncomingCall}
           onReject={rejectIncomingCall}
+          isVoiceOnly={activeCall.isVoiceOnly}
         />
       )}
 
@@ -752,6 +788,7 @@ const Messages = () => {
           isIncoming={true}
           onAccept={acceptIncomingCall}
           onReject={rejectIncomingCall}
+          isVoiceOnly={incomingCall.isVoiceOnly}
         />
       )}
     </div>
