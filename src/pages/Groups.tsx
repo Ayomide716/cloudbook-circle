@@ -1,16 +1,16 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Plus, Users } from "lucide-react";
+import { Loader2, Plus, Users, Search, Globe, Lock } from "lucide-react";
 
 interface Group {
   id: string;
@@ -28,6 +28,7 @@ const Groups = () => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -86,6 +87,17 @@ const Groups = () => {
     setIsLoading(false);
   };
 
+  // Filter groups based on search query
+  const filteredGroups = useMemo(() => {
+    if (!searchQuery.trim()) return groups;
+    
+    const query = searchQuery.toLowerCase();
+    return groups.filter(group => 
+      group.name.toLowerCase().includes(query) ||
+      group.description?.toLowerCase().includes(query)
+    );
+  }, [groups, searchQuery]);
+
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -139,60 +151,123 @@ const Groups = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-safe">
+    <div className="min-h-screen bg-background pb-20 md:pb-4">
       <Navigation currentUserId={currentUserId || undefined} />
       
       <div className="max-w-[1200px] mx-auto px-4 lg:px-6 py-4 sm:py-6">
-        <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold">Groups</h1>
-          <Button onClick={() => setIsCreating(true)}>
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-bold">Groups</h1>
+              <p className="text-sm text-muted-foreground">{groups.length} groups available</p>
+            </div>
+          </div>
+          <Button onClick={() => setIsCreating(true)} className="sm:w-auto">
             <Plus className="h-4 w-4 mr-2" />
             Create Group
           </Button>
         </div>
 
-        {groups.length === 0 ? (
-          <Card className="p-12 text-center">
-            <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
-            <h2 className="text-xl font-semibold mb-2">No groups yet</h2>
-            <p className="text-muted-foreground mb-4">
-              Create a group to connect with people who share your interests
+        {/* Search Bar - Facebook Style */}
+        <Card className="p-4 mb-6">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
+            <Input
+              placeholder="Search groups..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 h-12 text-base bg-secondary border-0 focus-visible:ring-1"
+            />
+          </div>
+          {searchQuery && (
+            <p className="text-sm text-muted-foreground mt-2">
+              {filteredGroups.length} {filteredGroups.length === 1 ? 'group' : 'groups'} found for "{searchQuery}"
             </p>
-            <Button onClick={() => setIsCreating(true)}>
-              <Plus className="h-4 w-4 mr-2" />
-              Create Your First Group
-            </Button>
+          )}
+        </Card>
+
+        {filteredGroups.length === 0 ? (
+          <Card className="p-12 text-center">
+            {searchQuery ? (
+              <>
+                <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                <h2 className="text-xl font-semibold mb-2">No groups found</h2>
+                <p className="text-muted-foreground mb-4">
+                  Try a different search term or create a new group
+                </p>
+                <Button onClick={() => setSearchQuery("")} variant="outline">
+                  Clear search
+                </Button>
+              </>
+            ) : (
+              <>
+                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                <h2 className="text-xl font-semibold mb-2">No groups yet</h2>
+                <p className="text-muted-foreground mb-4">
+                  Create a group to connect with people who share your interests
+                </p>
+                <Button onClick={() => setIsCreating(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Create Your First Group
+                </Button>
+              </>
+            )}
           </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {groups.map((group) => (
+            {filteredGroups.map((group) => (
               <Card
                 key={group.id}
-                className="p-4 hover:shadow-lg transition-shadow cursor-pointer"
+                className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group"
                 onClick={() => navigate(`/groups/${group.id}`)}
               >
-                {group.image_url && (
-                  <img
-                    src={group.image_url}
-                    alt={group.name}
-                    className="w-full h-32 object-cover rounded-lg mb-3"
-                  />
-                )}
-                <h3 className="text-lg font-semibold mb-1">{group.name}</h3>
-                {group.description && (
-                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {group.description}
-                  </p>
-                )}
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <Users className="h-4 w-4" />
-                  <span>{group.member_count || 0} members</span>
+                {/* Group Cover Image */}
+                <div className="h-32 bg-gradient-to-br from-primary/20 to-primary/5 relative">
+                  {group.image_url ? (
+                    <img
+                      src={group.image_url}
+                      alt={group.name}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Users className="h-12 w-12 text-primary/30" />
+                    </div>
+                  )}
+                </div>
+                
+                {/* Group Info */}
+                <div className="p-4">
+                  <h3 className="text-lg font-semibold mb-1 truncate group-hover:text-primary transition-colors">
+                    {group.name}
+                  </h3>
+                  {group.description && (
+                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
+                      {group.description}
+                    </p>
+                  )}
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-4 w-4" />
+                      <span>{group.member_count || 0} members</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Globe className="h-4 w-4" />
+                      <span>Public</span>
+                    </div>
+                  </div>
                 </div>
               </Card>
             ))}
           </div>
         )}
       </div>
+
+      <BottomNav currentUserId={currentUserId || undefined} />
 
       {/* Create Group Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>

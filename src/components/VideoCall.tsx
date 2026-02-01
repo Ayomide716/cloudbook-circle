@@ -23,6 +23,7 @@ interface VideoCallProps {
   isIncoming?: boolean;
   onAccept?: () => void;
   onReject?: () => void;
+  isVoiceOnly?: boolean;
 }
 
 interface SignalMessage {
@@ -41,11 +42,13 @@ const VideoCall = ({
   isIncoming = false,
   onAccept,
   onReject,
+  isVoiceOnly = false,
 }: VideoCallProps) => {
   const [isConnected, setIsConnected] = useState(false);
-  const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isVideoEnabled, setIsVideoEnabled] = useState(!isVoiceOnly);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [callDuration, setCallDuration] = useState(0);
   const [callStatus, setCallStatus] = useState<"calling" | "ringing" | "connected" | "ended">(
     isIncoming ? "ringing" : "calling"
   );
@@ -55,10 +58,22 @@ const VideoCall = ({
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const signalingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const channelReadyRef = useRef<boolean>(false);
 
   const roomId = [currentUserId, remoteUserId].sort().join("-");
 
+  const formatDuration = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
   const cleanup = useCallback(() => {
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
     if (localStreamRef.current) {
       localStreamRef.current.getTracks().forEach((track) => track.stop());
       localStreamRef.current = null;
@@ -71,11 +86,16 @@ const VideoCall = ({
       supabase.removeChannel(signalingChannelRef.current);
       signalingChannelRef.current = null;
     }
+    channelReadyRef.current = false;
   }, []);
 
   const sendSignal = useCallback(
     (message: Omit<SignalMessage, "from" | "to">) => {
-      signalingChannelRef.current?.send({
+      if (!channelReadyRef.current || !signalingChannelRef.current) {
+        console.log("Channel not ready, cannot send signal");
+        return;
+      }
+      signalingChannelRef.current.send({
         type: "broadcast",
         event: "signal",
         payload: { ...message, from: currentUserId, to: remoteUserId },
@@ -89,6 +109,7 @@ const VideoCall = ({
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun2.l.google.com:19302" },
       ],
     });
 
@@ -108,9 +129,14 @@ const VideoCall = ({
     };
 
     pc.onconnectionstatechange = () => {
+      console.log("Connection state:", pc.connectionState);
       if (pc.connectionState === "connected") {
         setIsConnected(true);
         setCallStatus("connected");
+        // Start call timer
+        callTimerRef.current = setInterval(() => {
+          setCallDuration(prev => prev + 1);
+        }, 1000);
       } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
         handleEndCall();
       }
@@ -122,11 +148,11 @@ const VideoCall = ({
   const startLocalStream = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: true,
+        video: !isVoiceOnly,
         audio: true,
       });
       localStreamRef.current = stream;
-      if (localVideoRef.current) {
+      if (localVideoRef.current && !isVoiceOnly) {
         localVideoRef.current.srcObject = stream;
       }
       return stream;
@@ -134,7 +160,7 @@ const VideoCall = ({
       console.error("Error accessing media devices:", error);
       throw error;
     }
-  }, []);
+  }, [isVoiceOnly]);
 
   const initiateCall = useCallback(async () => {
     try {
@@ -146,13 +172,13 @@ const VideoCall = ({
         pc.addTrack(track, stream);
       });
 
-      // Send call request first
-      sendSignal({ type: "call-request", payload: {} });
+      // Send call request
+      sendSignal({ type: "call-request", payload: { isVoiceOnly } });
     } catch (error) {
       console.error("Error initiating call:", error);
       handleEndCall();
     }
-  }, [startLocalStream, createPeerConnection, sendSignal]);
+  }, [startLocalStream, createPeerConnection, sendSignal, isVoiceOnly]);
 
   const acceptCall = useCallback(async () => {
     try {
@@ -182,9 +208,13 @@ const VideoCall = ({
       switch (message.type) {
         case "call-accepted":
           if (pc) {
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            sendSignal({ type: "offer", payload: offer });
+            try {
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+              sendSignal({ type: "offer", payload: offer });
+            } catch (error) {
+              console.error("Error creating offer:", error);
+            }
           }
           break;
 
@@ -202,22 +232,34 @@ const VideoCall = ({
 
         case "offer":
           if (pc) {
-            await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            sendSignal({ type: "answer", payload: answer });
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+              const answer = await pc.createAnswer();
+              await pc.setLocalDescription(answer);
+              sendSignal({ type: "answer", payload: answer });
+            } catch (error) {
+              console.error("Error handling offer:", error);
+            }
           }
           break;
 
         case "answer":
           if (pc) {
-            await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+            try {
+              await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+            } catch (error) {
+              console.error("Error setting remote description:", error);
+            }
           }
           break;
 
         case "ice-candidate":
-          if (pc) {
-            await pc.addIceCandidate(new RTCIceCandidate(message.payload));
+          if (pc && pc.remoteDescription) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(message.payload));
+            } catch (error) {
+              console.error("Error adding ICE candidate:", error);
+            }
           }
           break;
       }
@@ -226,7 +268,9 @@ const VideoCall = ({
   );
 
   const handleEndCall = useCallback(() => {
-    sendSignal({ type: "call-ended", payload: {} });
+    if (channelReadyRef.current) {
+      sendSignal({ type: "call-ended", payload: {} });
+    }
     setCallStatus("ended");
     cleanup();
     onEnd();
@@ -241,7 +285,7 @@ const VideoCall = ({
   }, [sendSignal, cleanup, onReject, onEnd]);
 
   const toggleVideo = () => {
-    if (localStreamRef.current) {
+    if (localStreamRef.current && !isVoiceOnly) {
       const videoTrack = localStreamRef.current.getVideoTracks()[0];
       if (videoTrack) {
         videoTrack.enabled = !videoTrack.enabled;
@@ -270,12 +314,14 @@ const VideoCall = ({
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           console.log("Video call signaling channel connected");
+          channelReadyRef.current = true;
+          
           // If not incoming, initiate the call after channel is ready
           if (!isIncoming) {
             // Small delay to ensure both sides are connected
             setTimeout(() => {
               initiateCall();
-            }, 500);
+            }, 1000);
           }
         }
       });
@@ -285,7 +331,7 @@ const VideoCall = ({
     return () => {
       cleanup();
     };
-  }, [roomId, isIncoming]);
+  }, [roomId, isIncoming, initiateCall, handleSignal, cleanup]);
 
   return (
     <div
@@ -293,12 +339,42 @@ const VideoCall = ({
         "fixed z-50 bg-background/95 backdrop-blur-xl flex flex-col",
         isFullscreen
           ? "inset-0"
-          : "bottom-4 right-4 w-80 h-96 rounded-2xl shadow-2xl border border-border overflow-hidden"
+          : "bottom-4 right-4 w-80 h-[420px] rounded-2xl shadow-2xl border border-border overflow-hidden"
       )}
     >
+      {/* Header */}
+      <div className="p-3 flex items-center justify-between border-b border-border/50">
+        <div className="flex items-center gap-2">
+          <div className={cn(
+            "h-2 w-2 rounded-full",
+            isConnected ? "bg-green-500" : "bg-yellow-500 animate-pulse"
+          )} />
+          <span className="text-sm font-medium">
+            {isVoiceOnly ? "Voice Call" : "Video Call"}
+          </span>
+        </div>
+        {isConnected && (
+          <span className="text-sm text-muted-foreground font-mono">
+            {formatDuration(callDuration)}
+          </span>
+        )}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-8 w-8"
+          onClick={() => setIsFullscreen(!isFullscreen)}
+        >
+          {isFullscreen ? (
+            <Minimize2 className="h-4 w-4" />
+          ) : (
+            <Maximize2 className="h-4 w-4" />
+          )}
+        </Button>
+      </div>
+
       {/* Remote Video / Avatar */}
       <div className="flex-1 relative bg-muted">
-        {isConnected ? (
+        {isConnected && !isVoiceOnly ? (
           <video
             ref={remoteVideoRef}
             autoPlay
@@ -308,23 +384,33 @@ const VideoCall = ({
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             <div className="text-center">
-              <Avatar className="h-24 w-24 mx-auto mb-4">
+              <Avatar className="h-24 w-24 mx-auto mb-4 ring-4 ring-primary/20">
                 <AvatarImage src={remoteUserAvatar || undefined} />
                 <AvatarFallback className="text-3xl bg-primary/20">
                   {remoteUserName?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
               <p className="font-semibold text-lg">{remoteUserName}</p>
-              <p className="text-sm text-muted-foreground animate-pulse">
-                {callStatus === "calling" && "Calling..."}
-                {callStatus === "ringing" && "Incoming call..."}
+              <p className="text-sm text-muted-foreground mt-1">
+                {callStatus === "calling" && (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="flex gap-1">
+                      <span className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                      <span className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                      <span className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                    </span>
+                    Calling
+                  </span>
+                )}
+                {callStatus === "ringing" && "Incoming call"}
+                {callStatus === "connected" && isVoiceOnly && formatDuration(callDuration)}
               </p>
             </div>
           </div>
         )}
 
         {/* Local Video PIP */}
-        {(isConnected || callStatus === "connected") && (
+        {isConnected && !isVoiceOnly && (
           <div className="absolute bottom-4 right-4 w-24 h-32 rounded-lg overflow-hidden shadow-lg border-2 border-background">
             <video
               ref={localVideoRef}
@@ -344,39 +430,42 @@ const VideoCall = ({
           </div>
         )}
 
-        {/* Fullscreen Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="absolute top-2 right-2 bg-background/50 hover:bg-background/70"
-          onClick={() => setIsFullscreen(!isFullscreen)}
-        >
-          {isFullscreen ? (
-            <Minimize2 className="h-4 w-4" />
-          ) : (
-            <Maximize2 className="h-4 w-4" />
-          )}
-        </Button>
+        {/* Audio waveform animation for voice calls when connected */}
+        {isConnected && isVoiceOnly && (
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-end gap-1 h-8">
+            {[...Array(5)].map((_, i) => (
+              <div
+                key={i}
+                className="w-1 bg-primary rounded-full animate-pulse"
+                style={{
+                  height: `${Math.random() * 24 + 8}px`,
+                  animationDelay: `${i * 100}ms`,
+                  animationDuration: "500ms",
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Controls */}
-      <div className="p-4 flex items-center justify-center gap-3 bg-card">
+      <div className="p-4 flex items-center justify-center gap-3 bg-card/80 backdrop-blur">
         {callStatus === "ringing" ? (
           <>
             <Button
               variant="destructive"
               size="icon"
-              className="h-12 w-12 rounded-full"
+              className="h-14 w-14 rounded-full shadow-lg"
               onClick={handleReject}
             >
-              <PhoneOff className="h-5 w-5" />
+              <PhoneOff className="h-6 w-6" />
             </Button>
             <Button
-              className="h-12 w-12 rounded-full bg-green-500 hover:bg-green-600"
+              className="h-14 w-14 rounded-full bg-green-500 hover:bg-green-600 shadow-lg"
               size="icon"
               onClick={acceptCall}
             >
-              <Phone className="h-5 w-5" />
+              <Phone className="h-6 w-6" />
             </Button>
           </>
         ) : (
@@ -384,35 +473,37 @@ const VideoCall = ({
             <Button
               variant={isAudioEnabled ? "secondary" : "destructive"}
               size="icon"
-              className="h-10 w-10 rounded-full"
+              className="h-12 w-12 rounded-full shadow-md"
               onClick={toggleAudio}
             >
               {isAudioEnabled ? (
-                <Mic className="h-4 w-4" />
+                <Mic className="h-5 w-5" />
               ) : (
-                <MicOff className="h-4 w-4" />
+                <MicOff className="h-5 w-5" />
               )}
             </Button>
             <Button
               variant="destructive"
               size="icon"
-              className="h-12 w-12 rounded-full"
+              className="h-14 w-14 rounded-full shadow-lg"
               onClick={handleEndCall}
             >
-              <PhoneOff className="h-5 w-5" />
+              <PhoneOff className="h-6 w-6" />
             </Button>
-            <Button
-              variant={isVideoEnabled ? "secondary" : "destructive"}
-              size="icon"
-              className="h-10 w-10 rounded-full"
-              onClick={toggleVideo}
-            >
-              {isVideoEnabled ? (
-                <Video className="h-4 w-4" />
-              ) : (
-                <VideoOff className="h-4 w-4" />
-              )}
-            </Button>
+            {!isVoiceOnly && (
+              <Button
+                variant={isVideoEnabled ? "secondary" : "destructive"}
+                size="icon"
+                className="h-12 w-12 rounded-full shadow-md"
+                onClick={toggleVideo}
+              >
+                {isVideoEnabled ? (
+                  <Video className="h-5 w-5" />
+                ) : (
+                  <VideoOff className="h-5 w-5" />
+                )}
+              </Button>
+            )}
           </>
         )}
       </div>
