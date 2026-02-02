@@ -24,10 +24,11 @@ interface VideoCallProps {
   onAccept?: () => void;
   onReject?: () => void;
   isVoiceOnly?: boolean;
+  callAccepted?: boolean; // For caller: true when recipient accepts via incoming-calls channel
 }
 
 interface SignalMessage {
-  type: "offer" | "answer" | "ice-candidate" | "call-request" | "call-accepted" | "call-rejected" | "call-ended";
+  type: "offer" | "answer" | "ice-candidate";
   payload: any;
   from: string;
   to: string;
@@ -43,6 +44,7 @@ const VideoCall = ({
   onAccept,
   onReject,
   isVoiceOnly = false,
+  callAccepted = false,
 }: VideoCallProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(!isVoiceOnly);
@@ -192,13 +194,29 @@ const VideoCall = ({
         pc.addTrack(track, stream);
       });
 
-      sendSignal({ type: "call-accepted", payload: {} });
+      // Call the parent's onAccept which sends call-accepted via incoming-calls channel
       onAccept?.();
     } catch (error) {
       console.error("Error accepting call:", error);
       handleEndCall();
     }
-  }, [startLocalStream, createPeerConnection, sendSignal, onAccept]);
+  }, [startLocalStream, createPeerConnection, onAccept]);
+
+  // When caller receives callAccepted, create the offer
+  const createAndSendOffer = useCallback(async () => {
+    const pc = peerConnectionRef.current;
+    if (pc && channelReadyRef.current) {
+      try {
+        console.log("Creating WebRTC offer...");
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        sendSignal({ type: "offer", payload: offer });
+        console.log("Offer sent");
+      } catch (error) {
+        console.error("Error creating offer:", error);
+      }
+    }
+  }, [sendSignal]);
 
   const handleSignal = useCallback(
     async (message: SignalMessage) => {
@@ -207,37 +225,15 @@ const VideoCall = ({
       const pc = peerConnectionRef.current;
 
       switch (message.type) {
-        case "call-accepted":
-          if (pc) {
-            try {
-              const offer = await pc.createOffer();
-              await pc.setLocalDescription(offer);
-              sendSignal({ type: "offer", payload: offer });
-            } catch (error) {
-              console.error("Error creating offer:", error);
-            }
-          }
-          break;
-
-        case "call-rejected":
-          setCallStatus("ended");
-          cleanup();
-          onEnd();
-          break;
-
-        case "call-ended":
-          setCallStatus("ended");
-          cleanup();
-          onEnd();
-          break;
-
         case "offer":
           if (pc) {
             try {
+              console.log("Received offer, creating answer...");
               await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
               sendSignal({ type: "answer", payload: answer });
+              console.log("Answer sent");
             } catch (error) {
               console.error("Error handling offer:", error);
             }
@@ -247,6 +243,7 @@ const VideoCall = ({
         case "answer":
           if (pc) {
             try {
+              console.log("Received answer, setting remote description...");
               await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
             } catch (error) {
               console.error("Error setting remote description:", error);
@@ -265,25 +262,21 @@ const VideoCall = ({
           break;
       }
     },
-    [remoteUserId, currentUserId, sendSignal, cleanup, onEnd]
+    [remoteUserId, currentUserId, sendSignal]
   );
 
   const handleEndCall = useCallback(() => {
-    if (channelReadyRef.current) {
-      sendSignal({ type: "call-ended", payload: {} });
-    }
     setCallStatus("ended");
     cleanup();
     onEnd();
-  }, [sendSignal, cleanup, onEnd]);
+  }, [cleanup, onEnd]);
 
   const handleReject = useCallback(() => {
-    sendSignal({ type: "call-rejected", payload: {} });
     setCallStatus("ended");
     cleanup();
     onReject?.();
     onEnd();
-  }, [sendSignal, cleanup, onReject, onEnd]);
+  }, [cleanup, onReject, onEnd]);
 
   const toggleVideo = () => {
     if (localStreamRef.current && !isVoiceOnly) {
@@ -304,6 +297,14 @@ const VideoCall = ({
       }
     }
   };
+
+  // Effect to trigger offer creation when callAccepted becomes true (for caller)
+  useEffect(() => {
+    if (callAccepted && !isIncoming && channelReadyRef.current && peerConnectionRef.current) {
+      console.log("Call accepted, creating offer...");
+      createAndSendOffer();
+    }
+  }, [callAccepted, isIncoming, createAndSendOffer]);
 
   useEffect(() => {
     // Set up signaling channel
