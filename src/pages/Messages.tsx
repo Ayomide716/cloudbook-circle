@@ -71,6 +71,7 @@ const Messages = () => {
   const {
     incomingCall,
     activeCall,
+    callAccepted,
     initiateCall,
     acceptIncomingCall,
     rejectIncomingCall,
@@ -774,6 +775,7 @@ const Messages = () => {
           onAccept={acceptIncomingCall}
           onReject={rejectIncomingCall}
           isVoiceOnly={activeCall.isVoiceOnly}
+          callAccepted={callAccepted}
         />
       )}
 
