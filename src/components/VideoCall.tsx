@@ -172,13 +172,14 @@ const VideoCall = ({
         pc.addTrack(track, stream);
       });
 
-      // Send call request
-      sendSignal({ type: "call-request", payload: { isVoiceOnly } });
+      // Call request is already sent by useVideoCall hook via incoming-calls channel
+      // Just wait for the recipient to accept and send call-accepted signal
+      console.log("Waiting for call to be accepted...");
     } catch (error) {
       console.error("Error initiating call:", error);
       handleEndCall();
     }
-  }, [startLocalStream, createPeerConnection, sendSignal, isVoiceOnly]);
+  }, [startLocalStream, createPeerConnection]);
 
   const acceptCall = useCallback(async () => {
     try {
