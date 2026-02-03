@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useRingtone } from "./useRingtone";
 
 interface CallRequest {
   from: string;
@@ -20,6 +21,9 @@ export const useVideoCall = (currentUserId: string | null) => {
   const [callAccepted, setCallAccepted] = useState(false);
   
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  
+  // Play ringtone when there's an incoming call
+  useRingtone(!!incomingCall);
 
   useEffect(() => {
     if (!currentUserId) return;

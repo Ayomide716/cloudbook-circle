@@ -1,11 +1,10 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, User, LogOut, MessageCircle, Users, Film, Bell, UserPlus, Search } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { lazy, Suspense, useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import BottomNav from "./BottomNav";
-import MobileMenu from "./MobileMenu";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -21,8 +20,6 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-const SearchUsers = lazy(() => import("./SearchUsers"));
-
 interface NavigationProps {
   currentUserId?: string;
 }
@@ -31,7 +28,6 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
@@ -116,7 +112,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
         <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-14">
             {/* Left Section - Logo */}
-            <div className="flex items-center gap-3 min-w-[200px]">
+            <div className="flex items-center gap-3">
               <Link to="/" className="flex items-center group">
                 <div className="relative">
                   <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent group-hover:from-primary/80 group-hover:to-primary transition-all duration-300">
@@ -125,15 +121,6 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
                 </div>
               </Link>
-              
-              {/* Search */}
-              {currentUserId && (
-                <div className="hidden lg:block">
-                  <Suspense fallback={<div className="w-10 h-10" />}>
-                    <SearchUsers />
-                  </Suspense>
-                </div>
-              )}
             </div>
 
             {/* Center Navigation - Clean Pill Style */}
@@ -161,16 +148,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
             </div>
 
             {/* Right Side Icons */}
-            <div className="flex items-center gap-2 min-w-[200px] justify-end">
+            <div className="flex items-center gap-2 justify-end">
               {currentUserId && (
                 <>
-                  {/* Mobile Search */}
-                  <div className="lg:hidden">
-                    <Suspense fallback={<div className="w-10 h-10" />}>
-                      <SearchUsers />
-                    </Suspense>
-                  </div>
-
                   {/* Desktop icons */}
                   <div className="hidden md:flex items-center gap-1.5">
                     <Tooltip>
@@ -269,17 +249,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
       {/* Mobile Bottom Navigation */}
       {currentUserId && (
-        <>
-          <BottomNav
-            currentUserId={currentUserId}
-            onMenuClick={() => setMobileMenuOpen(true)}
-          />
-          <MobileMenu
-            isOpen={mobileMenuOpen}
-            onClose={() => setMobileMenuOpen(false)}
-            currentUserId={currentUserId}
-          />
-        </>
+        <BottomNav currentUserId={currentUserId} />
       )}
     </>
   );

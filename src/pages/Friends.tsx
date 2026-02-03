@@ -1,14 +1,14 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, Users, UserPlus, Check, X, UserCheck } from "lucide-react";
+import { Loader2, Users, UserPlus, Check, X, UserCheck, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -42,6 +42,9 @@ const Friends = () => {
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [suggestions, setSuggestions] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searchResults, setSearchResults] = useState<Profile[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -275,6 +278,29 @@ const Friends = () => {
     loadData();
   };
 
+  const handleSearch = async (query: string) => {
+    setSearchQuery(query);
+    
+    if (query.trim().length < 2) {
+      setSearchResults([]);
+      return;
+    }
+
+    setIsSearching(true);
+
+    const { data, error } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .ilike("full_name", `%${query}%`)
+      .limit(10);
+
+    setIsSearching(false);
+
+    if (!error && data) {
+      setSearchResults(data);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -291,10 +317,70 @@ const Friends = () => {
       <Navigation currentUserId={currentUserId || undefined} />
       
       <div className="max-w-[1000px] mx-auto px-4 py-4 sm:py-6">
-        <div className="flex items-center gap-3 mb-4 sm:mb-6">
-          <Users className="h-6 w-6 text-primary" />
-          <h1 className="text-xl sm:text-2xl font-bold">Friends</h1>
+        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+          <div className="flex items-center gap-3">
+            <Users className="h-6 w-6 text-primary" />
+            <h1 className="text-xl sm:text-2xl font-bold">Friends</h1>
+          </div>
         </div>
+
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search people..."
+            value={searchQuery}
+            onChange={(e) => handleSearch(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+
+        {/* Search Results */}
+        {searchQuery.length >= 2 && (
+          <Card className="mb-4">
+            {isSearching ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : searchResults.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8 text-center">
+                <p className="text-muted-foreground">No users found</p>
+              </div>
+            ) : (
+              <div className="divide-y">
+                {searchResults.map((profile) => (
+                  <div
+                    key={profile.id}
+                    className="flex items-center gap-4 p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+                    onClick={() => navigate(`/profile/${profile.id}`)}
+                  >
+                    <Avatar className="h-12 w-12">
+                      <AvatarImage src={profile.avatar_url || undefined} />
+                      <AvatarFallback>
+                        {profile.full_name?.[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">
+                        {profile.full_name || "Anonymous"}
+                      </p>
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/profile/${profile.id}`);
+                      }}
+                    >
+                      View Profile
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+        )}
 
         <Tabs defaultValue="requests" className="w-full">
           <TabsList className="w-full grid grid-cols-4 mb-4">
@@ -511,8 +597,6 @@ const Friends = () => {
           </TabsContent>
         </Tabs>
       </div>
-      
-      <BottomNav currentUserId={currentUserId || undefined} />
     </div>
   );
 };
