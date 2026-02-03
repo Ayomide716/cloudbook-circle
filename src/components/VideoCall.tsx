@@ -62,6 +62,7 @@ const VideoCall = ({
   const signalingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const channelReadyRef = useRef<boolean>(false);
+  const pendingIceCandidatesRef = useRef<RTCIceCandidate[]>([]);
 
   const roomId = [currentUserId, remoteUserId].sort().join("-");
 
@@ -112,11 +113,17 @@ const VideoCall = ({
         { urls: "stun:stun.l.google.com:19302" },
         { urls: "stun:stun1.l.google.com:19302" },
         { urls: "stun:stun2.l.google.com:19302" },
+        { urls: "stun:stun3.l.google.com:19302" },
+        { urls: "stun:stun4.l.google.com:19302" },
+        { urls: "stun:stun.stunprotocol.org:3478" },
+        { urls: "stun:stun.voip.blackberry.com:3478" },
       ],
+      iceCandidatePoolSize: 10,
     });
 
     pc.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log("Sending ICE candidate:", event.candidate.candidate?.substring(0, 50));
         sendSignal({
           type: "ice-candidate",
           payload: event.candidate,
@@ -124,9 +131,20 @@ const VideoCall = ({
       }
     };
 
+    pc.oniceconnectionstatechange = () => {
+      console.log("ICE connection state:", pc.iceConnectionState);
+      if (pc.iceConnectionState === "failed") {
+        console.log("ICE connection failed, attempting restart...");
+        pc.restartIce();
+      }
+    };
+
     pc.ontrack = (event) => {
-      if (remoteVideoRef.current) {
+      console.log("Received remote track:", event.track.kind);
+      if (remoteVideoRef.current && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
+        // Ensure audio plays
+        remoteVideoRef.current.play().catch(e => console.log("Auto-play prevented:", e));
       }
     };
 
@@ -230,6 +248,18 @@ const VideoCall = ({
             try {
               console.log("Received offer, creating answer...");
               await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+              
+              // Process any queued ICE candidates
+              for (const candidate of pendingIceCandidatesRef.current) {
+                try {
+                  await pc.addIceCandidate(candidate);
+                  console.log("Added queued ICE candidate");
+                } catch (e) {
+                  console.error("Error adding queued ICE candidate:", e);
+                }
+              }
+              pendingIceCandidatesRef.current = [];
+              
               const answer = await pc.createAnswer();
               await pc.setLocalDescription(answer);
               sendSignal({ type: "answer", payload: answer });
@@ -245,6 +275,17 @@ const VideoCall = ({
             try {
               console.log("Received answer, setting remote description...");
               await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+              
+              // Process any queued ICE candidates
+              for (const candidate of pendingIceCandidatesRef.current) {
+                try {
+                  await pc.addIceCandidate(candidate);
+                  console.log("Added queued ICE candidate");
+                } catch (e) {
+                  console.error("Error adding queued ICE candidate:", e);
+                }
+              }
+              pendingIceCandidatesRef.current = [];
             } catch (error) {
               console.error("Error setting remote description:", error);
             }
@@ -252,11 +293,19 @@ const VideoCall = ({
           break;
 
         case "ice-candidate":
-          if (pc && pc.remoteDescription) {
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(message.payload));
-            } catch (error) {
-              console.error("Error adding ICE candidate:", error);
+          if (pc) {
+            const candidate = new RTCIceCandidate(message.payload);
+            if (pc.remoteDescription) {
+              try {
+                await pc.addIceCandidate(candidate);
+                console.log("Added ICE candidate");
+              } catch (error) {
+                console.error("Error adding ICE candidate:", error);
+              }
+            } else {
+              // Queue candidate for later
+              console.log("Queueing ICE candidate (no remote description yet)");
+              pendingIceCandidatesRef.current.push(candidate);
             }
           }
           break;

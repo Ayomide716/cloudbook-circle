@@ -19,6 +19,7 @@ interface Group {
   image_url: string | null;
   created_by: string;
   member_count?: number;
+  is_member?: boolean;
 }
 
 const Groups = () => {
@@ -54,6 +55,7 @@ const Groups = () => {
   };
 
   const loadGroups = async () => {
+    if (!currentUserId) return;
     setIsLoading(true);
 
     const { data: groupsData, error } = await supabase
@@ -71,15 +73,27 @@ const Groups = () => {
       return;
     }
 
-    // Load member counts for each group
+    // Load member counts and membership status for each group
     const groupsWithCounts = await Promise.all(
       (groupsData || []).map(async (group: any) => {
-        const { count } = await supabase
-          .from("group_members" as any)
-          .select("*", { count: "exact", head: true })
-          .eq("group_id", group.id);
+        const [countResult, membershipResult] = await Promise.all([
+          supabase
+            .from("group_members" as any)
+            .select("*", { count: "exact", head: true })
+            .eq("group_id", group.id),
+          supabase
+            .from("group_members" as any)
+            .select("id")
+            .eq("group_id", group.id)
+            .eq("user_id", currentUserId)
+            .maybeSingle()
+        ]);
 
-        return { ...group, member_count: count || 0 };
+        return { 
+          ...group, 
+          member_count: countResult.count || 0,
+          is_member: !!membershipResult.data
+        };
       })
     );
 
@@ -136,6 +150,34 @@ const Groups = () => {
     });
     setIsCreating(false);
     setFormData({ name: "", description: "" });
+    loadGroups();
+  };
+
+  const handleJoinGroup = async (e: React.MouseEvent, groupId: string) => {
+    e.stopPropagation();
+    
+    if (!currentUserId) return;
+
+    const { error } = await supabase
+      .from("group_members" as any)
+      .insert({
+        group_id: groupId,
+        user_id: currentUserId,
+        role: "member",
+      } as any);
+
+    if (error) {
+      toast({
+        title: "Error joining group",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Joined group successfully!",
+    });
     loadGroups();
   };
 
@@ -250,15 +292,30 @@ const Groups = () => {
                       {group.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-1.5">
-                      <Users className="h-4 w-4" />
-                      <span>{group.member_count || 0} members</span>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <Users className="h-4 w-4" />
+                        <span>{group.member_count || 0} members</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <Globe className="h-4 w-4" />
+                        <span>Public</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <Globe className="h-4 w-4" />
-                      <span>Public</span>
-                    </div>
+                    {!group.is_member && (
+                      <Button
+                        size="sm"
+                        onClick={(e) => handleJoinGroup(e, group.id)}
+                      >
+                        Join
+                      </Button>
+                    )}
+                    {group.is_member && (
+                      <span className="text-xs text-primary font-medium px-2 py-1 bg-primary/10 rounded-full">
+                        Member
+                      </span>
+                    )}
                   </div>
                 </div>
               </Card>

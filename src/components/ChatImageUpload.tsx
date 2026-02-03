@@ -47,17 +47,27 @@ const ChatImageUpload = ({
     setIsUploading(true);
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user?.id) {
+        toast({
+          title: "Not authenticated",
+          description: "Please log in to upload images",
+          variant: "destructive",
+        });
+        setIsUploading(false);
+        return;
+      }
+
       const fileExt = file.name.split(".").pop();
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const bucket = file.type.startsWith("video/") ? "post-videos" : "post-images";
+      const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
-        .from(bucket)
+        .from("chat-images")
         .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
-      const { data: urlData } = supabase.storage.from(bucket).getPublicUrl(fileName);
+      const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(fileName);
       onImageUploaded(urlData.publicUrl);
     } catch (error: any) {
       toast({
