@@ -636,12 +636,20 @@ const Messages = () => {
                                 )}
                                 {/* Image/Video */}
                                 {message.image_url && !message.content?.startsWith("🎤") && (
-                                  <img
-                                    src={message.image_url}
-                                    alt="Shared image"
-                                    className="rounded-[14px] max-w-full cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => window.open(message.image_url!, "_blank")}
-                                  />
+                                  message.image_url.includes('.mp4') || message.image_url.includes('.mov') || message.image_url.includes('.webm') || message.image_url.includes('.avi') ? (
+                                    <video
+                                      src={message.image_url}
+                                      controls
+                                      className="rounded-[14px] max-w-full max-h-64"
+                                    />
+                                  ) : (
+                                    <img
+                                      src={message.image_url}
+                                      alt="Shared image"
+                                      className="rounded-[14px] max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => window.open(message.image_url!, "_blank")}
+                                    />
+                                  )
                                 )}
                                 {message.content && message.content !== "Sent an image" && !message.content?.startsWith("🎤") && (
                                   <p className="text-[15px] leading-snug break-words whitespace-pre-wrap">
