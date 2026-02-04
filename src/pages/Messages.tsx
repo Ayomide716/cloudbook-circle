@@ -60,6 +60,7 @@ const Messages = () => {
   const [isSending, setIsSending] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
@@ -705,10 +706,14 @@ const Messages = () => {
                   <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 pb-20 md:pb-4 flex-shrink-0 bg-card">
                     {imageUrl && (
                       <div className="mb-2 relative inline-block">
-                        <img src={imageUrl} alt="Preview" className="h-20 rounded-lg" />
+                        {mediaType === "video" ? (
+                          <video src={imageUrl} className="h-20 rounded-lg" />
+                        ) : (
+                          <img src={imageUrl} alt="Preview" className="h-20 rounded-lg" />
+                        )}
                         <button
                           type="button"
-                          onClick={() => setImageUrl(null)}
+                          onClick={() => { setImageUrl(null); setMediaType(null); }}
                           className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs"
                         >
                           ✕
@@ -717,9 +722,10 @@ const Messages = () => {
                     )}
                     <div className="flex gap-2 items-center">
                       <ChatImageUpload
-                        onImageUploaded={setImageUrl}
-                        onImageCleared={() => setImageUrl(null)}
+                        onMediaUploaded={(url, type) => { setImageUrl(url); setMediaType(type); }}
+                        onMediaCleared={() => { setImageUrl(null); setMediaType(null); }}
                         previewUrl={null}
+                        mediaType={null}
                         isUploading={isUploadingImage}
                         setIsUploading={setIsUploadingImage}
                       />

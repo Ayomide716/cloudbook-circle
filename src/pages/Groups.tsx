@@ -175,10 +175,25 @@ const Groups = () => {
       return;
     }
 
-    toast({
-      title: "Joined group successfully!",
-    });
-    loadGroups();
+    // Verify membership before navigating
+    const { data: memberCheck } = await supabase
+      .from("group_members" as any)
+      .select("id")
+      .eq("group_id", groupId)
+      .eq("user_id", currentUserId)
+      .maybeSingle();
+
+    if (memberCheck) {
+      toast({
+        title: "Joined group successfully!",
+      });
+      navigate(`/groups/${groupId}`);
+    } else {
+      toast({
+        title: "Joined group successfully!",
+      });
+      loadGroups();
+    }
   };
 
   if (isLoading) {
