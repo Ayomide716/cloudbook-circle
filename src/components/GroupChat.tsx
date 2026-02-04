@@ -205,7 +205,7 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-400px)] min-h-[300px] max-h-[600px] bg-card rounded-lg border overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-350px)] min-h-[300px] max-h-[600px] bg-card rounded-lg border overflow-hidden mb-20 md:mb-0">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
@@ -271,8 +271,8 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area - Sticky within container */}
-      <div className="sticky bottom-0 border-t bg-background p-3 mt-auto">
+      {/* Input Area */}
+      <div className="border-t bg-background p-3">
         <form onSubmit={handleSendMessage} className="flex gap-2">
           <Input
             placeholder="Type a message..."
