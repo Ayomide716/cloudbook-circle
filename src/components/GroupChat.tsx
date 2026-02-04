@@ -205,7 +205,7 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
   }
 
   return (
-    <div className="flex flex-col h-[500px] bg-card rounded-lg border overflow-hidden">
+    <div className="flex flex-col h-[calc(100vh-400px)] min-h-[300px] max-h-[600px] bg-card rounded-lg border overflow-hidden">
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.length === 0 ? (
@@ -271,30 +271,29 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input Area */}
-      <form
-        onSubmit={handleSendMessage}
-        className="border-t p-3 flex gap-2 bg-background"
-      >
-        <Input
-          placeholder="Type a message..."
-          value={messageContent}
-          onChange={(e) => setMessageContent(e.target.value)}
-          disabled={isSending}
-          className="flex-1"
-        />
-        <Button
-          type="submit"
-          size="icon"
-          disabled={isSending || !messageContent.trim()}
-        >
-          {isSending ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Send className="h-4 w-4" />
-          )}
-        </Button>
-      </form>
+      {/* Input Area - Sticky within container */}
+      <div className="sticky bottom-0 border-t bg-background p-3 mt-auto">
+        <form onSubmit={handleSendMessage} className="flex gap-2">
+          <Input
+            placeholder="Type a message..."
+            value={messageContent}
+            onChange={(e) => setMessageContent(e.target.value)}
+            disabled={isSending}
+            className="flex-1"
+          />
+          <Button
+            type="submit"
+            size="icon"
+            disabled={isSending || !messageContent.trim()}
+          >
+            {isSending ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
+          </Button>
+        </form>
+      </div>
     </div>
   );
 };
