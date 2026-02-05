@@ -1,15 +1,17 @@
-import { useState } from "react";
+ import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp } from "lucide-react";
+ import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
+ import SharePostDialog from "./SharePostDialog";
+ import PollDisplay from "./PollDisplay";
 
 interface Comment {
   id: string;
@@ -35,6 +37,11 @@ interface PostCardProps {
       avatar_url: string | null;
     };
     user_id: string;
+     poll?: {
+       id: string;
+       question: string;
+       options: string[];
+     } | null;
   };
   currentUserId: string;
   reactions: Record<string, number>;
@@ -68,7 +75,41 @@ const PostCard = ({
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+   const [isSaved, setIsSaved] = useState(false);
+   const [showShareDialog, setShowShareDialog] = useState(false);
   const { toast } = useToast();
+ 
+   // Check if post is saved
+   useEffect(() => {
+     const checkSaved = async () => {
+       const { data } = await supabase
+         .from("saved_posts")
+         .select("id")
+         .eq("post_id", post.id)
+         .eq("user_id", currentUserId)
+         .maybeSingle();
+       setIsSaved(!!data);
+     };
+     checkSaved();
+   }, [post.id, currentUserId]);
+ 
+   const handleSavePost = async () => {
+     if (isSaved) {
+       await supabase
+         .from("saved_posts")
+         .delete()
+         .eq("post_id", post.id)
+         .eq("user_id", currentUserId);
+       setIsSaved(false);
+       toast({ title: "Post unsaved" });
+     } else {
+       await supabase
+         .from("saved_posts")
+         .insert({ post_id: post.id, user_id: currentUserId });
+       setIsSaved(true);
+       toast({ title: "Post saved!" });
+     }
+   };
 
   const handleReaction = async (reactionType: string) => {
     setShowReactions(false);
@@ -200,21 +241,34 @@ const PostCard = ({
             </p>
           </div>
 
-          {currentUserId === post.user_id && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
-                  <MoreHorizontal className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Post
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+           <DropdownMenu>
+             <DropdownMenuTrigger asChild>
+               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+                 <MoreHorizontal className="h-5 w-5" />
+               </Button>
+             </DropdownMenuTrigger>
+             <DropdownMenuContent align="end">
+               <DropdownMenuItem onClick={handleSavePost}>
+                 {isSaved ? (
+                   <>
+                     <BookmarkCheck className="h-4 w-4 mr-2 text-primary" />
+                     Unsave Post
+                   </>
+                 ) : (
+                   <>
+                     <Bookmark className="h-4 w-4 mr-2" />
+                     Save Post
+                   </>
+                 )}
+               </DropdownMenuItem>
+               {currentUserId === post.user_id && (
+                 <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                   <Trash2 className="h-4 w-4 mr-2" />
+                   Delete Post
+                 </DropdownMenuItem>
+               )}
+             </DropdownMenuContent>
+           </DropdownMenu>
         </div>
 
         {/* Content */}
@@ -243,6 +297,18 @@ const PostCard = ({
           className="w-full max-h-[500px] object-cover"
         />
       )}
+ 
+       {/* Poll */}
+       {post.poll && (
+         <div className="px-3 sm:px-4">
+           <PollDisplay
+             pollId={post.poll.id}
+             question={post.poll.question}
+             options={post.poll.options as string[]}
+             currentUserId={currentUserId}
+           />
+         </div>
+       )}
 
       {/* Reactions Summary & Comments Count */}
       <div className="px-3 sm:px-4 py-2 flex items-center justify-between text-sm text-muted-foreground border-b">
@@ -332,15 +398,20 @@ const PostCard = ({
         <Button
           variant="ghost"
           className="flex-1 gap-2 text-muted-foreground hover:bg-accent"
-          onClick={() => {
-            navigator.clipboard.writeText(`${window.location.origin}/post/${post.id}`);
-            toast({ title: "Link copied!" });
-          }}
+           onClick={() => setShowShareDialog(true)}
         >
           <Share2 className="h-5 w-5" />
           <span className="hidden sm:inline">Share</span>
         </Button>
       </div>
+ 
+       {/* Share Dialog */}
+       <SharePostDialog
+         postId={post.id}
+         open={showShareDialog}
+         onOpenChange={setShowShareDialog}
+         currentUserId={currentUserId}
+       />
 
       {/* Comments Section */}
       {showComments && (

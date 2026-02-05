@@ -1,4 +1,4 @@
-import { Home, Users, Film, MessageCircle, Bell, UserPlus } from "lucide-react";
+ import { Home, Users, Film, MessageCircle, Bell, CalendarDays } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
@@ -64,7 +64,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
     { icon: Film, path: "/reels", label: "Reels", badge: 0 },
     { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0 },
     { icon: Bell, path: "/notifications", label: "Alerts", badge: unreadNotifications },
-    { icon: UserPlus, path: "/friends", label: "Friends", badge: pendingRequests },
+     { icon: CalendarDays, path: "/events", label: "Events", badge: 0 },
   ];
 
   return (

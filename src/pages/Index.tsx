@@ -29,6 +29,11 @@ interface Post {
     full_name: string | null;
     avatar_url: string | null;
   };
+   poll?: {
+     id: string;
+     question: string;
+     options: string[];
+   } | null;
 }
 
 const Index = () => {
@@ -144,10 +149,29 @@ const Index = () => {
       return;
     }
 
-    setPosts(postsData || []);
-    
     const postIds = postsData?.map(p => p.id) || [];
 
+     // Load polls for posts
+     const { data: pollsData } = await supabase
+       .from("polls")
+       .select("id, post_id, question, options")
+       .in("post_id", postIds);
+ 
+     // Merge polls into posts
+     const postsWithPolls = (postsData || []).map(post => {
+       const poll = pollsData?.find(p => p.post_id === post.id);
+       return {
+         ...post,
+         poll: poll ? {
+           id: poll.id,
+           question: poll.question,
+           options: poll.options as string[]
+         } : null
+       };
+     });
+ 
+     setPosts(postsWithPolls);
+ 
     const { data: reactionsData } = await supabase
       .from("reactions")
       .select("post_id, user_id, reaction_type")
@@ -295,6 +319,14 @@ const Index = () => {
                       <span className="text-lg">🎬</span>
                       <span className="text-sm font-medium">Reels</span>
                     </a>
+                     <a href="/events" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                       <span className="text-lg">📅</span>
+                       <span className="text-sm font-medium">Events</span>
+                     </a>
+                     <a href="/saved" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                       <span className="text-lg">🔖</span>
+                       <span className="text-sm font-medium">Saved</span>
+                     </a>
                   </nav>
                 </div>
               </div>

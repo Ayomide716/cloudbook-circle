@@ -3,11 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image, Video } from "lucide-react";
+ import { Loader2, Image, Video, BarChart3, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
+ import PollCreator from "./PollCreator";
 import {
   Dialog,
   DialogContent,
@@ -30,12 +31,13 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [videoUrl, setVideoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
+   const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!content.trim()) {
+     if (!content.trim() && !pollData) {
       toast({
         title: "Content required",
         description: "Please write something to post",
@@ -46,15 +48,27 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     setIsLoading(true);
 
-    const { error } = await supabase
+     const { data: postData, error } = await supabase
       .from("posts")
       .insert({
-        content: content.trim(),
+         content: content.trim() || (pollData ? `📊 ${pollData.question}` : ""),
         user_id: currentUser.id,
         image_url: imageUrl || null,
         video_url: videoUrl || null,
-      });
+       })
+       .select()
+       .single();
 
+     if (!error && postData && pollData) {
+       // Create the poll
+       await supabase.from("polls").insert({
+         post_id: postData.id,
+         question: pollData.question,
+         options: pollData.options,
+         user_id: currentUser.id,
+       });
+     }
+ 
     setIsLoading(false);
 
     if (error) {
@@ -69,10 +83,16 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     setContent("");
     setImageUrl("");
     setVideoUrl("");
+     setPollData(null);
     setShowDialog(false);
     toast({ title: "Post created!" });
     onPostCreated();
   };
+ 
+   const handleCreatePoll = (question: string, options: string[]) => {
+     setPollData({ question, options });
+     setContent(`📊 ${question}`);
+   };
 
   return (
     <>
@@ -160,9 +180,32 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   currentVideo={videoUrl}
                   label=""
                 />
+                 <PollCreator onCreatePoll={handleCreatePoll} />
               </div>
             </div>
 
+             {pollData && (
+               <div className="relative bg-secondary/50 rounded-lg p-3">
+                 <Button
+                   type="button"
+                   variant="ghost"
+                   size="icon"
+                   className="absolute top-1 right-1 h-6 w-6"
+                   onClick={() => { setPollData(null); setContent(""); }}
+                 >
+                   <X className="h-4 w-4" />
+                 </Button>
+                 <p className="font-medium text-sm mb-2">📊 {pollData.question}</p>
+                 <div className="space-y-1">
+                   {pollData.options.map((opt, i) => (
+                     <div key={i} className="bg-secondary rounded-lg px-3 py-2 text-sm">
+                       {opt}
+                     </div>
+                   ))}
+                 </div>
+               </div>
+             )}
+ 
             {(imageUrl || videoUrl) && (
               <div className="relative rounded-lg overflow-hidden bg-secondary">
                 {imageUrl && (
@@ -186,7 +229,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
             <Button
               type="submit"
               className="w-full"
-              disabled={isLoading || !content.trim()}
+               disabled={isLoading || (!content.trim() && !pollData)}
             >
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Post
