@@ -1,11 +1,12 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus } from "lucide-react";
+ import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import BottomNav from "./BottomNav";
 import { cn } from "@/lib/utils";
+ import ThemeToggle from "./ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -230,6 +231,21 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                           </div>
                         </DropdownMenuItem>
                         <DropdownMenuSeparator className="my-2" />
+                         <DropdownMenuItem
+                           className="p-3 cursor-pointer rounded-lg"
+                           onClick={() => navigate("/saved")}
+                         >
+                           <Bookmark className="h-4 w-4 mr-3" />
+                           Saved Posts
+                         </DropdownMenuItem>
+                         <DropdownMenuItem
+                           className="p-3 cursor-pointer rounded-lg"
+                           onClick={() => navigate("/events")}
+                         >
+                           <CalendarDays className="h-4 w-4 mr-3" />
+                           Events
+                         </DropdownMenuItem>
+                         <DropdownMenuSeparator className="my-2" />
                         <DropdownMenuItem
                           className="p-3 cursor-pointer rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10"
                           onClick={handleLogout}
@@ -239,6 +255,8 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
+                     
+                     <ThemeToggle />
                   </div>
                 </>
               )}

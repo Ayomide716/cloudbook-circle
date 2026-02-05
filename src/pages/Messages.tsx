@@ -12,6 +12,7 @@ import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import VideoCall from "@/components/VideoCall";
 import VoiceMessageRecorder from "@/components/VoiceMessageRecorder";
 import VoiceMessagePlayer from "@/components/VoiceMessagePlayer";
+ import GifPicker from "@/components/GifPicker";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -741,6 +742,16 @@ const Messages = () => {
                         onVoiceMessageSent={handleVoiceMessageSent}
                         disabled={isSending}
                       />
+                       <GifPicker 
+                         onSelect={(content) => {
+                           if (content.startsWith('http')) {
+                             setImageUrl(content);
+                             setMediaType("image");
+                           } else {
+                             setMessageContent(prev => prev + content);
+                           }
+                         }}
+                       />
                       <Input
                         placeholder="Type a message..."
                         value={messageContent}

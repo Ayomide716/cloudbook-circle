@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { useEffect, useState, ReactNode } from "react";
+ import { ThemeProvider } from "next-themes";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
@@ -14,6 +15,8 @@ import Reels from "./pages/Reels";
 import Notifications from "./pages/Notifications";
 import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
+ import Events from "./pages/Events";
+ import SavedPosts from "./pages/SavedPosts";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +64,8 @@ const AppRoutes = () => {
         <Route path="/reels" element={<Reels />} />
         <Route path="/notifications" element={<Notifications />} />
         <Route path="/friends" element={<Friends />} />
+         <Route path="/events" element={<Events />} />
+         <Route path="/saved" element={<SavedPosts />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
@@ -70,13 +75,15 @@ const AppRoutes = () => {
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </TooltipProvider>
+     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+       <TooltipProvider>
+         <Toaster />
+         <Sonner />
+         <BrowserRouter>
+           <AppRoutes />
+         </BrowserRouter>
+       </TooltipProvider>
+     </ThemeProvider>
   </QueryClientProvider>
 );
 
