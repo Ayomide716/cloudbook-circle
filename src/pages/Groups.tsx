@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Users, Search, Globe, Lock } from "lucide-react";
+import { Loader2, Plus, Users, Search, Globe, ImagePlus } from "lucide-react";
 
 interface Group {
   id: string;
@@ -30,6 +30,10 @@ const Groups = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [groupImage, setGroupImage] = useState<File | null>(null);
+  const [groupImagePreview, setGroupImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -112,10 +116,43 @@ const Groups = () => {
     );
   }, [groups, searchQuery]);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setGroupImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setGroupImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadGroupImage = async (groupId: string): Promise<string | null> => {
+    if (!groupImage) return null;
+
+    const fileExt = groupImage.name.split(".").pop();
+    const fileName = `${groupId}-${Date.now()}.${fileExt}`;
+    const filePath = `group-logos/${fileName}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("avatars")
+      .upload(filePath, groupImage);
+
+    if (uploadError) {
+      console.error("Upload error:", uploadError);
+      return null;
+    }
+
+    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
+    return data.publicUrl;
+  };
+
   const handleCreateGroup = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentUserId) return;
+    setIsUploading(true);
 
     const { data, error } = await supabase
       .from("groups" as any)
@@ -133,14 +170,28 @@ const Groups = () => {
         description: error.message,
         variant: "destructive",
       });
+      setIsUploading(false);
       return;
+    }
+
+    const groupId = (data as any).id;
+
+    // Upload image if selected
+    if (groupImage) {
+      const imageUrl = await uploadGroupImage(groupId);
+      if (imageUrl) {
+        await supabase
+          .from("groups" as any)
+          .update({ image_url: imageUrl } as any)
+          .eq("id", groupId);
+      }
     }
 
     // Add creator as admin member
     await supabase
       .from("group_members" as any)
       .insert({
-        group_id: (data as any).id,
+        group_id: groupId,
         user_id: currentUserId,
         role: "admin",
       } as any);
@@ -150,6 +201,9 @@ const Groups = () => {
     });
     setIsCreating(false);
     setFormData({ name: "", description: "" });
+    setGroupImage(null);
+    setGroupImagePreview(null);
+    setIsUploading(false);
     loadGroups();
   };
 
@@ -342,13 +396,44 @@ const Groups = () => {
       <BottomNav currentUserId={currentUserId || undefined} />
 
       {/* Create Group Dialog */}
-      <Dialog open={isCreating} onOpenChange={setIsCreating}>
+      <Dialog open={isCreating} onOpenChange={(open) => {
+        setIsCreating(open);
+        if (!open) {
+          setGroupImage(null);
+          setGroupImagePreview(null);
+        }
+      }}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Create New Group</DialogTitle>
           </DialogHeader>
           
           <form onSubmit={handleCreateGroup} className="space-y-4">
+            {/* Group Logo Upload */}
+            <div className="space-y-2">
+              <Label>Group Logo (optional)</Label>
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                onChange={handleImageSelect}
+                className="hidden"
+              />
+              <div 
+                onClick={() => fileInputRef.current?.click()}
+                className="relative h-32 w-32 mx-auto rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors cursor-pointer overflow-hidden bg-secondary/50 flex items-center justify-center"
+              >
+                {groupImagePreview ? (
+                  <img src={groupImagePreview} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="text-center">
+                    <ImagePlus className="h-8 w-8 mx-auto text-muted-foreground/50" />
+                    <span className="text-xs text-muted-foreground mt-1 block">Add logo</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name">Group Name</Label>
               <Input
@@ -376,10 +461,14 @@ const Groups = () => {
                 type="button"
                 variant="outline"
                 onClick={() => setIsCreating(false)}
+                disabled={isUploading}
               >
                 Cancel
               </Button>
-              <Button type="submit">Create Group</Button>
+              <Button type="submit" disabled={isUploading}>
+                {isUploading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Create Group
+              </Button>
             </div>
           </form>
         </DialogContent>
