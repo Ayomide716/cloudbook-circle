@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, X } from "lucide-react";
+import { Plus, X, Send, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
@@ -31,6 +32,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [selectedStory, setSelectedStory] = useState<Story | null>(null);
   const [storyImage, setStoryImage] = useState("");
+  const [replyText, setReplyText] = useState("");
+  const [isSendingReply, setIsSendingReply] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -150,6 +153,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   const handleViewStory = async (story: Story) => {
     setSelectedStory(story);
+    setReplyText("");
     
     // Mark story as viewed
     await supabase
@@ -158,6 +162,37 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         story_id: story.id,
         viewer_id: currentUserId,
       } as any);
+  };
+
+  const handleSendReply = async () => {
+    if (!replyText.trim() || !selectedStory) return;
+    
+    setIsSendingReply(true);
+
+    // Send as a direct message to the story owner
+    const { error } = await supabase
+      .from("messages")
+      .insert({
+        sender_id: currentUserId,
+        receiver_id: selectedStory.user_id,
+        content: `💬 Replied to your story: "${replyText.trim()}"`,
+      });
+
+    setIsSendingReply(false);
+
+    if (error) {
+      toast({
+        title: "Error sending reply",
+        description: error.message,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Reply sent!",
+    });
+    setReplyText("");
   };
 
   return (
@@ -204,7 +239,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
       {/* Create Story Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
-        <DialogContent>
+        <DialogContent className="sm:max-w-md">
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Create Story</h2>
             <ImageUpload
@@ -228,9 +263,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
       {/* View Story Dialog */}
       <Dialog open={!!selectedStory} onOpenChange={() => setSelectedStory(null)}>
-        <DialogContent className="max-w-2xl p-0">
+        <DialogContent className="sm:max-w-2xl p-0 overflow-hidden">
           {selectedStory && (
-            <div className="relative">
+            <div className="relative flex flex-col max-h-[85vh]">
               <Button
                 variant="ghost"
                 size="icon"
@@ -239,14 +274,19 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               >
                 <X className="h-5 w-5" />
               </Button>
-              <img
-                src={selectedStory.media_url}
-                alt="Story"
-                className="w-full h-auto max-h-[80vh] object-contain"
-              />
-              <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+              
+              <div className="flex-1 min-h-0 bg-black flex items-center justify-center">
+                <img
+                  src={selectedStory.media_url}
+                  alt="Story"
+                  className="w-full h-auto max-h-[60vh] object-contain"
+                />
+              </div>
+              
+              {/* Story info overlay */}
+              <div className="absolute bottom-20 sm:bottom-16 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                 <div className="flex items-center gap-3">
-                  <Avatar>
+                  <Avatar className="h-10 w-10 border-2 border-white">
                     <AvatarImage src={selectedStory.profiles.avatar_url || undefined} />
                     <AvatarFallback>
                       {selectedStory.profiles.full_name?.[0]?.toUpperCase() || "U"}
@@ -260,6 +300,36 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                   <p className="text-white mt-2">{selectedStory.caption}</p>
                 )}
               </div>
+
+              {/* Reply input - only show if not viewing own story */}
+              {selectedStory.user_id !== currentUserId && (
+                <div className="bg-background p-3 border-t flex items-center gap-2">
+                  <Input
+                    placeholder="Reply to this story..."
+                    value={replyText}
+                    onChange={(e) => setReplyText(e.target.value)}
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendReply();
+                      }
+                    }}
+                    disabled={isSendingReply}
+                  />
+                  <Button
+                    size="icon"
+                    onClick={handleSendReply}
+                    disabled={!replyText.trim() || isSendingReply}
+                  >
+                    {isSendingReply ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </DialogContent>
