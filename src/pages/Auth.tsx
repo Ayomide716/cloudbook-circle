@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import logo from "@/assets/logo.png";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -82,8 +83,11 @@ const Auth = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-md space-y-4">
-        <div className="text-center">
-          <h1 className="text-5xl font-bold text-primary mb-2">AYO-CHAT</h1>
+        <div className="text-center flex flex-col items-center">
+          <img src={logo} alt="AYO-CHAT Logo" className="h-24 w-24 mb-4" />
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent mb-2">
+            AYO-CHAT
+          </h1>
           <p className="text-muted-foreground">
             Connect with friends and the world around you
           </p>
