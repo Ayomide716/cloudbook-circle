@@ -55,10 +55,15 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filePath, newImage);
+      .upload(filePath, newImage, { upsert: true });
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
+      toast({
+        title: "Image upload failed",
+        description: uploadError.message,
+        variant: "destructive",
+      });
       return group.image_url;
     }
 

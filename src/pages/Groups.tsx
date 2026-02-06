@@ -137,10 +137,15 @@ const Groups = () => {
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filePath, groupImage);
+      .upload(filePath, groupImage, { upsert: true });
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
+      toast({
+        title: "Image upload failed",
+        description: uploadError.message,
+        variant: "destructive",
+      });
       return null;
     }
 
@@ -340,7 +345,7 @@ const Groups = () => {
                 <div className="p-4">
                   <div className="flex items-center gap-3 mb-3">
                     {/* Group Avatar */}
-                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0 overflow-hidden">
+                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0 overflow-hidden flex items-center justify-center">
                       {group.image_url ? (
                         <img
                           src={group.image_url}
@@ -348,9 +353,7 @@ const Groups = () => {
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                          <Users className="h-7 w-7 text-primary/50" />
-                        </div>
+                        <Users className="h-7 w-7 text-primary/50" />
                       )}
                     </div>
                     
