@@ -118,14 +118,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
         <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-14">
             {/* Left Section - Logo */}
-            <div className="flex items-center gap-3">
-              <Link to="/" className="flex items-center gap-2 group">
-                <img src={logo} alt="AYO-CHAT" className="h-9 w-9" />
-                <div className="relative hidden sm:block">
-                  <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-                    AYO-CHAT
-                  </h1>
-                </div>
+            <div className="flex items-center">
+              <Link to="/" className="flex items-center group">
+                <img src={logo} alt="AC" className="h-10 w-10 rounded-xl" />
               </Link>
             </div>
 
