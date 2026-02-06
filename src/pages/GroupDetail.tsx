@@ -5,12 +5,13 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
 import GroupChat from "@/components/GroupChat";
+import EditGroupModal from "@/components/EditGroupModal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 
@@ -58,6 +59,8 @@ const GroupDetail = () => {
   const [postContent, setPostContent] = useState("");
   const [postImage, setPostImage] = useState("");
   const [isPosting, setIsPosting] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -219,12 +222,13 @@ const GroupDetail = () => {
 
     const { data } = await supabase
       .from("group_members")
-      .select("id")
+      .select("id, role")
       .eq("group_id", groupId)
       .eq("user_id", currentUserId)
       .maybeSingle();
 
     setIsMember(!!data);
+    setUserRole(data?.role || null);
   };
 
   const handleJoinGroup = async () => {
@@ -344,14 +348,31 @@ const GroupDetail = () => {
                 <span>{members.length} members</span>
               </div>
             </div>
-            {!isMember && (
-              <Button onClick={handleJoinGroup}>
-                <UserPlus className="h-4 w-4 mr-2" />
-                Join Group
-              </Button>
-            )}
+            <div className="flex gap-2">
+              {(userRole === "admin" || group.created_by === currentUserId) && (
+                <Button variant="outline" size="icon" onClick={() => setShowEditModal(true)}>
+                  <Settings className="h-4 w-4" />
+                </Button>
+              )}
+              {!isMember && (
+                <Button onClick={handleJoinGroup}>
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Join Group
+                </Button>
+              )}
+            </div>
           </div>
         </Card>
+
+        {/* Edit Group Modal */}
+        {group && (
+          <EditGroupModal
+            group={group}
+            open={showEditModal}
+            onOpenChange={setShowEditModal}
+            onGroupUpdated={loadGroup}
+          />
+        )}
 
         <Tabs defaultValue="chat" className="space-y-4">
           <TabsList className="grid w-full grid-cols-3">

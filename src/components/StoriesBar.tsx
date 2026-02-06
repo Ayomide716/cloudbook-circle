@@ -40,6 +40,21 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   const loadStories = async () => {
     try {
+      // First, get the list of friends (accepted friendships)
+      const { data: friendships } = await supabase
+        .from("friendships")
+        .select("user_id, friend_id")
+        .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`)
+        .eq("status", "accepted");
+
+      // Extract friend IDs
+      const friendIds = friendships?.map(f => 
+        f.user_id === currentUserId ? f.friend_id : f.user_id
+      ) || [];
+
+      // Include current user's own stories
+      const allowedUserIds = [currentUserId, ...friendIds];
+
       const { data, error } = await supabase
         .from("stories" as any)
         .select(`
@@ -50,6 +65,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             avatar_url
           )
         `)
+        .in("user_id", allowedUserIds)
         .gt("expires_at", new Date().toISOString())
         .order("created_at", { ascending: false });
 

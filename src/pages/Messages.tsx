@@ -550,14 +550,14 @@ const Messages = () => {
                         </AvatarFallback>
                       </Avatar>
                       <div className="absolute bottom-0 right-0">
-                        <OnlineStatusIndicator userId={selectedConversation.id} />
+                        <OnlineStatusIndicator userId={selectedConversation.id} currentUserId={currentUserId || undefined} />
                       </div>
                     </div>
                     <div className="flex-1">
                       <p className="font-semibold">
                         {selectedConversation.full_name || "Anonymous"}
                       </p>
-                      <OnlineStatusIndicator userId={selectedConversation.id} showText />
+                      <OnlineStatusIndicator userId={selectedConversation.id} showText currentUserId={currentUserId || undefined} />
                     </div>
                     
                     {/* Voice Call Button */}
