@@ -1,17 +1,18 @@
- import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
- import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck } from "lucide-react";
+import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
- import SharePostDialog from "./SharePostDialog";
- import PollDisplay from "./PollDisplay";
+import SharePostDialog from "./SharePostDialog";
+import PollDisplay from "./PollDisplay";
+import PostContent from "./PostContent";
 
 interface Comment {
   id: string;
@@ -272,7 +273,7 @@ const PostCard = ({
         </div>
 
         {/* Content */}
-        <p className="mt-3 text-sm sm:text-base whitespace-pre-wrap break-words">{post.content}</p>
+        <PostContent content={post.content} />
       </div>
 
       {/* Media */}

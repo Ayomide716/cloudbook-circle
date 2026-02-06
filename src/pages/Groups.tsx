@@ -336,42 +336,46 @@ const Groups = () => {
                 className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group"
                 onClick={() => navigate(`/groups/${group.id}`)}
               >
-                {/* Group Cover Image */}
-                <div className="h-32 bg-gradient-to-br from-primary/20 to-primary/5 relative">
-                  {group.image_url ? (
-                    <img
-                      src={group.image_url}
-                      alt={group.name}
-                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Users className="h-12 w-12 text-primary/30" />
-                    </div>
-                  )}
-                </div>
-                
-                {/* Group Info */}
+                {/* Group Card with Avatar */}
                 <div className="p-4">
-                  <h3 className="text-lg font-semibold mb-1 truncate group-hover:text-primary transition-colors">
-                    {group.name}
-                  </h3>
+                  <div className="flex items-center gap-3 mb-3">
+                    {/* Group Avatar */}
+                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0 overflow-hidden">
+                      {group.image_url ? (
+                        <img
+                          src={group.image_url}
+                          alt={group.name}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center">
+                          <Users className="h-7 w-7 text-primary/50" />
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Group Name & Members */}
+                    <div className="flex-1 min-w-0">
+                      <h3 className="text-lg font-semibold truncate group-hover:text-primary transition-colors">
+                        {group.name}
+                      </h3>
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Users className="h-3.5 w-3.5" />
+                        <span>{group.member_count || 0} members</span>
+                        <span>·</span>
+                        <Globe className="h-3.5 w-3.5" />
+                        <span>Public</span>
+                      </div>
+                    </div>
+                  </div>
+                  
                   {group.description && (
                     <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
                       {group.description}
                     </p>
                   )}
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <Users className="h-4 w-4" />
-                        <span>{group.member_count || 0} members</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Globe className="h-4 w-4" />
-                        <span>Public</span>
-                      </div>
-                    </div>
+                  
+                  <div className="flex items-center justify-end">
                     {!group.is_member && (
                       <Button
                         size="sm"

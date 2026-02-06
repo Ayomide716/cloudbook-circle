@@ -5,18 +5,52 @@ import { formatDistanceToNow } from "date-fns";
 interface OnlineStatusIndicatorProps {
   userId: string;
   showText?: boolean;
+  currentUserId?: string;
 }
 
-const OnlineStatusIndicator = ({ userId, showText = false }: OnlineStatusIndicatorProps) => {
+const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: OnlineStatusIndicatorProps) => {
   const [status, setStatus] = useState<{
     is_online: boolean;
     last_seen: string;
   } | null>(null);
+  const [isFriend, setIsFriend] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadStatus();
-    setupRealtimeSubscription();
-  }, [userId]);
+    checkFriendshipAndLoadStatus();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
+  }, [userId, currentUserId]);
+
+  const checkFriendshipAndLoadStatus = async () => {
+    if (!currentUserId) {
+      setIsLoading(false);
+      return;
+    }
+
+    // If viewing own profile, always show status
+    if (currentUserId === userId) {
+      setIsFriend(true);
+      await loadStatus();
+      setIsLoading(false);
+      return;
+    }
+
+    // Check if users are friends (accepted friendship)
+    const { data: friendship } = await supabase
+      .from("friendships")
+      .select("id, status")
+      .or(`and(user_id.eq.${currentUserId},friend_id.eq.${userId}),and(user_id.eq.${userId},friend_id.eq.${currentUserId})`)
+      .eq("status", "accepted")
+      .maybeSingle();
+
+    if (friendship) {
+      setIsFriend(true);
+      await loadStatus();
+    }
+    
+    setIsLoading(false);
+  };
 
   const loadStatus = async () => {
     const { data } = await supabase
@@ -42,7 +76,9 @@ const OnlineStatusIndicator = ({ userId, showText = false }: OnlineStatusIndicat
           filter: `user_id=eq.${userId}`,
         },
         () => {
-          loadStatus();
+          if (isFriend) {
+            loadStatus();
+          }
         }
       )
       .subscribe();
@@ -52,7 +88,8 @@ const OnlineStatusIndicator = ({ userId, showText = false }: OnlineStatusIndicat
     };
   };
 
-  if (!status) return null;
+  // Don't show anything if not friends or still loading
+  if (isLoading || !isFriend || !status) return null;
 
   const isOnline = status.is_online && 
     new Date(status.last_seen).getTime() > Date.now() - 5 * 60 * 1000; // 5 minutes
