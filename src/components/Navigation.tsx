@@ -1,12 +1,12 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
- import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import BottomNav from "./BottomNav";
 import { cn } from "@/lib/utils";
- import ThemeToggle from "./ThemeToggle";
+import ThemeToggle from "./ThemeToggle";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,6 +20,8 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { usePushNotifications } from "@/hooks/usePushNotifications";
+import logo from "@/assets/logo.png";
 
 interface NavigationProps {
   currentUserId?: string;
@@ -32,6 +34,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
+  
+  // Initialize push notifications
+  usePushNotifications(currentUserId);
 
   useEffect(() => {
     if (currentUserId) {
@@ -114,12 +119,12 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
           <div className="flex items-center justify-between h-14">
             {/* Left Section - Logo */}
             <div className="flex items-center gap-3">
-              <Link to="/" className="flex items-center group">
-                <div className="relative">
-                  <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-primary via-primary/80 to-primary/60 bg-clip-text text-transparent group-hover:from-primary/80 group-hover:to-primary transition-all duration-300">
+              <Link to="/" className="flex items-center gap-2 group">
+                <img src={logo} alt="AYO-CHAT" className="h-9 w-9" />
+                <div className="relative hidden sm:block">
+                  <h1 className="text-xl font-black tracking-tight bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
                     AYO-CHAT
                   </h1>
-                  <div className="absolute -bottom-0.5 left-0 right-0 h-0.5 bg-gradient-to-r from-primary to-transparent scale-x-0 group-hover:scale-x-100 transition-transform duration-300" />
                 </div>
               </Link>
             </div>

@@ -1,8 +1,9 @@
- import { Home, Users, Film, MessageCircle, Bell, CalendarDays } from "lucide-react";
+import { Home, Users, Film, MessageCircle, Bell } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import MobileProfileMenu from "./MobileProfileMenu";
 
 interface BottomNavProps {
   currentUserId?: string;
@@ -64,7 +65,6 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
     { icon: Film, path: "/reels", label: "Reels", badge: 0 },
     { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0 },
     { icon: Bell, path: "/notifications", label: "Alerts", badge: unreadNotifications },
-     { icon: CalendarDays, path: "/events", label: "Events", badge: 0 },
   ];
 
   return (
@@ -96,6 +96,14 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
             </button>
           );
         })}
+        
+        {/* Profile Menu Button */}
+        {currentUserId && (
+          <div className="flex flex-col items-center justify-center px-2">
+            <MobileProfileMenu currentUserId={currentUserId} pendingRequests={pendingRequests} />
+            <span className="text-[9px] mt-0.5 font-medium text-muted-foreground">Menu</span>
+          </div>
+        )}
       </div>
     </nav>
   );
