@@ -18,6 +18,7 @@ interface Comment {
   id: string;
   content: string;
   created_at: string;
+  parent_id?: string | null;
   profiles: {
     id: string;
     full_name: string | null;
@@ -76,6 +77,7 @@ const PostCard = ({
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
    const [isSaved, setIsSaved] = useState(false);
    const [showShareDialog, setShowShareDialog] = useState(false);
   const { toast } = useToast();
@@ -184,13 +186,18 @@ const PostCard = ({
 
     setIsSubmitting(true);
 
+    const insertData: any = {
+      post_id: post.id,
+      user_id: currentUserId,
+      content: commentContent.trim(),
+    };
+    if (replyingTo) {
+      insertData.parent_id = replyingTo.id;
+    }
+
     const { error } = await supabase
       .from("comments")
-      .insert({
-        post_id: post.id,
-        user_id: currentUserId,
-        content: commentContent.trim(),
-      });
+      .insert(insertData);
 
     setIsSubmitting(false);
 
@@ -204,6 +211,7 @@ const PostCard = ({
     }
 
     setCommentContent("");
+    setReplyingTo(null);
     setShowComments(true);
     onCommentAdded();
   };
@@ -418,71 +426,141 @@ const PostCard = ({
       {showComments && (
         <div className="p-3 sm:p-4 space-y-3 bg-accent/30">
           {/* Comment Input */}
-          <form onSubmit={handleComment} className="flex gap-2">
-            <Avatar className="h-8 w-8 flex-shrink-0">
-              <AvatarFallback className="bg-secondary text-xs">U</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 flex gap-2">
-              <Textarea
-                placeholder="Write a comment..."
-                value={commentContent}
-                onChange={(e) => setCommentContent(e.target.value)}
-                className="min-h-[36px] h-9 py-2 resize-none rounded-full bg-secondary border-0"
-                disabled={isSubmitting}
-                rows={1}
-              />
-              <Button
-                type="submit"
-                size="sm"
-                disabled={isSubmitting || !commentContent.trim()}
-                className="rounded-full px-4"
-              >
-                {isSubmitting ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  "Post"
-                )}
-              </Button>
+          <form onSubmit={handleComment} className="flex flex-col gap-2">
+            {replyingTo && (
+              <div className="flex items-center gap-2 ml-10 text-xs text-muted-foreground">
+                <span>Replying to <strong>{replyingTo.profiles.full_name || "Anonymous"}</strong></span>
+                <button
+                  type="button"
+                  onClick={() => { setReplyingTo(null); setCommentContent(""); }}
+                  className="text-primary hover:underline"
+                >
+                  Cancel
+                </button>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <Avatar className="h-8 w-8 flex-shrink-0">
+                <AvatarFallback className="bg-secondary text-xs">U</AvatarFallback>
+              </Avatar>
+              <div className="flex-1 flex gap-2">
+                <Textarea
+                  placeholder={replyingTo ? `Reply to ${replyingTo.profiles.full_name || "Anonymous"}...` : "Write a comment..."}
+                  value={commentContent}
+                  onChange={(e) => setCommentContent(e.target.value)}
+                  className="min-h-[36px] h-9 py-2 resize-none rounded-full bg-secondary border-0"
+                  disabled={isSubmitting}
+                  rows={1}
+                />
+                <Button
+                  type="submit"
+                  size="sm"
+                  disabled={isSubmitting || !commentContent.trim()}
+                  className="rounded-full px-4"
+                >
+                  {isSubmitting ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    "Post"
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
 
-          {/* Comments List */}
-          {comments.map((comment) => (
-            <div key={comment.id} className="flex gap-2">
-              <Link to={`/profile/${comment.profiles.id}`}>
-                <Avatar className="h-8 w-8 flex-shrink-0">
-                  <AvatarImage src={comment.profiles.avatar_url || undefined} />
-                  <AvatarFallback className="bg-secondary text-xs">
-                    {comment.profiles.full_name?.[0]?.toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-              </Link>
-              
-              <div className="flex-1 min-w-0">
-                <div className="bg-secondary rounded-2xl px-3 py-2 relative group inline-block max-w-full">
+          {/* Comments List - Top-level comments */}
+          {comments.filter(c => !c.parent_id).map((comment) => {
+            const replies = comments.filter(c => c.parent_id === comment.id);
+            return (
+              <div key={comment.id}>
+                {/* Parent comment */}
+                <div className="flex gap-2">
                   <Link to={`/profile/${comment.profiles.id}`}>
-                    <p className="font-semibold text-xs sm:text-sm hover:underline">
-                      {comment.profiles.full_name || "Anonymous"}
-                    </p>
+                    <Avatar className="h-8 w-8 flex-shrink-0">
+                      <AvatarImage src={comment.profiles.avatar_url || undefined} />
+                      <AvatarFallback className="bg-secondary text-xs">
+                        {comment.profiles.full_name?.[0]?.toUpperCase() || "U"}
+                      </AvatarFallback>
+                    </Avatar>
                   </Link>
-                  <p className="text-sm break-words">{comment.content}</p>
-                  {comment.profiles.id === currentUserId && (
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleDeleteComment(comment.id)}
-                      className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                    >
-                      <Trash2 className="h-3 w-3 text-muted-foreground" />
-                    </Button>
-                  )}
+                  
+                  <div className="flex-1 min-w-0">
+                    <div className="bg-secondary rounded-2xl px-3 py-2 relative group inline-block max-w-full">
+                      <Link to={`/profile/${comment.profiles.id}`}>
+                        <p className="font-semibold text-xs sm:text-sm hover:underline">
+                          {comment.profiles.full_name || "Anonymous"}
+                        </p>
+                      </Link>
+                      <p className="text-sm break-words">{comment.content}</p>
+                      {comment.profiles.id === currentUserId && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleDeleteComment(comment.id)}
+                          className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                        >
+                          <Trash2 className="h-3 w-3 text-muted-foreground" />
+                        </Button>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-3 mt-1 ml-3">
+                      <p className="text-xs text-muted-foreground">
+                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                      </p>
+                      <button
+                        onClick={() => { setReplyingTo(comment); setCommentContent(""); }}
+                        className="text-xs font-semibold text-muted-foreground hover:text-foreground"
+                      >
+                        Reply
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground mt-1 ml-3">
-                  {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                </p>
+
+                {/* Replies */}
+                {replies.length > 0 && (
+                  <div className="ml-10 mt-2 space-y-2 border-l-2 border-border pl-3">
+                    {replies.map((reply) => (
+                      <div key={reply.id} className="flex gap-2">
+                        <Link to={`/profile/${reply.profiles.id}`}>
+                          <Avatar className="h-7 w-7 flex-shrink-0">
+                            <AvatarImage src={reply.profiles.avatar_url || undefined} />
+                            <AvatarFallback className="bg-secondary text-[10px]">
+                              {reply.profiles.full_name?.[0]?.toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </Link>
+                        
+                        <div className="flex-1 min-w-0">
+                          <div className="bg-secondary rounded-2xl px-3 py-2 relative group inline-block max-w-full">
+                            <Link to={`/profile/${reply.profiles.id}`}>
+                              <p className="font-semibold text-xs hover:underline">
+                                {reply.profiles.full_name || "Anonymous"}
+                              </p>
+                            </Link>
+                            <p className="text-sm break-words">{reply.content}</p>
+                            {reply.profiles.id === currentUserId && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleDeleteComment(reply.id)}
+                                className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                              >
+                                <Trash2 className="h-3 w-3 text-muted-foreground" />
+                              </Button>
+                            )}
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-1 ml-3">
+                            {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </Card>
