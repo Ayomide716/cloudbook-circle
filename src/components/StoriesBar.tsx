@@ -197,45 +197,66 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   return (
     <>
-      <Card className="p-3 sm:p-4 mb-4 overflow-hidden">
-        <div className="flex gap-2 sm:gap-3 overflow-x-auto pb-2 scrollbar-hide">
+      <div className="mb-4">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+          {/* Create Story Card */}
           <div
-            className="flex-shrink-0 cursor-pointer"
+            className="flex-shrink-0 cursor-pointer group"
             onClick={() => setIsCreating(true)}
           >
-            <div className="relative">
-              <Avatar className="h-14 w-14 sm:h-16 sm:w-16 border-2 border-primary">
-                <AvatarFallback>
-                  <Plus className="h-5 w-5 sm:h-6 sm:w-6" />
-                </AvatarFallback>
-              </Avatar>
-            </div>
-            <p className="text-[10px] sm:text-xs text-center mt-1 w-14 sm:w-16 truncate">Create Story</p>
-          </div>
-
-          {stories.map((story) => (
-            <div
-              key={story.id}
-              className="flex-shrink-0 cursor-pointer hover:scale-105 transition-transform"
-              onClick={() => handleViewStory(story)}
-            >
-              <div className="relative">
-                <Avatar className="h-14 w-14 sm:h-16 sm:w-16 border-4 border-primary">
-                  <AvatarImage src={story.profiles.avatar_url || undefined} />
-                  <AvatarFallback>
-                    {story.profiles.full_name?.[0]?.toUpperCase() || "U"}
+            <div className="relative w-[112px] h-[200px] rounded-xl overflow-hidden border border-border bg-card">
+              <div className="h-[140px] bg-secondary flex items-center justify-center">
+                <Avatar className="h-16 w-16">
+                  <AvatarFallback className="bg-muted text-muted-foreground">
+                    <Plus className="h-6 w-6" />
                   </AvatarFallback>
                 </Avatar>
               </div>
-              <p className="text-[10px] sm:text-xs text-center mt-1 w-14 sm:w-16 truncate">
-                {story.user_id === currentUserId
-                  ? "Your Story"
-                  : story.profiles.full_name || "Anonymous"}
-              </p>
+              <div className="absolute bottom-0 inset-x-0 h-[60px] bg-card flex flex-col items-center justify-center border-t border-border">
+                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center -mt-4 mb-1 border-4 border-card">
+                  <Plus className="h-4 w-4 text-primary-foreground" />
+                </div>
+                <p className="text-xs font-medium">Create story</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Story Cards */}
+          {stories.map((story) => (
+            <div
+              key={story.id}
+              className="flex-shrink-0 cursor-pointer group"
+              onClick={() => handleViewStory(story)}
+            >
+              <div className="relative w-[112px] h-[200px] rounded-xl overflow-hidden border border-border">
+                <img
+                  src={story.media_url}
+                  alt="Story"
+                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
+                {/* User avatar with ring */}
+                <div className="absolute top-2 left-2">
+                  <Avatar className="h-9 w-9 border-[3px] border-primary">
+                    <AvatarImage src={story.profiles.avatar_url || undefined} />
+                    <AvatarFallback className="text-xs">
+                      {story.profiles.full_name?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+                {/* Name at bottom */}
+                <div className="absolute bottom-2 left-2 right-2">
+                  <p className="text-white text-xs font-semibold leading-tight line-clamp-2 drop-shadow-md">
+                    {story.user_id === currentUserId
+                      ? "Your Story"
+                      : story.profiles.full_name || "Anonymous"}
+                  </p>
+                </div>
+              </div>
             </div>
           ))}
         </div>
-      </Card>
+      </div>
 
       {/* Create Story Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>

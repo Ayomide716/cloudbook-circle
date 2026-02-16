@@ -285,50 +285,43 @@ const Index = () => {
         <div className="max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
           <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[320px_1fr_320px] gap-6">
             {/* Left Sidebar - Hidden on mobile */}
-            <aside className="hidden lg:block space-y-4">
-              <div className="sticky top-20 space-y-4">
-                <div className="bg-card rounded-xl p-4 border border-border">
-                  <div className="flex items-center gap-3 mb-4">
-                    <img 
-                      src={currentUser.avatar_url || "/placeholder.svg"} 
-                      alt="" 
-                      className="w-10 h-10 rounded-full object-cover"
-                    />
-                    <div>
-                      <p className="font-semibold">{currentUser.full_name}</p>
-                      <p className="text-xs text-muted-foreground">View your profile</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-card rounded-xl p-4 border border-border">
-                  <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">Quick Links</h3>
-                  <nav className="space-y-1">
-                    <a href="/friends" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
-                      <span className="text-lg">👥</span>
-                      <span className="text-sm font-medium">Friends</span>
-                    </a>
-                    <a href="/groups" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
-                      <span className="text-lg">👨‍👩‍👧‍👦</span>
-                      <span className="text-sm font-medium">Groups</span>
-                    </a>
-                    <a href="/messages" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
-                      <span className="text-lg">💬</span>
-                      <span className="text-sm font-medium">Messages</span>
-                    </a>
-                    <a href="/reels" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
-                      <span className="text-lg">🎬</span>
-                      <span className="text-sm font-medium">Reels</span>
-                    </a>
-                     <a href="/events" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
-                       <span className="text-lg">📅</span>
-                       <span className="text-sm font-medium">Events</span>
-                     </a>
-                     <a href="/saved" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
-                       <span className="text-lg">🔖</span>
-                       <span className="text-sm font-medium">Saved</span>
-                     </a>
-                  </nav>
-                </div>
+            <aside className="hidden lg:block space-y-2">
+              <div className="sticky top-20 space-y-1">
+                <a
+                  href={`/profile/${currentUser.id}`}
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
+                >
+                  <img 
+                    src={currentUser.avatar_url || "/placeholder.svg"} 
+                    alt="" 
+                    className="w-9 h-9 rounded-full object-cover"
+                  />
+                  <span className="text-[15px] font-medium">{currentUser.full_name}</span>
+                </a>
+                <a href="/friends" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                  <span className="text-xl">👥</span>
+                  <span className="text-[15px] font-medium">Friends</span>
+                </a>
+                <a href="/messages" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                  <span className="text-xl">💬</span>
+                  <span className="text-[15px] font-medium">Messages</span>
+                </a>
+                <a href="/groups" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                  <span className="text-xl">👨‍👩‍👧‍👦</span>
+                  <span className="text-[15px] font-medium">Groups</span>
+                </a>
+                <a href="/reels" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                  <span className="text-xl">🎬</span>
+                  <span className="text-[15px] font-medium">Reels</span>
+                </a>
+                <a href="/saved" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                  <span className="text-xl">🔖</span>
+                  <span className="text-[15px] font-medium">Saved</span>
+                </a>
+                <a href="/events" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                  <span className="text-xl">📅</span>
+                  <span className="text-[15px] font-medium">Events</span>
+                </a>
               </div>
             </aside>
 
@@ -369,11 +362,13 @@ const Index = () => {
               )}
             </main>
 
-            {/* Right Sidebar - Hidden on mobile */}
+            {/* Right Sidebar - Contacts */}
             <aside className="hidden lg:block">
               <div className="sticky top-20 space-y-4">
-                <div className="bg-card rounded-xl p-4 border border-border">
-                  <h3 className="font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wide">Contacts</h3>
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="font-semibold text-[17px] text-muted-foreground">Contacts</h3>
+                  </div>
                   <p className="text-sm text-muted-foreground">Your friends will appear here</p>
                 </div>
               </div>
