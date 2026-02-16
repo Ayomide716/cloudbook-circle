@@ -20,7 +20,7 @@ const PullToRefresh = ({ onRefresh, children, className }: PullToRefreshProps) =
   return (
     <div
       ref={containerRef}
-      className={cn("relative overflow-auto h-full", className)}
+      className={cn("relative", className)}
     >
       {/* Pull indicator */}
       <div
