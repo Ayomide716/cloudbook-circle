@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -35,7 +35,6 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   const [pendingRequests, setPendingRequests] = useState(0);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   
-  // Initialize push notifications
   usePushNotifications(currentUserId);
 
   useEffect(() => {
@@ -58,7 +57,6 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   const loadCounts = async () => {
     if (!currentUserId) return;
-
     const [notifResult, requestsResult] = await Promise.all([
       supabase
         .from("notifications")
@@ -71,7 +69,6 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
         .eq("friend_id", currentUserId)
         .eq("status", "pending"),
     ]);
-
     setUnreadNotifications(notifResult.count || 0);
     setPendingRequests(requestsResult.count || 0);
   };
@@ -79,21 +76,10 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   const setupRealtimeSubscriptions = () => {
     const channel = supabase
       .channel("nav-counts")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "notifications" },
-        () => loadCounts()
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "friendships" },
-        () => loadCounts()
-      )
+      .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => loadCounts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
       .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   };
 
   const handleLogout = async () => {
@@ -106,39 +92,47 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   const desktopNavItems = [
     { icon: Home, path: "/", label: "Home" },
+    { icon: Film, path: "/reels", label: "Video" },
     { icon: Users, path: "/groups", label: "Groups" },
-    { icon: Film, path: "/reels", label: "Reels" },
     { icon: MessageCircle, path: "/messages", label: "Messages" },
   ];
 
   return (
     <>
-      {/* Desktop Header - Sleek Glassmorphism Design */}
-      <nav className="bg-card/80 backdrop-blur-xl border-b border-border/50 sticky top-0 z-50 safe-area-top">
+      {/* Desktop Navbar */}
+      <nav className="bg-card border-b border-border sticky top-0 z-50 safe-area-top shadow-sm">
         <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-14">
-            {/* Left Section - Logo */}
-            <div className="flex items-center">
-              <Link to="/" className="flex items-center group">
+            {/* Left - Logo + Search */}
+            <div className="flex items-center gap-2 min-w-[200px]">
+              <Link to="/" className="flex-shrink-0">
                 <img src={logo} alt="AC" className="h-10 w-10 rounded-xl" />
               </Link>
+              <div className="hidden md:flex items-center bg-secondary rounded-full px-3 py-2 gap-2 w-[240px]">
+                <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm text-muted-foreground">Search AYO-CHAT</span>
+              </div>
             </div>
 
-            {/* Center Navigation - Clean Pill Style */}
-            <div className="hidden md:flex items-center bg-secondary/50 rounded-full p-1">
+            {/* Center - Navigation Tabs */}
+            <div className="hidden md:flex items-center justify-center flex-1 max-w-[500px] mx-auto">
               {desktopNavItems.map((item) => (
                 <Tooltip key={item.path}>
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => navigate(item.path)}
                       className={cn(
-                        "relative flex items-center justify-center h-10 px-6 rounded-full transition-all duration-200",
+                        "relative flex items-center justify-center h-12 px-8 lg:px-10 transition-colors",
                         isActive(item.path)
-                          ? "bg-primary text-primary-foreground shadow-md"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary"
+                          ? "text-primary"
+                          : "text-muted-foreground hover:bg-secondary rounded-lg"
                       )}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className={cn("h-6 w-6", isActive(item.path) && "text-primary")} />
+                      {/* Active indicator bar */}
+                      {isActive(item.path) && (
+                        <div className="absolute bottom-0 left-2 right-2 h-[3px] bg-primary rounded-t-full" />
+                      )}
                     </button>
                   </TooltipTrigger>
                   <TooltipContent side="bottom" className="text-xs">
@@ -148,117 +142,106 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
               ))}
             </div>
 
-            {/* Right Side Icons */}
-            <div className="flex items-center gap-2 justify-end">
+            {/* Right - Action Icons */}
+            <div className="flex items-center gap-1 min-w-[200px] justify-end">
               {currentUserId && (
-                <>
-                  {/* Desktop icons */}
-                  <div className="hidden md:flex items-center gap-1.5">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 rounded-full bg-secondary/70 hover:bg-secondary relative group"
-                          onClick={() => navigate("/friends")}
-                        >
-                          <UserPlus className="h-[18px] w-[18px] group-hover:scale-110 transition-transform" />
-                          {pendingRequests > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center animate-pulse">
-                              {pendingRequests > 9 ? "9+" : pendingRequests}
-                            </span>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">
-                        Friend Requests
-                      </TooltipContent>
-                    </Tooltip>
+                <div className="hidden md:flex items-center gap-1">
+                  {/* Friend Requests */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 relative"
+                        onClick={() => navigate("/friends")}
+                      >
+                        <UserPlus className="h-5 w-5" />
+                        {pendingRequests > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
+                            {pendingRequests > 9 ? "9+" : pendingRequests}
+                          </span>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">Friends</TooltipContent>
+                  </Tooltip>
 
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 rounded-full bg-secondary/70 hover:bg-secondary relative group"
-                          onClick={() => navigate("/notifications")}
-                        >
-                          <Bell className="h-[18px] w-[18px] group-hover:scale-110 transition-transform" />
-                          {unreadNotifications > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center animate-pulse">
-                              {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                            </span>
-                          )}
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent side="bottom" className="text-xs">
-                        Notifications
-                      </TooltipContent>
-                    </Tooltip>
+                  {/* Notifications */}
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/80 relative"
+                        onClick={() => navigate("/notifications")}
+                      >
+                        <Bell className="h-5 w-5" />
+                        {unreadNotifications > 0 && (
+                          <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
+                            {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                          </span>
+                        )}
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom" className="text-xs">Notifications</TooltipContent>
+                  </Tooltip>
 
-                    {/* Profile Dropdown */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-10 w-10 rounded-full p-0 overflow-hidden ring-2 ring-border hover:ring-primary/50 transition-all duration-200"
-                        >
-                          <Avatar className="h-10 w-10">
+                  {/* Profile Dropdown */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-10 w-10 rounded-full p-0 overflow-hidden ring-2 ring-transparent hover:ring-primary/30 transition-all"
+                      >
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={userProfile?.avatar_url || undefined} />
+                          <AvatarFallback className="bg-secondary text-foreground font-medium">
+                            {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-72 p-2">
+                      <DropdownMenuItem
+                        className="p-3 cursor-pointer rounded-lg"
+                        onClick={() => navigate(`/profile/${currentUserId}`)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-12 w-12 ring-2 ring-border">
                             <AvatarImage src={userProfile?.avatar_url || undefined} />
-                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-foreground font-medium">
+                            <AvatarFallback className="bg-secondary">
                               {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
                             </AvatarFallback>
                           </Avatar>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-72 p-2">
-                        <DropdownMenuItem
-                          className="p-3 cursor-pointer rounded-lg"
-                          onClick={() => navigate(`/profile/${currentUserId}`)}
-                        >
-                          <div className="flex items-center gap-3">
-                            <Avatar className="h-12 w-12 ring-2 ring-border">
-                              <AvatarImage src={userProfile?.avatar_url || undefined} />
-                              <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10">
-                                {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-semibold">{userProfile?.full_name || "User"}</p>
-                              <p className="text-xs text-muted-foreground">View your profile</p>
-                            </div>
+                          <div>
+                            <p className="font-semibold">{userProfile?.full_name || "User"}</p>
+                            <p className="text-xs text-muted-foreground">View your profile</p>
                           </div>
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator className="my-2" />
-                         <DropdownMenuItem
-                           className="p-3 cursor-pointer rounded-lg"
-                           onClick={() => navigate("/saved")}
-                         >
-                           <Bookmark className="h-4 w-4 mr-3" />
-                           Saved Posts
-                         </DropdownMenuItem>
-                         <DropdownMenuItem
-                           className="p-3 cursor-pointer rounded-lg"
-                           onClick={() => navigate("/events")}
-                         >
-                           <CalendarDays className="h-4 w-4 mr-3" />
-                           Events
-                         </DropdownMenuItem>
-                         <DropdownMenuSeparator className="my-2" />
-                        <DropdownMenuItem
-                          className="p-3 cursor-pointer rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10"
-                          onClick={handleLogout}
-                        >
-                          <LogOut className="h-4 w-4 mr-3" />
-                          Log Out
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                     
-                     <ThemeToggle />
-                  </div>
-                </>
+                        </div>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="my-2" />
+                      <DropdownMenuItem className="p-3 cursor-pointer rounded-lg" onClick={() => navigate("/saved")}>
+                        <Bookmark className="h-4 w-4 mr-3" />
+                        Saved Posts
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="p-3 cursor-pointer rounded-lg" onClick={() => navigate("/events")}>
+                        <CalendarDays className="h-4 w-4 mr-3" />
+                        Events
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator className="my-2" />
+                      <DropdownMenuItem
+                        className="p-3 cursor-pointer rounded-lg text-destructive focus:text-destructive focus:bg-destructive/10"
+                        onClick={handleLogout}
+                      >
+                        <LogOut className="h-4 w-4 mr-3" />
+                        Log Out
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
+                  <ThemeToggle />
+                </div>
               )}
             </div>
           </div>
@@ -266,9 +249,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       </nav>
 
       {/* Mobile Bottom Navigation */}
-      {currentUserId && (
-        <BottomNav currentUserId={currentUserId} />
-      )}
+      {currentUserId && <BottomNav currentUserId={currentUserId} />}
     </>
   );
 };
