@@ -1,12 +1,13 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Search } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
 import BottomNav from "./BottomNav";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
+import GlobalSearch from "./GlobalSearch";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -108,10 +109,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
               <Link to="/" className="flex-shrink-0">
                 <img src={logo} alt="AC" className="h-10 w-10 rounded-xl" />
               </Link>
-              <div className="hidden md:flex items-center bg-secondary rounded-full px-3 py-2 gap-2 w-[240px]">
-                <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
-                <span className="text-sm text-muted-foreground">Search AYO-CHAT</span>
-              </div>
+              <GlobalSearch />
             </div>
 
             {/* Center - Navigation Tabs */}
