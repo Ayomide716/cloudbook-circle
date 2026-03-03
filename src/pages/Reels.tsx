@@ -325,8 +325,8 @@ export default function Reels() {
                     </div>
                   </div>
 
-                  {/* Side action buttons - positioned to the right of the video on desktop */}
-                  <div className="absolute right-2 md:right-[calc(50%-230px)] bottom-16 md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex flex-col items-center gap-4 z-10">
+                  {/* Side action buttons */}
+                  <div className="absolute right-3 bottom-20 md:right-[calc(50%-230px)] md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex flex-col items-center gap-5 z-30">
                     {/* Like */}
                     <button onClick={() => handleLike(reel.id)} className="flex flex-col items-center">
                       <div className={cn("h-11 w-11 rounded-full flex items-center justify-center", isLiked ? "bg-primary/20" : "bg-black/40 md:bg-secondary")}>
