@@ -209,36 +209,36 @@ export default function ReelCard({
             <p className="text-white/70 text-xs">{reel.profiles.full_name} · Original audio</p>
           </div>
         </div>
-      </div>
 
-      {/* Side action buttons */}
-      <div className="absolute right-3 bottom-20 md:right-[calc(50%-230px)] md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex flex-col items-center gap-5 z-30">
-        <button onClick={() => onLike(reel.id)} className="flex flex-col items-center">
-          <div className={cn("h-11 w-11 rounded-full flex items-center justify-center transition-transform active:scale-90", isLiked ? "bg-primary/20" : "bg-black/40 md:bg-secondary")}>
-            <ThumbsUp className={cn("h-6 w-6 transition-colors", isLiked ? "fill-primary text-primary" : "text-white md:text-foreground")} />
-          </div>
-          <span className="text-white md:text-foreground text-xs mt-1 font-medium">{formatCount(reel.reel_likes.length)}</span>
-        </button>
+        {/* Side action buttons */}
+        <div className="absolute right-3 bottom-20 md:right-4 md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex flex-col items-center gap-5 z-30">
+          <button onClick={() => onLike(reel.id)} className="flex flex-col items-center">
+            <div className={cn("h-11 w-11 rounded-full flex items-center justify-center transition-transform active:scale-90", isLiked ? "bg-primary/20" : "bg-black/40")}>
+              <ThumbsUp className={cn("h-6 w-6 transition-colors", isLiked ? "fill-primary text-primary" : "text-white")} />
+            </div>
+            <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">{formatCount(reel.reel_likes.length)}</span>
+          </button>
 
-        <button onClick={() => onComment(reel.id)} className="flex flex-col items-center">
-          <div className="h-11 w-11 rounded-full bg-black/40 md:bg-secondary flex items-center justify-center transition-transform active:scale-90">
-            <MessageCircle className="h-6 w-6 text-white md:text-foreground" />
-          </div>
-          <span className="text-white md:text-foreground text-xs mt-1 font-medium">{formatCount(reel.reel_comments.length)}</span>
-        </button>
+          <button onClick={() => onComment(reel.id)} className="flex flex-col items-center">
+            <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center transition-transform active:scale-90">
+              <MessageCircle className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">{formatCount(reel.reel_comments.length)}</span>
+          </button>
 
-        <button onClick={() => onShare(reel.id)} className="flex flex-col items-center">
-          <div className="h-11 w-11 rounded-full bg-black/40 md:bg-secondary flex items-center justify-center transition-transform active:scale-90">
-            <Share2 className="h-6 w-6 text-white md:text-foreground" />
-          </div>
-          <span className="text-white md:text-foreground text-xs mt-1 font-medium">Share</span>
-        </button>
+          <button onClick={() => onShare(reel.id)} className="flex flex-col items-center">
+            <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center transition-transform active:scale-90">
+              <Share2 className="h-6 w-6 text-white" />
+            </div>
+            <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">Share</span>
+          </button>
 
-        <button className="flex flex-col items-center">
-          <div className="h-11 w-11 rounded-full bg-black/40 md:bg-secondary flex items-center justify-center">
-            <MoreHorizontal className="h-6 w-6 text-white md:text-foreground" />
-          </div>
-        </button>
+          <button className="flex flex-col items-center">
+            <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center">
+              <MoreHorizontal className="h-6 w-6 text-white" />
+            </div>
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -18,13 +18,11 @@ interface Notification {
   read: boolean;
   created_at: string;
   related_id: string | null;
+  actor_id: string | null;
+  actor_profile?: { full_name: string | null; avatar_url: string | null } | null;
 }
 
-interface NotificationProfile {
-  id: string;
-  full_name: string | null;
-  avatar_url: string | null;
-}
+
 
 const Notifications = () => {
   const navigate = useNavigate();
@@ -71,7 +69,27 @@ const Notifications = () => {
       return;
     }
 
-    setNotifications(data || []);
+    // Fetch actor profiles for notifications that have actor_id
+    const notifs = data || [];
+    const actorIds = [...new Set(notifs.map(n => (n as any).actor_id).filter(Boolean))];
+    let actorMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
+    if (actorIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .in("id", actorIds);
+      if (profiles) {
+        actorMap = Object.fromEntries(profiles.map(p => [p.id, { full_name: p.full_name, avatar_url: p.avatar_url }]));
+      }
+    }
+
+    const enriched: Notification[] = notifs.map(n => ({
+      ...n,
+      actor_id: (n as any).actor_id || null,
+      actor_profile: (n as any).actor_id ? actorMap[(n as any).actor_id] || null : null,
+    }));
+
+    setNotifications(enriched);
     setIsLoading(false);
   };
 
@@ -145,48 +163,50 @@ const Notifications = () => {
     }
   };
 
-  const getNotificationIcon = (type: string) => {
+  const getNotificationIcon = (type: string, small = false) => {
+    const size = small ? "h-6 w-6" : "h-10 w-10";
+    const iconSize = small ? "h-3 w-3" : "h-5 w-5";
     switch (type) {
       case "like":
         return (
-          <div className="h-10 w-10 rounded-full bg-red-500/10 flex items-center justify-center">
-            <Heart className="h-5 w-5 text-red-500" fill="currentColor" />
+          <div className={`${size} rounded-full bg-red-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <Heart className={`${iconSize} text-white`} fill="currentColor" />
           </div>
         );
       case "comment":
         return (
-          <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
-            <MessageCircle className="h-5 w-5 text-blue-500" fill="currentColor" />
+          <div className={`${size} rounded-full bg-blue-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <MessageCircle className={`${iconSize} text-white`} fill="currentColor" />
           </div>
         );
       case "friend_request":
         return (
-          <div className="h-10 w-10 rounded-full bg-green-500/10 flex items-center justify-center">
-            <UserPlus className="h-5 w-5 text-green-500" />
+          <div className={`${size} rounded-full bg-green-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <UserPlus className={`${iconSize} text-white`} />
           </div>
         );
       case "friend_accepted":
         return (
-          <div className="h-10 w-10 rounded-full bg-purple-500/10 flex items-center justify-center">
-            <Users className="h-5 w-5 text-purple-500" />
+          <div className={`${size} rounded-full bg-purple-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <Users className={`${iconSize} text-white`} />
           </div>
         );
       case "share":
         return (
-          <div className="h-10 w-10 rounded-full bg-orange-500/10 flex items-center justify-center">
-            <Share2 className="h-5 w-5 text-orange-500" />
+          <div className={`${size} rounded-full bg-orange-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <Share2 className={`${iconSize} text-white`} />
           </div>
         );
       case "reaction":
         return (
-          <div className="h-10 w-10 rounded-full bg-yellow-500/10 flex items-center justify-center">
-            <ThumbsUp className="h-5 w-5 text-yellow-500" />
+          <div className={`${size} rounded-full bg-yellow-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <ThumbsUp className={`${iconSize} text-white`} />
           </div>
         );
       default:
         return (
-          <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-            <Bell className="h-5 w-5 text-primary" />
+          <div className={`${size} rounded-full bg-primary flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <Bell className={`${iconSize} text-white`} />
           </div>
         );
     }
@@ -270,9 +290,23 @@ const Notifications = () => {
                   )}
                   onClick={() => handleNotificationClick(notification)}
                 >
-                  {/* Icon */}
-                  <div className="flex-shrink-0">
-                    {getNotificationIcon(notification.type)}
+                  {/* Avatar or Icon */}
+                  <div className="flex-shrink-0 relative">
+                    {notification.actor_profile ? (
+                      <div className="relative">
+                        <Avatar className="h-12 w-12">
+                          <AvatarImage src={notification.actor_profile.avatar_url || ""} />
+                          <AvatarFallback className="bg-secondary text-sm">
+                            {notification.actor_profile.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1">
+                          {getNotificationIcon(notification.type, true)}
+                        </div>
+                      </div>
+                    ) : (
+                      getNotificationIcon(notification.type)
+                    )}
                   </div>
                   
                   {/* Content */}
