@@ -505,13 +505,34 @@ const Messages = () => {
                           </AvatarFallback>
                         </Avatar>
                         <div className="flex-1 min-w-0">
-                          <p className="font-semibold truncate">
-                            {conv.profile.full_name || "Anonymous"}
-                          </p>
-                          {conv.lastMessage && (
-                            <p className="text-sm text-muted-foreground truncate">
-                              {conv.lastMessage.content}
+                          <div className="flex items-center justify-between">
+                            <p className="font-semibold truncate">
+                              {conv.profile.full_name || "Anonymous"}
                             </p>
+                            {conv.lastMessage && (
+                              <span className="text-[11px] text-muted-foreground flex-shrink-0 ml-2">
+                                {formatDistanceToNow(new Date(conv.lastMessage.created_at), { addSuffix: true })}
+                              </span>
+                            )}
+                          </div>
+                          {conv.lastMessage && (
+                            <div className="flex items-center gap-1">
+                              {conv.lastMessage.sender_id === currentUserId && (
+                                <span className="flex-shrink-0">
+                                  {conv.lastMessage.read ? (
+                                    <CheckCheck className="h-3.5 w-3.5 text-primary" />
+                                  ) : (
+                                    <Check className="h-3.5 w-3.5 text-muted-foreground" />
+                                  )}
+                                </span>
+                              )}
+                              <p className={cn(
+                                "text-sm truncate",
+                                conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground"
+                              )}>
+                                {conv.lastMessage.content}
+                              </p>
+                            </div>
                           )}
                         </div>
                         {conv.unreadCount > 0 && (
