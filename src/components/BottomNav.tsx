@@ -1,9 +1,10 @@
-import { Home, Users, Film, MessageCircle, Bell } from "lucide-react";
+import { Home, Users, Film, MessageCircle, Search } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
+import MobileSearchOverlay from "./MobileSearchOverlay";
 
 interface BottomNavProps {
   currentUserId?: string;
