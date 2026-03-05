@@ -15,6 +15,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   const location = useLocation();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (currentUserId) {
@@ -61,11 +62,11 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   };
 
   const navItems = [
-    { icon: Home, path: "/", label: "Home", badge: 0 },
-    { icon: Users, path: "/groups", label: "Groups", badge: 0 },
-    { icon: Film, path: "/reels", label: "Reels", badge: 0 },
-    { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0 },
-    { icon: Bell, path: "/notifications", label: "Alerts", badge: unreadNotifications },
+    { icon: Home, path: "/", label: "Home", badge: 0, action: undefined as (() => void) | undefined },
+    { icon: Users, path: "/groups", label: "Groups", badge: 0, action: undefined as (() => void) | undefined },
+    { icon: Search, path: "", label: "Search", badge: 0, action: () => setSearchOpen(true) },
+    { icon: Film, path: "/reels", label: "Reels", badge: 0, action: undefined as (() => void) | undefined },
+    { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0, action: undefined as (() => void) | undefined },
   ];
 
   return (
