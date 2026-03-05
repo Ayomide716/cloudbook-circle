@@ -1,9 +1,10 @@
-import { Home, Users, Film, MessageCircle, Bell } from "lucide-react";
+import { Home, Users, Film, MessageCircle, Search } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
+import MobileSearchOverlay from "./MobileSearchOverlay";
 
 interface BottomNavProps {
   currentUserId?: string;
@@ -14,6 +15,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   const location = useLocation();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (currentUserId) {
@@ -60,22 +62,22 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   };
 
   const navItems = [
-    { icon: Home, path: "/", label: "Home", badge: 0 },
-    { icon: Users, path: "/groups", label: "Groups", badge: 0 },
-    { icon: Film, path: "/reels", label: "Reels", badge: 0 },
-    { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0 },
-    { icon: Bell, path: "/notifications", label: "Alerts", badge: unreadNotifications },
+    { icon: Home, path: "/", label: "Home", badge: 0, action: undefined as (() => void) | undefined },
+    { icon: Users, path: "/groups", label: "Groups", badge: 0, action: undefined as (() => void) | undefined },
+    { icon: Search, path: "", label: "Search", badge: 0, action: () => setSearchOpen(true) },
+    { icon: Film, path: "/reels", label: "Reels", badge: 0, action: undefined as (() => void) | undefined },
+    { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0, action: undefined as (() => void) | undefined },
   ];
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50 md:hidden">
       <div className="flex items-center justify-around h-14 px-1 safe-area-bottom">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = item.path ? location.pathname === item.path : false;
           return (
             <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
+              key={item.label}
+              onClick={() => item.action ? item.action() : navigate(item.path)}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full py-1 relative transition-colors active:scale-95",
                 isActive ? "text-primary" : "text-muted-foreground"
@@ -105,6 +107,8 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
           </div>
         )}
       </div>
+      
+      <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </nav>
   );
 };
