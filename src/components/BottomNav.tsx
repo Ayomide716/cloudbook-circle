@@ -73,11 +73,11 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
     <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50 md:hidden">
       <div className="flex items-center justify-around h-14 px-1 safe-area-bottom">
         {navItems.map((item) => {
-          const isActive = location.pathname === item.path;
+          const isActive = item.path ? location.pathname === item.path : false;
           return (
             <button
-              key={item.path}
-              onClick={() => navigate(item.path)}
+              key={item.label}
+              onClick={() => item.action ? item.action() : navigate(item.path)}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full py-1 relative transition-colors active:scale-95",
                 isActive ? "text-primary" : "text-muted-foreground"
@@ -107,6 +107,8 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
           </div>
         )}
       </div>
+      
+      <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </nav>
   );
 };
