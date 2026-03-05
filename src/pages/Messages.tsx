@@ -599,6 +599,7 @@ const Messages = () => {
                       {messages.map((message, index) => {
                         const isCurrentUser = message.sender_id === currentUserId;
                         const isLastMessage = index === messages.length - 1;
+                        const isLastOwnMessage = isCurrentUser && !messages.slice(index + 1).some(m => m.sender_id === currentUserId);
                         
                         return (
                           <div
@@ -659,10 +660,14 @@ const Messages = () => {
                                 )}
                               </div>
                               
-                              {/* Timestamp and read receipt - Below bubble like Facebook */}
+                              {/* Timestamp and read receipt */}
                               <div className={cn(
-                                "flex items-center gap-1 px-1 opacity-0 group-hover:opacity-100 transition-opacity",
-                                isCurrentUser ? "flex-row-reverse" : "flex-row"
+                                "flex items-center gap-1 px-1 transition-opacity",
+                                isCurrentUser ? "flex-row-reverse" : "flex-row",
+                                // Always show for last own message, hover for others
+                                isLastOwnMessage || isLastMessage
+                                  ? "opacity-100"
+                                  : "opacity-0 group-hover:opacity-100"
                               )}>
                                 <span className="text-[11px] text-muted-foreground">
                                   {formatDistanceToNow(new Date(message.created_at), {
