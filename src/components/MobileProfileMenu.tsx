@@ -14,6 +14,7 @@ import {
   Bookmark, 
   CalendarDays, 
   LogOut,
+  Settings,
   Moon,
   Sun,
   Monitor
@@ -64,6 +65,7 @@ const MobileProfileMenu = ({ currentUserId, pendingRequests }: MobileProfileMenu
     { icon: UserPlus, label: "Friends", path: "/friends", badge: pendingRequests },
     { icon: Bookmark, label: "Saved Posts", path: "/saved" },
     { icon: CalendarDays, label: "Events", path: "/events" },
+    { icon: Settings, label: "Notification Settings", path: "/settings" },
   ];
 
   return (

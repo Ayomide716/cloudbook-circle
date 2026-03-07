@@ -16,7 +16,8 @@ import Notifications from "./pages/Notifications";
 import Friends from "./pages/Friends";
 import NotFound from "./pages/NotFound";
  import Events from "./pages/Events";
- import SavedPosts from "./pages/SavedPosts";
+import SavedPosts from "./pages/SavedPosts";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -66,6 +67,7 @@ const AppRoutes = () => {
         <Route path="/friends" element={<Friends />} />
          <Route path="/events" element={<Events />} />
          <Route path="/saved" element={<SavedPosts />} />
+         <Route path="/settings" element={<Settings />} />
         {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
         <Route path="*" element={<NotFound />} />
       </Routes>
