@@ -23,40 +23,20 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
       
       const channel = supabase
         .channel("bottom-nav-counts")
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "notifications" },
-          () => loadCounts()
-        )
-        .on(
-          "postgres_changes",
-          { event: "*", schema: "public", table: "friendships" },
-          () => loadCounts()
-        )
+        .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => loadCounts())
+        .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
         .subscribe();
 
-      return () => {
-        supabase.removeChannel(channel);
-      };
+      return () => { supabase.removeChannel(channel); };
     }
   }, [currentUserId]);
 
   const loadCounts = async () => {
     if (!currentUserId) return;
-
     const [notifResult, requestsResult] = await Promise.all([
-      supabase
-        .from("notifications")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", currentUserId)
-        .eq("read", false),
-      supabase
-        .from("friendships")
-        .select("id", { count: "exact", head: true })
-        .eq("friend_id", currentUserId)
-        .eq("status", "pending"),
+      supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", currentUserId).eq("read", false),
+      supabase.from("friendships").select("id", { count: "exact", head: true }).eq("friend_id", currentUserId).eq("status", "pending"),
     ]);
-
     setUnreadNotifications(notifResult.count || 0);
     setPendingRequests(requestsResult.count || 0);
   };
@@ -70,8 +50,8 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border z-50 md:hidden">
-      <div className="flex items-center justify-around h-14 px-1 safe-area-bottom">
+    <nav className="fixed bottom-0 left-0 right-0 glass-strong border-t border-border/30 z-50 md:hidden">
+      <div className="flex items-center justify-around h-[3.5rem] px-1 safe-area-bottom">
         {navItems.map((item) => {
           const isActive = item.path ? location.pathname === item.path : false;
           return (
@@ -79,27 +59,32 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
               key={item.label}
               onClick={() => item.action ? item.action() : navigate(item.path)}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full py-1 relative transition-colors active:scale-95",
+                "flex flex-col items-center justify-center flex-1 h-full py-1 relative transition-all duration-200 active:scale-90",
                 isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
               {isActive && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 bg-primary rounded-full" />
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-gradient-to-r from-primary to-primary-glow shadow-[0_2px_8px_hsl(var(--primary)/0.4)]" />
               )}
               <div className="relative">
-                <item.icon className={cn("h-5 w-5", isActive && "text-primary")} />
+                <item.icon className={cn(
+                  "h-5 w-5 transition-all duration-200",
+                  isActive && "text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]"
+                )} />
                 {item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full h-4 min-w-4 px-0.5 flex items-center justify-center">
+                  <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full h-4 min-w-4 px-0.5 flex items-center justify-center badge-pulse">
                     {item.badge > 9 ? "9+" : item.badge}
                   </span>
                 )}
               </div>
-              <span className="text-[9px] mt-0.5 font-medium">{item.label}</span>
+              <span className={cn(
+                "text-[9px] mt-0.5 font-medium transition-all duration-200",
+                isActive && "font-semibold"
+              )}>{item.label}</span>
             </button>
           );
         })}
         
-        {/* Profile Menu Button */}
         {currentUserId && (
           <div className="flex flex-col items-center justify-center px-2">
             <MobileProfileMenu currentUserId={currentUserId} pendingRequests={pendingRequests} />
