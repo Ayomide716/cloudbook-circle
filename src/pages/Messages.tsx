@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone } from "lucide-react";
+import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
