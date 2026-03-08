@@ -444,7 +444,6 @@ const Profile = () => {
                     bucket="avatars"
                     userId={currentUserId!}
                     onUploadComplete={handleAvatarUpload}
-                    currentImage={profile.avatar_url || undefined}
                     label=""
                   />
                 </div>
