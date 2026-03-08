@@ -18,6 +18,7 @@
    DialogTrigger,
  } from "@/components/ui/dialog";
  import { cn } from "@/lib/utils";
+ import EventsSkeleton from "@/components/skeletons/EventsSkeleton";
  
  interface Event {
    id: string;
