@@ -38,6 +38,7 @@ interface Reel {
 
 export default function Reels() {
   const navigate = useNavigate();
+  const { reelId: paramReelId } = useParams();
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);
