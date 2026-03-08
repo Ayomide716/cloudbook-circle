@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { AnimatePresence, motion } from "framer-motion";
 
 // Lazy-loaded page components
+const Landing = lazy(() => import("./pages/Landing"));
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Profile = lazy(() => import("./pages/Profile"));
