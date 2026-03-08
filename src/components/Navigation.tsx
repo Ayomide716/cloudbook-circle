@@ -37,6 +37,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   usePushNotifications(currentUserId);
 
