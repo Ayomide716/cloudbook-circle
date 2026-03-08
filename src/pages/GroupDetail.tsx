@@ -83,6 +83,8 @@ const GroupDetail = () => {
       return;
     }
     setCurrentUserId(session.user.id);
+    const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", session.user.id).single();
+    if (profile) setCurrentUserProfile(profile);
   };
 
   const setupRealtimeSubscription = () => {
