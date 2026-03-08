@@ -433,9 +433,9 @@ const Profile = () => {
           <div className="relative px-5 sm:px-8 pt-4 pb-5">
             <div className="flex items-end gap-4 sm:gap-6">
               {/* Avatar */}
-              <div className="relative -mt-16 sm:-mt-20 flex-shrink-0">
+              <div className="relative -mt-14 sm:-mt-18 flex-shrink-0">
                 <motion.div whileHover={{ scale: 1.04 }} transition={spring}>
-                  <Avatar className="h-28 w-28 sm:h-36 sm:w-36 border-[5px] border-card shadow-lg">
+                  <Avatar className="h-24 w-24 sm:h-36 sm:w-36 border-4 sm:border-[5px] border-card shadow-lg">
                     <AvatarImage src={profile.avatar_url || undefined} />
                     <AvatarFallback className="text-3xl sm:text-4xl font-display gradient-brand text-primary-foreground">
                       {profile.full_name?.[0]?.toUpperCase() || "U"}
