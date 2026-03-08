@@ -93,6 +93,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   const desktopNavItems = [
     { icon: Home, path: "/", label: "Home" },
+    { icon: MonitorPlay, path: "/watch", label: "Watch" },
     { icon: Film, path: "/reels", label: "Reels" },
     { icon: Users, path: "/groups", label: "Groups" },
     { icon: MessageCircle, path: "/messages", label: "Messages" },
