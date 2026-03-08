@@ -15,7 +15,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
-        display: ["Space Grotesk", "Inter", "system-ui", "sans-serif"],
+        display: ["Outfit", "Inter", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -109,6 +109,10 @@ export default {
           "0%, 100%": { boxShadow: "0 0 15px hsl(var(--primary) / 0.2)" },
           "50%": { boxShadow: "0 0 30px hsl(var(--primary) / 0.4)" },
         },
+        "dock-bounce": {
+          "0%, 100%": { transform: "translateY(0)" },
+          "50%": { transform: "translateY(-4px)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -121,6 +125,7 @@ export default {
         "slide-out-right": "slide-out-right 0.3s ease-out",
         "slide-up": "slide-up 0.4s ease-out",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
+        "dock-bounce": "dock-bounce 0.4s ease-in-out",
         enter: "fade-in 0.3s ease-out, scale-in 0.2s ease-out",
         exit: "fade-out 0.3s ease-out, scale-out 0.2s ease-out",
       },

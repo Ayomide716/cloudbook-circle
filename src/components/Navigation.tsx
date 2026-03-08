@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/tooltip";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { prefetchRoute } from "@/lib/prefetch";
+import { motion } from "framer-motion";
 import logo from "@/assets/logo.png";
 
 interface NavigationProps {
@@ -92,7 +93,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   const isActive = (path: string) => location.pathname === path;
 
-  const desktopNavItems = [
+  const dockItems = [
     { icon: Home, path: "/", label: "Home" },
     { icon: MonitorPlay, path: "/watch", label: "Watch" },
     { icon: Film, path: "/reels", label: "Reels" },
@@ -102,128 +103,105 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   return (
     <>
-      {/* Desktop Navbar - Glassmorphism */}
-      <nav className="glass-strong sticky top-0 z-50 safe-area-top border-b border-border/50">
+      {/* Top bar - minimal brand + search + actions */}
+      <header className="sticky top-0 z-50 safe-area-top">
         <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-[var(--nav-height)]">
-            {/* Left - Logo + Search */}
-            <div className="flex items-center gap-3 min-w-[220px]">
-              <Link to="/" className="flex-shrink-0 group">
-                <div className="relative">
-                  <img 
-                    src={logo} 
-                    alt="AC" 
-                    className="h-10 w-10 rounded-xl transition-transform duration-200 group-hover:scale-105 group-active:scale-95" 
-                  />
-                  <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 glow-primary" />
-                </div>
-              </Link>
+            {/* Left - Logo */}
+            <Link to="/" className="flex items-center gap-2.5 group">
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: -3 }}
+                whileTap={{ scale: 0.95 }}
+                transition={{ type: "spring", stiffness: 400, damping: 17 }}
+              >
+                <img 
+                  src={logo} 
+                  alt="CloudBook" 
+                  className="h-9 w-9 rounded-xl" 
+                />
+              </motion.div>
+              <span className="hidden sm:block text-lg font-display font-bold gradient-text">CloudBook</span>
+            </Link>
+
+            {/* Center - Search (desktop) */}
+            <div className="hidden md:block flex-1 max-w-md mx-8">
               <GlobalSearch />
             </div>
 
-            {/* Center - Navigation Tabs */}
-            <div className="hidden md:flex items-center justify-center flex-1 max-w-[540px] mx-auto gap-1">
-              {desktopNavItems.map((item) => (
-                <Tooltip key={item.path}>
-                  <TooltipTrigger asChild>
-                    <button
-                      onClick={() => navigate(item.path)}
-                      onMouseEnter={() => prefetchRoute(item.path)}
-                      onFocus={() => prefetchRoute(item.path)}
-                      className={cn(
-                        "relative flex items-center justify-center h-12 px-8 lg:px-10 rounded-xl transition-all duration-200",
-                        isActive(item.path)
-                          ? "text-primary"
-                          : "text-muted-foreground hover:bg-secondary/80 hover:text-foreground active:scale-95"
-                      )}
-                    >
-                      <item.icon className={cn(
-                        "h-[22px] w-[22px] transition-all duration-200",
-                        isActive(item.path) && "text-primary drop-shadow-[0_0_8px_hsl(var(--primary)/0.4)]"
-                      )} />
-                      {isActive(item.path) && (
-                        <div className="nav-indicator" />
-                      )}
-                    </button>
-                  </TooltipTrigger>
-                  <TooltipContent side="bottom" className="text-xs font-medium glass border-border/50">
-                    {item.label}
-                  </TooltipContent>
-                </Tooltip>
-              ))}
-            </div>
-
             {/* Right - Action Icons */}
-            <div className="flex items-center gap-1.5 min-w-[220px] justify-end">
+            <div className="flex items-center gap-1.5">
               {currentUserId && (
                 <div className="hidden md:flex items-center gap-1.5">
-                  {/* Friend Requests */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-200 relative"
-                        onClick={() => navigate("/friends")}
-                        onMouseEnter={() => prefetchRoute("/friends")}
-                      >
-                        <UserPlus className="h-5 w-5" />
-                        {pendingRequests > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center badge-pulse">
-                            {pendingRequests > 9 ? "9+" : pendingRequests}
-                          </span>
-                        )}
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary relative"
+                          onClick={() => navigate("/friends")}
+                          onMouseEnter={() => prefetchRoute("/friends")}
+                        >
+                          <UserPlus className="h-5 w-5" />
+                          {pendingRequests > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center badge-pulse">
+                              {pendingRequests > 9 ? "9+" : pendingRequests}
+                            </span>
+                          )}
+                        </Button>
+                      </motion.div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="text-xs font-medium">Friends</TooltipContent>
                   </Tooltip>
 
-                  {/* Notifications */}
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-200 relative"
-                        onClick={() => navigate("/notifications")}
-                        onMouseEnter={() => prefetchRoute("/notifications")}
-                      >
-                        <Bell className="h-5 w-5" />
-                        {unreadNotifications > 0 && (
-                          <span className="absolute -top-0.5 -right-0.5 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center badge-pulse">
-                            {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                          </span>
-                        )}
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary relative"
+                          onClick={() => navigate("/notifications")}
+                          onMouseEnter={() => prefetchRoute("/notifications")}
+                        >
+                          <Bell className="h-5 w-5" />
+                          {unreadNotifications > 0 && (
+                            <span className="absolute -top-0.5 -right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center badge-pulse">
+                              {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                            </span>
+                          )}
+                        </Button>
+                      </motion.div>
                     </TooltipTrigger>
                     <TooltipContent side="bottom" className="text-xs font-medium">Notifications</TooltipContent>
                   </Tooltip>
 
-                  {/* Profile Dropdown */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 rounded-full p-0 overflow-hidden ring-2 ring-border/50 hover:ring-primary/40 hover:scale-105 active:scale-95 transition-all duration-200"
-                      >
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={userProfile?.avatar_url || undefined} />
-                          <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary-glow/20 text-foreground font-semibold">
-                            {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Button>
+                      <motion.div whileHover={{ scale: 1.08 }} whileTap={{ scale: 0.92 }} transition={{ type: "spring", stiffness: 400, damping: 17 }}>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-full p-0 overflow-hidden ring-2 ring-border/50 hover:ring-primary/40 transition-all duration-200"
+                        >
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={userProfile?.avatar_url || undefined} />
+                            <AvatarFallback className="gradient-brand-soft text-foreground font-semibold">
+                              {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
+                        </Button>
+                      </motion.div>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="w-72 p-2 glass border-border/50 animate-scale-in">
                       <DropdownMenuItem
-                        className="p-3 cursor-pointer rounded-xl focus:bg-accent/60"
+                        className="p-3 cursor-pointer rounded-xl focus:bg-accent/10"
                         onClick={() => navigate(`/profile/${currentUserId}`)}
                       >
                         <div className="flex items-center gap-3">
                           <Avatar className="h-12 w-12 ring-2 ring-border/50">
                             <AvatarImage src={userProfile?.avatar_url || undefined} />
-                            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary-glow/20 font-semibold">
+                            <AvatarFallback className="gradient-brand-soft font-semibold">
                               {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
                             </AvatarFallback>
                           </Avatar>
@@ -234,19 +212,19 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                         </div>
                       </DropdownMenuItem>
                       <DropdownMenuSeparator className="my-1.5 bg-border/50" />
-                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/60" onClick={() => navigate("/saved")}>
+                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/saved")}>
                         <Bookmark className="h-4 w-4 mr-3" />
                         Saved Posts
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/60" onClick={() => navigate("/events")}>
+                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/events")}>
                         <CalendarDays className="h-4 w-4 mr-3" />
                         Events
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/60" onClick={() => navigate("/marketplace")}>
+                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/marketplace")}>
                         <ShoppingBag className="h-4 w-4 mr-3" />
                         Marketplace
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/60" onClick={() => navigate("/settings")}>
+                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/settings")}>
                         <Settings className="h-4 w-4 mr-3" />
                         Notification Settings
                       </DropdownMenuItem>
@@ -267,7 +245,48 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
             </div>
           </div>
         </div>
-      </nav>
+      </header>
+
+      {/* Desktop Floating Dock - centered bottom */}
+      {currentUserId && (
+        <div className="hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+          <motion.nav
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 300, damping: 25, delay: 0.2 }}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-2xl glass-strong dock-nav"
+          >
+            {dockItems.map((item) => {
+              const active = isActive(item.path);
+              return (
+                <Tooltip key={item.path}>
+                  <TooltipTrigger asChild>
+                    <motion.button
+                      onClick={() => navigate(item.path)}
+                      onMouseEnter={() => prefetchRoute(item.path)}
+                      onFocus={() => prefetchRoute(item.path)}
+                      whileHover={{ scale: 1.2, y: -6 }}
+                      whileTap={{ scale: 0.9 }}
+                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      className={cn(
+                        "relative flex items-center justify-center h-12 w-12 rounded-xl transition-colors duration-200",
+                        active
+                          ? "gradient-brand text-primary-foreground shadow-lg"
+                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                      )}
+                    >
+                      <item.icon className="h-5 w-5" />
+                    </motion.button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs font-medium glass border-border/50">
+                    {item.label}
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </motion.nav>
+        </div>
+      )}
 
       {/* Mobile Bottom Navigation */}
       {currentUserId && <BottomNav currentUserId={currentUserId} />}
