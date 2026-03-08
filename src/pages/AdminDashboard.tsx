@@ -34,6 +34,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,21 @@ const AdminDashboard = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/landing"); return; }
     setCurrentUserId(session.user.id);
+
+    // Check admin role
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!roleData) {
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+    setIsAdmin(true);
     await Promise.all([fetchReports(), fetchUsers(), fetchStats()]);
     setLoading(false);
   };
@@ -98,6 +114,18 @@ const AdminDashboard = () => {
       <Navigation />
       <div className="flex items-center justify-center h-64">
         <div className="animate-spin w-8 h-8 rounded-lg bg-primary" />
+      </div>
+    </div>
+  );
+
+  if (isAdmin === false) return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Shield className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-medium">Access Denied</p>
+        <p className="text-sm text-muted-foreground">You need admin privileges to view this page.</p>
+        <Button onClick={() => navigate("/")}>Go Home</Button>
       </div>
     </div>
   );
