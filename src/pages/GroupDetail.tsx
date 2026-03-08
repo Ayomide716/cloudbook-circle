@@ -6,12 +6,13 @@ import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
 import GroupChat from "@/components/GroupChat";
 import EditGroupModal from "@/components/EditGroupModal";
+import GroupVideoCall from "@/components/GroupVideoCall";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 
@@ -61,6 +62,8 @@ const GroupDetail = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [activeGroupCall, setActiveGroupCall] = useState<{ isVoiceOnly: boolean } | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -80,6 +83,8 @@ const GroupDetail = () => {
       return;
     }
     setCurrentUserId(session.user.id);
+    const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", session.user.id).single();
+    if (profile) setCurrentUserProfile(profile);
   };
 
   const setupRealtimeSubscription = () => {
@@ -349,6 +354,16 @@ const GroupDetail = () => {
               </div>
             </div>
             <div className="flex gap-2">
+              {isMember && (
+                <>
+                  <Button variant="outline" size="icon" onClick={() => setActiveGroupCall({ isVoiceOnly: true })} title="Group Voice Call">
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => setActiveGroupCall({ isVoiceOnly: false })} title="Group Video Call">
+                    <Video className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
               {(userRole === "admin" || group.created_by === currentUserId) && (
                 <Button variant="outline" size="icon" onClick={() => setShowEditModal(true)}>
                   <Settings className="h-4 w-4" />
@@ -511,6 +526,19 @@ const GroupDetail = () => {
       </div>
 
       <BottomNav currentUserId={currentUserId || undefined} />
+
+      {/* Group Video Call */}
+      {activeGroupCall && currentUserId && group && (
+        <GroupVideoCall
+          groupId={group.id}
+          groupName={group.name}
+          currentUserId={currentUserId}
+          currentUserName={currentUserProfile?.full_name || "You"}
+          currentUserAvatar={currentUserProfile?.avatar_url}
+          isVoiceOnly={activeGroupCall.isVoiceOnly}
+          onEnd={() => setActiveGroupCall(null)}
+        />
+      )}
     </div>
   );
 };

@@ -9,6 +9,7 @@ import NewConversation from "@/components/NewConversation";
 import ChatImageUpload from "@/components/ChatImageUpload";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import VideoCall from "@/components/VideoCall";
+import IncomingCallOverlay from "@/components/IncomingCallOverlay";
 import VoiceMessageRecorder from "@/components/VoiceMessageRecorder";
 import GifPicker from "@/components/GifPicker";
 import ChatBubble from "@/components/ChatBubble";
@@ -73,7 +74,7 @@ const Messages = () => {
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
-    incomingCall, activeCall, callAccepted,
+    incomingCall, activeCall,
     initiateCall, acceptIncomingCall, rejectIncomingCall, endCall,
   } = useVideoCall(currentUserId);
 
@@ -603,7 +604,7 @@ const Messages = () => {
         />
       )}
 
-      {/* Video Call Components */}
+      {/* Video Call */}
       {activeCall && (
         <VideoCall
           currentUserId={currentUserId!}
@@ -612,24 +613,18 @@ const Messages = () => {
           remoteUserAvatar={activeCall.remoteUserAvatar}
           onEnd={endCall}
           isIncoming={activeCall.isIncoming}
-          onAccept={acceptIncomingCall}
-          onReject={rejectIncomingCall}
           isVoiceOnly={activeCall.isVoiceOnly}
-          callAccepted={callAccepted}
         />
       )}
 
+      {/* Incoming Call Overlay */}
       {incomingCall && !activeCall && (
-        <VideoCall
-          currentUserId={currentUserId!}
-          remoteUserId={incomingCall.from}
-          remoteUserName={incomingCall.fromName}
-          remoteUserAvatar={incomingCall.fromAvatar}
-          onEnd={rejectIncomingCall}
-          isIncoming={true}
+        <IncomingCallOverlay
+          callerName={incomingCall.fromName}
+          callerAvatar={incomingCall.fromAvatar}
+          isVoiceOnly={incomingCall.isVoiceOnly}
           onAccept={acceptIncomingCall}
           onReject={rejectIncomingCall}
-          isVoiceOnly={incomingCall.isVoiceOnly}
         />
       )}
     </div>

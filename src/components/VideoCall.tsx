@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Video, VideoOff, Mic, MicOff, Phone, PhoneOff,
-  Maximize2, Minimize2, Monitor, MonitorOff, 
+  Maximize2, Minimize2, Monitor, MonitorOff,
   SwitchCamera, Volume2, VolumeX, PictureInPicture2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -21,22 +21,27 @@ interface VideoCallProps {
   remoteUserAvatar?: string | null;
   onEnd: () => void;
   isIncoming?: boolean;
-  onAccept?: () => void;
-  onReject?: () => void;
   isVoiceOnly?: boolean;
-  callAccepted?: boolean;
 }
 
 interface SignalMessage {
-  type: "offer" | "answer" | "ice-candidate" | "screen-share-start" | "screen-share-stop";
+  type: "offer" | "answer" | "ice-candidate" | "ready" | "screen-share-start" | "screen-share-stop";
   payload: any;
   from: string;
   to: string;
 }
 
+const ICE_SERVERS: RTCIceServer[] = [
+  { urls: "stun:stun.l.google.com:19302" },
+  { urls: "stun:stun1.l.google.com:19302" },
+  { urls: "stun:stun2.l.google.com:19302" },
+  { urls: "stun:stun3.l.google.com:19302" },
+  { urls: "stun:stun4.l.google.com:19302" },
+];
+
 const VideoCall = ({
   currentUserId, remoteUserId, remoteUserName, remoteUserAvatar,
-  onEnd, isIncoming = false, onAccept, onReject, isVoiceOnly = false, callAccepted = false,
+  onEnd, isIncoming = false, isVoiceOnly = false,
 }: VideoCallProps) => {
   const [isConnected, setIsConnected] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(!isVoiceOnly);
@@ -46,9 +51,7 @@ const VideoCall = ({
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
-  const [callStatus, setCallStatus] = useState<"calling" | "ringing" | "connected" | "ended">(
-    isIncoming ? "ringing" : "calling"
-  );
+  const [callStatus, setCallStatus] = useState<"connecting" | "connected" | "ended">("connecting");
   const [signalQuality, setSignalQuality] = useState<"good" | "fair" | "poor">("good");
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -59,8 +62,9 @@ const VideoCall = ({
   const signalingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const callTimerRef = useRef<NodeJS.Timeout | null>(null);
   const statsIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const channelReadyRef = useRef<boolean>(false);
+  const channelReadyRef = useRef(false);
   const pendingIceCandidatesRef = useRef<RTCIceCandidate[]>([]);
+  const hasCreatedOfferRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const roomId = [currentUserId, remoteUserId].sort().join("-");
@@ -120,15 +124,7 @@ const VideoCall = ({
 
   const createPeerConnection = useCallback(() => {
     const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: "stun:stun.l.google.com:19302" },
-        { urls: "stun:stun1.l.google.com:19302" },
-        { urls: "stun:stun2.l.google.com:19302" },
-        { urls: "stun:stun3.l.google.com:19302" },
-        { urls: "stun:stun4.l.google.com:19302" },
-        { urls: "stun:stun.stunprotocol.org:3478" },
-        { urls: "stun:stun.voip.blackberry.com:3478" },
-      ],
+      iceServers: ICE_SERVERS,
       iceCandidatePoolSize: 10,
     });
 
@@ -139,10 +135,12 @@ const VideoCall = ({
     };
 
     pc.oniceconnectionstatechange = () => {
+      console.log("[WebRTC] ICE state:", pc.iceConnectionState);
       if (pc.iceConnectionState === "failed") pc.restartIce();
     };
 
     pc.ontrack = (event) => {
+      console.log("[WebRTC] Got remote track:", event.track.kind);
       if (remoteVideoRef.current && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
         remoteVideoRef.current.play().catch(() => {});
@@ -150,6 +148,7 @@ const VideoCall = ({
     };
 
     pc.onconnectionstatechange = () => {
+      console.log("[WebRTC] Connection state:", pc.connectionState);
       if (pc.connectionState === "connected") {
         setIsConnected(true);
         setCallStatus("connected");
@@ -164,47 +163,57 @@ const VideoCall = ({
   }, [sendSignal, monitorStats]);
 
   const startLocalStream = useCallback(async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: !isVoiceOnly ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
-      audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
-    });
-    localStreamRef.current = stream;
-    if (localVideoRef.current && !isVoiceOnly) localVideoRef.current.srcObject = stream;
-    return stream;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: !isVoiceOnly ? { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } } : false,
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      localStreamRef.current = stream;
+      if (localVideoRef.current && !isVoiceOnly) localVideoRef.current.srcObject = stream;
+      return stream;
+    } catch (error) {
+      console.error("[WebRTC] Failed to get media:", error);
+      // Fallback: audio only
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+      return stream;
+    }
   }, [isVoiceOnly]);
 
-  const initiateCallFn = useCallback(async () => {
+  const setupCall = useCallback(async () => {
     try {
+      console.log("[WebRTC] Setting up call, isIncoming:", isIncoming);
       const stream = await startLocalStream();
       const pc = createPeerConnection();
       peerConnectionRef.current = pc;
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+
+      if (isIncoming) {
+        // Incoming side: send "ready" signal so caller knows to send offer
+        console.log("[WebRTC] Sending ready signal");
+        sendSignal({ type: "ready", payload: {} });
+      } else {
+        // Caller side: create and send offer immediately
+        // The callee might not be ready yet, but we'll re-send on "ready" signal
+        await createAndSendOffer(pc);
+      }
     } catch (error) {
-      console.error("Error initiating call:", error);
+      console.error("[WebRTC] Error setting up call:", error);
       handleEndCall();
     }
-  }, [startLocalStream, createPeerConnection]);
+  }, [startLocalStream, createPeerConnection, isIncoming, sendSignal]);
 
-  const acceptCall = useCallback(async () => {
+  const createAndSendOffer = useCallback(async (pc?: RTCPeerConnection) => {
+    const peerConn = pc || peerConnectionRef.current;
+    if (!peerConn || !channelReadyRef.current) return;
     try {
-      setCallStatus("connected");
-      const stream = await startLocalStream();
-      const pc = createPeerConnection();
-      peerConnectionRef.current = pc;
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-      onAccept?.();
-    } catch (error) {
-      console.error("Error accepting call:", error);
-      handleEndCall();
-    }
-  }, [startLocalStream, createPeerConnection, onAccept]);
-
-  const createAndSendOffer = useCallback(async () => {
-    const pc = peerConnectionRef.current;
-    if (pc && channelReadyRef.current) {
-      const offer = await pc.createOffer();
-      await pc.setLocalDescription(offer);
+      console.log("[WebRTC] Creating and sending offer");
+      const offer = await peerConn.createOffer();
+      await peerConn.setLocalDescription(offer);
       sendSignal({ type: "offer", payload: offer });
+      hasCreatedOfferRef.current = true;
+    } catch (error) {
+      console.error("[WebRTC] Error creating offer:", error);
     }
   }, [sendSignal]);
 
@@ -214,9 +223,30 @@ const VideoCall = ({
       const pc = peerConnectionRef.current;
 
       switch (message.type) {
+        case "ready":
+          // Callee is ready - send (or re-send) offer
+          if (!isIncoming && pc) {
+            console.log("[WebRTC] Got ready signal, sending offer");
+            // Reset local description if we already sent one
+            if (hasCreatedOfferRef.current) {
+              try {
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+                sendSignal({ type: "offer", payload: offer });
+              } catch (e) {
+                console.error("[WebRTC] Error re-creating offer:", e);
+              }
+            } else {
+              await createAndSendOffer(pc);
+            }
+          }
+          break;
+
         case "offer":
           if (pc) {
+            console.log("[WebRTC] Received offer, creating answer");
             await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+            // Flush pending ICE candidates
             for (const c of pendingIceCandidatesRef.current) {
               try { await pc.addIceCandidate(c); } catch {}
             }
@@ -226,8 +256,10 @@ const VideoCall = ({
             sendSignal({ type: "answer", payload: answer });
           }
           break;
+
         case "answer":
           if (pc) {
+            console.log("[WebRTC] Received answer");
             await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
             for (const c of pendingIceCandidatesRef.current) {
               try { await pc.addIceCandidate(c); } catch {}
@@ -235,6 +267,7 @@ const VideoCall = ({
             pendingIceCandidatesRef.current = [];
           }
           break;
+
         case "ice-candidate":
           if (pc) {
             const candidate = new RTCIceCandidate(message.payload);
@@ -247,7 +280,7 @@ const VideoCall = ({
           break;
       }
     },
-    [remoteUserId, currentUserId, sendSignal]
+    [remoteUserId, currentUserId, isIncoming, sendSignal, createAndSendOffer]
   );
 
   const handleEndCall = useCallback(() => {
@@ -256,30 +289,17 @@ const VideoCall = ({
     onEnd();
   }, [cleanup, onEnd]);
 
-  const handleReject = useCallback(() => {
-    setCallStatus("ended");
-    cleanup();
-    onReject?.();
-    onEnd();
-  }, [cleanup, onReject, onEnd]);
-
   const toggleVideo = () => {
     if (localStreamRef.current && !isVoiceOnly) {
       const track = localStreamRef.current.getVideoTracks()[0];
-      if (track) {
-        track.enabled = !track.enabled;
-        setIsVideoEnabled(track.enabled);
-      }
+      if (track) { track.enabled = !track.enabled; setIsVideoEnabled(track.enabled); }
     }
   };
 
   const toggleAudio = () => {
     if (localStreamRef.current) {
       const track = localStreamRef.current.getAudioTracks()[0];
-      if (track) {
-        track.enabled = !track.enabled;
-        setIsAudioEnabled(track.enabled);
-      }
+      if (track) { track.enabled = !track.enabled; setIsAudioEnabled(track.enabled); }
     }
   };
 
@@ -293,9 +313,7 @@ const VideoCall = ({
   const toggleScreenShare = async () => {
     const pc = peerConnectionRef.current;
     if (!pc) return;
-
     if (isScreenSharing) {
-      // Stop screen share, revert to camera
       if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach((t) => t.stop());
       screenStreamRef.current = null;
       const camStream = localStreamRef.current;
@@ -306,7 +324,6 @@ const VideoCall = ({
         if (localVideoRef.current) localVideoRef.current.srcObject = camStream;
       }
       setIsScreenSharing(false);
-      sendSignal({ type: "screen-share-stop", payload: {} });
     } else {
       try {
         const screen = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } as any, audio: true });
@@ -317,10 +334,7 @@ const VideoCall = ({
         if (localVideoRef.current) localVideoRef.current.srcObject = screen;
         videoTrack.onended = () => toggleScreenShare();
         setIsScreenSharing(true);
-        sendSignal({ type: "screen-share-start", payload: {} });
-      } catch {
-        // User cancelled
-      }
+      } catch {}
     }
   };
 
@@ -361,27 +375,25 @@ const VideoCall = ({
     } catch {}
   };
 
-  // Trigger offer on callAccepted
+  // Subscribe to signaling channel and set up call
   useEffect(() => {
-    if (callAccepted && !isIncoming && channelReadyRef.current && peerConnectionRef.current) {
-      createAndSendOffer();
-    }
-  }, [callAccepted, isIncoming, createAndSendOffer]);
+    console.log("[WebRTC] Mounting VideoCall, roomId:", roomId, "isIncoming:", isIncoming);
 
-  useEffect(() => {
     const channel = supabase
       .channel(`video-call-${roomId}`)
       .on("broadcast", { event: "signal" }, ({ payload }) => handleSignal(payload as SignalMessage))
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
+          console.log("[WebRTC] Signaling channel subscribed");
           channelReadyRef.current = true;
-          if (!isIncoming) setTimeout(() => initiateCallFn(), 1000);
+          // Small delay to ensure both sides are subscribed
+          setTimeout(() => setupCall(), 500);
         }
       });
 
     signalingChannelRef.current = channel;
     return () => { cleanup(); };
-  }, [roomId, isIncoming, initiateCallFn, handleSignal, cleanup]);
+  }, []); // Mount once only
 
   const qualityColor = signalQuality === "good" ? "bg-green-500" : signalQuality === "fair" ? "bg-yellow-500" : "bg-red-500";
 
@@ -439,25 +451,24 @@ const VideoCall = ({
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-background">
             <div className="text-center">
               <Avatar className={cn(
-                "mx-auto mb-4 ring-4",
-                callStatus === "calling" ? "ring-primary/30 animate-pulse h-28 w-28" : "ring-primary/20 h-24 w-24"
+                "mx-auto mb-4 ring-4 h-28 w-28",
+                !isConnected ? "ring-primary/30 animate-pulse" : "ring-primary/20"
               )}>
                 <AvatarImage src={remoteUserAvatar || undefined} />
                 <AvatarFallback className="text-3xl bg-primary/20">{remoteUserName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
               </Avatar>
               <p className={cn("font-semibold text-lg", isFullscreen && "text-white")}>{remoteUserName}</p>
               <p className={cn("text-sm mt-1", isFullscreen ? "text-white/60" : "text-muted-foreground")}>
-                {callStatus === "calling" && (
+                {callStatus === "connecting" && (
                   <span className="flex items-center justify-center gap-2">
                     <span className="flex gap-1">
                       {[0, 150, 300].map((d) => (
                         <span key={d} className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
                       ))}
                     </span>
-                    Calling...
+                    Connecting...
                   </span>
                 )}
-                {callStatus === "ringing" && "Incoming call..."}
                 {callStatus === "connected" && isVoiceOnly && formatDuration(callDuration)}
               </p>
             </div>
@@ -465,7 +476,7 @@ const VideoCall = ({
         )}
 
         {/* Local Video PIP */}
-        {isConnected && !isVoiceOnly && (
+        {!isVoiceOnly && (
           <div className={cn(
             "absolute rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 transition-all duration-300",
             isFullscreen ? "bottom-24 right-6 w-40 h-56" : "bottom-4 right-4 w-24 h-32"
@@ -508,103 +519,90 @@ const VideoCall = ({
           ? "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pb-8"
           : "bg-card/80 backdrop-blur"
       )}>
-        {callStatus === "ringing" ? (
-          <>
-            <Button variant="destructive" size="icon" className="h-14 w-14 rounded-full shadow-lg" onClick={handleReject}>
-              <PhoneOff className="h-6 w-6" />
+        {/* Mic */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={isAudioEnabled ? "secondary" : "destructive"}
+              size="icon"
+              className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && isAudioEnabled && "bg-white/20 hover:bg-white/30 text-white")}
+              onClick={toggleAudio}
+            >
+              {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
             </Button>
-            <Button className="h-14 w-14 rounded-full bg-green-500 hover:bg-green-600 shadow-lg" size="icon" onClick={acceptCall}>
-              <Phone className="h-6 w-6" />
+          </TooltipTrigger>
+          <TooltipContent>{isAudioEnabled ? "Mute" : "Unmute"}</TooltipContent>
+        </Tooltip>
+
+        {/* Speaker */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={isSpeakerMuted ? "destructive" : "secondary"}
+              size="icon"
+              className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && !isSpeakerMuted && "bg-white/20 hover:bg-white/30 text-white")}
+              onClick={toggleSpeaker}
+            >
+              {isSpeakerMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
             </Button>
-          </>
-        ) : (
-          <>
-            {/* Mic */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isAudioEnabled ? "secondary" : "destructive"}
-                  size="icon"
-                  className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && isAudioEnabled && "bg-white/20 hover:bg-white/30 text-white")}
-                  onClick={toggleAudio}
-                >
-                  {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isAudioEnabled ? "Mute" : "Unmute"}</TooltipContent>
-            </Tooltip>
+          </TooltipTrigger>
+          <TooltipContent>{isSpeakerMuted ? "Unmute Speaker" : "Mute Speaker"}</TooltipContent>
+        </Tooltip>
 
-            {/* Speaker */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant={isSpeakerMuted ? "destructive" : "secondary"}
-                  size="icon"
-                  className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && !isSpeakerMuted && "bg-white/20 hover:bg-white/30 text-white")}
-                  onClick={toggleSpeaker}
-                >
-                  {isSpeakerMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{isSpeakerMuted ? "Unmute Speaker" : "Mute Speaker"}</TooltipContent>
-            </Tooltip>
+        {/* End call */}
+        <Button variant="destructive" size="icon" className="h-14 w-14 rounded-full shadow-lg" onClick={handleEndCall}>
+          <PhoneOff className="h-6 w-6" />
+        </Button>
 
-            {/* End call */}
-            <Button variant="destructive" size="icon" className="h-14 w-14 rounded-full shadow-lg" onClick={handleEndCall}>
-              <PhoneOff className="h-6 w-6" />
-            </Button>
+        {/* Camera toggle */}
+        {!isVoiceOnly && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isVideoEnabled ? "secondary" : "destructive"}
+                size="icon"
+                className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && isVideoEnabled && "bg-white/20 hover:bg-white/30 text-white")}
+                onClick={toggleVideo}
+              >
+                {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isVideoEnabled ? "Camera Off" : "Camera On"}</TooltipContent>
+          </Tooltip>
+        )}
 
-            {/* Camera toggle */}
-            {!isVoiceOnly && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={isVideoEnabled ? "secondary" : "destructive"}
-                    size="icon"
-                    className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && isVideoEnabled && "bg-white/20 hover:bg-white/30 text-white")}
-                    onClick={toggleVideo}
-                  >
-                    {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{isVideoEnabled ? "Camera Off" : "Camera On"}</TooltipContent>
-              </Tooltip>
-            )}
+        {/* Screen share */}
+        {!isVoiceOnly && isConnected && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant={isScreenSharing ? "default" : "secondary"}
+                size="icon"
+                className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && !isScreenSharing && "bg-white/20 hover:bg-white/30 text-white")}
+                onClick={toggleScreenShare}
+              >
+                {isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>{isScreenSharing ? "Stop Sharing" : "Share Screen"}</TooltipContent>
+          </Tooltip>
+        )}
 
-            {/* Screen share */}
-            {!isVoiceOnly && isConnected && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant={isScreenSharing ? "default" : "secondary"}
-                    size="icon"
-                    className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && !isScreenSharing && "bg-white/20 hover:bg-white/30 text-white")}
-                    onClick={toggleScreenShare}
-                  >
-                    {isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>{isScreenSharing ? "Stop Sharing" : "Share Screen"}</TooltipContent>
-              </Tooltip>
-            )}
-
-            {/* Switch camera (mobile) */}
-            {!isVoiceOnly && isConnected && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="secondary"
-                    size="icon"
-                    className={cn("h-12 w-12 rounded-full shadow-md md:hidden", isFullscreen && "bg-white/20 hover:bg-white/30 text-white")}
-                    onClick={switchCamera}
-                  >
-                    <SwitchCamera className="h-5 w-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Switch Camera</TooltipContent>
-              </Tooltip>
-            )}
-          </>
+        {/* Switch camera (mobile) */}
+        {!isVoiceOnly && isConnected && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="secondary"
+                size="icon"
+                className={cn("h-12 w-12 rounded-full shadow-md md:hidden", isFullscreen && "bg-white/20 hover:bg-white/30 text-white")}
+                onClick={switchCamera}
+              >
+                <SwitchCamera className="h-5 w-5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Switch Camera</TooltipContent>
+          </Tooltip>
         )}
       </div>
     </div>
