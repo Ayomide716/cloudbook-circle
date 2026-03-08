@@ -318,15 +318,26 @@ const Friends = () => {
   };
 
   const handleSendRequest = async (userId: string) => {
-    const { error } = await supabase
+    // Immediately hide the suggestion
+    setHiddenSuggestions((prev) => new Set(prev).add(userId));
+
+    const { data, error } = await supabase
       .from("friendships")
       .insert({
         user_id: currentUserId,
         friend_id: userId,
         status: "pending",
-      });
+      })
+      .select("id")
+      .single();
 
     if (error) {
+      // Restore suggestion on error
+      setHiddenSuggestions((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
       toast({
         title: "Error",
         description: error.message,
@@ -335,7 +346,30 @@ const Friends = () => {
       return;
     }
 
-    toast({ title: "Friend request sent!" });
+    toast({
+      title: "Friend request sent!",
+      description: "Tap Undo to cancel.",
+      action: (
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={async () => {
+            if (data?.id) {
+              await supabase.from("friendships").delete().eq("id", data.id);
+              setHiddenSuggestions((prev) => {
+                const next = new Set(prev);
+                next.delete(userId);
+                return next;
+              });
+              toast({ title: "Request cancelled" });
+              loadData();
+            }
+          }}
+        >
+          Undo
+        </Button>
+      ),
+    });
     loadData();
   };
 
