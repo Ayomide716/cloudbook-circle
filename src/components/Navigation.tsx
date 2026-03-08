@@ -104,7 +104,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   return (
     <>
       {/* Top bar - minimal brand + search + actions */}
-      <header className="sticky top-0 z-50 safe-area-top">
+      <header className="sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50">
         <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-[var(--nav-height)]">
             {/* Left - Logo */}
