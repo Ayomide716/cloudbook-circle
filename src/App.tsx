@@ -18,6 +18,7 @@ import NotFound from "./pages/NotFound";
 import Events from "./pages/Events";
 import SavedPosts from "./pages/SavedPosts";
 import Settings from "./pages/Settings";
+import Marketplace from "./pages/Marketplace";
 
 const queryClient = new QueryClient();
 
