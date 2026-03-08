@@ -170,6 +170,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
+      <NewPostsBanner onRefresh={handleRefresh} lastFetchTime={lastFetchTime} />
 
       <PullToRefresh onRefresh={handleRefresh} className="flex-1 pb-safe">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 mb-20 md:mb-24">
