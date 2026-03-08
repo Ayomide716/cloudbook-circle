@@ -13,6 +13,9 @@ import FeedSidebar from "@/components/FeedSidebar";
 import ContactsSidebar from "@/components/ContactsSidebar";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import LoginStreakBadge from "@/components/LoginStreakBadge";
+import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
+import NewPostsBanner from "@/components/NewPostsBanner";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
