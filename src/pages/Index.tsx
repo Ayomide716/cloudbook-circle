@@ -47,6 +47,7 @@ const Index = () => {
   } = useFeedQuery(currentUser?.id ?? null, feedFilter);
 
   const { fetchReactions, fetchComments } = useFeedReactions(currentUser?.id ?? null);
+  const { getAdForPosition } = useAds();
 
   const allPosts = data?.pages.flatMap((page) => page.posts) ?? [];
 
