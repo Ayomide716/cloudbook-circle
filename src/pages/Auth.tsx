@@ -48,7 +48,7 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast({ title: "Account created!", description: "Welcome to AYO-CHAT" });
+        toast({ title: "Account created!", description: "Welcome to CloudBook!" });
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });

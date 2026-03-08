@@ -111,6 +111,7 @@ const AppRoutes = () => {
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<AnimatedPage><Index /></AnimatedPage>} />
+          <Route path="/landing" element={<AnimatedPage><Landing /></AnimatedPage>} />
           <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
           <Route path="/profile/:userId" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/messages" element={<AnimatedPage><Messages /></AnimatedPage>} />
