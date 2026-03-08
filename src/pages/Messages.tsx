@@ -68,8 +68,6 @@ const Messages = () => {
   const [showMessageSearch, setShowMessageSearch] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -78,9 +76,6 @@ const Messages = () => {
     incomingCall, activeCall,
     initiateCall, acceptIncomingCall, rejectIncomingCall, endCall,
   } = useVideoCall(currentUserId);
-
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  useEffect(() => { scrollToBottom(); }, [messages]);
 
   useEffect(() => { checkAuth(); }, [navigate]);
 
