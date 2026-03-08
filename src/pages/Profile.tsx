@@ -458,7 +458,7 @@ const Profile = () => {
 
         {/* ─── Tab bar ─── */}
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50 mb-6">
-          {(["posts", "about", "photos"] as const).map((tab) => (
+          {(["posts", "about", "photos", "albums"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
