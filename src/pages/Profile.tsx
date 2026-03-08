@@ -109,6 +109,9 @@ const Profile = () => {
   const [createAlbumOpen, setCreateAlbumOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
+  // Mutual friends state
+  const [mutualFriends, setMutualFriends] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[]>([]);
+
   const coverRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
   const coverY = useTransform(scrollY, [0, 300], [0, 100]);
