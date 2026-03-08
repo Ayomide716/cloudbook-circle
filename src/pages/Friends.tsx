@@ -678,7 +678,7 @@ const Friends = () => {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {suggestions.map((profile) => (
+                  {suggestions.filter(s => !hiddenSuggestions.has(s.id)).map((profile) => (
                     <div key={profile.id} className="flex items-center gap-4 p-4">
                       <Link to={`/profile/${profile.id}`}>
                         <Avatar className="h-14 w-14">
