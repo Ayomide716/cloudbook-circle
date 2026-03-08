@@ -34,6 +34,7 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,6 +48,21 @@ const AdminDashboard = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/landing"); return; }
     setCurrentUserId(session.user.id);
+
+    // Check admin role
+    const { data: roleData } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", session.user.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (!roleData) {
+      setIsAdmin(false);
+      setLoading(false);
+      return;
+    }
+    setIsAdmin(true);
     await Promise.all([fetchReports(), fetchUsers(), fetchStats()]);
     setLoading(false);
   };
