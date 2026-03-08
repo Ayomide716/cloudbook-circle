@@ -198,12 +198,26 @@ export default function ReelCard({
         {/* Bottom info */}
         <div className="absolute left-4 right-16 bottom-6 z-10 md:bottom-4">
           <div className="flex items-center gap-2 mb-2">
-            <Avatar className="h-9 w-9 border-2 border-white">
-              <AvatarImage src={reel.profiles.avatar_url || ""} />
-              <AvatarFallback className="bg-primary text-primary-foreground text-xs">{reel.profiles.full_name?.[0] || "U"}</AvatarFallback>
-            </Avatar>
-            <span className="text-white font-semibold text-sm">{reel.profiles.full_name || "User"}</span>
-            <span className="text-white/60 text-sm">· Follow</span>
+            <button onClick={() => onNavigateToProfile?.(reel.user_id)} className="flex items-center gap-2 group/profile">
+              <Avatar className="h-9 w-9 border-2 border-white group-hover/profile:ring-2 group-hover/profile:ring-primary transition-all">
+                <AvatarImage src={reel.profiles.avatar_url || ""} />
+                <AvatarFallback className="bg-primary text-primary-foreground text-xs">{reel.profiles.full_name?.[0] || "U"}</AvatarFallback>
+              </Avatar>
+              <span className="text-white font-semibold text-sm group-hover/profile:underline">{reel.profiles.full_name || "User"}</span>
+            </button>
+            {currentUserId && currentUserId !== reel.user_id && (
+              <button
+                onClick={() => onFollow?.(reel.user_id)}
+                className={cn(
+                  "text-sm px-3 py-0.5 rounded-full border transition-colors",
+                  isFollowing
+                    ? "border-white/40 text-white/60"
+                    : "border-white text-white hover:bg-white/20"
+                )}
+              >
+                {isFollowing ? "Friends" : "· Follow"}
+              </button>
+            )}
           </div>
           {reel.caption && (
             <p className="text-white/90 text-sm line-clamp-2 drop-shadow-lg">{reel.caption}</p>
