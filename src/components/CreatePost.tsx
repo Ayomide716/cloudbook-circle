@@ -85,8 +85,9 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     setContent("");
     setImageUrl("");
+    setImageUrls([]);
     setVideoUrl("");
-     setPollData(null);
+    setPollData(null);
     setShowDialog(false);
     toast({ title: "Post created!" });
     onPostCreated();
