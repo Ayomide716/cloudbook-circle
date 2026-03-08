@@ -20,6 +20,8 @@ import SavedPosts from "./pages/SavedPosts";
 import Settings from "./pages/Settings";
 import Marketplace from "./pages/Marketplace";
 import Watch from "./pages/Watch";
+import Pages from "./pages/Pages";
+import PageDetail from "./pages/PageDetail";
 
 const queryClient = new QueryClient();
 
