@@ -467,7 +467,7 @@ const VideoCall = ({
 
       {/* Remote Video / Avatar */}
       <div className="flex-1 relative bg-black overflow-hidden">
-        {isConnected && !isVoiceOnly ? (
+        {remoteStream && !isVoiceOnly ? (
           <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain" />
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-background">
@@ -496,6 +496,8 @@ const VideoCall = ({
             </div>
           </div>
         )}
+
+        <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
 
         {/* Local Video PIP */}
         {!isVoiceOnly && (

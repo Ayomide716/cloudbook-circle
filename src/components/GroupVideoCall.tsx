@@ -71,7 +71,7 @@ const GroupVideoCall = ({
   }, [currentUserId]);
 
   const createPeerConnection = useCallback((remoteUserId: string) => {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, iceCandidatePoolSize: 10 });
+    const pc = new RTCPeerConnection({ iceServers: getIceServers(), iceCandidatePoolSize: 10 });
 
     pc.onicecandidate = (event) => {
       if (event.candidate && channelRef.current) {
