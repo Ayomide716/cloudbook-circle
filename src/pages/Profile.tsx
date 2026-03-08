@@ -24,6 +24,7 @@ interface Profile {
   website: string | null;
   work: string | null;
   education: string | null;
+  is_verified?: boolean;
 }
 
 interface Post {
