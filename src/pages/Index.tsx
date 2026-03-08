@@ -10,6 +10,7 @@ import FeedFilter from "@/components/FeedFilter";
 import PullToRefresh from "@/components/PullToRefresh";
 import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import FeedSidebar from "@/components/FeedSidebar";
+import ContactsSidebar from "@/components/ContactsSidebar";
 import { Loader2 } from "lucide-react";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
@@ -216,16 +217,7 @@ const Index = () => {
             </main>
 
             {/* Right Sidebar - Contacts */}
-            <aside className="hidden lg:block">
-              <div className="sticky top-20 space-y-4">
-                <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold text-[17px] text-muted-foreground">Contacts</h3>
-                  </div>
-                  <p className="text-sm text-muted-foreground">Your friends will appear here</p>
-                </div>
-              </div>
-            </aside>
+            <ContactsSidebar currentUserId={currentUser.id} />
           </div>
         </div>
       </PullToRefresh>
