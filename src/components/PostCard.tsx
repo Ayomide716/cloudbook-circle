@@ -15,6 +15,7 @@ import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
 import ReportDialog from "./ReportDialog";
+import ImageCarousel from "./ImageCarousel";
 
 interface Comment {
   id: string;
