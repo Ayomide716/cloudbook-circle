@@ -320,6 +320,10 @@ const Index = () => {
                   <span className="text-xl">📅</span>
                   <span className="text-[15px] font-medium">Events</span>
                 </a>
+                <a href="/marketplace" className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors">
+                  <span className="text-xl">🛒</span>
+                  <span className="text-[15px] font-medium">Marketplace</span>
+                </a>
               </div>
             </aside>
 
