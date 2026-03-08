@@ -426,7 +426,7 @@ const Profile = () => {
         >
           <div className="flex flex-col sm:flex-row gap-5 items-start">
             {/* Avatar */}
-            <div className="relative -mt-16 sm:-mt-20 mx-auto sm:mx-0">
+            <div className="relative -mt-14 sm:-mt-20 mx-auto sm:mx-0">
               <motion.div whileHover={{ scale: 1.05 }} transition={spring}>
                 <Avatar className="h-28 w-28 sm:h-36 sm:w-36 border-4 border-card ring-4 ring-primary/20">
                   <AvatarImage src={profile.avatar_url || undefined} />
