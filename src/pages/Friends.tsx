@@ -473,7 +473,7 @@ const Friends = () => {
             </TabsTrigger>
             <TabsTrigger value="sent">Sent</TabsTrigger>
             <TabsTrigger value="friends">Friends</TabsTrigger>
-            <TabsTrigger value="suggestions">Discover</TabsTrigger>
+            <TabsTrigger value="suggestions">People You May Know</TabsTrigger>
           </TabsList>
 
           <TabsContent value="requests">
