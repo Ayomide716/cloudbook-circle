@@ -71,7 +71,21 @@ const FeedSidebar = ({ currentUser }: FeedSidebarProps) => {
               <span className="text-sm font-medium">{link.label}</span>
             </Link>
           </motion.div>
+        {sidebarLinks.map((link) => (
+          <motion.div key={link.href} variants={item}>
+            <Link
+              to={link.href}
+              className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-secondary/80 transition-all duration-200 group"
+            >
+              <span className="text-xl w-8 h-8 flex items-center justify-center rounded-xl bg-secondary/60 group-hover:scale-110 transition-transform duration-200">{link.icon}</span>
+              <span className="text-sm font-medium">{link.label}</span>
+            </Link>
+          </motion.div>
         ))}
+
+        <motion.div variants={item} className="pt-3 border-t border-border/50">
+          <OnlineFriendsWidget currentUserId={currentUser.id} />
+        </motion.div>
       </motion.div>
     </aside>
   );
