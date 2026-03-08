@@ -14,6 +14,7 @@ import SharePostDialog from "./SharePostDialog";
 import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
+import ReportDialog from "./ReportDialog";
 
 interface Comment {
   id: string;
