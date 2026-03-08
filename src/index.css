@@ -385,6 +385,12 @@
 .dark .auth-orb-2 { background: hsl(var(--accent) / 0.15); }
 .dark .auth-orb-3 { background: hsl(var(--primary) / 0.12); }
 
+.dark .auth-grid-overlay {
+  background-image:
+    linear-gradient(hsl(var(--primary) / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, hsl(var(--primary) / 0.04) 1px, transparent 1px);
+}
+
 .auth-grid-overlay {
   background-image:
     linear-gradient(hsl(var(--primary) / 0.03) 1px, transparent 1px),
