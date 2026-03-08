@@ -186,6 +186,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                         size="icon"
                         className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-200 relative"
                         onClick={() => navigate("/notifications")}
+                        onMouseEnter={() => prefetchRoute("/notifications")}
                       >
                         <Bell className="h-5 w-5" />
                         {unreadNotifications > 0 && (
