@@ -324,31 +324,65 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
               {/* Reply input - only show if not viewing own story */}
               {selectedStory.user_id !== currentUserId && (
-                <div className="bg-background p-3 border-t flex items-center gap-2">
-                  <Input
-                    placeholder="Reply to this story..."
-                    value={replyText}
-                    onChange={(e) => setReplyText(e.target.value)}
-                    className="flex-1"
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSendReply();
-                      }
-                    }}
-                    disabled={isSendingReply}
-                  />
-                  <Button
-                    size="icon"
-                    onClick={handleSendReply}
-                    disabled={!replyText.trim() || isSendingReply}
-                  >
-                    {isSendingReply ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Send className="h-4 w-4" />
-                    )}
-                  </Button>
+                <div className="bg-background p-3 border-t space-y-2">
+                  {/* Quick reactions */}
+                  <div className="flex items-center gap-2 justify-center">
+                    {[
+                      { emoji: "❤️", type: "love" },
+                      { emoji: "😂", type: "haha" },
+                      { emoji: "😮", type: "wow" },
+                      { emoji: "👍", type: "like" },
+                      { emoji: "🔥", type: "fire" },
+                      { emoji: "😢", type: "sad" },
+                    ].map((r) => (
+                      <button
+                        key={r.type}
+                        onClick={async () => {
+                          await supabase.from("story_reactions" as any).upsert({
+                            story_id: selectedStory.id,
+                            user_id: currentUserId,
+                            reaction_type: r.type,
+                          } as any, { onConflict: "story_id,user_id" });
+                          // Send as message too
+                          await supabase.from("messages").insert({
+                            sender_id: currentUserId,
+                            receiver_id: selectedStory.user_id,
+                            content: `${r.emoji} Reacted to your story`,
+                          });
+                          toast({ title: "Reaction sent!" });
+                        }}
+                        className="text-2xl hover:scale-125 transition-transform p-1"
+                      >
+                        {r.emoji}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      placeholder="Reply to this story..."
+                      value={replyText}
+                      onChange={(e) => setReplyText(e.target.value)}
+                      className="flex-1"
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendReply();
+                        }
+                      }}
+                      disabled={isSendingReply}
+                    />
+                    <Button
+                      size="icon"
+                      onClick={handleSendReply}
+                      disabled={!replyText.trim() || isSendingReply}
+                    >
+                      {isSendingReply ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Send className="h-4 w-4" />
+                      )}
+                    </Button>
+                  </div>
                 </div>
               )}
             </div>
