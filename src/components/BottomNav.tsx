@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
 import MobileSearchOverlay from "./MobileSearchOverlay";
+import { prefetchRoute } from "@/lib/prefetch";
 
 interface BottomNavProps {
   currentUserId?: string;
