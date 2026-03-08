@@ -663,28 +663,39 @@ const Friends = () => {
               ) : (
                 <div className="divide-y">
                   {friends.map((friendship) => (
-                    <Link
+                    <div
                       key={friendship.id}
-                      to={`/profile/${friendship.friend.id}`}
                       className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
                     >
-                      <Avatar className="h-14 w-14">
-                        <AvatarImage src={friendship.friend.avatar_url || undefined} />
-                        <AvatarFallback>
-                          {friendship.friend.full_name?.[0]?.toUpperCase() || "U"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <Link to={`/profile/${friendship.friend.id}`}>
+                        <Avatar className="h-14 w-14">
+                          <AvatarImage src={friendship.friend.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {friendship.friend.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">
-                          {friendship.friend.full_name || "Anonymous"}
-                        </p>
+                        <Link to={`/profile/${friendship.friend.id}`}>
+                          <p className="font-semibold truncate hover:underline">
+                            {friendship.friend.full_name || "Anonymous"}
+                          </p>
+                        </Link>
                         <p className="text-xs text-muted-foreground">
                           Friends since {formatDistanceToNow(new Date(friendship.created_at), {
                             addSuffix: true,
                           })}
                         </p>
                       </div>
-                    </Link>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setUnfriendTarget(friendship)}
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}
