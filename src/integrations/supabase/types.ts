@@ -1204,6 +1204,29 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_ranked_posts: {
+        Args: {
+          _cursor_id?: string
+          _cursor_score?: number
+          _feed_filter?: string
+          _page_size?: number
+          _user_id: string
+        }
+        Returns: {
+          comment_count: number
+          content: string
+          created_at: string
+          engagement_score: number
+          id: string
+          image_url: string
+          profile_avatar_url: string
+          profile_full_name: string
+          profile_id: string
+          reaction_count: number
+          user_id: string
+          video_url: string
+        }[]
+      }
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
