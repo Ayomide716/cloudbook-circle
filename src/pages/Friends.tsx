@@ -57,6 +57,7 @@ const Friends = () => {
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [suggestions, setSuggestions] = useState<SuggestedProfile[]>([]);
   const [hiddenSuggestions, setHiddenSuggestions] = useState<Set<string>>(new Set());
+  const [unfriendTarget, setUnfriendTarget] = useState<Friendship | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
