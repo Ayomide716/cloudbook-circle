@@ -290,14 +290,24 @@ const PostCard = ({
                    </>
                  )}
                </DropdownMenuItem>
-               {currentUserId === post.user_id && (
-                 <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
-                   <Trash2 className="h-4 w-4 mr-2" />
-                   Delete Post
-                 </DropdownMenuItem>
-               )}
-             </DropdownMenuContent>
-           </DropdownMenu>
+                {currentUserId === post.user_id && (
+                  <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Post
+                  </DropdownMenuItem>
+                )}
+                {currentUserId !== post.user_id && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <ReportDialog
+                      reportedType="post"
+                      reportedId={post.id}
+                      currentUserId={currentUserId}
+                    />
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
 
         {/* Content */}
