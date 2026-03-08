@@ -635,10 +635,10 @@ const Friends = () => {
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
                   <p className="text-lg font-medium text-muted-foreground">
-                    No suggestions available
+                    No people to suggest yet
                   </p>
                   <p className="text-sm text-muted-foreground/70 mt-1">
-                    Check back later for new people to connect with
+                    Add more friends to unlock mutual-based suggestions
                   </p>
                 </div>
               ) : (
@@ -659,6 +659,9 @@ const Friends = () => {
                             {profile.full_name || "Anonymous"}
                           </p>
                         </Link>
+                        <p className="text-xs text-muted-foreground">
+                          {profile.mutualCount} mutual {profile.mutualCount === 1 ? "friend" : "friends"}
+                        </p>
                       </div>
                       <Button
                         size="sm"
