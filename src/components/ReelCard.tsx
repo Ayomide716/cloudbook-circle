@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import ReportDialog from "@/components/ReportDialog";
 
 interface ReelCardProps {
   reel: {
