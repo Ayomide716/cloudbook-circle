@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Image, Video, BarChart3, X, Images } from "lucide-react";
@@ -10,6 +9,7 @@ import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
 import PollCreator from "./PollCreator";
 import MultiImageUpload from "./MultiImageUpload";
+import MentionInput from "./MentionInput";
 import {
   Dialog,
   DialogContent,
