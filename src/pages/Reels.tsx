@@ -4,11 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Film, ChevronUp, ChevronDown } from "lucide-react";
+import { Plus, Send, Film, ChevronUp, ChevronDown, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import VideoUpload from "@/components/VideoUpload";
-import Navigation from "@/components/Navigation";
+// Navigation removed - Reels uses its own minimal top bar
 import ReelCard from "@/components/ReelCard";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
@@ -178,8 +178,17 @@ export default function Reels() {
 
   return (
     <div className="min-h-screen bg-black flex flex-col">
-      <div className="hidden md:block">
-        <Navigation currentUserId={user?.id} />
+      {/* Desktop top bar for Reels (no floating dock on this page) */}
+      <div className="hidden md:flex items-center justify-between px-6 py-3 bg-black/80 backdrop-blur-md border-b border-white/10 z-30">
+        <div className="flex items-center gap-3">
+          <button onClick={() => navigate("/")} className="text-white/70 hover:text-white transition-colors">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="text-white font-bold text-lg">Reels</h1>
+        </div>
+        <button onClick={() => setShowUpload(true)} className="text-white/70 hover:text-white transition-colors flex items-center gap-2 text-sm">
+          <Plus className="h-5 w-5" /> Create
+        </button>
       </div>
 
       <div className="md:hidden absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/60 to-transparent safe-area-top">
