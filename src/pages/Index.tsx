@@ -13,6 +13,9 @@ import FeedSidebar from "@/components/FeedSidebar";
 import ContactsSidebar from "@/components/ContactsSidebar";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
+import LoginStreakBadge from "@/components/LoginStreakBadge";
+import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
+import NewPostsBanner from "@/components/NewPostsBanner";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -30,6 +33,7 @@ const Index = () => {
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [lastFetchTime, setLastFetchTime] = useState(new Date());
 
   const {
     data,
@@ -144,6 +148,7 @@ const Index = () => {
 
   const handleRefresh = useCallback(async () => {
     await refetch();
+    setLastFetchTime(new Date());
   }, [refetch]);
 
   if ((isLoading && allPosts.length === 0) || !currentUser) {
@@ -165,6 +170,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
+      <NewPostsBanner onRefresh={handleRefresh} lastFetchTime={lastFetchTime} />
 
       <PullToRefresh onRefresh={handleRefresh} className="flex-1 pb-safe">
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 mb-20 md:mb-24">
@@ -173,6 +179,12 @@ const Index = () => {
 
             {/* Main Feed - Bento Grid */}
             <main className="space-y-5 min-w-0">
+              <div className="flex items-center justify-between">
+                <LoginStreakBadge userId={currentUser.id} />
+              </div>
+
+              <ProfileCompletionPrompt userId={currentUser.id} />
+
               <Suspense fallback={<div className="h-24" />}>
                 <StoriesBar currentUserId={currentUser.id} />
               </Suspense>
