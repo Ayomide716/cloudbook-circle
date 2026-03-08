@@ -421,84 +421,97 @@ const Profile = () => {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-12 sm:-mt-16 relative z-10">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-16 sm:-mt-20 relative z-10">
         {/* ─── Profile header card ─── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="bento-card p-4 sm:p-6 mb-5"
+          className="bento-card overflow-hidden mb-5"
         >
-          <div className="flex flex-col sm:flex-row gap-5 items-start">
-            {/* Avatar */}
-            <div className="relative -mt-14 sm:-mt-20 mx-auto sm:mx-0">
-              <motion.div whileHover={{ scale: 1.05 }} transition={spring}>
-                <Avatar className="h-28 w-28 sm:h-36 sm:w-36 border-4 border-card ring-4 ring-primary/20">
-                  <AvatarImage src={profile.avatar_url || undefined} />
-                  <AvatarFallback className="text-3xl sm:text-4xl font-display gradient-brand text-primary-foreground">
-                    {profile.full_name?.[0]?.toUpperCase() || "U"}
-                  </AvatarFallback>
-                </Avatar>
-              </motion.div>
-              <div className="absolute bottom-1 right-1">
-                <OnlineStatusIndicator userId={userId || ""} />
-              </div>
-              {isOwnProfile && (
-                <div className="absolute -bottom-1 -right-1">
-                  <ImageUpload
-                    bucket="avatars"
-                    userId={currentUserId!}
-                    onUploadComplete={handleAvatarUpload}
-                    label=""
-                  />
+          {/* Top section with avatar and actions */}
+          <div className="relative px-5 sm:px-8 pt-4 pb-5">
+            <div className="flex items-end gap-4 sm:gap-6">
+              {/* Avatar */}
+              <div className="relative -mt-16 sm:-mt-20 flex-shrink-0">
+                <motion.div whileHover={{ scale: 1.04 }} transition={spring}>
+                  <Avatar className="h-28 w-28 sm:h-36 sm:w-36 border-[5px] border-card shadow-lg">
+                    <AvatarImage src={profile.avatar_url || undefined} />
+                    <AvatarFallback className="text-3xl sm:text-4xl font-display gradient-brand text-primary-foreground">
+                      {profile.full_name?.[0]?.toUpperCase() || "U"}
+                    </AvatarFallback>
+                  </Avatar>
+                </motion.div>
+                <div className="absolute bottom-2 right-2">
+                  <OnlineStatusIndicator userId={userId || ""} />
                 </div>
-              )}
-            </div>
-
-            {/* Info */}
-            <div className="flex-1 text-center sm:text-left mt-2 sm:mt-4 w-full">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-display font-bold inline-flex items-center gap-2">
-                    {profile.full_name || "Anonymous User"}
-                    {profile.is_verified && <VerifiedBadge size="lg" />}
-                  </h1>
-                  <div className="flex items-center justify-center sm:justify-start gap-1 mt-0.5">
-                    <OnlineStatusIndicator userId={userId || ""} showText />
-                  </div>
-                </div>
-
-                {isOwnProfile ? (
-                  <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)} className="rounded-xl">
-                    <Edit className="h-4 w-4 mr-2" /> Edit Profile
-                  </Button>
-                ) : (
-                  <div className="flex gap-2 w-full sm:w-auto">
-                    <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} />
-                    <Button variant="outline" size="sm" onClick={startMessage} className="flex-1 sm:flex-none rounded-xl">
-                      <MessageCircle className="h-4 w-4 mr-2" /> Message
-                    </Button>
+                {isOwnProfile && (
+                  <div className="absolute bottom-0 right-0">
+                    <ImageUpload
+                      bucket="avatars"
+                      userId={currentUserId!}
+                      onUploadComplete={handleAvatarUpload}
+                      label=""
+                    />
                   </div>
                 )}
               </div>
 
-              {profile.bio && (
-                <p className="text-muted-foreground mt-3 max-w-xl leading-relaxed">{profile.bio}</p>
-              )}
-
-              {/* Stats row */}
-              <div className="flex items-center justify-center sm:justify-start gap-6 mt-4">
-                {[
-                  { value: posts.length, label: "Posts" },
-                  { value: friendCount, label: "Friends" },
-                  { value: photoPosts.length, label: "Photos" },
-                ].map((s) => (
-                  <div key={s.label} className="text-center">
-                    <div className="text-lg font-display font-bold">{s.value}</div>
-                    <div className="text-xs text-muted-foreground">{s.label}</div>
+              {/* Name + actions inline */}
+              <div className="flex-1 min-w-0 pb-1">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                  <div className="min-w-0">
+                    <h1 className="text-xl sm:text-2xl font-display font-bold truncate inline-flex items-center gap-2">
+                      {profile.full_name || "Anonymous User"}
+                      {profile.is_verified && <VerifiedBadge size="lg" />}
+                    </h1>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      <OnlineStatusIndicator userId={userId || ""} showText />
+                    </div>
                   </div>
-                ))}
+
+                  <div className="flex-shrink-0">
+                    {isOwnProfile ? (
+                      <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)} className="rounded-xl">
+                        <Edit className="h-4 w-4 mr-2" /> Edit Profile
+                      </Button>
+                    ) : (
+                      <div className="flex gap-2">
+                        <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} />
+                        <Button variant="outline" size="sm" onClick={startMessage} className="rounded-xl">
+                          <MessageCircle className="h-4 w-4 mr-2" /> Message
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
+            </div>
+
+            {/* Bio */}
+            {profile.bio && (
+              <p className="text-muted-foreground mt-4 max-w-2xl text-sm leading-relaxed">{profile.bio}</p>
+            )}
+          </div>
+
+          {/* Stats bar — separated with a top border */}
+          <div className="border-t border-border bg-muted/30">
+            <div className="flex items-center divide-x divide-border">
+              {[
+                { value: posts.length, label: "Posts", icon: MessageSquare },
+                { value: friendCount, label: "Friends", icon: Users },
+                { value: photoPosts.length, label: "Photos", icon: ImageIcon },
+              ].map((s) => (
+                <motion.div
+                  key={s.label}
+                  whileHover={{ backgroundColor: "hsl(var(--accent) / 0.06)" }}
+                  className="flex-1 flex items-center justify-center gap-2 py-3.5 cursor-default transition-colors"
+                >
+                  <s.icon className="h-4 w-4 text-primary/60" />
+                  <span className="font-display font-bold text-base">{s.value}</span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">{s.label}</span>
+                </motion.div>
+              ))}
             </div>
           </div>
         </motion.div>
