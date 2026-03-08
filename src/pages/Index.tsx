@@ -148,6 +148,7 @@ const Index = () => {
 
   const handleRefresh = useCallback(async () => {
     await refetch();
+    setLastFetchTime(new Date());
   }, [refetch]);
 
   if ((isLoading && allPosts.length === 0) || !currentUser) {
