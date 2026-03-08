@@ -349,6 +349,37 @@ const Messages = () => {
     return messages.find((m) => m.id === replyToId) || null;
   };
 
+  const renderMessage = useCallback((index: number): ReactElement | null => {
+    const message = messages[index];
+    if (!message) return null;
+    const isCurrentUser = message.sender_id === currentUserId;
+    const isLastOwnMessage = isCurrentUser && !messages.slice(index + 1).some((m) => m.sender_id === currentUserId);
+    const isLastMessage = index === messages.length - 1;
+
+    return (
+      <div
+        id={`msg-${message.id}`}
+        className={cn(
+          "transition-all duration-300",
+          highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1"
+        )}
+      >
+        <ChatBubble
+          message={message}
+          isCurrentUser={isCurrentUser}
+          isLastOwnMessage={isLastOwnMessage}
+          isLastMessage={isLastMessage}
+          currentUserId={currentUserId!}
+          replyMessage={getReplyMessage(message.reply_to)}
+          onReply={handleReply}
+          onEdit={handleEdit}
+          onUnsend={handleUnsend}
+          theme={chatTheme}
+        />
+      </div>
+    );
+  }, [messages, currentUserId, highlightedMessageId, chatTheme]);
+
   if (isLoading) return <MessagesSkeleton />;
 
   return (
