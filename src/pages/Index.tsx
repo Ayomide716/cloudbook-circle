@@ -12,6 +12,7 @@ import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import FeedSidebar from "@/components/FeedSidebar";
 import ContactsSidebar from "@/components/ContactsSidebar";
 import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -43,7 +44,6 @@ const Index = () => {
 
   const allPosts = data?.pages.flatMap((page) => page.posts) ?? [];
 
-  // Load reactions/comments whenever posts change
   useEffect(() => {
     if (allPosts.length === 0 || !currentUser) return;
     const postIds = allPosts.map((p) => p.id);
@@ -56,7 +56,6 @@ const Index = () => {
     );
   }, [allPosts.length, currentUser?.id]);
 
-  // Infinite scroll observer
   useEffect(() => {
     if (!sentinelRef.current || !hasNextPage) return;
 
@@ -156,17 +155,24 @@ const Index = () => {
     );
   }
 
+  // Bento grid sizing: alternate between full-width and half-width cards
+  const getBentoSize = (index: number): "full" | "half" => {
+    // Pattern: full, half, half, full, half, half...
+    const pattern = index % 3;
+    return pattern === 0 ? "full" : "half";
+  };
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
 
       <PullToRefresh onRefresh={handleRefresh} className="flex-1 pb-safe">
-        <div className="max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[320px_1fr_320px] gap-6">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 mb-20 md:mb-24">
+          <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr_260px] xl:grid-cols-[280px_1fr_280px] gap-6">
             <FeedSidebar currentUser={currentUser} />
 
-            {/* Main Feed */}
-            <main className="space-y-4 min-w-0">
+            {/* Main Feed - Bento Grid */}
+            <main className="space-y-5 min-w-0">
               <Suspense fallback={<div className="h-24" />}>
                 <StoriesBar currentUserId={currentUser.id} />
               </Suspense>
@@ -179,34 +185,52 @@ const Index = () => {
               <FeedFilter filter={feedFilter} onFilterChange={setFeedFilter} />
 
               {allPosts.length === 0 ? (
-                <div className="text-center py-12 animate-fade-in">
-                  <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
-                </div>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ type: "spring", stiffness: 300, damping: 25 }}
+                  className="text-center py-16"
+                >
+                  <p className="text-muted-foreground text-lg">No posts yet. Be the first to share! ✨</p>
+                </motion.div>
               ) : (
                 <>
-                  {allPosts.map((post, index) => (
-                    <div
-                      key={post.id}
-                      className="animate-fade-in"
-                      style={{ animationDelay: `${Math.min(index, 5) * 60}ms`, animationFillMode: "forwards" }}
-                    >
-                    <PostCard
-                      post={post}
-                      currentUserId={currentUser.id}
-                      reactions={reactionsData[post.id]?.reactions || {}}
-                      userReaction={reactionsData[post.id]?.userReaction || null}
-                      comments={commentsData[post.id] || []}
-                      onReactionToggle={(type) => handleReactionToggle(post.id, type)}
-                      onCommentAdded={() => handleCommentAdded(post.id)}
-                      onDelete={() => refetch()}
-                    />
-                    </div>
-                  ))}
+                  {/* Bento Grid Layout */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {allPosts.map((post, index) => {
+                      const size = getBentoSize(index);
+                      return (
+                        <motion.div
+                          key={post.id}
+                          initial={{ opacity: 0, y: 20, scale: 0.97 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          transition={{
+                            type: "spring",
+                            stiffness: 260,
+                            damping: 20,
+                            delay: Math.min(index, 5) * 0.06,
+                          }}
+                          className={size === "full" ? "sm:col-span-2" : "sm:col-span-1"}
+                        >
+                          <PostCard
+                            post={post}
+                            currentUserId={currentUser.id}
+                            reactions={reactionsData[post.id]?.reactions || {}}
+                            userReaction={reactionsData[post.id]?.userReaction || null}
+                            comments={commentsData[post.id] || []}
+                            onReactionToggle={(type) => handleReactionToggle(post.id, type)}
+                            onCommentAdded={() => handleCommentAdded(post.id)}
+                            onDelete={() => refetch()}
+                          />
+                        </motion.div>
+                      );
+                    })}
+                  </div>
 
                   {/* Infinite scroll sentinel */}
                   <div ref={sentinelRef} className="py-4 flex justify-center">
                     {isFetchingNextPage && (
-                      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     )}
                     {!hasNextPage && allPosts.length > 0 && (
                       <p className="text-sm text-muted-foreground">You're all caught up! 🎉</p>

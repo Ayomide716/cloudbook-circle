@@ -26,7 +26,7 @@ const Watch = lazy(() => import("./pages/Watch"));
 const Pages = lazy(() => import("./pages/Pages"));
 const PageDetail = lazy(() => import("./pages/PageDetail"));
 
-// Lazy-loaded skeletons (only loaded when needed)
+// Lazy-loaded skeletons
 const FeedSkeleton = lazy(() => import("./components/skeletons/FeedSkeleton"));
 const MessagesSkeleton = lazy(() => import("./components/skeletons/MessagesSkeleton"));
 const NotificationsSkeleton = lazy(() => import("./components/skeletons/NotificationsSkeleton"));
@@ -40,16 +40,17 @@ const FriendsSkeleton = lazy(() => import("./components/skeletons/FriendsSkeleto
 
 const queryClient = new QueryClient();
 
+// Spring-based page transitions
 const pageVariants = {
-  initial: { opacity: 0, y: 8 },
-  animate: { opacity: 1, y: 0 },
-  exit: { opacity: 0, y: -8 },
+  initial: { opacity: 0, y: 12, scale: 0.99 },
+  animate: { opacity: 1, y: 0, scale: 1 },
+  exit: { opacity: 0, y: -8, scale: 0.99 },
 };
 
 const pageTransition = {
-  type: "tween" as const,
-  ease: "easeInOut" as const,
-  duration: 0.2,
+  type: "spring" as const,
+  stiffness: 300,
+  damping: 30,
 };
 
 const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
@@ -64,14 +65,16 @@ const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
-// Minimal spinner for skeleton fallback chains
 const MiniFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    <motion.div
+      animate={{ rotate: 360 }}
+      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      className="w-8 h-8 rounded-lg gradient-brand"
+    />
   </div>
 );
 
-// Route-aware skeleton fallback
 const PageFallback = () => {
   const location = useLocation();
   const path = location.pathname;

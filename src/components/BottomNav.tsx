@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
 import MobileSearchOverlay from "./MobileSearchOverlay";
 import { prefetchRoute } from "@/lib/prefetch";
+import { motion } from "framer-motion";
 
 interface BottomNavProps {
   currentUserId?: string;
@@ -51,39 +52,42 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 glass-strong border-t border-border/20 z-50 md:hidden transition-all duration-300">
-      <div className="flex items-center justify-around h-[3.5rem] px-1 safe-area-bottom">
+    <motion.nav
+      initial={{ y: 100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 300, damping: 28 }}
+      className="fixed bottom-4 left-4 right-4 glass-strong dock-nav rounded-2xl z-50 md:hidden"
+    >
+      <div className="flex items-center justify-around h-[3.5rem] px-1">
         {navItems.map((item) => {
           const isActive = item.path ? location.pathname === item.path : false;
           return (
-            <button
+            <motion.button
               key={item.label}
               onClick={() => item.action ? item.action() : navigate(item.path)}
               onTouchStart={() => item.path && prefetchRoute(item.path)}
+              whileTap={{ scale: 0.85 }}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full py-1 relative transition-all duration-200 active:scale-90",
-                isActive ? "text-primary" : "text-muted-foreground"
+                "flex flex-col items-center justify-center flex-1 h-full py-1 relative transition-colors duration-200",
+                isActive ? "text-primary-foreground" : "text-muted-foreground"
               )}
             >
-              {isActive && (
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-[3px] rounded-b-full bg-gradient-to-r from-primary to-primary-glow shadow-[0_2px_8px_hsl(var(--primary)/0.4)]" />
-              )}
-              <div className="relative">
-                <item.icon className={cn(
-                  "h-5 w-5 transition-all duration-200",
-                  isActive && "text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.4)]"
-                )} />
+              <div className={cn(
+                "relative flex items-center justify-center h-9 w-9 rounded-xl transition-all duration-200",
+                isActive && "gradient-brand shadow-md"
+              )}>
+                <item.icon className="h-5 w-5" />
                 {item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground text-[9px] font-bold rounded-full h-4 min-w-4 px-0.5 flex items-center justify-center badge-pulse">
+                  <span className="absolute -top-1.5 -right-1.5 gradient-brand text-primary-foreground text-[9px] font-bold rounded-full h-4 min-w-4 px-0.5 flex items-center justify-center badge-pulse">
                     {item.badge > 9 ? "9+" : item.badge}
                   </span>
                 )}
               </div>
               <span className={cn(
                 "text-[9px] mt-0.5 font-medium transition-all duration-200",
-                isActive && "font-semibold"
+                isActive ? "text-primary font-semibold" : "text-muted-foreground"
               )}>{item.label}</span>
-            </button>
+            </motion.button>
           );
         })}
         
@@ -96,7 +100,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
       </div>
       
       <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-    </nav>
+    </motion.nav>
   );
 };
 
