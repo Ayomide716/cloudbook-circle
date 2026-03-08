@@ -65,6 +65,8 @@ const MobileProfileMenu = ({ currentUserId, pendingRequests }: MobileProfileMenu
   const menuItems = [
     { icon: User, label: "My Profile", path: `/profile/${currentUserId}` },
     { icon: UserPlus, label: "Friends", path: "/friends", badge: pendingRequests },
+    { icon: MonitorPlay, label: "Watch", path: "/watch" },
+    { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
     { icon: Bookmark, label: "Saved Posts", path: "/saved" },
     { icon: CalendarDays, label: "Events", path: "/events" },
     { icon: Settings, label: "Notification Settings", path: "/settings" },
