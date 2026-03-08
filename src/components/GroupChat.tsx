@@ -266,6 +266,9 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
           scrollToBottomKey={messages.length}
           estimatedItemSize={72}
           className="flex-1 overflow-hidden"
+          onLoadMore={loadOlderMessages}
+          isLoadingMore={isLoadingMore}
+          hasMore={hasMoreMessages}
         />
       )}
 
