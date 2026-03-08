@@ -354,6 +354,16 @@ const GroupDetail = () => {
               </div>
             </div>
             <div className="flex gap-2">
+              {isMember && (
+                <>
+                  <Button variant="outline" size="icon" onClick={() => setActiveGroupCall({ isVoiceOnly: true })} title="Group Voice Call">
+                    <Phone className="h-4 w-4" />
+                  </Button>
+                  <Button variant="outline" size="icon" onClick={() => setActiveGroupCall({ isVoiceOnly: false })} title="Group Video Call">
+                    <Video className="h-4 w-4" />
+                  </Button>
+                </>
+              )}
               {(userRole === "admin" || group.created_by === currentUserId) && (
                 <Button variant="outline" size="icon" onClick={() => setShowEditModal(true)}>
                   <Settings className="h-4 w-4" />
