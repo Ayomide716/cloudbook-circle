@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Edit, MessageCircle, MapPin, Briefcase, GraduationCap, Link as LinkIcon } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 
 interface Profile {
   id: string;
@@ -223,9 +224,7 @@ const Profile = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <ProfileSkeleton />
       </div>
     );
   }

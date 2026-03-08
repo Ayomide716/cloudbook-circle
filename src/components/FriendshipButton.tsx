@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck, UserMinus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -39,7 +39,10 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
     }
   };
 
-  const sendFriendRequest = async () => {
+  const sendFriendRequest = useCallback(async () => {
+    // Optimistic update
+    const previousStatus = friendshipStatus;
+    setFriendshipStatus('pending_sent');
     setIsLoading(true);
 
     const { error } = await supabase
@@ -53,6 +56,8 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
     setIsLoading(false);
 
     if (error) {
+      // Revert on failure
+      setFriendshipStatus(previousStatus);
       toast({
         title: "Error sending friend request",
         description: error.message,
@@ -61,13 +66,13 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
       return;
     }
 
-    toast({
-      title: "Friend request sent",
-    });
-    checkFriendshipStatus();
-  };
+    toast({ title: "Friend request sent" });
+  }, [currentUserId, profileUserId, friendshipStatus]);
 
-  const removeFriend = async () => {
+  const removeFriend = useCallback(async () => {
+    // Optimistic update
+    const previousStatus = friendshipStatus;
+    setFriendshipStatus('none');
     setIsLoading(true);
 
     const { error } = await supabase
@@ -78,6 +83,7 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
     setIsLoading(false);
 
     if (error) {
+      setFriendshipStatus(previousStatus);
       toast({
         title: "Error removing friend",
         description: error.message,
@@ -86,11 +92,8 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
       return;
     }
 
-    toast({
-      title: "Friend removed",
-    });
-    checkFriendshipStatus();
-  };
+    toast({ title: "Friend removed" });
+  }, [currentUserId, profileUserId, friendshipStatus]);
 
   if (friendshipStatus === null) {
     return null;

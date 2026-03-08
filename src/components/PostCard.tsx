@@ -186,15 +186,34 @@ const PostCard = ({
     
     if (!commentContent.trim()) return;
 
+    const optimisticComment = {
+      id: `temp-${Date.now()}`,
+      content: commentContent.trim(),
+      created_at: new Date().toISOString(),
+      parent_id: replyingTo?.id || null,
+      post_id: post.id,
+      user_id: currentUserId,
+      profiles: {
+        id: currentUserId,
+        full_name: "You",
+        avatar_url: null,
+      },
+    };
+
+    // Optimistic: show comment instantly
+    setCommentContent("");
+    setReplyingTo(null);
+    setShowComments(true);
+
     setIsSubmitting(true);
 
     const insertData: any = {
       post_id: post.id,
       user_id: currentUserId,
-      content: commentContent.trim(),
+      content: optimisticComment.content,
     };
-    if (replyingTo) {
-      insertData.parent_id = replyingTo.id;
+    if (optimisticComment.parent_id) {
+      insertData.parent_id = optimisticComment.parent_id;
     }
 
     const { error } = await supabase
@@ -209,12 +228,9 @@ const PostCard = ({
         description: error.message,
         variant: "destructive",
       });
-      return;
     }
 
-    setCommentContent("");
-    setReplyingTo(null);
-    setShowComments(true);
+    // Refresh real data from server
     onCommentAdded();
   };
 
