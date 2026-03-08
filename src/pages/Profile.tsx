@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import PostCard from "@/components/PostCard";
-import PostCard from "@/components/PostCard";
 import FriendshipButton from "@/components/FriendshipButton";
 import EditProfileModal from "@/components/EditProfileModal";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
