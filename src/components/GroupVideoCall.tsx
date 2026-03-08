@@ -7,6 +7,7 @@ import {
   Monitor, MonitorOff, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getIceServers } from "@/lib/webrtc";
 
 interface Participant {
   userId: string;
@@ -25,12 +26,6 @@ interface GroupVideoCallProps {
   isVoiceOnly?: boolean;
   onEnd: () => void;
 }
-
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-  { urls: "stun:stun2.l.google.com:19302" },
-];
 
 const GroupVideoCall = ({
   groupId, groupName, currentUserId, currentUserName, currentUserAvatar,
@@ -76,7 +71,7 @@ const GroupVideoCall = ({
   }, [currentUserId]);
 
   const createPeerConnection = useCallback((remoteUserId: string) => {
-    const pc = new RTCPeerConnection({ iceServers: ICE_SERVERS, iceCandidatePoolSize: 10 });
+    const pc = new RTCPeerConnection({ iceServers: getIceServers(), iceCandidatePoolSize: 10 });
 
     pc.onicecandidate = (event) => {
       if (event.candidate && channelRef.current) {
