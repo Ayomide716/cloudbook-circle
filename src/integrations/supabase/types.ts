@@ -14,6 +14,160 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_campaigns: {
+        Row: {
+          budget_credits: number
+          clicks: number
+          content: string
+          created_at: string
+          cta_text: string
+          end_date: string | null
+          id: string
+          image_url: string | null
+          impressions: number
+          link_url: string | null
+          spent_credits: number
+          start_date: string | null
+          status: string
+          target_gender: string | null
+          target_location: string | null
+          target_max_age: number | null
+          target_min_age: number | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          budget_credits?: number
+          clicks?: number
+          content: string
+          created_at?: string
+          cta_text?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          impressions?: number
+          link_url?: string | null
+          spent_credits?: number
+          start_date?: string | null
+          status?: string
+          target_gender?: string | null
+          target_location?: string | null
+          target_max_age?: number | null
+          target_min_age?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          budget_credits?: number
+          clicks?: number
+          content?: string
+          created_at?: string
+          cta_text?: string
+          end_date?: string | null
+          id?: string
+          image_url?: string | null
+          impressions?: number
+          link_url?: string | null
+          spent_credits?: number
+          start_date?: string | null
+          status?: string
+          target_gender?: string | null
+          target_location?: string | null
+          target_max_age?: number | null
+          target_min_age?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ad_clicks: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_clicks_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_credits: {
+        Row: {
+          balance: number
+          created_at: string
+          id: string
+          total_purchased: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          balance?: number
+          created_at?: string
+          id?: string
+          total_purchased?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          balance?: number
+          created_at?: string
+          id?: string
+          total_purchased?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      ad_impressions: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          user_id: string | null
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_impressions_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "ad_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       album_photos: {
         Row: {
           album_id: string
@@ -207,6 +361,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      credit_transactions: {
+        Row: {
+          amount: number
+          created_at: string
+          description: string | null
+          id: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       event_rsvps: {
         Row: {
