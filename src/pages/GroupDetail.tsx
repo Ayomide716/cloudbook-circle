@@ -62,6 +62,8 @@ const GroupDetail = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [activeGroupCall, setActiveGroupCall] = useState<{ isVoiceOnly: boolean } | null>(null);
+  const [currentUserProfile, setCurrentUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
 
   useEffect(() => {
     checkAuth();
