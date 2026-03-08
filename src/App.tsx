@@ -27,6 +27,7 @@ const Marketplace = lazy(() => import("./pages/Marketplace"));
 const Watch = lazy(() => import("./pages/Watch"));
 const Pages = lazy(() => import("./pages/Pages"));
 const PageDetail = lazy(() => import("./pages/PageDetail"));
+const Ads = lazy(() => import("./pages/Ads"));
 
 // Lazy-loaded skeletons
 const FeedSkeleton = lazy(() => import("./components/skeletons/FeedSkeleton"));
