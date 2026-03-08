@@ -374,7 +374,7 @@ const Profile = () => {
   ].filter(Boolean) as { icon: any; label: string; isLink?: boolean }[];
 
   return (
-    <div className="min-h-screen bg-background pb-safe">
+    <div className="min-h-screen bg-background pb-24 md:pb-20">
       <Navigation currentUserId={currentUserId || undefined} />
 
       {/* Sticky mini-header on scroll */}
