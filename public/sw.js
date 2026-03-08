@@ -1,9 +1,8 @@
-const CACHE_VERSION = "cloudbook-v1";
+const CACHE_VERSION = "cloudbook-v2";
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `images-${CACHE_VERSION}`;
 
-// Static assets to precache
 const PRECACHE_ASSETS = [
   "/",
   "/favicon.png",
@@ -33,66 +32,92 @@ self.addEventListener("activate", (event) => {
   self.clients.claim();
 });
 
+// Image optimization: add format/quality/resize params to Supabase storage URLs
+function optimizeImageRequest(request) {
+  const url = new URL(request.url);
+  if (url.hostname.includes("supabase") && url.pathname.includes("/storage/") && !url.pathname.endsWith(".svg")) {
+    // Request WebP with quality optimization and width limit for thumbnails
+    if (!url.searchParams.has("format")) {
+      url.searchParams.set("format", "webp");
+    }
+    if (!url.searchParams.has("quality")) {
+      url.searchParams.set("quality", "75");
+    }
+    // Limit oversized images to 1200px width (feed images)
+    if (!url.searchParams.has("width") && !url.searchParams.has("w")) {
+      url.searchParams.set("width", "1200");
+    }
+    return new Request(url.toString(), {
+      headers: request.headers,
+      mode: "cors",
+      credentials: "omit",
+    });
+  }
+  return request;
+}
+
+// Cache size management - evict oldest entries when cache grows too large
+async function trimCache(cacheName, maxItems) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length > maxItems) {
+    await Promise.all(keys.slice(0, keys.length - maxItems).map((key) => cache.delete(key)));
+  }
+}
+
 // Fetch strategies
 self.addEventListener("fetch", (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
-  // Skip non-GET and cross-origin API calls (except Supabase storage)
   if (request.method !== "GET") return;
 
+  // Supabase storage files: optimize + cache-first
+  if (url.hostname.includes("supabase") && url.pathname.includes("/storage/")) {
+    event.respondWith(
+      (async () => {
+        const optimized = optimizeImageRequest(request);
+        const res = await cacheFirst(optimized, IMAGE_CACHE, 7 * 24 * 60 * 60);
+        trimCache(IMAGE_CACHE, 200); // Keep cache bounded
+        return res;
+      })()
+    );
+    return;
+  }
+
   // Images: Cache-first with long TTL
-  if (
-    request.destination === "image" ||
-    url.pathname.match(/\.(png|jpg|jpeg|gif|webp|svg|ico)$/i)
-  ) {
+  if (request.destination === "image" || url.pathname.match(/\.(png|jpg|jpeg|gif|webp|svg|ico)$/i)) {
     event.respondWith(cacheFirst(request, IMAGE_CACHE, 7 * 24 * 60 * 60));
     return;
   }
 
-  // Supabase storage files: Cache-first
-  if (url.hostname.includes("supabase") && url.pathname.includes("/storage/")) {
-    event.respondWith(cacheFirst(request, IMAGE_CACHE, 24 * 60 * 60));
+  // API calls: Network-only
+  if (url.hostname.includes("supabase") || url.pathname.startsWith("/rest/") || url.pathname.startsWith("/auth/")) {
     return;
   }
 
-  // API calls (Supabase REST/auth): Network-only
-  if (
-    url.hostname.includes("supabase") ||
-    url.pathname.startsWith("/rest/") ||
-    url.pathname.startsWith("/auth/")
-  ) {
-    return; // Let the browser handle normally
-  }
-
   // JS/CSS bundles: Stale-while-revalidate
-  if (
-    request.destination === "script" ||
-    request.destination === "style" ||
-    url.pathname.match(/\.(js|css)$/i)
-  ) {
+  if (request.destination === "script" || request.destination === "style" || url.pathname.match(/\.(js|css)$/i)) {
     event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;
   }
 
-  // HTML navigation: Network-first with offline fallback
+  // HTML: Network-first with offline fallback
   if (request.destination === "document" || request.headers.get("accept")?.includes("text/html")) {
     event.respondWith(networkFirst(request, DYNAMIC_CACHE));
     return;
   }
 
-  // Fonts: Cache-first
+  // Fonts: Cache-first 30 days
   if (request.destination === "font" || url.pathname.match(/\.(woff2?|ttf|otf)$/i)) {
     event.respondWith(cacheFirst(request, STATIC_CACHE, 30 * 24 * 60 * 60));
     return;
   }
 });
 
-// Cache-first: return cached or fetch & cache
 async function cacheFirst(request, cacheName, maxAgeSec = 86400) {
   const cached = await caches.match(request);
   if (cached) return cached;
-
   try {
     const response = await fetch(request);
     if (response.ok) {
@@ -105,7 +130,6 @@ async function cacheFirst(request, cacheName, maxAgeSec = 86400) {
   }
 }
 
-// Network-first: try network, fall back to cache
 async function networkFirst(request, cacheName) {
   try {
     const response = await fetch(request);
@@ -120,7 +144,6 @@ async function networkFirst(request, cacheName) {
   }
 }
 
-// Stale-while-revalidate: return cached immediately, update in background
 async function staleWhileRevalidate(request, cacheName) {
   const cached = await caches.match(request);
   const fetchPromise = fetch(request).then((response) => {
@@ -129,6 +152,5 @@ async function staleWhileRevalidate(request, cacheName) {
     }
     return response;
   }).catch(() => cached);
-
   return cached || fetchPromise;
 }
