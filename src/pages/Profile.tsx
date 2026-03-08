@@ -66,6 +66,23 @@ interface Post {
   };
 }
 
+interface Album {
+  id: string;
+  name: string;
+  description: string | null;
+  user_id: string;
+  created_at: string | null;
+  photos: AlbumPhoto[];
+}
+
+interface AlbumPhoto {
+  id: string;
+  album_id: string;
+  image_url: string;
+  caption: string | null;
+  created_at: string | null;
+}
+
 const spring = { type: "spring" as const, stiffness: 260, damping: 28 };
 
 const Profile = () => {
@@ -80,7 +97,17 @@ const Profile = () => {
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const [friendCount, setFriendCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums">("posts");
+
+  // Albums state
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [newAlbumName, setNewAlbumName] = useState("");
+  const [newAlbumDesc, setNewAlbumDesc] = useState("");
+  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [createAlbumOpen, setCreateAlbumOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const coverRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
