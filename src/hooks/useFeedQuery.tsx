@@ -54,6 +54,7 @@ async function fetchFeedPage(
       id: r.profile_id,
       full_name: r.profile_full_name,
       avatar_url: r.profile_avatar_url,
+      is_verified: r.profile_is_verified,
     },
     engagement_score: r.engagement_score,
     poll: null,
