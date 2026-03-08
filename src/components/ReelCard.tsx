@@ -24,6 +24,9 @@ interface ReelCardProps {
   onDelete: (id: string) => void;
   onShowUpload: () => void;
   onVideoError: (id: string) => void;
+  onNavigateToProfile?: (userId: string) => void;
+  onFollow?: (userId: string) => void;
+  isFollowing?: boolean;
 }
 
 export default function ReelCard({
