@@ -20,6 +20,7 @@ const sidebarLinks = [
   { href: "/saved", icon: "🔖", label: "Saved" },
   { href: "/events", icon: "📅", label: "Events" },
   { href: "/marketplace", icon: "🛍️", label: "Marketplace" },
+  { href: "/ads", icon: "📢", label: "Ad Manager" },
 ];
 
 const container = {
