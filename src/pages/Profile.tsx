@@ -410,7 +410,6 @@ const Profile = () => {
               bucket="avatars"
               userId={currentUserId!}
               onUploadComplete={handleCoverUpload}
-              currentImage={profile.cover_url || undefined}
               label="Edit Cover"
             />
           </div>
@@ -445,7 +444,6 @@ const Profile = () => {
                     bucket="avatars"
                     userId={currentUserId!}
                     onUploadComplete={handleAvatarUpload}
-                    currentImage={profile.avatar_url || undefined}
                     label=""
                   />
                 </div>
