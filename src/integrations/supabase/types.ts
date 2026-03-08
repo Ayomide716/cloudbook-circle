@@ -114,6 +114,51 @@ export type Database = {
           },
         ]
       }
+      chat_preferences: {
+        Row: {
+          created_at: string
+          disappearing_minutes: number | null
+          id: string
+          other_user_id: string
+          theme: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          disappearing_minutes?: number | null
+          id?: string
+          other_user_id: string
+          theme?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          disappearing_minutes?: number | null
+          id?: string
+          other_user_id?: string
+          theme?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "chat_preferences_other_user_id_fkey"
+            columns: ["other_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "chat_preferences_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       comments: {
         Row: {
           content: string
@@ -569,28 +614,40 @@ export type Database = {
         Row: {
           content: string
           created_at: string | null
+          deleted_at: string | null
+          edited: boolean
+          expires_at: string | null
           id: string
           image_url: string | null
           read: boolean | null
           receiver_id: string
+          reply_to: string | null
           sender_id: string
         }
         Insert: {
           content: string
           created_at?: string | null
+          deleted_at?: string | null
+          edited?: boolean
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           read?: boolean | null
           receiver_id: string
+          reply_to?: string | null
           sender_id: string
         }
         Update: {
           content?: string
           created_at?: string | null
+          deleted_at?: string | null
+          edited?: boolean
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           read?: boolean | null
           receiver_id?: string
+          reply_to?: string | null
           sender_id?: string
         }
         Relationships: [
@@ -599,6 +656,13 @@ export type Database = {
             columns: ["receiver_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "messages_reply_to_fkey"
+            columns: ["reply_to"]
+            isOneToOne: false
+            referencedRelation: "messages"
             referencedColumns: ["id"]
           },
           {
