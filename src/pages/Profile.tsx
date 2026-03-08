@@ -421,7 +421,7 @@ const Profile = () => {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-16 sm:-mt-20 relative z-10">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-12 sm:-mt-20 relative z-10">
         {/* ─── Profile header card ─── */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -433,9 +433,9 @@ const Profile = () => {
           <div className="relative px-5 sm:px-8 pt-4 pb-5">
             <div className="flex items-end gap-4 sm:gap-6">
               {/* Avatar */}
-              <div className="relative -mt-16 sm:-mt-20 flex-shrink-0">
+              <div className="relative -mt-14 sm:-mt-18 flex-shrink-0">
                 <motion.div whileHover={{ scale: 1.04 }} transition={spring}>
-                  <Avatar className="h-28 w-28 sm:h-36 sm:w-36 border-[5px] border-card shadow-lg">
+                  <Avatar className="h-24 w-24 sm:h-36 sm:w-36 border-4 sm:border-[5px] border-card shadow-lg">
                     <AvatarImage src={profile.avatar_url || undefined} />
                     <AvatarFallback className="text-3xl sm:text-4xl font-display gradient-brand text-primary-foreground">
                       {profile.full_name?.[0]?.toUpperCase() || "U"}
@@ -504,12 +504,13 @@ const Profile = () => {
               ].map((s) => (
                 <motion.div
                   key={s.label}
-                  whileHover={{ backgroundColor: "hsl(var(--accent) / 0.06)" }}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 cursor-default transition-colors"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 py-3.5 cursor-default hover:bg-accent/10 transition-colors rounded-lg"
                 >
                   <s.icon className="h-4 w-4 text-primary/60" />
                   <span className="font-display font-bold text-base">{s.value}</span>
-                  <span className="text-xs text-muted-foreground hidden sm:inline">{s.label}</span>
+                  <span className="text-[11px] text-muted-foreground">{s.label}</span>
                 </motion.div>
               ))}
             </div>
