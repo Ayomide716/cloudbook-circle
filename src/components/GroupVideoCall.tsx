@@ -7,6 +7,7 @@ import {
   Monitor, MonitorOff, Users,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getIceServers } from "@/lib/webrtc";
 
 interface Participant {
   userId: string;
@@ -25,12 +26,6 @@ interface GroupVideoCallProps {
   isVoiceOnly?: boolean;
   onEnd: () => void;
 }
-
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-  { urls: "stun:stun2.l.google.com:19302" },
-];
 
 const GroupVideoCall = ({
   groupId, groupName, currentUserId, currentUserName, currentUserAvatar,

@@ -326,10 +326,10 @@ const VideoCall = ({
   };
 
   const toggleSpeaker = () => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.muted = !remoteVideoRef.current.muted;
-      setIsSpeakerMuted(!isSpeakerMuted);
-    }
+    const nextMuted = !isSpeakerMuted;
+    if (remoteAudioRef.current) remoteAudioRef.current.muted = nextMuted;
+    if (remoteVideoRef.current) remoteVideoRef.current.muted = nextMuted;
+    setIsSpeakerMuted(nextMuted);
   };
 
   const toggleScreenShare = async () => {
