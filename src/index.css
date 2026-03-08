@@ -398,11 +398,6 @@
   background-size: 60px 60px;
 }
 
-.dark .auth-grid-overlay {
-  background-image:
-    linear-gradient(hsl(var(--primary) / 0.06) 1px, transparent 1px),
-    linear-gradient(90deg, hsl(var(--primary) / 0.06) 1px, transparent 1px);
-}
 
 .auth-card {
   background: linear-gradient(
