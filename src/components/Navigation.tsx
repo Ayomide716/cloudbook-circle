@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -93,6 +93,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   const desktopNavItems = [
     { icon: Home, path: "/", label: "Home" },
+    { icon: MonitorPlay, path: "/watch", label: "Watch" },
     { icon: Film, path: "/reels", label: "Reels" },
     { icon: Users, path: "/groups", label: "Groups" },
     { icon: MessageCircle, path: "/messages", label: "Messages" },

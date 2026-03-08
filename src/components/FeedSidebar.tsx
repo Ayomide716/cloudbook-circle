@@ -12,6 +12,7 @@ const sidebarLinks = [
   { href: "/friends", icon: "👥", label: "Friends" },
   { href: "/messages", icon: "💬", label: "Messages" },
   { href: "/groups", icon: "👨‍👩‍👧‍👦", label: "Groups" },
+  { href: "/watch", icon: "📺", label: "Watch" },
   { href: "/reels", icon: "🎬", label: "Reels" },
   { href: "/saved", icon: "🔖", label: "Saved" },
   { href: "/events", icon: "📅", label: "Events" },

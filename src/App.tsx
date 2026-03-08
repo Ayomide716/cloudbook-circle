@@ -19,6 +19,7 @@ import Events from "./pages/Events";
 import SavedPosts from "./pages/SavedPosts";
 import Settings from "./pages/Settings";
 import Marketplace from "./pages/Marketplace";
+import Watch from "./pages/Watch";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +66,7 @@ const AppRoutes = () => {
         <Route path="/saved" element={<AnimatedPage><SavedPosts /></AnimatedPage>} />
         <Route path="/settings" element={<AnimatedPage><Settings /></AnimatedPage>} />
         <Route path="/marketplace" element={<AnimatedPage><Marketplace /></AnimatedPage>} />
+        <Route path="/watch" element={<AnimatedPage><Watch /></AnimatedPage>} />
         <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
       </Routes>
     </AnimatePresence>
