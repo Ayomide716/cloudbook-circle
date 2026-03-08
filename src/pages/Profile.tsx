@@ -574,6 +574,16 @@ const Profile = () => {
                 </motion.div>
               )}
 
+              {/* Achievements card */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...spring, delay: 0.12 }}
+                className="bento-card p-5"
+              >
+                <ProfileAchievements userId={userId || ""} isOwnProfile={isOwnProfile} />
+              </motion.div>
+
               {/* Mutual friends card */}
               {!isOwnProfile && mutualFriends.length > 0 && (
                 <motion.div
