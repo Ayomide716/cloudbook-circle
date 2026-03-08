@@ -50,12 +50,13 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     setIsLoading(true);
 
-     const { data: postData, error } = await supabase
+    const { data: postData, error } = await supabase
       .from("posts")
       .insert({
-         content: content.trim() || (pollData ? `📊 ${pollData.question}` : ""),
+        content: content.trim() || (pollData ? `📊 ${pollData.question}` : ""),
         user_id: currentUser.id,
-        image_url: imageUrl || null,
+        image_url: imageUrl || (imageUrls.length === 1 ? imageUrls[0] : null),
+        image_urls: imageUrls.length > 0 ? imageUrls : [],
         video_url: videoUrl || null,
        })
        .select()
