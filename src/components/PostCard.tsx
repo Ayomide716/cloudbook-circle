@@ -374,7 +374,10 @@ const PostCard = ({
           />
         </div>
       )}
-      {!post.video_url && post.image_url && (
+      {!post.video_url && post.image_urls && post.image_urls.length > 1 && (
+        <ImageCarousel images={post.image_urls} />
+      )}
+      {!post.video_url && (!post.image_urls || post.image_urls.length <= 1) && post.image_url && (
         <img
           src={post.image_url}
           alt="Post content"
