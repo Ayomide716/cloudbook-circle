@@ -1295,6 +1295,7 @@ export type Database = {
           created_at: string | null
           id: string
           image_url: string | null
+          image_urls: string[] | null
           user_id: string
           video_url: string | null
         }
@@ -1303,6 +1304,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           user_id: string
           video_url?: string | null
         }
@@ -1311,6 +1313,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           image_url?: string | null
+          image_urls?: string[] | null
           user_id?: string
           video_url?: string | null
         }
@@ -1684,6 +1687,38 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          reaction_type: string
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          reaction_type: string
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          reaction_type?: string
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_reactions_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
             referencedColumns: ["id"]
           },
         ]
