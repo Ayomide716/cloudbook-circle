@@ -8,7 +8,7 @@ import { Plus, Send, Film, ChevronUp, ChevronDown, ArrowLeft } from "lucide-reac
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import VideoUpload from "@/components/VideoUpload";
-import Navigation from "@/components/Navigation";
+// Navigation removed - Reels uses its own minimal top bar
 import ReelCard from "@/components/ReelCard";
 import {
   Sheet, SheetContent, SheetHeader, SheetTitle,
