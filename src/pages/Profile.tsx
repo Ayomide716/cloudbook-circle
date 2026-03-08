@@ -392,7 +392,7 @@ const Profile = () => {
       </motion.div>
 
       {/* ─── Parallax Cover ─── */}
-      <div ref={coverRef} className="relative h-48 sm:h-72 overflow-hidden">
+      <div ref={coverRef} className="relative h-56 sm:h-72 overflow-hidden">
         <motion.div
           style={{ y: coverY, scale: coverScale }}
           className="absolute inset-0"
