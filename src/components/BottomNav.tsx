@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
 import MobileSearchOverlay from "./MobileSearchOverlay";
+import { prefetchRoute } from "@/lib/prefetch";
 
 interface BottomNavProps {
   currentUserId?: string;
@@ -58,6 +59,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
             <button
               key={item.label}
               onClick={() => item.action ? item.action() : navigate(item.path)}
+              onTouchStart={() => item.path && prefetchRoute(item.path)}
               className={cn(
                 "flex flex-col items-center justify-center flex-1 h-full py-1 relative transition-all duration-200 active:scale-90",
                 isActive ? "text-primary" : "text-muted-foreground"

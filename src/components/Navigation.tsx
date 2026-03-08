@@ -22,6 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { prefetchRoute } from "@/lib/prefetch";
 import logo from "@/assets/logo.png";
 
 interface NavigationProps {
@@ -127,6 +128,8 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => navigate(item.path)}
+                      onMouseEnter={() => prefetchRoute(item.path)}
+                      onFocus={() => prefetchRoute(item.path)}
                       className={cn(
                         "relative flex items-center justify-center h-12 px-8 lg:px-10 rounded-xl transition-all duration-200",
                         isActive(item.path)
@@ -162,6 +165,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                         size="icon"
                         className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-200 relative"
                         onClick={() => navigate("/friends")}
+                        onMouseEnter={() => prefetchRoute("/friends")}
                       >
                         <UserPlus className="h-5 w-5" />
                         {pendingRequests > 0 && (
@@ -182,6 +186,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                         size="icon"
                         className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary hover:scale-105 active:scale-95 transition-all duration-200 relative"
                         onClick={() => navigate("/notifications")}
+                        onMouseEnter={() => prefetchRoute("/notifications")}
                       >
                         <Bell className="h-5 w-5" />
                         {unreadNotifications > 0 && (
