@@ -67,25 +67,40 @@ export default function Reels() {
   const loadFriendIds = async (userId: string) => {
     const { data } = await supabase
       .from("friendships")
-      .select("user_id, friend_id")
-      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
-      .eq("status", "accepted");
-    const ids = new Set(data?.map(f => f.user_id === userId ? f.friend_id : f.user_id) || []);
-    setFriendIds(ids);
+      .select("user_id, friend_id, status")
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+    const accepted = new Set<string>();
+    const pending = new Set<string>();
+    data?.forEach(f => {
+      const otherId = f.user_id === userId ? f.friend_id : f.user_id;
+      if (f.status === "accepted") accepted.add(otherId);
+      else if (f.status === "pending") pending.add(otherId);
+    });
+    setFriendIds(accepted);
+    setPendingIds(pending);
   };
 
   const handleFollow = async (targetUserId: string) => {
     if (!user) return;
     const isFriend = friendIds.has(targetUserId);
+    const isPending = pendingIds.has(targetUserId);
     if (isFriend) {
-      // Unfriend
       await supabase.from("friendships").delete()
         .or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`);
       setFriendIds(prev => { const n = new Set(prev); n.delete(targetUserId); return n; });
+      toast({ title: "Unfriended" });
+    } else if (isPending) {
+      // Cancel pending request
+      await supabase.from("friendships").delete()
+        .or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`);
+      setPendingIds(prev => { const n = new Set(prev); n.delete(targetUserId); return n; });
+      toast({ title: "Request cancelled" });
     } else {
-      // Send friend request
-      await supabase.from("friendships").insert({ user_id: user.id, friend_id: targetUserId, status: "pending" });
-      toast({ title: "Friend request sent!" });
+      const { error } = await supabase.from("friendships").insert({ user_id: user.id, friend_id: targetUserId, status: "pending" });
+      if (!error) {
+        setPendingIds(prev => new Set(prev).add(targetUserId));
+        toast({ title: "Friend request sent!" });
+      }
     }
   };
 
