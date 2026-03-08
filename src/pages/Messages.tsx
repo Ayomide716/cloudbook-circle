@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, ReactElement } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, CornerUpLeft } from "lucide-react";
+import VirtualizedChatList from "@/components/VirtualizedChatList";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -67,8 +68,6 @@ const Messages = () => {
   const [showMessageSearch, setShowMessageSearch] = useState(false);
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -77,9 +76,6 @@ const Messages = () => {
     incomingCall, activeCall,
     initiateCall, acceptIncomingCall, rejectIncomingCall, endCall,
   } = useVideoCall(currentUserId);
-
-  const scrollToBottom = () => messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  useEffect(() => { scrollToBottom(); }, [messages]);
 
   useEffect(() => { checkAuth(); }, [navigate]);
 
@@ -348,6 +344,37 @@ const Messages = () => {
     return messages.find((m) => m.id === replyToId) || null;
   };
 
+  const renderMessage = useCallback((index: number): ReactElement | null => {
+    const message = messages[index];
+    if (!message) return null;
+    const isCurrentUser = message.sender_id === currentUserId;
+    const isLastOwnMessage = isCurrentUser && !messages.slice(index + 1).some((m) => m.sender_id === currentUserId);
+    const isLastMessage = index === messages.length - 1;
+
+    return (
+      <div
+        id={`msg-${message.id}`}
+        className={cn(
+          "transition-all duration-300",
+          highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1"
+        )}
+      >
+        <ChatBubble
+          message={message}
+          isCurrentUser={isCurrentUser}
+          isLastOwnMessage={isLastOwnMessage}
+          isLastMessage={isLastMessage}
+          currentUserId={currentUserId!}
+          replyMessage={getReplyMessage(message.reply_to)}
+          onReply={handleReply}
+          onEdit={handleEdit}
+          onUnsend={handleUnsend}
+          theme={chatTheme}
+        />
+      </div>
+    );
+  }, [messages, currentUserId, highlightedMessageId, chatTheme]);
+
   if (isLoading) return <MessagesSkeleton />;
 
   return (
@@ -467,42 +494,17 @@ const Messages = () => {
                     </div>
                   )}
 
-                  {/* Messages */}
-                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
-                    <div className="space-y-3 sm:space-y-4 min-h-full flex flex-col justify-end">
-                      {messages.map((message, index) => {
-                        const isCurrentUser = message.sender_id === currentUserId;
-                        const isLastOwnMessage = isCurrentUser && !messages.slice(index + 1).some((m) => m.sender_id === currentUserId);
-                        const isLastMessage = index === messages.length - 1;
-
-                        return (
-                          <div
-                            key={message.id}
-                            id={`msg-${message.id}`}
-                            className={cn(
-                              "transition-all duration-300",
-                              highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1"
-                            )}
-                          >
-                            <ChatBubble
-                              message={message}
-                              isCurrentUser={isCurrentUser}
-                              isLastOwnMessage={isLastOwnMessage}
-                              isLastMessage={isLastMessage}
-                              currentUserId={currentUserId!}
-                              replyMessage={getReplyMessage(message.reply_to)}
-                              onReply={handleReply}
-                              onEdit={handleEdit}
-                              onUnsend={handleUnsend}
-                              theme={chatTheme}
-                            />
-                          </div>
-                        );
-                      })}
-
-                      {/* Typing indicator */}
-                      {typingUsers.length > 0 && (
-                        <div className="flex justify-start animate-fade-in">
+                  {/* Virtualized Messages */}
+                  <VirtualizedChatList
+                    itemCount={messages.length}
+                    scrollToBottomKey={messages.length}
+                    scrollToIndex={highlightedMessageId ? messages.findIndex(m => m.id === highlightedMessageId) : undefined}
+                    estimatedItemSize={80}
+                    className="flex-1 overflow-hidden"
+                    renderItem={renderMessage}
+                    footer={
+                      typingUsers.length > 0 ? (
+                        <div className="flex justify-start animate-fade-in px-3 pb-2">
                           <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-2.5">
                             <div className="flex items-center gap-1">
                               <div className="flex gap-1">
@@ -514,10 +516,9 @@ const Messages = () => {
                             </div>
                           </div>
                         </div>
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  </div>
+                      ) : null
+                    }
+                  />
 
                   {/* Reply / Edit bar */}
                   {(replyingTo || editingMessage) && (
