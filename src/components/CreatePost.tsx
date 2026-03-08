@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
- import { Loader2, Image, Video, BarChart3, X } from "lucide-react";
+import { Loader2, Image, Video, BarChart3, X, Images } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
- import PollCreator from "./PollCreator";
+import PollCreator from "./PollCreator";
+import MultiImageUpload from "./MultiImageUpload";
 import {
   Dialog,
   DialogContent,
