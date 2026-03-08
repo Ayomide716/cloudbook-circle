@@ -421,7 +421,7 @@ const Profile = () => {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-16 sm:-mt-20 relative z-10">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-12 sm:-mt-20 relative z-10">
         {/* ─── Profile header card ─── */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
