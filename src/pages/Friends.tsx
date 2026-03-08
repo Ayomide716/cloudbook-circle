@@ -9,7 +9,17 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToastAction } from "@/components/ui/toast";
-import { Loader2, Users, UserPlus, Check, X, UserCheck, Search } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Loader2, Users, UserPlus, Check, X, UserCheck, Search, UserMinus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 
@@ -47,6 +57,7 @@ const Friends = () => {
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [suggestions, setSuggestions] = useState<SuggestedProfile[]>([]);
   const [hiddenSuggestions, setHiddenSuggestions] = useState<Set<string>>(new Set());
+  const [unfriendTarget, setUnfriendTarget] = useState<Friendship | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
@@ -392,6 +403,22 @@ const Friends = () => {
     loadData();
   };
 
+  const handleUnfriend = async () => {
+    if (!unfriendTarget) return;
+    const { error } = await supabase
+      .from("friendships")
+      .delete()
+      .eq("id", unfriendTarget.id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `Unfriended ${unfriendTarget.friend.full_name || "user"}` });
+      loadData();
+    }
+    setUnfriendTarget(null);
+  };
+
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     
@@ -636,28 +663,39 @@ const Friends = () => {
               ) : (
                 <div className="divide-y">
                   {friends.map((friendship) => (
-                    <Link
+                    <div
                       key={friendship.id}
-                      to={`/profile/${friendship.friend.id}`}
                       className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
                     >
-                      <Avatar className="h-14 w-14">
-                        <AvatarImage src={friendship.friend.avatar_url || undefined} />
-                        <AvatarFallback>
-                          {friendship.friend.full_name?.[0]?.toUpperCase() || "U"}
-                        </AvatarFallback>
-                      </Avatar>
+                      <Link to={`/profile/${friendship.friend.id}`}>
+                        <Avatar className="h-14 w-14">
+                          <AvatarImage src={friendship.friend.avatar_url || undefined} />
+                          <AvatarFallback>
+                            {friendship.friend.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                      </Link>
                       <div className="flex-1 min-w-0">
-                        <p className="font-semibold truncate">
-                          {friendship.friend.full_name || "Anonymous"}
-                        </p>
+                        <Link to={`/profile/${friendship.friend.id}`}>
+                          <p className="font-semibold truncate hover:underline">
+                            {friendship.friend.full_name || "Anonymous"}
+                          </p>
+                        </Link>
                         <p className="text-xs text-muted-foreground">
                           Friends since {formatDistanceToNow(new Date(friendship.created_at), {
                             addSuffix: true,
                           })}
                         </p>
                       </div>
-                    </Link>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-muted-foreground hover:text-destructive"
+                        onClick={() => setUnfriendTarget(friendship)}
+                      >
+                        <UserMinus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -714,6 +752,27 @@ const Friends = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Unfriend Confirmation Dialog */}
+      <AlertDialog open={!!unfriendTarget} onOpenChange={(open) => !open && setUnfriendTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unfriend {unfriendTarget?.friend.full_name || "this person"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They won't be notified, but you'll be removed from each other's friends lists. You can always send a new request later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUnfriend}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Unfriend
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
