@@ -28,27 +28,37 @@
    const [loading, setLoading] = useState(false);
    const [activeTab, setActiveTab] = useState<'stickers' | 'gifs'>('stickers');
  
-   const searchGifs = async (query: string) => {
-     if (!query.trim()) {
-       setGifs([]);
-       return;
-     }
-     
-     setLoading(true);
-     try {
-       // Using a free GIF API (Giphy public beta key)
-       const response = await fetch(
-         `https://api.giphy.com/v1/gifs/search?api_key=dc6zaTOxFJmzC&q=${encodeURIComponent(query)}&limit=20&rating=g`
-       );
-       const data = await response.json();
-       const gifUrls = data.data?.map((gif: any) => gif.images.fixed_height.url) || [];
-       setGifs(gifUrls);
-     } catch (error) {
-       console.error("Failed to fetch GIFs:", error);
-       setGifs([]);
-     }
-     setLoading(false);
-   };
+  const searchGifs = async (query: string) => {
+    if (!query.trim()) {
+      setGifs([]);
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      // Use Tenor v2 free API
+      const response = await fetch(
+        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=cloudbook&limit=20`
+      );
+      const data = await response.json();
+      const gifUrls = data.results?.map((gif: any) => gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url).filter(Boolean) || [];
+      setGifs(gifUrls);
+    } catch (error) {
+      console.error("Failed to fetch GIFs:", error);
+      // Fallback: try Giphy
+      try {
+        const response = await fetch(
+          `https://api.giphy.com/v1/gifs/search?api_key=0UTRbFtkMxAplrohufYco5IY74U8hOes&q=${encodeURIComponent(query)}&limit=20&rating=g`
+        );
+        const data = await response.json();
+        const gifUrls = data.data?.map((gif: any) => gif.images.fixed_height.url) || [];
+        setGifs(gifUrls);
+      } catch {
+        setGifs([]);
+      }
+    }
+    setLoading(false);
+  };
  
    useEffect(() => {
      const debounce = setTimeout(() => {

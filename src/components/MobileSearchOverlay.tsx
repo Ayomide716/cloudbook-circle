@@ -27,9 +27,14 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
 
   useEffect(() => {
     if (open) {
-      setTimeout(() => inputRef.current?.focus(), 100);
+      // Use requestAnimationFrame for better iOS Safari focus support
+      requestAnimationFrame(() => {
+        inputRef.current?.focus();
+      });
       const saved = localStorage.getItem("recent_searches");
-      if (saved) setRecentSearches(JSON.parse(saved));
+      if (saved) {
+        try { setRecentSearches(JSON.parse(saved)); } catch {}
+      }
     } else {
       setQuery("");
       setResults([]);

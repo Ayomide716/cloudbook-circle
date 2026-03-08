@@ -83,44 +83,44 @@ const ChatBubble = ({
       className={cn("flex group relative", isCurrentUser ? "justify-end" : "justify-start")}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
+      onTouchStart={() => setShowActions(true)}
     >
-      {/* Action menu - appears on hover */}
-      {showActions && (
-        <div className={cn(
-          "absolute top-0 flex items-center gap-0.5 z-10",
-          isCurrentUser ? "right-full mr-1" : "left-full ml-1"
-        )}>
-          <button
-            onClick={() => onReply(message)}
-            className="p-1.5 rounded-full hover:bg-accent transition-colors"
-            title="Reply"
-          >
-            <CornerUpLeft className="h-3.5 w-3.5 text-muted-foreground" />
-          </button>
-          {isCurrentUser && (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button className="p-1.5 rounded-full hover:bg-accent transition-colors">
-                  <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align={isCurrentUser ? "end" : "start"} className="w-40">
-                {!isMedia && !isVoice && (
-                  <DropdownMenuItem onClick={() => onEdit(message)}>
-                    <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(message.content)}>
-                  <Copy className="h-3.5 w-3.5 mr-2" /> Copy
+      {/* Action menu - appears on hover/touch, contained within the message row */}
+      <div className={cn(
+        "flex items-center gap-0.5 flex-shrink-0 transition-opacity duration-150",
+        showActions ? "opacity-100" : "opacity-0 pointer-events-none",
+        isCurrentUser ? "order-first mr-1" : "order-last ml-1"
+      )}>
+        <button
+          onClick={() => onReply(message)}
+          className="p-1.5 rounded-full hover:bg-accent transition-colors"
+          title="Reply"
+        >
+          <CornerUpLeft className="h-3.5 w-3.5 text-muted-foreground" />
+        </button>
+        {isCurrentUser && (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="p-1.5 rounded-full hover:bg-accent transition-colors">
+                <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align={isCurrentUser ? "end" : "start"} className="w-40">
+              {!isMedia && !isVoice && (
+                <DropdownMenuItem onClick={() => onEdit(message)}>
+                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                 </DropdownMenuItem>
-                <DropdownMenuItem className="text-destructive" onClick={() => onUnsend(message.id)}>
-                  <Trash2 className="h-3.5 w-3.5 mr-2" /> Unsend
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-        </div>
-      )}
+              )}
+              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(message.content)}>
+                <Copy className="h-3.5 w-3.5 mr-2" /> Copy
+              </DropdownMenuItem>
+              <DropdownMenuItem className="text-destructive" onClick={() => onUnsend(message.id)}>
+                <Trash2 className="h-3.5 w-3.5 mr-2" /> Unsend
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        )}
+      </div>
 
       <div className={cn("flex flex-col gap-0.5", isCurrentUser ? "items-end" : "items-start")}>
         {/* Reply preview */}
