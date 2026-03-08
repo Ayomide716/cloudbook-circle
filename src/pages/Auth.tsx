@@ -40,7 +40,7 @@ const Auth = () => {
         if (error) throw error;
         toast({ title: "Welcome back!" });
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -49,7 +49,12 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast({ title: "Account created!", description: "Welcome to CloudBook!" });
+        // Check if email confirmation is needed
+        if (data.user && !data.session) {
+          setShowVerifyEmail(true);
+        } else {
+          toast({ title: "Account created!", description: "Welcome to CloudBook!" });
+        }
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
