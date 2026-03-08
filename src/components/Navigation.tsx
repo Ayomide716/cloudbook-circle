@@ -46,8 +46,20 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       loadCounts();
       loadUserProfile();
       setupRealtimeSubscriptions();
+      checkAdmin();
     }
   }, [currentUserId]);
+
+  const checkAdmin = async () => {
+    if (!currentUserId) return;
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", currentUserId)
+      .eq("role", "admin")
+      .maybeSingle();
+    setIsAdmin(!!data);
+  };
 
   const loadUserProfile = async () => {
     if (!currentUserId) return;
