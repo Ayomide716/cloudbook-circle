@@ -7,7 +7,7 @@ import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
 import FeedFilter from "@/components/FeedFilter";
 import PullToRefresh from "@/components/PullToRefresh";
-import { Loader2 } from "lucide-react";
+import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -270,9 +270,7 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <FeedSkeleton />
       </div>
     );
   }

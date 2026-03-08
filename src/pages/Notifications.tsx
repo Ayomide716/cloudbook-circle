@@ -7,7 +7,8 @@ import BottomNav from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Check, Users, ThumbsUp, Share2 } from "lucide-react";
+import { Bell, Heart, MessageCircle, UserPlus, Check, Users, ThumbsUp, Share2 } from "lucide-react";
+import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -226,9 +227,7 @@ const Notifications = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <NotificationsSkeleton />
       </div>
     );
   }

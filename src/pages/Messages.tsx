@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone } from "lucide-react";
+import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 
@@ -451,14 +452,7 @@ const Messages = () => {
   };
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background">
-        <Navigation currentUserId={currentUserId || undefined} />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
+    return <MessagesSkeleton />;
   }
 
   return (
