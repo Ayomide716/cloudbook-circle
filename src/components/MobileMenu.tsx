@@ -25,6 +25,7 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   const [friendRequestCount, setFriendRequestCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (currentUserId) {
