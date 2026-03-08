@@ -504,12 +504,13 @@ const Profile = () => {
               ].map((s) => (
                 <motion.div
                   key={s.label}
-                  whileHover={{ backgroundColor: "hsl(var(--accent) / 0.06)" }}
-                  className="flex-1 flex items-center justify-center gap-2 py-3.5 cursor-default transition-colors"
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                  className="flex-1 flex flex-col items-center justify-center gap-0.5 py-3.5 cursor-default hover:bg-accent/10 transition-colors rounded-lg"
                 >
                   <s.icon className="h-4 w-4 text-primary/60" />
                   <span className="font-display font-bold text-base">{s.value}</span>
-                  <span className="text-xs text-muted-foreground hidden sm:inline">{s.label}</span>
+                  <span className="text-[11px] text-muted-foreground">{s.label}</span>
                 </motion.div>
               ))}
             </div>
