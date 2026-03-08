@@ -124,8 +124,10 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
             </Link>
 
             {/* Center - Search (desktop) */}
-            <div className="hidden md:block flex-1 max-w-md mx-8">
-              <GlobalSearch />
+            <div className="hidden md:flex flex-1 justify-center mx-8">
+              <div className="w-full max-w-lg">
+                <GlobalSearch />
+              </div>
             </div>
 
             {/* Right - Action Icons */}

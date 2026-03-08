@@ -10,6 +10,8 @@ import EditProfileModal from "@/components/EditProfileModal";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Edit,
   MessageCircle,
@@ -23,11 +25,16 @@ import {
   MessageSquare,
   Image as ImageIcon,
   Users,
+  Plus,
+  FolderOpen,
+  Trash2,
+  X,
+  Loader2,
 } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
