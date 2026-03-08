@@ -416,17 +416,17 @@ const Profile = () => {
         )}
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 -mt-16 relative z-10">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-12 sm:-mt-16 relative z-10">
         {/* ─── Profile header card ─── */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="bento-card p-5 sm:p-6 mb-6"
+          className="bento-card p-4 sm:p-6 mb-5"
         >
           <div className="flex flex-col sm:flex-row gap-5 items-start">
             {/* Avatar */}
-            <div className="relative -mt-16 sm:-mt-20 mx-auto sm:mx-0">
+            <div className="relative -mt-14 sm:-mt-20 mx-auto sm:mx-0">
               <motion.div whileHover={{ scale: 1.05 }} transition={spring}>
                 <Avatar className="h-28 w-28 sm:h-36 sm:w-36 border-4 border-card ring-4 ring-primary/20">
                   <AvatarImage src={profile.avatar_url || undefined} />
