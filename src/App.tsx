@@ -64,6 +64,7 @@ const AppRoutes = () => {
         <Route path="/events" element={<AnimatedPage><Events /></AnimatedPage>} />
         <Route path="/saved" element={<AnimatedPage><SavedPosts /></AnimatedPage>} />
         <Route path="/settings" element={<AnimatedPage><Settings /></AnimatedPage>} />
+        <Route path="/marketplace" element={<AnimatedPage><Marketplace /></AnimatedPage>} />
         <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
       </Routes>
     </AnimatePresence>
