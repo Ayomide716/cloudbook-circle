@@ -155,7 +155,95 @@ const Profile = () => {
       setPosts(postsData || []);
       loadPostsData(postsData || []);
     }
+    // Load albums
+    loadAlbums();
     setIsLoading(false);
+  };
+
+  const loadAlbums = async () => {
+    if (!userId) return;
+    const { data: albumsData } = await supabase
+      .from("albums")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (albumsData) {
+      const albumsWithPhotos: Album[] = [];
+      for (const album of albumsData) {
+        const { data: photos } = await supabase
+          .from("album_photos")
+          .select("*")
+          .eq("album_id", album.id)
+          .order("created_at", { ascending: false });
+        albumsWithPhotos.push({ ...album, photos: photos || [] });
+      }
+      setAlbums(albumsWithPhotos);
+    }
+  };
+
+  const createAlbum = async () => {
+    if (!currentUserId || !newAlbumName.trim()) return;
+    setIsCreatingAlbum(true);
+    const { error } = await supabase.from("albums").insert({
+      name: newAlbumName.trim(),
+      description: newAlbumDesc.trim() || null,
+      user_id: currentUserId,
+    });
+    if (error) {
+      toast({ title: "Error creating album", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Album created!" });
+      setNewAlbumName("");
+      setNewAlbumDesc("");
+      setCreateAlbumOpen(false);
+      loadAlbums();
+    }
+    setIsCreatingAlbum(false);
+  };
+
+  const deleteAlbum = async (albumId: string) => {
+    const { error } = await supabase.from("albums").delete().eq("id", albumId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Album deleted" });
+      setSelectedAlbum(null);
+      loadAlbums();
+    }
+  };
+
+  const uploadPhotoToAlbum = async (albumId: string, file: File) => {
+    if (!currentUserId) return;
+    setIsUploadingPhoto(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${currentUserId}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("post-images").upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("post-images").getPublicUrl(fileName);
+
+      const { error: insertError } = await supabase.from("album_photos").insert({
+        album_id: albumId,
+        image_url: urlData.publicUrl,
+      });
+      if (insertError) throw insertError;
+      toast({ title: "Photo added!" });
+      loadAlbums();
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    }
+    setIsUploadingPhoto(false);
+  };
+
+  const deletePhoto = async (photoId: string) => {
+    const { error } = await supabase.from("album_photos").delete().eq("id", photoId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Photo removed" });
+      loadAlbums();
+    }
   };
 
   const loadPostsData = async (postsData: Post[]) => {
