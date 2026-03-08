@@ -19,6 +19,7 @@ import Events from "./pages/Events";
 import SavedPosts from "./pages/SavedPosts";
 import Settings from "./pages/Settings";
 import Marketplace from "./pages/Marketplace";
+import Watch from "./pages/Watch";
 
 const queryClient = new QueryClient();
 
