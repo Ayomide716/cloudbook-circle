@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, MessageCircle, Share2, Play, Trash2, Music, Volume2, VolumeX, MoreHorizontal, Flag, Link2, UserX } from "lucide-react";
+import { ThumbsUp, MessageCircle, Share2, Play, Trash2, Music, Volume2, VolumeX, MoreHorizontal, Link2, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useToast } from "@/hooks/use-toast";
+import ReportDialog from "@/components/ReportDialog";
 
 interface ReelCardProps {
   reel: {
@@ -280,9 +281,11 @@ export default function ReelCard({
                 <Link2 className="h-4 w-4 mr-2" /> Copy link
               </DropdownMenuItem>
               {currentUserId && currentUserId !== reel.user_id && (
-                <DropdownMenuItem className="text-destructive focus:text-destructive">
-                  <Flag className="h-4 w-4 mr-2" /> Report
-                </DropdownMenuItem>
+                <ReportDialog
+                  reportedType="post"
+                  reportedId={reel.id}
+                  currentUserId={currentUserId}
+                />
               )}
               {currentUserId === reel.user_id && (
                 <DropdownMenuItem onClick={() => onDelete(reel.id)} className="text-destructive focus:text-destructive">
