@@ -124,7 +124,7 @@ const VirtualizedChatList = ({
         rowCount={itemCount}
         rowHeight={dynamicRowHeight}
         rowComponent={RowComponent}
-        rowProps={{ renderItem } as RowProps}
+        rowProps={{ renderItem } as any}
         overscanCount={10}
         style={{ height: "100%", overflow: "auto" }}
       />
