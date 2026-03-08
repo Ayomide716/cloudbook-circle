@@ -967,8 +967,6 @@ const Profile = () => {
         )}
       </div>
 
-      <BottomNav currentUserId={currentUserId || undefined} />
-
       {profile && (
         <EditProfileModal
           profile={profile}
