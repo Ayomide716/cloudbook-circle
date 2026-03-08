@@ -7,7 +7,7 @@ import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
 import FeedFilter from "@/components/FeedFilter";
 import PullToRefresh from "@/components/PullToRefresh";
-import { Loader2 } from "lucide-react";
+import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
