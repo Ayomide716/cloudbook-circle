@@ -297,8 +297,9 @@ const Profile = () => {
               <div className="flex-1 mt-2 sm:mt-16 w-full">
                 <div className="flex flex-col sm:flex-row items-start justify-between gap-3 mb-2">
                   <div className="w-full sm:w-auto">
-                    <h1 className="text-2xl sm:text-3xl font-bold text-center sm:text-left">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-center sm:text-left inline-flex items-center gap-2">
                       {profile.full_name || "Anonymous User"}
+                      {profile.is_verified && <VerifiedBadge size="lg" />}
                     </h1>
                     <div className="flex justify-center sm:justify-start">
                       <OnlineStatusIndicator userId={userId || ""} showText />
