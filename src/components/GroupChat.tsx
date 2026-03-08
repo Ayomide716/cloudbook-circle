@@ -55,29 +55,50 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
     return profile;
   }, []);
 
-  const loadMessages = useCallback(async () => {
-    const { data, error } = await supabase
+  const loadMessages = useCallback(async (before?: string) => {
+    let query = supabase
       .from("group_messages")
       .select("*")
       .eq("group_id", groupId)
-      .order("created_at", { ascending: true });
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
+
+    if (before) {
+      query = query.lt("created_at", before);
+    }
+
+    const { data, error } = await query;
 
     if (error) {
       console.error("Error loading group messages:", error);
-      setIsLoading(false);
+      if (!before) setIsLoading(false);
       return;
     }
 
+    const fetched = (data || []).reverse();
     const messagesWithProfiles = await Promise.all(
-      (data || []).map(async (msg) => {
+      fetched.map(async (msg) => {
         const profile = await fetchProfile(msg.user_id);
         return { ...msg, profiles: { id: msg.user_id, ...profile } };
       })
     );
 
-    setMessages(messagesWithProfiles);
-    setIsLoading(false);
+    if (before) {
+      setMessages((prev) => [...messagesWithProfiles, ...prev]);
+    } else {
+      setMessages(messagesWithProfiles);
+    }
+
+    setHasMoreMessages((data || []).length >= PAGE_SIZE);
+    if (!before) setIsLoading(false);
   }, [groupId, fetchProfile]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (isLoadingMore || !hasMoreMessages || messages.length === 0) return;
+    setIsLoadingMore(true);
+    await loadMessages(messages[0].created_at);
+    setIsLoadingMore(false);
+  }, [isLoadingMore, hasMoreMessages, messages, loadMessages]);
 
   const setupRealtimeSubscription = useCallback(() => {
     const channel = supabase
