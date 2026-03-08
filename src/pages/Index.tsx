@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedQuery, useFeedReactions } from "@/hooks/useFeedQuery";
+import { useAds } from "@/hooks/useAds";
 import Navigation from "@/components/Navigation";
 import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
@@ -11,6 +12,7 @@ import PullToRefresh from "@/components/PullToRefresh";
 import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import FeedSidebar from "@/components/FeedSidebar";
 import ContactsSidebar from "@/components/ContactsSidebar";
+import SponsoredPost from "@/components/SponsoredPost";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import LoginStreakBadge from "@/components/LoginStreakBadge";
@@ -45,6 +47,7 @@ const Index = () => {
   } = useFeedQuery(currentUser?.id ?? null, feedFilter);
 
   const { fetchReactions, fetchComments } = useFeedReactions(currentUser?.id ?? null);
+  const { getAdForPosition } = useAds();
 
   const allPosts = data?.pages.flatMap((page) => page.posts) ?? [];
 
@@ -211,6 +214,7 @@ const Index = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {allPosts.map((post, index) => {
                       const size = getBentoSize(index);
+                      const ad = getAdForPosition(index);
                       return (
                         <motion.div
                           key={post.id}
@@ -224,6 +228,11 @@ const Index = () => {
                           }}
                           className={size === "full" ? "sm:col-span-2" : "sm:col-span-1"}
                         >
+                          {ad && currentUser && (
+                            <div className="mb-4">
+                              <SponsoredPost campaign={ad} currentUserId={currentUser.id} />
+                            </div>
+                          )}
                           <PostCard
                             post={post}
                             currentUserId={currentUser.id}

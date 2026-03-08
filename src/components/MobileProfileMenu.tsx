@@ -21,6 +21,7 @@ import {
   MonitorPlay,
   ShoppingBag,
   FileText,
+  Megaphone,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -71,6 +72,7 @@ const MobileProfileMenu = ({ currentUserId, pendingRequests }: MobileProfileMenu
     { icon: FileText, label: "Pages", path: "/pages" },
     { icon: Bookmark, label: "Saved Posts", path: "/saved" },
     { icon: CalendarDays, label: "Events", path: "/events" },
+    { icon: Megaphone, label: "Ad Manager", path: "/ads" },
     { icon: Settings, label: "Notification Settings", path: "/settings" },
   ];
 

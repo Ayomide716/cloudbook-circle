@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck } from "lucide-react";
+import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck, Pencil } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -81,8 +81,11 @@ const PostCard = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
-   const [isSaved, setIsSaved] = useState(false);
-   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [editLoading, setEditLoading] = useState(false);
   const { toast } = useToast();
  
    // Check if post is saved
@@ -291,11 +294,17 @@ const PostCard = ({
                  )}
                </DropdownMenuItem>
                 {currentUserId === post.user_id && (
-                  <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Post
-                  </DropdownMenuItem>
-                )}
+                  <>
+                    <DropdownMenuItem onClick={() => { setIsEditing(true); setEditContent(post.content); }}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit Post
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Post
+                    </DropdownMenuItem>
+                  </>
+                 )}
                 {currentUserId !== post.user_id && (
                   <>
                     <DropdownMenuSeparator />
@@ -311,7 +320,41 @@ const PostCard = ({
         </div>
 
         {/* Content */}
-        <PostContent content={post.content} />
+        {isEditing ? (
+          <div className="mt-2 space-y-2">
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="min-h-[80px]"
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                disabled={editLoading || !editContent.trim()}
+                onClick={async () => {
+                  setEditLoading(true);
+                  const { error } = await supabase
+                    .from("posts")
+                    .update({ content: editContent.trim() })
+                    .eq("id", post.id);
+                  setEditLoading(false);
+                  if (error) {
+                    toast({ title: "Error updating post", variant: "destructive" });
+                  } else {
+                    setIsEditing(false);
+                    toast({ title: "Post updated!" });
+                    onDelete?.(); // triggers refetch
+                  }
+                }}
+              >
+                {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          <PostContent content={post.content} />
+        )}
       </div>
 
       {/* Media */}
