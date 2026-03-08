@@ -179,6 +179,12 @@ const Index = () => {
 
             {/* Main Feed - Bento Grid */}
             <main className="space-y-5 min-w-0">
+              <div className="flex items-center justify-between">
+                <LoginStreakBadge userId={currentUser.id} />
+              </div>
+
+              <ProfileCompletionPrompt userId={currentUser.id} />
+
               <Suspense fallback={<div className="h-24" />}>
                 <StoriesBar currentUserId={currentUser.id} />
               </Suspense>
