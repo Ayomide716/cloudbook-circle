@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, X, Send, Loader2 } from "lucide-react";
+import { Plus, X, Send, Loader2, Heart, Laugh, Sparkles, ThumbsUp } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
