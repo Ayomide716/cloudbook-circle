@@ -115,7 +115,20 @@ export default function Reels() {
       toast({ title: "Error loading reels", variant: "destructive" });
     } else {
       setReels(data || []);
-      if (data && data.length > 0) setActiveReelId(data[0].id);
+      if (data && data.length > 0) {
+        // If opened via shared link, start on that reel
+        const targetId = paramReelId && data.find(r => r.id === paramReelId) ? paramReelId : data[0].id;
+        setActiveReelId(targetId);
+        // Scroll to the target reel after render
+        if (paramReelId && targetId === paramReelId) {
+          const idx = data.findIndex(r => r.id === paramReelId);
+          if (idx > 0) {
+            setTimeout(() => {
+              containerRef.current?.scrollTo({ top: idx * (containerRef.current?.clientHeight || 0) });
+            }, 100);
+          }
+        }
+      }
     }
     setLoading(false);
   };
