@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Image, Video, BarChart3, X, Images } from "lucide-react";
@@ -10,6 +9,7 @@ import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
 import PollCreator from "./PollCreator";
 import MultiImageUpload from "./MultiImageUpload";
+import MentionInput from "./MentionInput";
 import {
   Dialog,
   DialogContent,
@@ -158,13 +158,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               <p className="font-semibold">{currentUser.full_name || "Anonymous"}</p>
             </div>
 
-            <Textarea
-              placeholder={`What's on your mind, ${currentUser.full_name?.split(' ')[0] || 'there'}?`}
+            <MentionInput
+              placeholder={`What's on your mind, ${currentUser.full_name?.split(' ')[0] || 'there'}? Use @ to mention friends`}
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={setContent}
               className="min-h-[120px] resize-none border-0 focus-visible:ring-0 text-lg placeholder:text-muted-foreground/60 p-0"
               disabled={isLoading}
-              autoFocus
             />
 
             <div className="flex items-center justify-between p-3 border rounded-lg">

@@ -88,7 +88,24 @@ const PostCard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [editLoading, setEditLoading] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState("");
   const { toast } = useToast();
+
+  const handleEditComment = async (commentId: string) => {
+    if (!editCommentContent.trim()) return;
+    const { error } = await supabase
+      .from("comments")
+      .update({ content: editCommentContent.trim() })
+      .eq("id", commentId);
+    if (error) {
+      toast({ title: "Error updating comment", variant: "destructive" });
+    } else {
+      setEditingCommentId(null);
+      toast({ title: "Comment updated" });
+      onCommentAdded();
+    }
+  };
  
    // Check if post is saved
    useEffect(() => {
@@ -569,16 +586,31 @@ const PostCard = ({
                           {comment.profiles.full_name || "Anonymous"}
                         </p>
                       </Link>
-                      <p className="text-sm break-words">{comment.content}</p>
-                      {comment.profiles.id === currentUserId && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDeleteComment(comment.id)}
-                          className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                        >
-                          <Trash2 className="h-3 w-3 text-muted-foreground" />
-                        </Button>
+                      {editingCommentId === comment.id ? (
+                        <div className="mt-1">
+                          <Textarea
+                            value={editCommentContent}
+                            onChange={(e) => setEditCommentContent(e.target.value)}
+                            className="min-h-[36px] h-9 py-1 text-sm resize-none"
+                            autoFocus
+                          />
+                          <div className="flex gap-1 mt-1">
+                            <Button size="sm" className="h-6 text-xs px-2" disabled={!editCommentContent.trim()} onClick={() => handleEditComment(comment.id)}>Save</Button>
+                            <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setEditingCommentId(null)}>Cancel</Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <p className="text-sm break-words">{comment.content}</p>
+                      )}
+                      {comment.profiles.id === currentUserId && editingCommentId !== comment.id && (
+                        <div className="absolute -right-16 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
+                          <Button variant="ghost" size="icon" onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); }} className="h-6 w-6">
+                            <Pencil className="h-3 w-3 text-muted-foreground" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => handleDeleteComment(comment.id)} className="h-6 w-6">
+                            <Trash2 className="h-3 w-3 text-muted-foreground" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                     <div className="flex items-center gap-3 mt-1 ml-3">

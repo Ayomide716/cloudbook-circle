@@ -9,11 +9,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Coins, TrendingUp, Eye, MousePointerClick, Pause, Play, Trash2, BarChart3 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
 
 interface Campaign {
   id: string;
@@ -262,8 +263,76 @@ const Ads = () => {
         <Tabs defaultValue="campaigns">
           <TabsList className="w-full">
             <TabsTrigger value="campaigns" className="flex-1">Campaigns</TabsTrigger>
+            <TabsTrigger value="analytics" className="flex-1">Analytics</TabsTrigger>
             <TabsTrigger value="credits" className="flex-1">Buy Credits</TabsTrigger>
           </TabsList>
+
+          {/* Analytics Tab */}
+          <TabsContent value="analytics" className="space-y-4 mt-4">
+            {campaigns.length === 0 ? (
+              <Card className="p-8 text-center">
+                <BarChart3 className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
+                <p className="text-lg font-medium">No data yet</p>
+                <p className="text-sm text-muted-foreground">Create campaigns to see analytics</p>
+              </Card>
+            ) : (
+              <>
+                {/* Impressions & Clicks Bar Chart */}
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3">Campaign Performance</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={campaigns.map(c => ({ name: c.title.slice(0, 12), impressions: c.impressions, clicks: c.clicks }))}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="name" className="text-xs fill-muted-foreground" />
+                      <YAxis className="text-xs fill-muted-foreground" />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                      <Bar dataKey="impressions" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="clicks" fill="hsl(var(--primary) / 0.5)" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </Card>
+
+                {/* Budget Usage Pie Chart */}
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3">Budget Usage</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={[
+                          { name: "Spent", value: campaigns.reduce((s, c) => s + c.spent_credits, 0) },
+                          { name: "Remaining", value: campaigns.reduce((s, c) => s + (c.budget_credits - c.spent_credits), 0) },
+                        ]}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        dataKey="value"
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                      >
+                        <Cell fill="hsl(var(--primary))" />
+                        <Cell fill="hsl(var(--muted))" />
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Card>
+
+                {/* CTR per Campaign */}
+                <Card className="p-4">
+                  <h3 className="font-semibold mb-3">Click-Through Rate (%)</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={campaigns.map(c => ({ name: c.title.slice(0, 12), ctr: c.impressions > 0 ? parseFloat(((c.clicks / c.impressions) * 100).toFixed(2)) : 0 }))}>
+                      <CartesianGrid strokeDasharray="3 3" className="stroke-border" />
+                      <XAxis dataKey="name" className="text-xs fill-muted-foreground" />
+                      <YAxis className="text-xs fill-muted-foreground" />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: '8px', color: 'hsl(var(--foreground))' }} />
+                      <Line type="monotone" dataKey="ctr" stroke="hsl(var(--primary))" strokeWidth={2} dot={{ fill: 'hsl(var(--primary))' }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </Card>
+              </>
+            )}
+          </TabsContent>
 
           <TabsContent value="campaigns" className="space-y-3 mt-4">
             {campaigns.length === 0 ? (
