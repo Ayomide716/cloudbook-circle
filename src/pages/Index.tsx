@@ -10,6 +10,7 @@ import FeedFilter from "@/components/FeedFilter";
 import PullToRefresh from "@/components/PullToRefresh";
 import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import FeedSidebar from "@/components/FeedSidebar";
+import ContactsSidebar from "@/components/ContactsSidebar";
 import { Loader2 } from "lucide-react";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
