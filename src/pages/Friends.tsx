@@ -403,6 +403,22 @@ const Friends = () => {
     loadData();
   };
 
+  const handleUnfriend = async () => {
+    if (!unfriendTarget) return;
+    const { error } = await supabase
+      .from("friendships")
+      .delete()
+      .eq("id", unfriendTarget.id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `Unfriended ${unfriendTarget.friend.full_name || "user"}` });
+      loadData();
+    }
+    setUnfriendTarget(null);
+  };
+
   const handleSearch = async (query: string) => {
     setSearchQuery(query);
     
