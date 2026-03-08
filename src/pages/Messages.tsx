@@ -533,6 +533,9 @@ const Messages = () => {
                     estimatedItemSize={80}
                     className="flex-1 overflow-hidden"
                     renderItem={renderMessage}
+                    onLoadMore={loadOlderMessages}
+                    isLoadingMore={isLoadingMore}
+                    hasMore={hasMoreMessages}
                     footer={
                       typingUsers.length > 0 ? (
                         <div className="flex justify-start animate-fade-in px-3 pb-2">
