@@ -526,6 +526,19 @@ const GroupDetail = () => {
       </div>
 
       <BottomNav currentUserId={currentUserId || undefined} />
+
+      {/* Group Video Call */}
+      {activeGroupCall && currentUserId && group && (
+        <GroupVideoCall
+          groupId={group.id}
+          groupName={group.name}
+          currentUserId={currentUserId}
+          currentUserName={currentUserProfile?.full_name || "You"}
+          currentUserAvatar={currentUserProfile?.avatar_url}
+          isVoiceOnly={activeGroupCall.isVoiceOnly}
+          onEnd={() => setActiveGroupCall(null)}
+        />
+      )}
     </div>
   );
 };
