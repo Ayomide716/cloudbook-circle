@@ -351,9 +351,8 @@ const Friends = () => {
       title: "Friend request sent!",
       description: "Tap Undo to cancel.",
       action: (
-        <Button
-          variant="outline"
-          size="sm"
+        <ToastAction
+          altText="Undo friend request"
           onClick={async () => {
             if (data?.id) {
               await supabase.from("friendships").delete().eq("id", data.id);
@@ -368,7 +367,7 @@ const Friends = () => {
           }}
         >
           Undo
-        </Button>
+        </ToastAction>
       ),
     });
     loadData();
