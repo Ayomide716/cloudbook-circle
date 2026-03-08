@@ -77,6 +77,7 @@ const Watch = () => {
   const [playingVideoId, setPlayingVideoId] = useState<string | null>(null);
   const [showUpload, setShowUpload] = useState(false);
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [viewedVideoIds, setViewedVideoIds] = useState<Set<string>>(new Set());
 
   // Upload state
   const [uploadTitle, setUploadTitle] = useState("");
