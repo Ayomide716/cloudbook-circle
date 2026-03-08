@@ -7,6 +7,7 @@ interface FeedPost {
   id: string;
   content: string;
   image_url: string | null;
+  image_urls: string[] | null;
   video_url: string | null;
   created_at: string;
   user_id: string;
