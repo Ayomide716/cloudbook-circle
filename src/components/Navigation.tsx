@@ -22,6 +22,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
+import { prefetchRoute } from "@/lib/prefetch";
 import logo from "@/assets/logo.png";
 
 interface NavigationProps {
