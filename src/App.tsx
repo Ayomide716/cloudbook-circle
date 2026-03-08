@@ -26,6 +26,18 @@ const Watch = lazy(() => import("./pages/Watch"));
 const Pages = lazy(() => import("./pages/Pages"));
 const PageDetail = lazy(() => import("./pages/PageDetail"));
 
+// Lazy-loaded skeletons (only loaded when needed)
+const FeedSkeleton = lazy(() => import("./components/skeletons/FeedSkeleton"));
+const MessagesSkeleton = lazy(() => import("./components/skeletons/MessagesSkeleton"));
+const NotificationsSkeleton = lazy(() => import("./components/skeletons/NotificationsSkeleton"));
+const ProfileSkeleton = lazy(() => import("./components/skeletons/ProfileSkeleton"));
+const GroupsSkeleton = lazy(() => import("./components/skeletons/GroupsSkeleton"));
+const EventsSkeleton = lazy(() => import("./components/skeletons/EventsSkeleton"));
+const MarketplaceSkeleton = lazy(() => import("./components/skeletons/MarketplaceSkeleton"));
+const WatchSkeleton = lazy(() => import("./components/skeletons/WatchSkeleton"));
+const ReelsSkeleton = lazy(() => import("./components/skeletons/ReelsSkeleton"));
+const FriendsSkeleton = lazy(() => import("./components/skeletons/FriendsSkeleton"));
+
 const queryClient = new QueryClient();
 
 const pageVariants = {
@@ -52,14 +64,40 @@ const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
-// Minimal loading fallback
-const PageFallback = () => (
+// Minimal spinner for skeleton fallback chains
+const MiniFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="flex flex-col items-center gap-3">
-      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-    </div>
+    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
   </div>
 );
+
+// Route-aware skeleton fallback
+const PageFallback = () => {
+  const location = useLocation();
+  const path = location.pathname;
+
+  const skeleton = (() => {
+    if (path === "/" ) return <FeedSkeleton />;
+    if (path === "/messages") return <MessagesSkeleton />;
+    if (path === "/notifications") return <NotificationsSkeleton />;
+    if (path.startsWith("/profile/")) return <ProfileSkeleton />;
+    if (path === "/groups" || path.startsWith("/groups/")) return <GroupsSkeleton />;
+    if (path === "/events") return <EventsSkeleton />;
+    if (path === "/marketplace") return <MarketplaceSkeleton />;
+    if (path === "/watch") return <WatchSkeleton />;
+    if (path === "/reels") return <ReelsSkeleton />;
+    if (path === "/friends") return <FriendsSkeleton />;
+    return null;
+  })();
+
+  if (!skeleton) return <MiniFallback />;
+
+  return (
+    <Suspense fallback={<MiniFallback />}>
+      {skeleton}
+    </Suspense>
+  );
+};
 
 const AppRoutes = () => {
   const location = useLocation();
