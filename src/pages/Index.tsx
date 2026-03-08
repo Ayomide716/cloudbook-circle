@@ -178,14 +178,18 @@ const Index = () => {
               <FeedFilter filter={feedFilter} onFilterChange={setFeedFilter} />
 
               {allPosts.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center py-12 animate-fade-in">
                   <p className="text-muted-foreground">No posts yet. Be the first to post!</p>
                 </div>
               ) : (
                 <>
-                  {allPosts.map((post) => (
-                    <PostCard
+                  {allPosts.map((post, index) => (
+                    <div
                       key={post.id}
+                      className="animate-fade-in"
+                      style={{ animationDelay: `${Math.min(index, 5) * 60}ms`, animationFillMode: "forwards" }}
+                    >
+                    <PostCard
                       post={post}
                       currentUserId={currentUser.id}
                       reactions={reactionsData[post.id]?.reactions || {}}
@@ -195,6 +199,7 @@ const Index = () => {
                       onCommentAdded={() => handleCommentAdded(post.id)}
                       onDelete={() => refetch()}
                     />
+                    </div>
                   ))}
 
                   {/* Infinite scroll sentinel */}

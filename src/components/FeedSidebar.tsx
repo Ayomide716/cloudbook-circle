@@ -26,7 +26,7 @@ const FeedSidebar = ({ currentUser }: FeedSidebarProps) => {
       <div className="sticky top-20 space-y-1">
         <Link
           to={`/profile/${currentUser.id}`}
-          className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
+          className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent transition-all duration-200 hover:shadow-sm group"
         >
           <img
             src={currentUser.avatar_url || "/placeholder.svg"}
@@ -35,13 +35,13 @@ const FeedSidebar = ({ currentUser }: FeedSidebarProps) => {
           />
           <span className="text-[15px] font-medium">{currentUser.full_name}</span>
         </Link>
-        {sidebarLinks.map((link) => (
+        {sidebarLinks.map((link, i) => (
           <Link
             key={link.href}
             to={link.href}
-            className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors"
+            className="flex items-center gap-3 p-2.5 rounded-xl hover:bg-accent transition-all duration-200 hover:shadow-sm group"
           >
-            <span className="text-xl">{link.icon}</span>
+            <span className="text-xl group-hover:scale-110 transition-transform duration-200">{link.icon}</span>
             <span className="text-[15px] font-medium">{link.label}</span>
           </Link>
         ))}

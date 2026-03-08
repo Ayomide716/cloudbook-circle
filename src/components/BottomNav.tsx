@@ -50,7 +50,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 glass-strong border-t border-border/30 z-50 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 glass-strong border-t border-border/20 z-50 md:hidden transition-all duration-300">
       <div className="flex items-center justify-around h-[3.5rem] px-1 safe-area-bottom">
         {navItems.map((item) => {
           const isActive = item.path ? location.pathname === item.path : false;
