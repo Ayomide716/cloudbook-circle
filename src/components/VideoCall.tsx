@@ -8,6 +8,7 @@ import {
   SwitchCamera, Volume2, VolumeX, PictureInPicture2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getIceServers } from "@/lib/webrtc";
 import {
   Tooltip,
   TooltipContent,
@@ -31,13 +32,6 @@ interface SignalMessage {
   to: string;
 }
 
-const ICE_SERVERS: RTCIceServer[] = [
-  { urls: "stun:stun.l.google.com:19302" },
-  { urls: "stun:stun1.l.google.com:19302" },
-  { urls: "stun:stun2.l.google.com:19302" },
-  { urls: "stun:stun3.l.google.com:19302" },
-  { urls: "stun:stun4.l.google.com:19302" },
-];
 
 const VideoCall = ({
   currentUserId, remoteUserId, remoteUserName, remoteUserAvatar,
