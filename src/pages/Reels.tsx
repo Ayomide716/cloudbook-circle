@@ -50,16 +50,43 @@ export default function Reels() {
   const [uploadVideoUrl, setUploadVideoUrl] = useState("");
   const [isMuted, setIsMuted] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const init = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth"); return; }
       setUser(session.user);
+      loadFriendIds(session.user.id);
     };
     init();
     loadReels();
   }, []);
+
+  const loadFriendIds = async (userId: string) => {
+    const { data } = await supabase
+      .from("friendships")
+      .select("user_id, friend_id")
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+      .eq("status", "accepted");
+    const ids = new Set(data?.map(f => f.user_id === userId ? f.friend_id : f.user_id) || []);
+    setFriendIds(ids);
+  };
+
+  const handleFollow = async (targetUserId: string) => {
+    if (!user) return;
+    const isFriend = friendIds.has(targetUserId);
+    if (isFriend) {
+      // Unfriend
+      await supabase.from("friendships").delete()
+        .or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`);
+      setFriendIds(prev => { const n = new Set(prev); n.delete(targetUserId); return n; });
+    } else {
+      // Send friend request
+      await supabase.from("friendships").insert({ user_id: user.id, friend_id: targetUserId, status: "pending" });
+      toast({ title: "Friend request sent!" });
+    }
+  };
 
   const loadReels = async () => {
     setLoading(true);
@@ -191,6 +218,9 @@ export default function Reels() {
                 onVideoError={(id) => {
                   if (id === activeReelId) toast({ title: "Video couldn't play", description: "Re-upload from your device.", variant: "destructive" });
                 }}
+                onNavigateToProfile={(userId) => navigate(`/profile/${userId}`)}
+                onFollow={handleFollow}
+                isFollowing={friendIds.has(reel.user_id)}
               />
             ))}
           </div>
