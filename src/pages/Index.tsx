@@ -214,6 +214,7 @@ const Index = () => {
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {allPosts.map((post, index) => {
                       const size = getBentoSize(index);
+                      const ad = getAdForPosition(index);
                       return (
                         <motion.div
                           key={post.id}
@@ -227,6 +228,11 @@ const Index = () => {
                           }}
                           className={size === "full" ? "sm:col-span-2" : "sm:col-span-1"}
                         >
+                          {ad && currentUser && (
+                            <div className="mb-4">
+                              <SponsoredPost campaign={ad} currentUserId={currentUser.id} />
+                            </div>
+                          )}
                           <PostCard
                             post={post}
                             currentUserId={currentUser.id}
