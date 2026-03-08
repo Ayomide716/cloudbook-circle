@@ -118,6 +118,18 @@ const AdminDashboard = () => {
     </div>
   );
 
+  if (isAdmin === false) return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Shield className="h-12 w-12 text-muted-foreground" />
+        <p className="text-lg font-medium">Access Denied</p>
+        <p className="text-sm text-muted-foreground">You need admin privileges to view this page.</p>
+        <Button onClick={() => navigate("/")}>Go Home</Button>
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
