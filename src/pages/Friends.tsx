@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToastAction } from "@/components/ui/toast";
 import { Loader2, Users, UserPlus, Check, X, UserCheck, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
@@ -45,6 +46,7 @@ const Friends = () => {
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [suggestions, setSuggestions] = useState<SuggestedProfile[]>([]);
+  const [hiddenSuggestions, setHiddenSuggestions] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
@@ -317,15 +319,26 @@ const Friends = () => {
   };
 
   const handleSendRequest = async (userId: string) => {
-    const { error } = await supabase
+    // Immediately hide the suggestion
+    setHiddenSuggestions((prev) => new Set(prev).add(userId));
+
+    const { data, error } = await supabase
       .from("friendships")
       .insert({
         user_id: currentUserId,
         friend_id: userId,
         status: "pending",
-      });
+      })
+      .select("id")
+      .single();
 
     if (error) {
+      // Restore suggestion on error
+      setHiddenSuggestions((prev) => {
+        const next = new Set(prev);
+        next.delete(userId);
+        return next;
+      });
       toast({
         title: "Error",
         description: error.message,
@@ -334,7 +347,29 @@ const Friends = () => {
       return;
     }
 
-    toast({ title: "Friend request sent!" });
+    toast({
+      title: "Friend request sent!",
+      description: "Tap Undo to cancel.",
+      action: (
+        <ToastAction
+          altText="Undo friend request"
+          onClick={async () => {
+            if (data?.id) {
+              await supabase.from("friendships").delete().eq("id", data.id);
+              setHiddenSuggestions((prev) => {
+                const next = new Set(prev);
+                next.delete(userId);
+                return next;
+              });
+              toast({ title: "Request cancelled" });
+              loadData();
+            }
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
     loadData();
   };
 
@@ -631,7 +666,7 @@ const Friends = () => {
 
           <TabsContent value="suggestions">
             <Card>
-              {suggestions.length === 0 ? (
+              {suggestions.filter(s => !hiddenSuggestions.has(s.id)).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
                   <p className="text-lg font-medium text-muted-foreground">
@@ -643,7 +678,7 @@ const Friends = () => {
                 </div>
               ) : (
                 <div className="divide-y">
-                  {suggestions.map((profile) => (
+                  {suggestions.filter(s => !hiddenSuggestions.has(s.id)).map((profile) => (
                     <div key={profile.id} className="flex items-center gap-4 p-4">
                       <Link to={`/profile/${profile.id}`}>
                         <Avatar className="h-14 w-14">
