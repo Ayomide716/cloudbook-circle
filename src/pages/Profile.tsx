@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Edit, MessageCircle, MapPin, Briefcase, GraduationCap, Link as LinkIcon } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 
 interface Profile {
   id: string;
