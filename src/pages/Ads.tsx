@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 import Navigation from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -41,6 +42,7 @@ const CREDIT_PACKS = [
 const Ads = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Ad Manager", description: "Manage your ad campaigns on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [credits, setCredits] = useState(0);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);

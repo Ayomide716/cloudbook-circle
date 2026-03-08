@@ -1,6 +1,7 @@
 import { useEffect, useState, lazy, Suspense, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import { useFeedQuery, useFeedReactions } from "@/hooks/useFeedQuery";
 import { useAds } from "@/hooks/useAds";
@@ -30,6 +31,7 @@ interface Profile {
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Home", description: "Your CloudBook news feed - see updates from friends and community." });
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [feedFilter, setFeedFilter] = useState<"all" | "friends">("all");
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});

@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
@@ -28,6 +29,7 @@ interface Notification {
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Notifications", description: "Your CloudBook notifications." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);

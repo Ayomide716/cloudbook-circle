@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import WatchComments from "@/components/WatchComments";
@@ -67,6 +68,7 @@ interface WatchVideo {
 const Watch = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Watch", description: "Watch videos on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [videos, setVideos] = useState<WatchVideo[]>([]);
   const [isLoading, setIsLoading] = useState(true);

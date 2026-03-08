@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import PostCard from "@/components/PostCard";
@@ -88,6 +89,7 @@ const spring = { type: "spring" as const, stiffness: 260, damping: 28 };
 const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  useSEO({ title: "Profile", description: "View user profile on CloudBook." });
   const { toast } = useToast();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);

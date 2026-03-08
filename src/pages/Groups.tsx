@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
@@ -26,6 +27,7 @@ interface Group {
 const Groups = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Groups", description: "Discover and join groups on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);

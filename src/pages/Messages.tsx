@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, ReactElement } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import { useVideoCall } from "@/hooks/use-video-call";
 import Navigation from "@/components/Navigation";
@@ -46,6 +47,7 @@ interface TypingUser {
 const Messages = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Messages", description: "Chat with your friends on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);

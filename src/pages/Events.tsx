@@ -1,6 +1,7 @@
- import { useState, useEffect } from "react";
- import { useNavigate } from "react-router-dom";
- import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
  import { useToast } from "@/hooks/use-toast";
  import Navigation from "@/components/Navigation";
  import { Button } from "@/components/ui/button";
@@ -41,8 +42,9 @@
  }
  
  const Events = () => {
-   const navigate = useNavigate();
-   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  useSEO({ title: "Events", description: "Discover and create events on CloudBook." });
    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
    const [events, setEvents] = useState<Event[]>([]);
    const [rsvps, setRsvps] = useState<Record<string, string>>({});

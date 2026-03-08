@@ -1,6 +1,7 @@
- import { useState, useEffect } from "react";
- import { useNavigate } from "react-router-dom";
- import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
  import Navigation from "@/components/Navigation";
  import PostCard from "@/components/PostCard";
  import { Loader2, Bookmark } from "lucide-react";
@@ -21,7 +22,8 @@
  }
  
  const SavedPosts = () => {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
+  useSEO({ title: "Saved Posts", description: "Your saved posts on CloudBook." });
    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
    const [posts, setPosts] = useState<Post[]>([]);
    const [isLoading, setIsLoading] = useState(true);
