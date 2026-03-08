@@ -176,47 +176,51 @@ const Messages = () => {
     loadConversations();
   };
 
+  const selectedConversationRef = useRef<Profile | null>(null);
+  selectedConversationRef.current = selectedConversation;
+
   const setupRealtimeSubscription = useCallback(() => {
+    if (!currentUserId) return null;
     const channel = supabase
       .channel("messages-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, (payload) => {
+        const selected = selectedConversationRef.current;
         if (payload.eventType === "UPDATE") {
-          // Handle edits and deletes in real time
           const updated = payload.new as ChatMessage;
           setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
-          loadConversations();
           return;
         }
         if (payload.eventType === "INSERT") {
           const newMessage = payload.new as ChatMessage;
-          loadConversations();
-          if (selectedConversation && currentUserId) {
+          if (selected && currentUserId) {
             if (
-              (newMessage.sender_id === currentUserId && newMessage.receiver_id === selectedConversation.id) ||
-              (newMessage.sender_id === selectedConversation.id && newMessage.receiver_id === currentUserId)
+              (newMessage.sender_id === currentUserId && newMessage.receiver_id === selected.id) ||
+              (newMessage.sender_id === selected.id && newMessage.receiver_id === currentUserId)
             ) {
               setMessages((prev) => {
-                if (prev.some((m) => m.id === newMessage.id)) return prev;
+                // Remove temp messages first, then check for duplicates
                 const withoutTemp = prev.filter((m) => !m.id.startsWith("temp-"));
-                if (withoutTemp.some((m) => m.id === newMessage.id)) return prev;
-                return [...prev, newMessage];
+                if (withoutTemp.some((m) => m.id === newMessage.id)) return withoutTemp;
+                return [...withoutTemp, newMessage];
               });
-              if (newMessage.sender_id === selectedConversation.id) {
+              if (newMessage.sender_id === selected.id) {
                 supabase.from("messages").update({ read: true }).eq("id", newMessage.id);
               }
             }
           }
+          // Debounce conversation list reload
+          loadConversations();
         }
       })
       .subscribe();
     return channel;
-  }, [currentUserId, selectedConversation, loadConversations]);
+  }, [currentUserId, loadConversations]);
 
   useEffect(() => {
     if (currentUserId) {
       loadConversations();
       const channel = setupRealtimeSubscription();
-      return () => { supabase.removeChannel(channel); };
+      return () => { if (channel) supabase.removeChannel(channel); };
     }
   }, [currentUserId, loadConversations, setupRealtimeSubscription]);
 
