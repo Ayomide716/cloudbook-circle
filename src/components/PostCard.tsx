@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import SharePostDialog from "./SharePostDialog";
 import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
+import VerifiedBadge from "./VerifiedBadge";
 
 interface Comment {
   id: string;
