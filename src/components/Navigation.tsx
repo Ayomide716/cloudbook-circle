@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -37,6 +37,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   usePushNotifications(currentUserId);
 
@@ -45,8 +46,20 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       loadCounts();
       loadUserProfile();
       setupRealtimeSubscriptions();
+      checkAdmin();
     }
   }, [currentUserId]);
+
+  const checkAdmin = async () => {
+    if (!currentUserId) return;
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", currentUserId)
+      .eq("role", "admin")
+      .maybeSingle();
+    setIsAdmin(!!data);
+  };
 
   const loadUserProfile = async () => {
     if (!currentUserId) return;
@@ -230,6 +243,12 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                         <Settings className="h-4 w-4 mr-3" />
                         Notification Settings
                       </DropdownMenuItem>
+                      {isAdmin && (
+                        <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/admin")}>
+                          <Shield className="h-4 w-4 mr-3" />
+                          Admin Dashboard
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator className="my-1.5 bg-border/50" />
                       <DropdownMenuItem
                         className="p-3 cursor-pointer rounded-xl text-destructive focus:text-destructive focus:bg-destructive/10"

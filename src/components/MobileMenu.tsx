@@ -2,7 +2,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { User, Settings, LogOut, Bell, UserPlus } from "lucide-react";
+import { User, Settings, LogOut, Bell, UserPlus, Shield } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -25,13 +25,26 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [notificationCount, setNotificationCount] = useState(0);
   const [friendRequestCount, setFriendRequestCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (currentUserId) {
       loadProfile();
       loadCounts();
+      checkAdmin();
     }
   }, [currentUserId]);
+
+  const checkAdmin = async () => {
+    if (!currentUserId) return;
+    const { data } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", currentUserId)
+      .eq("role", "admin")
+      .maybeSingle();
+    setIsAdmin(!!data);
+  };
 
   const loadProfile = async () => {
     if (!currentUserId) return;
@@ -141,6 +154,21 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
             )}
           </Button>
         </div>
+
+        <Separator />
+
+        {isAdmin && (
+          <div className="p-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-12 text-primary"
+              onClick={() => navigateTo("/admin")}
+            >
+              <Shield className="h-5 w-5" />
+              Admin Dashboard
+            </Button>
+          </div>
+        )}
 
         <Separator />
 
