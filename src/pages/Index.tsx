@@ -33,6 +33,7 @@ const Index = () => {
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);
+  const [lastFetchTime, setLastFetchTime] = useState(new Date());
 
   const {
     data,
