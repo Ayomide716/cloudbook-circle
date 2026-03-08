@@ -752,6 +752,27 @@ const Friends = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Unfriend Confirmation Dialog */}
+      <AlertDialog open={!!unfriendTarget} onOpenChange={(open) => !open && setUnfriendTarget(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Unfriend {unfriendTarget?.friend.full_name || "this person"}?</AlertDialogTitle>
+            <AlertDialogDescription>
+              They won't be notified, but you'll be removed from each other's friends lists. You can always send a new request later.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleUnfriend}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Unfriend
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
