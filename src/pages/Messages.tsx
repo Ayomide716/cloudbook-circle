@@ -9,6 +9,7 @@ import NewConversation from "@/components/NewConversation";
 import ChatImageUpload from "@/components/ChatImageUpload";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import VideoCall from "@/components/VideoCall";
+import IncomingCallOverlay from "@/components/IncomingCallOverlay";
 import VoiceMessageRecorder from "@/components/VoiceMessageRecorder";
 import GifPicker from "@/components/GifPicker";
 import ChatBubble from "@/components/ChatBubble";
