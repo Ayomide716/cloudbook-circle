@@ -88,7 +88,24 @@ const PostCard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [editLoading, setEditLoading] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
+  const [editCommentContent, setEditCommentContent] = useState("");
   const { toast } = useToast();
+
+  const handleEditComment = async (commentId: string) => {
+    if (!editCommentContent.trim()) return;
+    const { error } = await supabase
+      .from("comments")
+      .update({ content: editCommentContent.trim() })
+      .eq("id", commentId);
+    if (error) {
+      toast({ title: "Error updating comment", variant: "destructive" });
+    } else {
+      setEditingCommentId(null);
+      toast({ title: "Comment updated" });
+      onCommentAdded();
+    }
+  };
  
    // Check if post is saved
    useEffect(() => {
