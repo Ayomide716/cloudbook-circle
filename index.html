@@ -48,10 +48,119 @@
       }
     }
     </script>
+
+    <!-- App Shell Styles (inlined for instant paint) -->
+    <style>
+      .app-shell { display: flex; flex-direction: column; min-height: 100vh; background: #0a0a0f; color: #e5e7eb; font-family: system-ui, -apple-system, sans-serif; }
+      .app-shell-nav { height: 56px; border-bottom: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: space-between; padding: 0 16px; backdrop-filter: blur(20px); background: rgba(10,10,15,0.8); position: sticky; top: 0; z-index: 50; }
+      .app-shell-logo { width: 40px; height: 40px; border-radius: 12px; background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+      .app-shell-nav-center { display: none; gap: 4px; }
+      @media (min-width: 768px) { .app-shell-nav-center { display: flex; } }
+      .app-shell-nav-item { width: 80px; height: 48px; border-radius: 12px; background: transparent; }
+      .app-shell-nav-item.active { border-bottom: 3px solid #3b82f6; }
+      .app-shell-nav-right { display: flex; gap: 6px; }
+      .app-shell-circle { width: 40px; height: 40px; border-radius: 50%; background: rgba(255,255,255,0.06); }
+      .app-shell-body { flex: 1; max-width: 1400px; margin: 0 auto; padding: 24px 16px; width: 100%; }
+      .app-shell-grid { display: grid; gap: 24px; }
+      @media (min-width: 1024px) { .app-shell-grid { grid-template-columns: 280px 1fr 280px; } }
+      .app-shell-sidebar { display: none; }
+      @media (min-width: 1024px) { .app-shell-sidebar { display: block; } }
+      .app-shell-pulse { border-radius: 8px; background: rgba(255,255,255,0.04); }
+      .app-shell-card { border-radius: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); padding: 16px; margin-bottom: 16px; }
+      .app-shell-row { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+      .app-shell-line { height: 12px; border-radius: 6px; background: rgba(255,255,255,0.06); }
+      .app-shell-block { height: 200px; border-radius: 12px; background: rgba(255,255,255,0.04); margin-bottom: 12px; }
+      @keyframes shell-shimmer { 0% { opacity: 0.4; } 50% { opacity: 0.7; } 100% { opacity: 0.4; } }
+      .app-shell-animate { animation: shell-shimmer 1.5s ease-in-out infinite; }
+      .app-shell-bottom-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; height: 56px; border-top: 1px solid rgba(255,255,255,0.08); background: rgba(10,10,15,0.9); align-items: center; justify-content: space-around; padding: 0 8px; z-index: 50; }
+      @media (min-width: 768px) { .app-shell-bottom-nav { display: none; } }
+      .app-shell-bottom-item { width: 24px; height: 24px; border-radius: 6px; background: rgba(255,255,255,0.08); }
+    </style>
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Pre-rendered App Shell — replaced by React on hydration -->
+      <div class="app-shell" id="app-shell">
+        <!-- Navigation -->
+        <nav class="app-shell-nav">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div class="app-shell-logo app-shell-animate"></div>
+            <div class="app-shell-pulse app-shell-animate" style="width:200px;height:36px;border-radius:20px;"></div>
+          </div>
+          <div class="app-shell-nav-center">
+            <div class="app-shell-nav-item active"></div>
+            <div class="app-shell-nav-item"></div>
+            <div class="app-shell-nav-item"></div>
+            <div class="app-shell-nav-item"></div>
+            <div class="app-shell-nav-item"></div>
+          </div>
+          <div class="app-shell-nav-right">
+            <div class="app-shell-circle app-shell-animate"></div>
+            <div class="app-shell-circle app-shell-animate"></div>
+            <div class="app-shell-circle app-shell-animate"></div>
+          </div>
+        </nav>
+
+        <!-- Body -->
+        <div class="app-shell-body">
+          <div class="app-shell-grid">
+            <!-- Left Sidebar -->
+            <div class="app-shell-sidebar">
+              <div class="app-shell-row app-shell-animate"><div class="app-shell-circle" style="width:36px;height:36px;"></div><div class="app-shell-line" style="width:120px;"></div></div>
+              <div class="app-shell-row app-shell-animate"><div class="app-shell-circle" style="width:36px;height:36px;"></div><div class="app-shell-line" style="width:100px;"></div></div>
+              <div class="app-shell-row app-shell-animate"><div class="app-shell-circle" style="width:36px;height:36px;"></div><div class="app-shell-line" style="width:90px;"></div></div>
+              <div class="app-shell-row app-shell-animate"><div class="app-shell-circle" style="width:36px;height:36px;"></div><div class="app-shell-line" style="width:110px;"></div></div>
+            </div>
+
+            <!-- Main Feed -->
+            <div>
+              <!-- Stories row -->
+              <div style="display:flex;gap:12px;margin-bottom:16px;overflow:hidden;">
+                <div class="app-shell-animate" style="width:72px;height:100px;border-radius:12px;background:rgba(255,255,255,0.04);flex-shrink:0;"></div>
+                <div class="app-shell-animate" style="width:72px;height:100px;border-radius:12px;background:rgba(255,255,255,0.04);flex-shrink:0;"></div>
+                <div class="app-shell-animate" style="width:72px;height:100px;border-radius:12px;background:rgba(255,255,255,0.04);flex-shrink:0;"></div>
+                <div class="app-shell-animate" style="width:72px;height:100px;border-radius:12px;background:rgba(255,255,255,0.04);flex-shrink:0;"></div>
+                <div class="app-shell-animate" style="width:72px;height:100px;border-radius:12px;background:rgba(255,255,255,0.04);flex-shrink:0;"></div>
+              </div>
+
+              <!-- Post cards -->
+              <div class="app-shell-card app-shell-animate">
+                <div class="app-shell-row"><div class="app-shell-circle" style="width:40px;height:40px;"></div><div><div class="app-shell-line" style="width:140px;margin-bottom:6px;"></div><div class="app-shell-line" style="width:80px;height:10px;"></div></div></div>
+                <div class="app-shell-line" style="width:100%;margin-bottom:8px;"></div>
+                <div class="app-shell-line" style="width:75%;margin-bottom:12px;"></div>
+                <div class="app-shell-block"></div>
+                <div style="display:flex;justify-content:space-between;"><div class="app-shell-pulse" style="width:80px;height:32px;"></div><div class="app-shell-pulse" style="width:80px;height:32px;"></div><div class="app-shell-pulse" style="width:80px;height:32px;"></div></div>
+              </div>
+
+              <div class="app-shell-card app-shell-animate" style="animation-delay:0.2s;">
+                <div class="app-shell-row"><div class="app-shell-circle" style="width:40px;height:40px;"></div><div><div class="app-shell-line" style="width:120px;margin-bottom:6px;"></div><div class="app-shell-line" style="width:60px;height:10px;"></div></div></div>
+                <div class="app-shell-line" style="width:90%;margin-bottom:8px;"></div>
+                <div class="app-shell-line" style="width:60%;margin-bottom:12px;"></div>
+                <div class="app-shell-block" style="height:160px;"></div>
+              </div>
+            </div>
+
+            <!-- Right Sidebar -->
+            <div class="app-shell-sidebar">
+              <div class="app-shell-line app-shell-animate" style="width:100px;height:14px;margin-bottom:16px;"></div>
+              <div class="app-shell-row app-shell-animate"><div class="app-shell-circle" style="width:32px;height:32px;"></div><div class="app-shell-line" style="width:100px;"></div></div>
+              <div class="app-shell-row app-shell-animate"><div class="app-shell-circle" style="width:32px;height:32px;"></div><div class="app-shell-line" style="width:90px;"></div></div>
+              <div class="app-shell-row app-shell-animate"><div class="app-shell-circle" style="width:32px;height:32px;"></div><div class="app-shell-line" style="width:110px;"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Mobile Bottom Nav -->
+        <div class="app-shell-bottom-nav">
+          <div class="app-shell-bottom-item app-shell-animate"></div>
+          <div class="app-shell-bottom-item app-shell-animate"></div>
+          <div class="app-shell-bottom-item app-shell-animate"></div>
+          <div class="app-shell-bottom-item app-shell-animate"></div>
+          <div class="app-shell-bottom-item app-shell-animate"></div>
+        </div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
