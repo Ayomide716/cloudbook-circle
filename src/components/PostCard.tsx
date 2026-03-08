@@ -320,7 +320,41 @@ const PostCard = ({
         </div>
 
         {/* Content */}
-        <PostContent content={post.content} />
+        {isEditing ? (
+          <div className="mt-2 space-y-2">
+            <Textarea
+              value={editContent}
+              onChange={(e) => setEditContent(e.target.value)}
+              className="min-h-[80px]"
+            />
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                disabled={editLoading || !editContent.trim()}
+                onClick={async () => {
+                  setEditLoading(true);
+                  const { error } = await supabase
+                    .from("posts")
+                    .update({ content: editContent.trim() })
+                    .eq("id", post.id);
+                  setEditLoading(false);
+                  if (error) {
+                    toast({ title: "Error updating post", variant: "destructive" });
+                  } else {
+                    setIsEditing(false);
+                    toast({ title: "Post updated!" });
+                    onDelete?.(); // triggers refetch
+                  }
+                }}
+              >
+                {editLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+            </div>
+          </div>
+        ) : (
+          <PostContent content={post.content} />
+        )}
       </div>
 
       {/* Media */}
