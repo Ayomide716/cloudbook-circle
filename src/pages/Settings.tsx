@@ -33,6 +33,7 @@ const defaultPrefs: NotificationPrefs = {
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Settings", description: "Manage your CloudBook settings." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
   const [isLoading, setIsLoading] = useState(true);

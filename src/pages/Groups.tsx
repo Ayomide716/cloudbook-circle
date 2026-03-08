@@ -27,6 +27,7 @@ interface Group {
 const Groups = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Groups", description: "Discover and join groups on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   const [isLoading, setIsLoading] = useState(true);

@@ -41,6 +41,7 @@ interface Listing {
 const Marketplace = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Marketplace", description: "Buy and sell items on CloudBook Marketplace." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);

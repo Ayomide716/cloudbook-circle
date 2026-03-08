@@ -52,6 +52,7 @@ interface Friendship {
 const Friends = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Friends", description: "Manage your friends on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);

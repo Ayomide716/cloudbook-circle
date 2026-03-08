@@ -47,6 +47,7 @@ interface TypingUser {
 const Messages = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Messages", description: "Chat with your friends on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);

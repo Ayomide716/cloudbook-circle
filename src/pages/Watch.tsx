@@ -68,6 +68,7 @@ interface WatchVideo {
 const Watch = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Watch", description: "Watch videos on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [videos, setVideos] = useState<WatchVideo[]>([]);
   const [isLoading, setIsLoading] = useState(true);

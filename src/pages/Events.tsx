@@ -42,8 +42,9 @@ import { useSEO } from "@/hooks/useSEO";
  }
  
  const Events = () => {
-   const navigate = useNavigate();
-   const { toast } = useToast();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  useSEO({ title: "Events", description: "Discover and create events on CloudBook." });
    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
    const [events, setEvents] = useState<Event[]>([]);
    const [rsvps, setRsvps] = useState<Record<string, string>>({});

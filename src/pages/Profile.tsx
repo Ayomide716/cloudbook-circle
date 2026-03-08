@@ -89,6 +89,7 @@ const spring = { type: "spring" as const, stiffness: 260, damping: 28 };
 const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
+  useSEO({ title: "Profile", description: "View user profile on CloudBook." });
   const { toast } = useToast();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);

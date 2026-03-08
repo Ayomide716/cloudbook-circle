@@ -31,6 +31,7 @@ interface Profile {
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Home", description: "Your CloudBook news feed - see updates from friends and community." });
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [feedFilter, setFeedFilter] = useState<"all" | "friends">("all");
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});

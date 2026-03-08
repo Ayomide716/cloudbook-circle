@@ -40,6 +40,7 @@ interface Reel {
 export default function Reels() {
   const navigate = useNavigate();
   const { reelId: paramReelId } = useParams();
+  useSEO({ title: "Reels", description: "Watch short videos on CloudBook." });
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<any>(null);

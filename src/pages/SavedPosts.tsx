@@ -22,7 +22,8 @@ import { useSEO } from "@/hooks/useSEO";
  }
  
  const SavedPosts = () => {
-   const navigate = useNavigate();
+  const navigate = useNavigate();
+  useSEO({ title: "Saved Posts", description: "Your saved posts on CloudBook." });
    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
    const [posts, setPosts] = useState<Post[]>([]);
    const [isLoading, setIsLoading] = useState(true);

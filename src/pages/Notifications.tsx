@@ -29,6 +29,7 @@ interface Notification {
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Notifications", description: "Your CloudBook notifications." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
