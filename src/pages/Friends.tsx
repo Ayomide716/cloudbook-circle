@@ -22,6 +22,21 @@ import {
 import { Loader2, Users, UserPlus, Check, X, UserCheck, Search, UserMinus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
+  const handleUnfriend = async () => {
+    if (!unfriendTarget) return;
+    const { error } = await supabase
+      .from("friendships")
+      .delete()
+      .eq("id", unfriendTarget.id);
+
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: `Unfriended ${unfriendTarget.friend.full_name || "user"}` });
+      loadData();
+    }
+    setUnfriendTarget(null);
+  };
 
 interface Profile {
   id: string;
