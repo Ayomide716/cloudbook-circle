@@ -128,6 +128,8 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   <TooltipTrigger asChild>
                     <button
                       onClick={() => navigate(item.path)}
+                      onMouseEnter={() => prefetchRoute(item.path)}
+                      onFocus={() => prefetchRoute(item.path)}
                       className={cn(
                         "relative flex items-center justify-center h-12 px-8 lg:px-10 rounded-xl transition-all duration-200",
                         isActive(item.path)
