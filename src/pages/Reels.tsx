@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Plus, Send, Film, ChevronUp, ChevronDown, ArrowLeft } from "lucide-react";
+import { Plus, Send, Film, ChevronUp, ChevronDown, ArrowLeft, Home, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import VideoUpload from "@/components/VideoUpload";
