@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,23 +6,25 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AnimatePresence, motion } from "framer-motion";
-import Index from "./pages/Index";
-import Auth from "./pages/Auth";
-import Profile from "./pages/Profile";
-import Messages from "./pages/Messages";
-import Groups from "./pages/Groups";
-import GroupDetail from "./pages/GroupDetail";
-import Reels from "./pages/Reels";
-import Notifications from "./pages/Notifications";
-import Friends from "./pages/Friends";
-import NotFound from "./pages/NotFound";
-import Events from "./pages/Events";
-import SavedPosts from "./pages/SavedPosts";
-import Settings from "./pages/Settings";
-import Marketplace from "./pages/Marketplace";
-import Watch from "./pages/Watch";
-import Pages from "./pages/Pages";
-import PageDetail from "./pages/PageDetail";
+
+// Lazy-loaded page components
+const Index = lazy(() => import("./pages/Index"));
+const Auth = lazy(() => import("./pages/Auth"));
+const Profile = lazy(() => import("./pages/Profile"));
+const Messages = lazy(() => import("./pages/Messages"));
+const Groups = lazy(() => import("./pages/Groups"));
+const GroupDetail = lazy(() => import("./pages/GroupDetail"));
+const Reels = lazy(() => import("./pages/Reels"));
+const Notifications = lazy(() => import("./pages/Notifications"));
+const Friends = lazy(() => import("./pages/Friends"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+const Events = lazy(() => import("./pages/Events"));
+const SavedPosts = lazy(() => import("./pages/SavedPosts"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Marketplace = lazy(() => import("./pages/Marketplace"));
+const Watch = lazy(() => import("./pages/Watch"));
+const Pages = lazy(() => import("./pages/Pages"));
+const PageDetail = lazy(() => import("./pages/PageDetail"));
 
 const queryClient = new QueryClient();
 
@@ -49,31 +52,42 @@ const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
   </motion.div>
 );
 
+// Minimal loading fallback
+const PageFallback = () => (
+  <div className="min-h-screen flex items-center justify-center bg-background">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  </div>
+);
+
 const AppRoutes = () => {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait">
-      <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<AnimatedPage><Index /></AnimatedPage>} />
-        <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
-        <Route path="/profile/:userId" element={<AnimatedPage><Profile /></AnimatedPage>} />
-        <Route path="/messages" element={<AnimatedPage><Messages /></AnimatedPage>} />
-        <Route path="/groups" element={<AnimatedPage><Groups /></AnimatedPage>} />
-        <Route path="/groups/:groupId" element={<AnimatedPage><GroupDetail /></AnimatedPage>} />
-        <Route path="/reels" element={<AnimatedPage><Reels /></AnimatedPage>} />
-        <Route path="/notifications" element={<AnimatedPage><Notifications /></AnimatedPage>} />
-        <Route path="/friends" element={<AnimatedPage><Friends /></AnimatedPage>} />
-        <Route path="/events" element={<AnimatedPage><Events /></AnimatedPage>} />
-        <Route path="/saved" element={<AnimatedPage><SavedPosts /></AnimatedPage>} />
-        <Route path="/settings" element={<AnimatedPage><Settings /></AnimatedPage>} />
-        <Route path="/marketplace" element={<AnimatedPage><Marketplace /></AnimatedPage>} />
-        <Route path="/watch" element={<AnimatedPage><Watch /></AnimatedPage>} />
-        <Route path="/pages" element={<AnimatedPage><Pages /></AnimatedPage>} />
-        <Route path="/pages/:pageId" element={<AnimatedPage><PageDetail /></AnimatedPage>} />
-        <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
-      </Routes>
-    </AnimatePresence>
+    <Suspense fallback={<PageFallback />}>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          <Route path="/" element={<AnimatedPage><Index /></AnimatedPage>} />
+          <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
+          <Route path="/profile/:userId" element={<AnimatedPage><Profile /></AnimatedPage>} />
+          <Route path="/messages" element={<AnimatedPage><Messages /></AnimatedPage>} />
+          <Route path="/groups" element={<AnimatedPage><Groups /></AnimatedPage>} />
+          <Route path="/groups/:groupId" element={<AnimatedPage><GroupDetail /></AnimatedPage>} />
+          <Route path="/reels" element={<AnimatedPage><Reels /></AnimatedPage>} />
+          <Route path="/notifications" element={<AnimatedPage><Notifications /></AnimatedPage>} />
+          <Route path="/friends" element={<AnimatedPage><Friends /></AnimatedPage>} />
+          <Route path="/events" element={<AnimatedPage><Events /></AnimatedPage>} />
+          <Route path="/saved" element={<AnimatedPage><SavedPosts /></AnimatedPage>} />
+          <Route path="/settings" element={<AnimatedPage><Settings /></AnimatedPage>} />
+          <Route path="/marketplace" element={<AnimatedPage><Marketplace /></AnimatedPage>} />
+          <Route path="/watch" element={<AnimatedPage><Watch /></AnimatedPage>} />
+          <Route path="/pages" element={<AnimatedPage><Pages /></AnimatedPage>} />
+          <Route path="/pages/:pageId" element={<AnimatedPage><PageDetail /></AnimatedPage>} />
+          <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
+        </Routes>
+      </AnimatePresence>
+    </Suspense>
   );
 };
 
