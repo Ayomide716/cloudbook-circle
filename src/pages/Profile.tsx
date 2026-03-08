@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
 import PostCard from "@/components/PostCard";
 import FriendshipButton from "@/components/FriendshipButton";
 import EditProfileModal from "@/components/EditProfileModal";
@@ -374,7 +373,7 @@ const Profile = () => {
   ].filter(Boolean) as { icon: any; label: string; isLink?: boolean }[];
 
   return (
-    <div className="min-h-screen bg-background pb-safe">
+    <div className="min-h-screen bg-background pb-24 md:pb-20">
       <Navigation currentUserId={currentUserId || undefined} />
 
       {/* Sticky mini-header on scroll */}
@@ -966,8 +965,6 @@ const Profile = () => {
           </motion.div>
         )}
       </div>
-
-      <BottomNav currentUserId={currentUserId || undefined} />
 
       {profile && (
         <EditProfileModal
