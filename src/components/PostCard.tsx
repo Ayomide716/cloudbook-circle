@@ -243,8 +243,9 @@ const PostCard = ({
           
           <div className="flex-1 min-w-0">
             <Link to={`/profile/${post.profiles.id}`}>
-              <p className="font-semibold text-sm sm:text-base hover:underline">
+              <p className="font-semibold text-sm sm:text-base hover:underline inline-flex items-center gap-1">
                 {post.profiles.full_name || "Anonymous"}
+                {post.profiles.is_verified && <VerifiedBadge size="sm" />}
               </p>
             </Link>
             <p className="text-xs text-muted-foreground">
