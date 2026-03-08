@@ -81,8 +81,11 @@ const PostCard = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Comment | null>(null);
-   const [isSaved, setIsSaved] = useState(false);
-   const [showShareDialog, setShowShareDialog] = useState(false);
+  const [isSaved, setIsSaved] = useState(false);
+  const [showShareDialog, setShowShareDialog] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState(post.content);
+  const [editLoading, setEditLoading] = useState(false);
   const { toast } = useToast();
  
    // Check if post is saved
