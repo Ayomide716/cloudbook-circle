@@ -21,6 +21,7 @@ const sidebarLinks = [
   { href: "/events", icon: "📅", label: "Events" },
   { href: "/marketplace", icon: "🛍️", label: "Marketplace" },
   { href: "/ads", icon: "📢", label: "Ad Manager" },
+  { href: "/admin", icon: "🛡️", label: "Admin" },
 ];
 
 const container = {

@@ -3,12 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
- import { Loader2, Image, Video, BarChart3, X } from "lucide-react";
+import { Loader2, Image, Video, BarChart3, X, Images } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
- import PollCreator from "./PollCreator";
+import PollCreator from "./PollCreator";
+import MultiImageUpload from "./MultiImageUpload";
 import {
   Dialog,
   DialogContent,
@@ -28,10 +29,11 @@ interface CreatePostProps {
 const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [content, setContent] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
   const [videoUrl, setVideoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
-   const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
+  const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,12 +50,13 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     setIsLoading(true);
 
-     const { data: postData, error } = await supabase
+    const { data: postData, error } = await supabase
       .from("posts")
       .insert({
-         content: content.trim() || (pollData ? `📊 ${pollData.question}` : ""),
+        content: content.trim() || (pollData ? `📊 ${pollData.question}` : ""),
         user_id: currentUser.id,
-        image_url: imageUrl || null,
+        image_url: imageUrl || (imageUrls.length === 1 ? imageUrls[0] : null),
+        image_urls: imageUrls.length > 0 ? imageUrls : [],
         video_url: videoUrl || null,
        })
        .select()
@@ -82,8 +85,9 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     setContent("");
     setImageUrl("");
+    setImageUrls([]);
     setVideoUrl("");
-     setPollData(null);
+    setPollData(null);
     setShowDialog(false);
     toast({ title: "Post created!" });
     onPostCreated();
@@ -169,18 +173,24 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 <ImageUpload
                   bucket="post-images"
                   userId={currentUser.id}
-                  onUploadComplete={(url) => { setImageUrl(url); if (url) setVideoUrl(""); }}
+                  onUploadComplete={(url) => { setImageUrl(url); if (url) { setVideoUrl(""); setImageUrls([]); } }}
                   currentImage={imageUrl}
                   label=""
+                />
+                <MultiImageUpload
+                  bucket="post-images"
+                  userId={currentUser.id}
+                  onUploadComplete={(urls) => { setImageUrls(urls); if (urls.length > 0) { setImageUrl(""); setVideoUrl(""); } }}
+                  currentImages={imageUrls}
                 />
                 <VideoUpload
                   bucket="post-videos"
                   userId={currentUser.id}
-                  onUploadComplete={(url) => { setVideoUrl(url); if (url) setImageUrl(""); }}
+                  onUploadComplete={(url) => { setVideoUrl(url); if (url) { setImageUrl(""); setImageUrls([]); } }}
                   currentVideo={videoUrl}
                   label=""
                 />
-                 <PollCreator onCreatePoll={handleCreatePoll} />
+                <PollCreator onCreatePoll={handleCreatePoll} />
               </div>
             </div>
 

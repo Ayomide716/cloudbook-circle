@@ -7,6 +7,7 @@ interface FeedPost {
   id: string;
   content: string;
   image_url: string | null;
+  image_urls: string[] | null;
   video_url: string | null;
   created_at: string;
   user_id: string;
@@ -47,6 +48,7 @@ async function fetchFeedPage(
     id: r.id,
     content: r.content,
     image_url: r.image_url,
+    image_urls: null, // Will be fetched separately
     video_url: r.video_url,
     created_at: r.created_at,
     user_id: r.user_id,
@@ -59,6 +61,24 @@ async function fetchFeedPage(
     engagement_score: r.engagement_score,
     poll: null,
   }));
+
+  // Fetch image_urls for posts
+  if (posts.length > 0) {
+    const postIds = posts.map((p) => p.id);
+    const { data: postsData } = await supabase
+      .from("posts")
+      .select("id, image_urls")
+      .in("id", postIds);
+
+    if (postsData) {
+      posts.forEach((post) => {
+        const pd = postsData.find((p) => p.id === post.id);
+        if (pd && pd.image_urls && (pd.image_urls as string[]).length > 0) {
+          post.image_urls = pd.image_urls as string[];
+        }
+      });
+    }
+  }
 
   // Load polls for these posts
   if (posts.length > 0) {

@@ -15,6 +15,7 @@ import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
 import ReportDialog from "./ReportDialog";
+import ImageCarousel from "./ImageCarousel";
 
 interface Comment {
   id: string;
@@ -33,6 +34,7 @@ interface PostCardProps {
     id: string;
     content: string;
     image_url: string | null;
+    image_urls?: string[] | null;
     video_url?: string | null;
     created_at: string;
     profiles: {
@@ -372,7 +374,10 @@ const PostCard = ({
           />
         </div>
       )}
-      {!post.video_url && post.image_url && (
+      {!post.video_url && post.image_urls && post.image_urls.length > 1 && (
+        <ImageCarousel images={post.image_urls} />
+      )}
+      {!post.video_url && (!post.image_urls || post.image_urls.length <= 1) && post.image_url && (
         <img
           src={post.image_url}
           alt="Post content"
