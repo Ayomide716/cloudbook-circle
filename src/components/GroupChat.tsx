@@ -34,6 +34,9 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
   const [messageContent, setMessageContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const PAGE_SIZE = 50;
   const profileCache = useRef<Map<string, { full_name: string | null; avatar_url: string | null }>>(new Map());
 
   const fetchProfile = useCallback(async (userId: string) => {
