@@ -160,7 +160,48 @@ const Profile = () => {
     }
     // Load albums
     loadAlbums();
+    // Load mutual friends
+    loadMutualFriends();
     setIsLoading(false);
+  };
+
+  const loadMutualFriends = async () => {
+    if (!currentUserId || !userId || currentUserId === userId) {
+      setMutualFriends([]);
+      return;
+    }
+    // Get my friends
+    const { data: myFriends } = await supabase
+      .from("friendships")
+      .select("user_id, friend_id")
+      .eq("status", "accepted")
+      .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
+
+    const myFriendIds = new Set(
+      (myFriends || []).map(f => f.user_id === currentUserId ? f.friend_id : f.user_id)
+    );
+
+    // Get their friends
+    const { data: theirFriends } = await supabase
+      .from("friendships")
+      .select("user_id, friend_id")
+      .eq("status", "accepted")
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+
+    const theirFriendIds = new Set(
+      (theirFriends || []).map(f => f.user_id === userId ? f.friend_id : f.user_id)
+    );
+
+    // Intersection
+    const mutualIds = [...myFriendIds].filter(id => theirFriendIds.has(id));
+    if (mutualIds.length === 0) { setMutualFriends([]); return; }
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .in("id", mutualIds.slice(0, 20));
+
+    setMutualFriends(profiles || []);
   };
 
   const loadAlbums = async () => {
