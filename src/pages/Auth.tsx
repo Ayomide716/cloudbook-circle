@@ -17,6 +17,7 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [showVerifyEmail, setShowVerifyEmail] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
