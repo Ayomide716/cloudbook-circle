@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef, useCallback, ReactElement } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import { useVideoCall } from "@/hooks/use-video-call";
 import Navigation from "@/components/Navigation";
