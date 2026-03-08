@@ -160,17 +160,48 @@ const Messages = () => {
     setIsLoading(false);
   }, [currentUserId]);
 
-  const loadMessages = async (otherUserId: string) => {
+  const PAGE_SIZE = 50;
+  const [hasMoreMessages, setHasMoreMessages] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+
+  const loadMessages = async (otherUserId: string, before?: string) => {
     if (!currentUserId) return;
-    const { data } = await supabase
+    let query = supabase
       .from("messages")
       .select("*")
       .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${currentUserId})`)
-      .order("created_at", { ascending: true });
-    setMessages((data || []) as ChatMessage[]);
-    await supabase.from("messages").update({ read: true }).eq("sender_id", otherUserId).eq("receiver_id", currentUserId).eq("read", false);
-    loadConversations();
+      .order("created_at", { ascending: false })
+      .limit(PAGE_SIZE);
+
+    if (before) {
+      query = query.lt("created_at", before);
+    }
+
+    const { data } = await query;
+    const fetched = ((data || []) as ChatMessage[]).reverse();
+
+    if (before) {
+      // Prepend older messages
+      setMessages((prev) => [...fetched, ...prev]);
+    } else {
+      setMessages(fetched);
+    }
+
+    setHasMoreMessages((data || []).length >= PAGE_SIZE);
+
+    // Mark as read
+    if (!before) {
+      await supabase.from("messages").update({ read: true }).eq("sender_id", otherUserId).eq("receiver_id", currentUserId).eq("read", false);
+      loadConversations();
+    }
   };
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedConversation || isLoadingMore || !hasMoreMessages || messages.length === 0) return;
+    setIsLoadingMore(true);
+    await loadMessages(selectedConversation.id, messages[0].created_at);
+    setIsLoadingMore(false);
+  }, [selectedConversation, isLoadingMore, hasMoreMessages, messages]);
 
   const selectedConversationRef = useRef<Profile | null>(null);
   selectedConversationRef.current = selectedConversation;
