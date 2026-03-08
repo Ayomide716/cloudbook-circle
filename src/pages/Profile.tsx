@@ -130,9 +130,14 @@ const Profile = () => {
   const loadProfile = async () => {
     setIsLoading(true);
     const { data: profileData, error: profileError } = await supabase
-      .from("profiles").select("*").eq("id", userId).single();
+      .from("profiles").select("*").eq("id", userId).maybeSingle();
     if (profileError) {
       toast({ title: "Error loading profile", description: profileError.message, variant: "destructive" });
+      setIsLoading(false);
+      return;
+    }
+    if (!profileData) {
+      toast({ title: "Profile not found", variant: "destructive" });
       setIsLoading(false);
       return;
     }
