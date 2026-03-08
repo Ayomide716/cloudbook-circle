@@ -119,6 +119,7 @@ const AppRoutes = () => {
           <Route path="/groups" element={<AnimatedPage><Groups /></AnimatedPage>} />
           <Route path="/groups/:groupId" element={<AnimatedPage><GroupDetail /></AnimatedPage>} />
           <Route path="/reels" element={<AnimatedPage><Reels /></AnimatedPage>} />
+          <Route path="/reels/:reelId" element={<AnimatedPage><Reels /></AnimatedPage>} />
           <Route path="/notifications" element={<AnimatedPage><Notifications /></AnimatedPage>} />
           <Route path="/friends" element={<AnimatedPage><Friends /></AnimatedPage>} />
           <Route path="/events" element={<AnimatedPage><Events /></AnimatedPage>} />

@@ -246,6 +246,7 @@ export default function Reels() {
                 onNavigateToProfile={(userId) => navigate(`/profile/${userId}`)}
                 onFollow={handleFollow}
                 isFollowing={friendIds.has(reel.user_id)}
+                isPending={pendingIds.has(reel.user_id)}
               />
             ))}
           </div>
