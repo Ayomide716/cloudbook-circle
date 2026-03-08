@@ -1,0 +1,228 @@
+import { lazy, Suspense, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import Navigation from "@/components/Navigation";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
+
+interface Report {
+  id: string;
+  reporter_id: string;
+  reported_id: string;
+  reported_type: string;
+  reason: string;
+  description: string | null;
+  status: string;
+  created_at: string;
+}
+
+interface UserProfile {
+  id: string;
+  full_name: string | null;
+  avatar_url: string | null;
+  is_verified: boolean;
+  created_at: string | null;
+}
+
+const AdminDashboard = () => {
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({ totalUsers: 0, totalPosts: 0, totalReports: 0, pendingReports: 0 });
+
+  useEffect(() => {
+    checkAuth();
+  }, []);
+
+  const checkAuth = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { navigate("/landing"); return; }
+    setCurrentUserId(session.user.id);
+    await Promise.all([fetchReports(), fetchUsers(), fetchStats()]);
+    setLoading(false);
+  };
+
+  const fetchReports = async () => {
+    const { data } = await supabase
+      .from("reports")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    // Note: This only shows the current user's reports due to RLS
+    // In production, you'd use a service role or admin-specific RLS
+    setReports((data as Report[]) || []);
+  };
+
+  const fetchUsers = async () => {
+    const { data } = await supabase
+      .from("profiles")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(50);
+    setUsers((data as UserProfile[]) || []);
+  };
+
+  const fetchStats = async () => {
+    const [usersRes, postsRes] = await Promise.all([
+      supabase.from("profiles").select("id", { count: "exact", head: true }),
+      supabase.from("posts").select("id", { count: "exact", head: true }),
+    ]);
+    setStats({
+      totalUsers: usersRes.count || 0,
+      totalPosts: postsRes.count || 0,
+      totalReports: 0,
+      pendingReports: 0,
+    });
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    const { error } = await supabase.from("posts").delete().eq("id", postId);
+    if (error) {
+      toast({ title: "Cannot delete this post", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Post removed" });
+    }
+  };
+
+  if (loading) return (
+    <div className="min-h-screen bg-background">
+      <Navigation />
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin w-8 h-8 rounded-lg bg-primary" />
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="min-h-screen bg-background">
+      <Navigation currentUserId={currentUserId || undefined} />
+
+      <div className="max-w-5xl mx-auto px-4 py-6 mb-20 space-y-6">
+        <div className="flex items-center gap-3">
+          <Shield className="h-7 w-7 text-primary" />
+          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+        </div>
+
+        {/* Stats */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card className="p-4 text-center">
+            <Users className="h-5 w-5 mx-auto mb-1 text-primary" />
+            <p className="text-2xl font-bold">{stats.totalUsers}</p>
+            <p className="text-xs text-muted-foreground">Total Users</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <FileText className="h-5 w-5 mx-auto mb-1 text-blue-500" />
+            <p className="text-2xl font-bold">{stats.totalPosts}</p>
+            <p className="text-xs text-muted-foreground">Total Posts</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <Flag className="h-5 w-5 mx-auto mb-1 text-orange-500" />
+            <p className="text-2xl font-bold">{reports.length}</p>
+            <p className="text-xs text-muted-foreground">Reports</p>
+          </Card>
+          <Card className="p-4 text-center">
+            <AlertTriangle className="h-5 w-5 mx-auto mb-1 text-destructive" />
+            <p className="text-2xl font-bold">{reports.filter(r => r.status === 'pending').length}</p>
+            <p className="text-xs text-muted-foreground">Pending</p>
+          </Card>
+        </div>
+
+        <Tabs defaultValue="reports">
+          <TabsList className="w-full">
+            <TabsTrigger value="reports" className="flex-1">Reports</TabsTrigger>
+            <TabsTrigger value="users" className="flex-1">Users</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="reports" className="space-y-3 mt-4">
+            {reports.length === 0 ? (
+              <Card className="p-8 text-center">
+                <CheckCircle className="h-12 w-12 mx-auto mb-3 text-green-500" />
+                <p className="text-lg font-medium">No reports to review</p>
+                <p className="text-sm text-muted-foreground">Everything looks good!</p>
+              </Card>
+            ) : (
+              reports.map((report) => (
+                <Card key={report.id} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <Badge variant={report.status === "pending" ? "destructive" : "secondary"}>
+                          {report.status}
+                        </Badge>
+                        <Badge variant="outline">{report.reported_type}</Badge>
+                        <span className="text-xs text-muted-foreground">
+                          {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className="font-medium text-sm">{report.reason}</p>
+                      {report.description && (
+                        <p className="text-sm text-muted-foreground mt-1">{report.description}</p>
+                      )}
+                    </div>
+                    <div className="flex gap-1">
+                      {report.reported_type === "post" && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive"
+                          onClick={() => handleDeletePost(report.reported_id)}
+                          title="Delete reported post"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => navigate(`/profile/${report.reported_id}`)}
+                        title="View profile"
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </TabsContent>
+
+          <TabsContent value="users" className="space-y-2 mt-4">
+            {users.map((user) => (
+              <Card key={user.id} className="p-3">
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={user.avatar_url || undefined} />
+                    <AvatarFallback>{user.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm truncate">{user.full_name || "Anonymous"}</p>
+                      {user.is_verified && <Badge variant="secondary" className="text-xs">Verified</Badge>}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Joined {user.created_at ? formatDistanceToNow(new Date(user.created_at), { addSuffix: true }) : "unknown"}
+                    </p>
+                  </div>
+                  <Button variant="ghost" size="sm" onClick={() => navigate(`/profile/${user.id}`)}>
+                    View
+                  </Button>
+                </div>
+              </Card>
+            ))}
+          </TabsContent>
+        </Tabs>
+      </div>
+    </div>
+  );
+};
+
+export default AdminDashboard;
