@@ -171,6 +171,8 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
         )}
 
         <Separator />
+
+        <div className="p-2">
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 h-12 text-destructive hover:text-destructive"
