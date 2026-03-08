@@ -575,6 +575,42 @@ const Profile = () => {
                 </motion.div>
               )}
 
+              {/* Mutual friends card */}
+              {!isOwnProfile && mutualFriends.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...spring, delay: 0.18 }}
+                  className="bento-card p-5"
+                >
+                  <h3 className="font-display font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wider">
+                    Mutual Friends · {mutualFriends.length}
+                  </h3>
+                  <div className="space-y-2.5">
+                    {mutualFriends.slice(0, 6).map((friend) => (
+                      <div
+                        key={friend.id}
+                        onClick={() => navigate(`/profile/${friend.id}`)}
+                        className="flex items-center gap-3 p-2 -mx-2 rounded-xl hover:bg-accent/10 cursor-pointer transition-colors"
+                      >
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={friend.avatar_url || undefined} />
+                          <AvatarFallback className="gradient-brand-soft text-xs font-semibold">
+                            {friend.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium truncate">{friend.full_name || "User"}</span>
+                      </div>
+                    ))}
+                    {mutualFriends.length > 6 && (
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        +{mutualFriends.length - 6} more
+                      </p>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
               {/* Activity timeline card */}
               {timelineItems.length > 0 && (
                 <motion.div
