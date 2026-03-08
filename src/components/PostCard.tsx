@@ -294,11 +294,17 @@ const PostCard = ({
                  )}
                </DropdownMenuItem>
                 {currentUserId === post.user_id && (
-                  <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete Post
-                  </DropdownMenuItem>
-                )}
+                  <>
+                    <DropdownMenuItem onClick={() => { setIsEditing(true); setEditContent(post.content); }}>
+                      <Pencil className="h-4 w-4 mr-2" />
+                      Edit Post
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete Post
+                    </DropdownMenuItem>
+                  </>
+                 )}
                 {currentUserId !== post.user_id && (
                   <>
                     <DropdownMenuSeparator />
