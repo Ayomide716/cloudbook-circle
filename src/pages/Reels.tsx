@@ -218,6 +218,9 @@ export default function Reels() {
                 onVideoError={(id) => {
                   if (id === activeReelId) toast({ title: "Video couldn't play", description: "Re-upload from your device.", variant: "destructive" });
                 }}
+                onNavigateToProfile={(userId) => navigate(`/profile/${userId}`)}
+                onFollow={handleFollow}
+                isFollowing={friendIds.has(reel.user_id)}
               />
             ))}
           </div>
