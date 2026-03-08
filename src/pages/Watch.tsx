@@ -614,6 +614,9 @@ const VideoCard = ({
             </div>
           </div>
         </div>
+
+        {/* Comments */}
+        <WatchComments videoId={video.id} currentUserId={currentUserId} />
       </Card>
     </motion.div>
   );
