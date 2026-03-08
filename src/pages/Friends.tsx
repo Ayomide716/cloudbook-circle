@@ -666,7 +666,7 @@ const Friends = () => {
 
           <TabsContent value="suggestions">
             <Card>
-              {suggestions.length === 0 ? (
+              {suggestions.filter(s => !hiddenSuggestions.has(s.id)).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
                   <p className="text-lg font-medium text-muted-foreground">
