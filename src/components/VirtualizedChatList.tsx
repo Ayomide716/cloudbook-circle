@@ -18,9 +18,9 @@ interface VirtualizedChatListProps {
   style?: CSSProperties;
 }
 
-interface RowProps {
+type RowProps = {
   renderItem: (index: number) => ReactElement | null;
-}
+};
 
 const RowComponent = ({
   index,
