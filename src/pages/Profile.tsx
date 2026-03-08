@@ -37,6 +37,7 @@ import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import ProfileAchievements from "@/components/ProfileAchievements";
 
 interface ProfileData {
   id: string;
@@ -572,6 +573,16 @@ const Profile = () => {
                   </div>
                 </motion.div>
               )}
+
+              {/* Achievements card */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ ...spring, delay: 0.12 }}
+                className="bento-card p-5"
+              >
+                <ProfileAchievements userId={userId || ""} isOwnProfile={isOwnProfile} />
+              </motion.div>
 
               {/* Mutual friends card */}
               {!isOwnProfile && mutualFriends.length > 0 && (

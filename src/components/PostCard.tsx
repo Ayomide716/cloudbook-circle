@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -14,6 +14,7 @@ import SharePostDialog from "./SharePostDialog";
 import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
+import ReportDialog from "./ReportDialog";
 
 interface Comment {
   id: string;
@@ -289,14 +290,24 @@ const PostCard = ({
                    </>
                  )}
                </DropdownMenuItem>
-               {currentUserId === post.user_id && (
-                 <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
-                   <Trash2 className="h-4 w-4 mr-2" />
-                   Delete Post
-                 </DropdownMenuItem>
-               )}
-             </DropdownMenuContent>
-           </DropdownMenu>
+                {currentUserId === post.user_id && (
+                  <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Post
+                  </DropdownMenuItem>
+                )}
+                {currentUserId !== post.user_id && (
+                  <>
+                    <DropdownMenuSeparator />
+                    <ReportDialog
+                      reportedType="post"
+                      reportedId={post.id}
+                      currentUserId={currentUserId}
+                    />
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
         </div>
 
         {/* Content */}
