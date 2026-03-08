@@ -506,36 +506,7 @@ const Messages = () => {
                     scrollToIndex={highlightedMessageId ? messages.findIndex(m => m.id === highlightedMessageId) : undefined}
                     estimatedItemSize={80}
                     className="flex-1 overflow-hidden"
-                    renderItem={useCallback((index: number): ReactElement | null => {
-                      const message = messages[index];
-                      if (!message) return null;
-                      const isCurrentUser = message.sender_id === currentUserId;
-                      const isLastOwnMessage = isCurrentUser && !messages.slice(index + 1).some((m) => m.sender_id === currentUserId);
-                      const isLastMessage = index === messages.length - 1;
-
-                      return (
-                        <div
-                          id={`msg-${message.id}`}
-                          className={cn(
-                            "transition-all duration-300",
-                            highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1"
-                          )}
-                        >
-                          <ChatBubble
-                            message={message}
-                            isCurrentUser={isCurrentUser}
-                            isLastOwnMessage={isLastOwnMessage}
-                            isLastMessage={isLastMessage}
-                            currentUserId={currentUserId!}
-                            replyMessage={getReplyMessage(message.reply_to)}
-                            onReply={handleReply}
-                            onEdit={handleEdit}
-                            onUnsend={handleUnsend}
-                            theme={chatTheme}
-                          />
-                        </div>
-                      );
-                    }, [messages, currentUserId, highlightedMessageId, chatTheme])}
+                    renderItem={renderMessage}
                     footer={
                       typingUsers.length > 0 ? (
                         <div className="flex justify-start animate-fade-in px-3 pb-2">
