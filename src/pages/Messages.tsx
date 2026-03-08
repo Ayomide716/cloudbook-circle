@@ -468,42 +468,46 @@ const Messages = () => {
                     </div>
                   )}
 
-                  {/* Messages */}
-                  <div ref={messagesContainerRef} className="flex-1 overflow-y-auto overflow-x-hidden p-3 sm:p-4">
-                    <div className="space-y-3 sm:space-y-4 min-h-full flex flex-col justify-end">
-                      {messages.map((message, index) => {
-                        const isCurrentUser = message.sender_id === currentUserId;
-                        const isLastOwnMessage = isCurrentUser && !messages.slice(index + 1).some((m) => m.sender_id === currentUserId);
-                        const isLastMessage = index === messages.length - 1;
+                  {/* Virtualized Messages */}
+                  <VirtualizedChatList
+                    itemCount={messages.length}
+                    scrollToBottomKey={messages.length}
+                    scrollToIndex={highlightedMessageId ? messages.findIndex(m => m.id === highlightedMessageId) : undefined}
+                    estimatedItemSize={80}
+                    className="flex-1 overflow-hidden"
+                    renderItem={useCallback((index: number): ReactElement | null => {
+                      const message = messages[index];
+                      if (!message) return null;
+                      const isCurrentUser = message.sender_id === currentUserId;
+                      const isLastOwnMessage = isCurrentUser && !messages.slice(index + 1).some((m) => m.sender_id === currentUserId);
+                      const isLastMessage = index === messages.length - 1;
 
-                        return (
-                          <div
-                            key={message.id}
-                            id={`msg-${message.id}`}
-                            className={cn(
-                              "transition-all duration-300",
-                              highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1"
-                            )}
-                          >
-                            <ChatBubble
-                              message={message}
-                              isCurrentUser={isCurrentUser}
-                              isLastOwnMessage={isLastOwnMessage}
-                              isLastMessage={isLastMessage}
-                              currentUserId={currentUserId!}
-                              replyMessage={getReplyMessage(message.reply_to)}
-                              onReply={handleReply}
-                              onEdit={handleEdit}
-                              onUnsend={handleUnsend}
-                              theme={chatTheme}
-                            />
-                          </div>
-                        );
-                      })}
-
-                      {/* Typing indicator */}
-                      {typingUsers.length > 0 && (
-                        <div className="flex justify-start animate-fade-in">
+                      return (
+                        <div
+                          id={`msg-${message.id}`}
+                          className={cn(
+                            "transition-all duration-300",
+                            highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1"
+                          )}
+                        >
+                          <ChatBubble
+                            message={message}
+                            isCurrentUser={isCurrentUser}
+                            isLastOwnMessage={isLastOwnMessage}
+                            isLastMessage={isLastMessage}
+                            currentUserId={currentUserId!}
+                            replyMessage={getReplyMessage(message.reply_to)}
+                            onReply={handleReply}
+                            onEdit={handleEdit}
+                            onUnsend={handleUnsend}
+                            theme={chatTheme}
+                          />
+                        </div>
+                      );
+                    }, [messages, currentUserId, highlightedMessageId, chatTheme])}
+                    footer={
+                      typingUsers.length > 0 ? (
+                        <div className="flex justify-start animate-fade-in px-3 pb-2">
                           <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-2.5">
                             <div className="flex items-center gap-1">
                               <div className="flex gap-1">
@@ -515,10 +519,9 @@ const Messages = () => {
                             </div>
                           </div>
                         </div>
-                      )}
-                      <div ref={messagesEndRef} />
-                    </div>
-                  </div>
+                      ) : null
+                    }
+                  />
 
                   {/* Reply / Edit bar */}
                   {(replyingTo || editingMessage) && (
