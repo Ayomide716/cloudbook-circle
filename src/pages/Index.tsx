@@ -199,6 +199,7 @@ const Index = () => {
                       onCommentAdded={() => handleCommentAdded(post.id)}
                       onDelete={() => refetch()}
                     />
+                    </div>
                   ))}
 
                   {/* Infinite scroll sentinel */}
