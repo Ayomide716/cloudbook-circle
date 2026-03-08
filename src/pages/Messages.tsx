@@ -74,7 +74,7 @@ const Messages = () => {
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const {
-    incomingCall, activeCall, callAccepted,
+    incomingCall, activeCall,
     initiateCall, acceptIncomingCall, rejectIncomingCall, endCall,
   } = useVideoCall(currentUserId);
 
