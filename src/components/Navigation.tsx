@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -235,6 +235,10 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                       <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/60" onClick={() => navigate("/events")}>
                         <CalendarDays className="h-4 w-4 mr-3" />
                         Events
+                      </DropdownMenuItem>
+                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/60" onClick={() => navigate("/marketplace")}>
+                        <ShoppingBag className="h-4 w-4 mr-3" />
+                        Marketplace
                       </DropdownMenuItem>
                       <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/60" onClick={() => navigate("/settings")}>
                         <Settings className="h-4 w-4 mr-3" />
