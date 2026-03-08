@@ -173,18 +173,24 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 <ImageUpload
                   bucket="post-images"
                   userId={currentUser.id}
-                  onUploadComplete={(url) => { setImageUrl(url); if (url) setVideoUrl(""); }}
+                  onUploadComplete={(url) => { setImageUrl(url); if (url) { setVideoUrl(""); setImageUrls([]); } }}
                   currentImage={imageUrl}
                   label=""
+                />
+                <MultiImageUpload
+                  bucket="post-images"
+                  userId={currentUser.id}
+                  onUploadComplete={(urls) => { setImageUrls(urls); if (urls.length > 0) { setImageUrl(""); setVideoUrl(""); } }}
+                  currentImages={imageUrls}
                 />
                 <VideoUpload
                   bucket="post-videos"
                   userId={currentUser.id}
-                  onUploadComplete={(url) => { setVideoUrl(url); if (url) setImageUrl(""); }}
+                  onUploadComplete={(url) => { setVideoUrl(url); if (url) { setImageUrl(""); setImageUrls([]); } }}
                   currentVideo={videoUrl}
                   label=""
                 />
-                 <PollCreator onCreatePoll={handleCreatePoll} />
+                <PollCreator onCreatePoll={handleCreatePoll} />
               </div>
             </div>
 
