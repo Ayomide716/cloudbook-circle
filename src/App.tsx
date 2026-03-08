@@ -130,6 +130,7 @@ const AppRoutes = () => {
           <Route path="/watch" element={<AnimatedPage><Watch /></AnimatedPage>} />
           <Route path="/pages" element={<AnimatedPage><Pages /></AnimatedPage>} />
           <Route path="/pages/:pageId" element={<AnimatedPage><PageDetail /></AnimatedPage>} />
+          <Route path="/ads" element={<AnimatedPage><Ads /></AnimatedPage>} />
           <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Routes>
       </AnimatePresence>
