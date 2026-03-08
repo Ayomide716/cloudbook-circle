@@ -6,12 +6,13 @@ import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
 import GroupChat from "@/components/GroupChat";
 import EditGroupModal from "@/components/EditGroupModal";
+import GroupVideoCall from "@/components/GroupVideoCall";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 
