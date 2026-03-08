@@ -109,6 +109,9 @@ const Profile = () => {
   const [createAlbumOpen, setCreateAlbumOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
 
+  // Mutual friends state
+  const [mutualFriends, setMutualFriends] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[]>([]);
+
   const coverRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
   const coverY = useTransform(scrollY, [0, 300], [0, 100]);
@@ -157,7 +160,48 @@ const Profile = () => {
     }
     // Load albums
     loadAlbums();
+    // Load mutual friends
+    loadMutualFriends();
     setIsLoading(false);
+  };
+
+  const loadMutualFriends = async () => {
+    if (!currentUserId || !userId || currentUserId === userId) {
+      setMutualFriends([]);
+      return;
+    }
+    // Get my friends
+    const { data: myFriends } = await supabase
+      .from("friendships")
+      .select("user_id, friend_id")
+      .eq("status", "accepted")
+      .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
+
+    const myFriendIds = new Set(
+      (myFriends || []).map(f => f.user_id === currentUserId ? f.friend_id : f.user_id)
+    );
+
+    // Get their friends
+    const { data: theirFriends } = await supabase
+      .from("friendships")
+      .select("user_id, friend_id")
+      .eq("status", "accepted")
+      .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+
+    const theirFriendIds = new Set(
+      (theirFriends || []).map(f => f.user_id === userId ? f.friend_id : f.user_id)
+    );
+
+    // Intersection
+    const mutualIds = [...myFriendIds].filter(id => theirFriendIds.has(id));
+    if (mutualIds.length === 0) { setMutualFriends([]); return; }
+
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .in("id", mutualIds.slice(0, 20));
+
+    setMutualFriends(profiles || []);
   };
 
   const loadAlbums = async () => {
@@ -527,6 +571,42 @@ const Profile = () => {
                         <img src={p.image_url!} alt="" className="w-full h-full object-cover" />
                       </motion.div>
                     ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Mutual friends card */}
+              {!isOwnProfile && mutualFriends.length > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ ...spring, delay: 0.18 }}
+                  className="bento-card p-5"
+                >
+                  <h3 className="font-display font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wider">
+                    Mutual Friends · {mutualFriends.length}
+                  </h3>
+                  <div className="space-y-2.5">
+                    {mutualFriends.slice(0, 6).map((friend) => (
+                      <div
+                        key={friend.id}
+                        onClick={() => navigate(`/profile/${friend.id}`)}
+                        className="flex items-center gap-3 p-2 -mx-2 rounded-xl hover:bg-accent/10 cursor-pointer transition-colors"
+                      >
+                        <Avatar className="h-9 w-9">
+                          <AvatarImage src={friend.avatar_url || undefined} />
+                          <AvatarFallback className="gradient-brand-soft text-xs font-semibold">
+                            {friend.full_name?.[0]?.toUpperCase() || "U"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span className="text-sm font-medium truncate">{friend.full_name || "User"}</span>
+                      </div>
+                    ))}
+                    {mutualFriends.length > 6 && (
+                      <p className="text-xs text-muted-foreground text-center pt-1">
+                        +{mutualFriends.length - 6} more
+                      </p>
+                    )}
                   </div>
                 </motion.div>
               )}
