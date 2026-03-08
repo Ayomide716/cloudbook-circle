@@ -133,16 +133,22 @@ const Notifications = ({ userId }: NotificationsProps) => {
             </p>
           ) : (
             <div className="space-y-2">
-              {notifications.map((notification) => (
+              {notifications.map((notification, index) => (
                 <div
                   key={notification.id}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
+                  className={`p-3 rounded-lg cursor-pointer transition-all duration-200 animate-fade-in ${
                     notification.read
-                      ? "bg-background"
-                      : "bg-accent hover:bg-accent/80"
+                      ? "bg-background hover:bg-muted/50"
+                      : notification.type === 'verification'
+                        ? "bg-primary/10 hover:bg-primary/15 border border-primary/20"
+                        : "bg-accent hover:bg-accent/80"
                   }`}
+                  style={{ animationDelay: `${index * 40}ms`, animationFillMode: "forwards" }}
                   onClick={() => !notification.read && markAsRead(notification.id)}
                 >
+                  {notification.type === 'verification' && (
+                    <span className="text-xs font-semibold text-primary flex items-center gap-1 mb-1">✅ Verified</span>
+                  )}
                   <p className="text-sm">{notification.content}</p>
                   <p className="text-xs text-muted-foreground mt-1">
                     {formatDistanceToNow(new Date(notification.created_at), {
