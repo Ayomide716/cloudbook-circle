@@ -37,6 +37,7 @@ import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
+import ProfileAchievements from "@/components/ProfileAchievements";
 
 interface ProfileData {
   id: string;
