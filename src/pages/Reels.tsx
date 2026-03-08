@@ -216,9 +216,17 @@ export default function Reels() {
           </button>
           <h1 className="text-white font-bold text-lg">Reels</h1>
         </div>
-        <button onClick={() => setShowUpload(true)} className="text-white/70 hover:text-white transition-colors flex items-center gap-2 text-sm">
-          <Plus className="h-5 w-5" /> Create
-        </button>
+        <div className="flex items-center gap-4">
+          <button onClick={() => navigate("/")} className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-sm">
+            <Home className="h-4 w-4" /> Home
+          </button>
+          <button onClick={() => navigate("/messages")} className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-sm">
+            <MessageCircle className="h-4 w-4" /> Messages
+          </button>
+          <button onClick={() => setShowUpload(true)} className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-sm">
+            <Plus className="h-5 w-5" /> Create
+          </button>
+        </div>
       </div>
 
       <div className="md:hidden absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/60 to-transparent safe-area-top">
