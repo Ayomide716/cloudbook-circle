@@ -4,6 +4,7 @@
  import Navigation from "@/components/Navigation";
  import PostCard from "@/components/PostCard";
  import { Loader2, Bookmark } from "lucide-react";
+ import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
  
  interface Post {
    id: string;
