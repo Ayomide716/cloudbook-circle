@@ -47,9 +47,11 @@ const VideoCall = ({
   const [callDuration, setCallDuration] = useState(0);
   const [callStatus, setCallStatus] = useState<"connecting" | "connected" | "ended">("connecting");
   const [signalQuality, setSignalQuality] = useState<"good" | "fair" | "poor">("good");
+  const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
@@ -58,7 +60,11 @@ const VideoCall = ({
   const statsIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const channelReadyRef = useRef(false);
   const pendingIceCandidatesRef = useRef<RTCIceCandidate[]>([]);
+  const pendingSignalsRef = useRef<SignalMessage[]>([]);
   const hasCreatedOfferRef = useRef(false);
+  const remoteReadyRef = useRef(false);
+  const setupCompleteRef = useRef(false);
+  const hasEndedRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   const roomId = [currentUserId, remoteUserId].sort().join("-");
@@ -84,6 +90,12 @@ const VideoCall = ({
     localStreamRef.current = null;
     screenStreamRef.current = null;
     signalingChannelRef.current = null;
+    pendingIceCandidatesRef.current = [];
+    pendingSignalsRef.current = [];
+    remoteReadyRef.current = false;
+    setupCompleteRef.current = false;
+    hasCreatedOfferRef.current = false;
+    setRemoteStream(null);
   }, []);
 
   const sendSignal = useCallback(
@@ -97,6 +109,22 @@ const VideoCall = ({
     },
     [currentUserId, remoteUserId]
   );
+
+  const attachRemoteStream = useCallback((stream: MediaStream) => {
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = stream;
+      remoteVideoRef.current.play().catch(() => {});
+    }
+    if (remoteAudioRef.current) {
+      remoteAudioRef.current.srcObject = stream;
+      remoteAudioRef.current.muted = isSpeakerMuted;
+      remoteAudioRef.current.play().catch(() => {});
+    }
+  }, [isSpeakerMuted]);
+
+  useEffect(() => {
+    if (remoteStream) attachRemoteStream(remoteStream);
+  }, [remoteStream, attachRemoteStream]);
 
   const monitorStats = useCallback(() => {
     statsIntervalRef.current = setInterval(async () => {
@@ -116,9 +144,17 @@ const VideoCall = ({
     }, 3000);
   }, []);
 
+  const handleEndCall = useCallback(() => {
+    if (hasEndedRef.current) return;
+    hasEndedRef.current = true;
+    setCallStatus("ended");
+    cleanup();
+    onEnd();
+  }, [cleanup, onEnd]);
+
   const createPeerConnection = useCallback(() => {
     const pc = new RTCPeerConnection({
-      iceServers: ICE_SERVERS,
+      iceServers: getIceServers(),
       iceCandidatePoolSize: 10,
     });
 
@@ -134,11 +170,10 @@ const VideoCall = ({
     };
 
     pc.ontrack = (event) => {
+      const stream = event.streams[0] ?? new MediaStream([event.track]);
       console.log("[WebRTC] Got remote track:", event.track.kind);
-      if (remoteVideoRef.current && event.streams[0]) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-        remoteVideoRef.current.play().catch(() => {});
-      }
+      setRemoteStream(stream);
+      attachRemoteStream(stream);
     };
 
     pc.onconnectionstatechange = () => {
@@ -146,15 +181,20 @@ const VideoCall = ({
       if (pc.connectionState === "connected") {
         setIsConnected(true);
         setCallStatus("connected");
-        callTimerRef.current = setInterval(() => setCallDuration((p) => p + 1), 1000);
-        monitorStats();
-      } else if (pc.connectionState === "disconnected" || pc.connectionState === "failed") {
+        if (!callTimerRef.current) {
+          callTimerRef.current = setInterval(() => setCallDuration((p) => p + 1), 1000);
+        }
+        if (!statsIntervalRef.current) monitorStats();
+      } else if (pc.connectionState === "disconnected") {
+        setIsConnected(false);
+        setCallStatus("connecting");
+      } else if (pc.connectionState === "failed" || pc.connectionState === "closed") {
         handleEndCall();
       }
     };
 
     return pc;
-  }, [sendSignal, monitorStats]);
+  }, [sendSignal, monitorStats, handleEndCall, attachRemoteStream]);
 
   const startLocalStream = useCallback(async () => {
     try {
@@ -167,39 +207,16 @@ const VideoCall = ({
       return stream;
     } catch (error) {
       console.error("[WebRTC] Failed to get media:", error);
-      // Fallback: audio only
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
       return stream;
     }
   }, [isVoiceOnly]);
 
-  const setupCall = useCallback(async () => {
-    try {
-      console.log("[WebRTC] Setting up call, isIncoming:", isIncoming);
-      const stream = await startLocalStream();
-      const pc = createPeerConnection();
-      peerConnectionRef.current = pc;
-      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
-
-      if (isIncoming) {
-        // Incoming side: send "ready" signal so caller knows to send offer
-        console.log("[WebRTC] Sending ready signal");
-        sendSignal({ type: "ready", payload: {} });
-      } else {
-        // Caller side: create and send offer immediately
-        // The callee might not be ready yet, but we'll re-send on "ready" signal
-        await createAndSendOffer(pc);
-      }
-    } catch (error) {
-      console.error("[WebRTC] Error setting up call:", error);
-      handleEndCall();
-    }
-  }, [startLocalStream, createPeerConnection, isIncoming, sendSignal]);
-
   const createAndSendOffer = useCallback(async (pc?: RTCPeerConnection) => {
     const peerConn = pc || peerConnectionRef.current;
-    if (!peerConn || !channelReadyRef.current) return;
+    if (!peerConn || !channelReadyRef.current || hasCreatedOfferRef.current) return;
+
     try {
       console.log("[WebRTC] Creating and sending offer");
       const offer = await peerConn.createOffer();
@@ -211,77 +228,88 @@ const VideoCall = ({
     }
   }, [sendSignal]);
 
+  const processSignal = useCallback(async (pc: RTCPeerConnection, message: SignalMessage) => {
+    switch (message.type) {
+      case "offer": {
+        console.log("[WebRTC] Received offer, creating answer");
+        await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+        for (const c of pendingIceCandidatesRef.current) {
+          try { await pc.addIceCandidate(c); } catch {}
+        }
+        pendingIceCandidatesRef.current = [];
+        const answer = await pc.createAnswer();
+        await pc.setLocalDescription(answer);
+        sendSignal({ type: "answer", payload: answer });
+        break;
+      }
+      case "answer": {
+        console.log("[WebRTC] Received answer");
+        await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
+        for (const c of pendingIceCandidatesRef.current) {
+          try { await pc.addIceCandidate(c); } catch {}
+        }
+        pendingIceCandidatesRef.current = [];
+        break;
+      }
+      case "ice-candidate": {
+        const candidate = new RTCIceCandidate(message.payload);
+        if (pc.remoteDescription) {
+          try { await pc.addIceCandidate(candidate); } catch {}
+        } else {
+          pendingIceCandidatesRef.current.push(candidate);
+        }
+        break;
+      }
+    }
+  }, [sendSignal]);
+
+  const setupCall = useCallback(async () => {
+    try {
+      console.log("[WebRTC] Setting up call, isIncoming:", isIncoming);
+      const stream = await startLocalStream();
+      const pc = createPeerConnection();
+      peerConnectionRef.current = pc;
+      stream.getTracks().forEach((t) => pc.addTrack(t, stream));
+      setupCompleteRef.current = true;
+
+      sendSignal({ type: "ready", payload: {} });
+
+      const queuedMessages = [...pendingSignalsRef.current];
+      pendingSignalsRef.current = [];
+      for (const queuedMessage of queuedMessages) {
+        await processSignal(pc, queuedMessage);
+      }
+
+      if (!isIncoming && remoteReadyRef.current) {
+        await createAndSendOffer(pc);
+      }
+    } catch (error) {
+      console.error("[WebRTC] Error setting up call:", error);
+      handleEndCall();
+    }
+  }, [startLocalStream, createPeerConnection, isIncoming, sendSignal, processSignal, createAndSendOffer, handleEndCall]);
+
   const handleSignal = useCallback(
     async (message: SignalMessage) => {
       if (message.from !== remoteUserId || message.to !== currentUserId) return;
-      const pc = peerConnectionRef.current;
 
-      switch (message.type) {
-        case "ready":
-          // Callee is ready - send (or re-send) offer
-          if (!isIncoming && pc) {
-            console.log("[WebRTC] Got ready signal, sending offer");
-            // Reset local description if we already sent one
-            if (hasCreatedOfferRef.current) {
-              try {
-                const offer = await pc.createOffer();
-                await pc.setLocalDescription(offer);
-                sendSignal({ type: "offer", payload: offer });
-              } catch (e) {
-                console.error("[WebRTC] Error re-creating offer:", e);
-              }
-            } else {
-              await createAndSendOffer(pc);
-            }
-          }
-          break;
-
-        case "offer":
-          if (pc) {
-            console.log("[WebRTC] Received offer, creating answer");
-            await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
-            // Flush pending ICE candidates
-            for (const c of pendingIceCandidatesRef.current) {
-              try { await pc.addIceCandidate(c); } catch {}
-            }
-            pendingIceCandidatesRef.current = [];
-            const answer = await pc.createAnswer();
-            await pc.setLocalDescription(answer);
-            sendSignal({ type: "answer", payload: answer });
-          }
-          break;
-
-        case "answer":
-          if (pc) {
-            console.log("[WebRTC] Received answer");
-            await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
-            for (const c of pendingIceCandidatesRef.current) {
-              try { await pc.addIceCandidate(c); } catch {}
-            }
-            pendingIceCandidatesRef.current = [];
-          }
-          break;
-
-        case "ice-candidate":
-          if (pc) {
-            const candidate = new RTCIceCandidate(message.payload);
-            if (pc.remoteDescription) {
-              try { await pc.addIceCandidate(candidate); } catch {}
-            } else {
-              pendingIceCandidatesRef.current.push(candidate);
-            }
-          }
-          break;
+      if (message.type === "ready") {
+        remoteReadyRef.current = true;
+        if (!isIncoming && setupCompleteRef.current && peerConnectionRef.current) {
+          await createAndSendOffer(peerConnectionRef.current);
+        }
+        return;
       }
-    },
-    [remoteUserId, currentUserId, isIncoming, sendSignal, createAndSendOffer]
-  );
 
-  const handleEndCall = useCallback(() => {
-    setCallStatus("ended");
-    cleanup();
-    onEnd();
-  }, [cleanup, onEnd]);
+      if (!setupCompleteRef.current || !peerConnectionRef.current) {
+        pendingSignalsRef.current.push(message);
+        return;
+      }
+
+      await processSignal(peerConnectionRef.current, message);
+    },
+    [remoteUserId, currentUserId, isIncoming, createAndSendOffer, processSignal]
+  );
 
   const toggleVideo = () => {
     if (localStreamRef.current && !isVoiceOnly) {
