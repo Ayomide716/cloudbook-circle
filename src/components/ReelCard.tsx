@@ -32,6 +32,7 @@ interface ReelCardProps {
 export default function ReelCard({
   reel, isActive, isMuted, currentUserId,
   onToggleMute, onLike, onComment, onShare, onDelete, onShowUpload, onVideoError,
+  onNavigateToProfile, onFollow, isFollowing,
 }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
