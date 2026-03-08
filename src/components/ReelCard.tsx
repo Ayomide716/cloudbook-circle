@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, MessageCircle, Share2, Play, Trash2, Music, Volume2, VolumeX, MoreHorizontal } from "lucide-react";
+import { ThumbsUp, MessageCircle, Share2, Play, Trash2, Music, Volume2, VolumeX, MoreHorizontal, Flag, Link2, UserX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useToast } from "@/hooks/use-toast";
 
 interface ReelCardProps {
   reel: {
@@ -27,12 +34,13 @@ interface ReelCardProps {
   onNavigateToProfile?: (userId: string) => void;
   onFollow?: (userId: string) => void;
   isFollowing?: boolean;
+  isPending?: boolean;
 }
 
 export default function ReelCard({
   reel, isActive, isMuted, currentUserId,
   onToggleMute, onLike, onComment, onShare, onDelete, onShowUpload, onVideoError,
-  onNavigateToProfile, onFollow, isFollowing,
+  onNavigateToProfile, onFollow, isFollowing, isPending,
 }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -43,6 +51,7 @@ export default function ReelCard({
   const [isVisible, setIsVisible] = useState(false);
   const lastTapRef = useRef(0);
   const animFrameRef = useRef<number>(0);
+  const { toast } = useToast();
 
   const isLiked = reel.reel_likes.some(l => l.user_id === currentUserId);
   const isTikTokLink = /tiktok\.com|vt\.tiktok\.com/i.test(reel.video_url);
@@ -118,14 +127,21 @@ export default function ReelCard({
     video.currentTime = ratio * video.duration;
   };
 
+  const handleCopyLink = async () => {
+    const url = `${window.location.origin}/reels/${reel.id}`;
+    await navigator.clipboard.writeText(url);
+    toast({ title: "Link copied!" });
+  };
+
   const formatCount = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+
+  const followLabel = isFollowing ? "Friends" : isPending ? "Requested" : "· Follow";
 
   return (
     <div ref={containerRef} className="h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] snap-start flex items-center justify-center relative">
       <div className="relative h-full w-full md:w-[400px] md:max-h-[calc(100vh-80px)] md:rounded-xl md:overflow-hidden md:mx-auto">
         {canPlayInline ? (
           <>
-            {/* Only render video element when near viewport */}
             {isVisible && (
               <video
                 ref={videoRef}
@@ -140,7 +156,6 @@ export default function ReelCard({
               />
             )}
 
-            {/* Placeholder when not visible */}
             {!isVisible && (
               <div className="absolute inset-0 bg-black" />
             )}
@@ -171,7 +186,6 @@ export default function ReelCard({
 
             {/* Progress bar */}
             <div className="absolute bottom-0 left-0 right-0 z-20 h-1 cursor-pointer group" onClick={handleSeek}>
-              {/* Buffered */}
               <div className="absolute inset-0 bg-white/20 rounded-full" />
               <div className="absolute left-0 top-0 h-full bg-white/40 rounded-full transition-none" style={{ width: `${buffered}%` }} />
               <div className="absolute left-0 top-0 h-full bg-primary rounded-full transition-none group-hover:h-1.5" style={{ width: `${progress}%` }} />
@@ -212,10 +226,12 @@ export default function ReelCard({
                   "text-sm px-3 py-0.5 rounded-full border transition-colors",
                   isFollowing
                     ? "border-white/40 text-white/60"
+                    : isPending
+                    ? "border-white/30 text-white/50"
                     : "border-white text-white hover:bg-white/20"
                 )}
               >
-                {isFollowing ? "Friends" : "· Follow"}
+                {followLabel}
               </button>
             )}
           </div>
@@ -251,11 +267,30 @@ export default function ReelCard({
             <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">Share</span>
           </button>
 
-          <button className="flex flex-col items-center">
-            <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center">
-              <MoreHorizontal className="h-6 w-6 text-white" />
-            </div>
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="flex flex-col items-center">
+                <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center">
+                  <MoreHorizontal className="h-6 w-6 text-white" />
+                </div>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="left" align="end" className="w-48">
+              <DropdownMenuItem onClick={handleCopyLink}>
+                <Link2 className="h-4 w-4 mr-2" /> Copy link
+              </DropdownMenuItem>
+              {currentUserId && currentUserId !== reel.user_id && (
+                <DropdownMenuItem className="text-destructive focus:text-destructive">
+                  <Flag className="h-4 w-4 mr-2" /> Report
+                </DropdownMenuItem>
+              )}
+              {currentUserId === reel.user_id && (
+                <DropdownMenuItem onClick={() => onDelete(reel.id)} className="text-destructive focus:text-destructive">
+                  <Trash2 className="h-4 w-4 mr-2" /> Delete reel
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </div>
