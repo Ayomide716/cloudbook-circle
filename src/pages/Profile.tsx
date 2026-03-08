@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Loader2, Edit, MessageCircle, MapPin, Briefcase, GraduationCap, Link as LinkIcon } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 interface Profile {
   id: string;
