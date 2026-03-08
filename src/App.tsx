@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import { AnimatePresence, motion } from "framer-motion";
 
 // Lazy-loaded page components
+const Landing = lazy(() => import("./pages/Landing"));
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -110,6 +111,7 @@ const AppRoutes = () => {
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
           <Route path="/" element={<AnimatedPage><Index /></AnimatedPage>} />
+          <Route path="/landing" element={<AnimatedPage><Landing /></AnimatedPage>} />
           <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
           <Route path="/profile/:userId" element={<AnimatedPage><Profile /></AnimatedPage>} />
           <Route path="/messages" element={<AnimatedPage><Messages /></AnimatedPage>} />

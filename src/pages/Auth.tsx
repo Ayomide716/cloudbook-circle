@@ -48,7 +48,7 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast({ title: "Account created!", description: "Welcome to AYO-CHAT" });
+        toast({ title: "Account created!", description: "Welcome to CloudBook!" });
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -84,9 +84,9 @@ const Auth = () => {
           className="text-center mb-8"
         >
           <div className="inline-flex items-center gap-2 mb-3">
-            <img src={logo} alt="AYO-CHAT" className="h-10 w-10 rounded-xl" />
-            <h1 className="text-4xl font-display font-bold tracking-tight bg-gradient-to-r from-primary via-primary-glow to-primary bg-clip-text text-transparent">
-              AYO-CHAT
+            <img src={logo} alt="CloudBook" className="h-10 w-10 rounded-xl" />
+            <h1 className="text-4xl font-display font-bold tracking-tight gradient-text">
+              CloudBook
             </h1>
           </div>
           <p className="text-muted-foreground text-sm">
