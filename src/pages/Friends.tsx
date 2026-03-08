@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -16,6 +16,10 @@ interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+}
+
+interface SuggestedProfile extends Profile {
+  mutualCount: number;
 }
 
 interface FriendRequest {
@@ -40,7 +44,7 @@ const Friends = () => {
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<Friendship[]>([]);
-  const [suggestions, setSuggestions] = useState<Profile[]>([]);
+  const [suggestions, setSuggestions] = useState<SuggestedProfile[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
@@ -153,29 +157,104 @@ const Friends = () => {
   const loadSuggestions = async () => {
     if (!currentUserId) return;
 
-    // Get existing friendships
-    const { data: existingFriendships } = await supabase
+    const { data: existingFriendships, error: existingError } = await supabase
       .from("friendships")
-      .select("user_id, friend_id")
+      .select("user_id, friend_id, status")
       .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
 
+    if (existingError) {
+      setSuggestions([]);
+      return;
+    }
+
     const connectedUserIds = new Set<string>([currentUserId]);
+    const myAcceptedFriendIds: string[] = [];
+
     existingFriendships?.forEach((f) => {
       connectedUserIds.add(f.user_id);
       connectedUserIds.add(f.friend_id);
+
+      if (f.status === "accepted") {
+        myAcceptedFriendIds.push(
+          f.user_id === currentUserId ? f.friend_id : f.user_id
+        );
+      }
     });
 
-    // Get profiles not connected
-    const { data: profiles } = await supabase
+    if (myAcceptedFriendIds.length === 0) {
+      setSuggestions([]);
+      return;
+    }
+
+    const [friendshipsByUserResult, friendshipsByFriendResult] = await Promise.all([
+      supabase
+        .from("friendships")
+        .select("user_id, friend_id")
+        .eq("status", "accepted")
+        .in("user_id", myAcceptedFriendIds),
+      supabase
+        .from("friendships")
+        .select("user_id, friend_id")
+        .eq("status", "accepted")
+        .in("friend_id", myAcceptedFriendIds),
+    ]);
+
+    const networkFriendships = [
+      ...(friendshipsByUserResult.data || []),
+      ...(friendshipsByFriendResult.data || []),
+    ];
+    const myAcceptedSet = new Set(myAcceptedFriendIds);
+    const candidateMutualMap = new Map<string, Set<string>>();
+
+    for (const friendship of networkFriendships) {
+      if (
+        myAcceptedSet.has(friendship.user_id) &&
+        !connectedUserIds.has(friendship.friend_id) &&
+        friendship.friend_id !== currentUserId
+      ) {
+        const mutualSet = candidateMutualMap.get(friendship.friend_id) || new Set<string>();
+        mutualSet.add(friendship.user_id);
+        candidateMutualMap.set(friendship.friend_id, mutualSet);
+      }
+
+      if (
+        myAcceptedSet.has(friendship.friend_id) &&
+        !connectedUserIds.has(friendship.user_id) &&
+        friendship.user_id !== currentUserId
+      ) {
+        const mutualSet = candidateMutualMap.get(friendship.user_id) || new Set<string>();
+        mutualSet.add(friendship.friend_id);
+        candidateMutualMap.set(friendship.user_id, mutualSet);
+      }
+    }
+
+    const candidateIds = [...candidateMutualMap.keys()];
+
+    if (candidateIds.length === 0) {
+      setSuggestions([]);
+      return;
+    }
+
+    const { data: profiles, error: profilesError } = await supabase
       .from("profiles")
       .select("id, full_name, avatar_url")
-      .limit(10);
+      .in("id", candidateIds.slice(0, 40));
 
-    const filteredProfiles = (profiles || []).filter(
-      (p) => !connectedUserIds.has(p.id)
-    );
+    if (profilesError || !profiles) {
+      setSuggestions([]);
+      return;
+    }
 
-    setSuggestions(filteredProfiles);
+    const rankedSuggestions: SuggestedProfile[] = profiles
+      .map((profile) => ({
+        ...profile,
+        mutualCount: candidateMutualMap.get(profile.id)?.size || 0,
+      }))
+      .filter((profile) => profile.mutualCount > 0)
+      .sort((a, b) => b.mutualCount - a.mutualCount)
+      .slice(0, 10);
+
+    setSuggestions(rankedSuggestions);
   };
 
   const setupRealtimeSubscription = () => {
