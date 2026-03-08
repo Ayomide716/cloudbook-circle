@@ -10,6 +10,8 @@ import EditProfileModal from "@/components/EditProfileModal";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
   Edit,
   MessageCircle,
@@ -23,11 +25,16 @@ import {
   MessageSquare,
   Image as ImageIcon,
   Users,
+  Plus,
+  FolderOpen,
+  Trash2,
+  X,
+  Loader2,
 } from "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
-import { motion, useScroll, useTransform } from "framer-motion";
+import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
@@ -59,6 +66,23 @@ interface Post {
   };
 }
 
+interface Album {
+  id: string;
+  name: string;
+  description: string | null;
+  user_id: string;
+  created_at: string | null;
+  photos: AlbumPhoto[];
+}
+
+interface AlbumPhoto {
+  id: string;
+  album_id: string;
+  image_url: string;
+  caption: string | null;
+  created_at: string | null;
+}
+
 const spring = { type: "spring" as const, stiffness: 260, damping: 28 };
 
 const Profile = () => {
@@ -73,7 +97,17 @@ const Profile = () => {
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const [friendCount, setFriendCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums">("posts");
+
+  // Albums state
+  const [albums, setAlbums] = useState<Album[]>([]);
+  const [selectedAlbum, setSelectedAlbum] = useState<Album | null>(null);
+  const [newAlbumName, setNewAlbumName] = useState("");
+  const [newAlbumDesc, setNewAlbumDesc] = useState("");
+  const [isCreatingAlbum, setIsCreatingAlbum] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [createAlbumOpen, setCreateAlbumOpen] = useState(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
 
   const coverRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
@@ -121,7 +155,95 @@ const Profile = () => {
       setPosts(postsData || []);
       loadPostsData(postsData || []);
     }
+    // Load albums
+    loadAlbums();
     setIsLoading(false);
+  };
+
+  const loadAlbums = async () => {
+    if (!userId) return;
+    const { data: albumsData } = await supabase
+      .from("albums")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+
+    if (albumsData) {
+      const albumsWithPhotos: Album[] = [];
+      for (const album of albumsData) {
+        const { data: photos } = await supabase
+          .from("album_photos")
+          .select("*")
+          .eq("album_id", album.id)
+          .order("created_at", { ascending: false });
+        albumsWithPhotos.push({ ...album, photos: photos || [] });
+      }
+      setAlbums(albumsWithPhotos);
+    }
+  };
+
+  const createAlbum = async () => {
+    if (!currentUserId || !newAlbumName.trim()) return;
+    setIsCreatingAlbum(true);
+    const { error } = await supabase.from("albums").insert({
+      name: newAlbumName.trim(),
+      description: newAlbumDesc.trim() || null,
+      user_id: currentUserId,
+    });
+    if (error) {
+      toast({ title: "Error creating album", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Album created!" });
+      setNewAlbumName("");
+      setNewAlbumDesc("");
+      setCreateAlbumOpen(false);
+      loadAlbums();
+    }
+    setIsCreatingAlbum(false);
+  };
+
+  const deleteAlbum = async (albumId: string) => {
+    const { error } = await supabase.from("albums").delete().eq("id", albumId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Album deleted" });
+      setSelectedAlbum(null);
+      loadAlbums();
+    }
+  };
+
+  const uploadPhotoToAlbum = async (albumId: string, file: File) => {
+    if (!currentUserId) return;
+    setIsUploadingPhoto(true);
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${currentUserId}/${Date.now()}.${fileExt}`;
+      const { error: uploadError } = await supabase.storage.from("post-images").upload(fileName, file);
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("post-images").getPublicUrl(fileName);
+
+      const { error: insertError } = await supabase.from("album_photos").insert({
+        album_id: albumId,
+        image_url: urlData.publicUrl,
+      });
+      if (insertError) throw insertError;
+      toast({ title: "Photo added!" });
+      loadAlbums();
+    } catch (error: any) {
+      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    }
+    setIsUploadingPhoto(false);
+  };
+
+  const deletePhoto = async (photoId: string) => {
+    const { error } = await supabase.from("album_photos").delete().eq("id", photoId);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "Photo removed" });
+      loadAlbums();
+    }
   };
 
   const loadPostsData = async (postsData: Post[]) => {
@@ -336,7 +458,7 @@ const Profile = () => {
 
         {/* ─── Tab bar ─── */}
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50 mb-6">
-          {(["posts", "about", "photos"] as const).map((tab) => (
+          {(["posts", "about", "photos", "albums"] as const).map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -567,6 +689,189 @@ const Profile = () => {
                     <img src={p.image_url!} alt="" className="w-full h-full object-cover" />
                   </motion.div>
                 ))}
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {activeTab === "albums" && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={spring}
+          >
+            {/* Album detail view */}
+            {selectedAlbum ? (
+              <div>
+                <div className="flex items-center justify-between mb-5">
+                  <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="sm" onClick={() => setSelectedAlbum(null)} className="rounded-xl">
+                      ← Back
+                    </Button>
+                    <div>
+                      <h2 className="font-display font-bold text-xl">{selectedAlbum.name}</h2>
+                      {selectedAlbum.description && (
+                        <p className="text-sm text-muted-foreground">{selectedAlbum.description}</p>
+                      )}
+                    </div>
+                  </div>
+                  {isOwnProfile && (
+                    <div className="flex gap-2">
+                      <input
+                        type="file"
+                        ref={photoInputRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) uploadPhotoToAlbum(selectedAlbum.id, file);
+                          e.target.value = "";
+                        }}
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="rounded-xl"
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={isUploadingPhoto}
+                      >
+                        {isUploadingPhoto ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Plus className="h-4 w-4 mr-2" />}
+                        Add Photo
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        className="rounded-xl"
+                        onClick={() => deleteAlbum(selectedAlbum.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Find album photos from current state */}
+                {(() => {
+                  const album = albums.find(a => a.id === selectedAlbum.id);
+                  const photos = album?.photos || [];
+                  return photos.length === 0 ? (
+                    <div className="bento-card p-12 text-center">
+                      <div className="w-16 h-16 rounded-2xl gradient-brand-soft flex items-center justify-center mx-auto mb-4">
+                        <ImageIcon className="h-7 w-7 text-primary" />
+                      </div>
+                      <p className="font-display font-semibold text-lg mb-1">No photos yet</p>
+                      <p className="text-sm text-muted-foreground">Add photos to this album to get started.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                      {photos.map((photo, i) => (
+                        <motion.div
+                          key={photo.id}
+                          initial={{ opacity: 0, scale: 0.9 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ ...spring, delay: Math.min(i * 0.04, 0.3) }}
+                          className="aspect-square rounded-2xl overflow-hidden bento-card relative group"
+                        >
+                          <img src={photo.image_url} alt={photo.caption || ""} className="w-full h-full object-cover" />
+                          {isOwnProfile && (
+                            <button
+                              onClick={() => deletePhoto(photo.id)}
+                              className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+            ) : (
+              /* Albums grid */
+              <div>
+                {isOwnProfile && (
+                  <div className="flex justify-end mb-4">
+                    <Dialog open={createAlbumOpen} onOpenChange={setCreateAlbumOpen}>
+                      <DialogTrigger asChild>
+                        <Button size="sm" className="rounded-xl gradient-brand text-primary-foreground">
+                          <Plus className="h-4 w-4 mr-2" /> New Album
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="glass border-border/50">
+                        <DialogHeader>
+                          <DialogTitle className="font-display">Create Album</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-3 pt-2">
+                          <Input
+                            placeholder="Album name"
+                            value={newAlbumName}
+                            onChange={(e) => setNewAlbumName(e.target.value)}
+                            className="rounded-xl"
+                          />
+                          <Input
+                            placeholder="Description (optional)"
+                            value={newAlbumDesc}
+                            onChange={(e) => setNewAlbumDesc(e.target.value)}
+                            className="rounded-xl"
+                          />
+                          <Button
+                            onClick={createAlbum}
+                            disabled={!newAlbumName.trim() || isCreatingAlbum}
+                            className="w-full rounded-xl gradient-brand text-primary-foreground"
+                          >
+                            {isCreatingAlbum ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                            Create
+                          </Button>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                )}
+
+                {albums.length === 0 ? (
+                  <div className="bento-card p-12 text-center">
+                    <div className="w-16 h-16 rounded-2xl gradient-brand-soft flex items-center justify-center mx-auto mb-4">
+                      <FolderOpen className="h-7 w-7 text-primary" />
+                    </div>
+                    <p className="font-display font-semibold text-lg mb-1">No albums</p>
+                    <p className="text-sm text-muted-foreground">
+                      {isOwnProfile ? "Create your first photo album!" : "This user hasn't created any albums yet."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                    {albums.map((album, i) => {
+                      const coverPhoto = album.photos[0]?.image_url;
+                      return (
+                        <motion.div
+                          key={album.id}
+                          initial={{ opacity: 0, scale: 0.95 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ ...spring, delay: Math.min(i * 0.06, 0.3) }}
+                          whileHover={{ scale: 1.02, y: -3 }}
+                          onClick={() => setSelectedAlbum(album)}
+                          className="bento-card overflow-hidden cursor-pointer group"
+                        >
+                          <div className="aspect-[4/3] overflow-hidden relative">
+                            {coverPhoto ? (
+                              <img src={coverPhoto} alt={album.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                            ) : (
+                              <div className="w-full h-full gradient-brand-soft flex items-center justify-center">
+                                <FolderOpen className="h-12 w-12 text-primary/40" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
+                            <div className="absolute bottom-0 left-0 right-0 p-4">
+                              <h3 className="font-display font-bold text-foreground">{album.name}</h3>
+                              <p className="text-xs text-muted-foreground">{album.photos.length} photo{album.photos.length !== 1 ? "s" : ""}</p>
+                            </div>
+                          </div>
+                        </motion.div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
             )}
           </motion.div>
