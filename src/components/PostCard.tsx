@@ -457,17 +457,19 @@ const PostCard = ({
         >
           {/* Reaction Picker */}
           {showReactions && (
-            <div className="absolute bottom-full left-0 mb-2 bg-card border rounded-full shadow-lg p-1.5 flex gap-1 z-20 animate-in fade-in-0 zoom-in-95">
-              {REACTION_TYPES.map(({ type, icon: Icon, label, color }) => (
-                <button
-                  key={type}
-                  onClick={() => handleReaction(type)}
-                  className="p-1.5 hover:scale-125 transition-transform rounded-full hover:bg-accent"
-                  title={label}
-                >
-                  <Icon className={cn("h-6 w-6", color)} />
-                </button>
-              ))}
+            <div className="absolute bottom-full left-0 pb-2 z-20">
+              <div className="bg-card border rounded-full shadow-lg p-1.5 flex gap-1 animate-in fade-in-0 zoom-in-95">
+                {REACTION_TYPES.map(({ type, icon: Icon, label, color }) => (
+                  <button
+                    key={type}
+                    onClick={() => handleReaction(type)}
+                    className="p-1.5 hover:scale-125 transition-transform rounded-full hover:bg-accent"
+                    title={label}
+                  >
+                    <Icon className={cn("h-6 w-6", color)} />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           
