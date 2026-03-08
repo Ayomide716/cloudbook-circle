@@ -1601,6 +1601,7 @@ export type Database = {
           profile_avatar_url: string
           profile_full_name: string
           profile_id: string
+          profile_is_verified: boolean
           reaction_count: number
           user_id: string
           video_url: string
