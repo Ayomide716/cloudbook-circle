@@ -157,7 +157,20 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
 
         <Separator />
 
-        <div className="p-2">
+        {isAdmin && (
+          <div className="p-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-3 h-12 text-primary"
+              onClick={() => navigateTo("/admin")}
+            >
+              <Shield className="h-5 w-5" />
+              Admin Dashboard
+            </Button>
+          </div>
+        )}
+
+        <Separator />
           <Button
             variant="ghost"
             className="w-full justify-start gap-3 h-12 text-destructive hover:text-destructive"

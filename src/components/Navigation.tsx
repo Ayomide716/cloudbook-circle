@@ -243,6 +243,12 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                         <Settings className="h-4 w-4 mr-3" />
                         Notification Settings
                       </DropdownMenuItem>
+                      {isAdmin && (
+                        <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/admin")}>
+                          <Shield className="h-4 w-4 mr-3" />
+                          Admin Dashboard
+                        </DropdownMenuItem>
+                      )}
                       <DropdownMenuSeparator className="my-1.5 bg-border/50" />
                       <DropdownMenuItem
                         className="p-3 cursor-pointer rounded-xl text-destructive focus:text-destructive focus:bg-destructive/10"
