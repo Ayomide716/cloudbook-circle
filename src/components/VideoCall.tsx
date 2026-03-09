@@ -68,6 +68,8 @@ const VideoCall = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const roomId = [currentUserId, remoteUserId].sort().join("-");
+  const handleSignalRef = useRef<(msg: SignalMessage) => Promise<void>>();
+  const setupCallRef = useRef<() => Promise<void>>();
 
   const formatDuration = (s: number) => {
     const h = Math.floor(s / 3600);
@@ -311,6 +313,10 @@ const VideoCall = ({
     [remoteUserId, currentUserId, isIncoming, createAndSendOffer, processSignal]
   );
 
+  // Keep refs up to date so the channel callback always uses the latest version
+  handleSignalRef.current = handleSignal;
+  setupCallRef.current = setupCall;
+
   const toggleVideo = () => {
     if (localStreamRef.current && !isVoiceOnly) {
       const track = localStreamRef.current.getVideoTracks()[0];
@@ -403,18 +409,31 @@ const VideoCall = ({
 
     const channel = supabase
       .channel(`video-call-${roomId}`)
-      .on("broadcast", { event: "signal" }, ({ payload }) => handleSignal(payload as SignalMessage))
+      .on("broadcast", { event: "signal" }, ({ payload }) => {
+        handleSignalRef.current?.(payload as SignalMessage);
+      })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           console.log("[WebRTC] Signaling channel subscribed");
           channelReadyRef.current = true;
-          // Small delay to ensure both sides are subscribed
-          setTimeout(() => setupCall(), 500);
+          setTimeout(() => setupCallRef.current?.(), 500);
         }
       });
 
     signalingChannelRef.current = channel;
-    return () => { cleanup(); };
+
+    // Timeout: end call if not connected within 45 seconds
+    const connectTimeout = setTimeout(() => {
+      if (!peerConnectionRef.current || peerConnectionRef.current.connectionState !== "connected") {
+        console.log("[WebRTC] Connection timeout - ending call");
+        handleEndCall();
+      }
+    }, 45000);
+
+    return () => {
+      clearTimeout(connectTimeout);
+      cleanup();
+    };
   }, []); // Mount once only
 
   const qualityColor = signalQuality === "good" ? "bg-green-500" : signalQuality === "fair" ? "bg-yellow-500" : "bg-red-500";
