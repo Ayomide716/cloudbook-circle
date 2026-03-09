@@ -68,6 +68,8 @@ const VideoCall = ({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const roomId = [currentUserId, remoteUserId].sort().join("-");
+  const handleSignalRef = useRef<(msg: SignalMessage) => Promise<void>>();
+  const setupCallRef = useRef<() => Promise<void>>();
 
   const formatDuration = (s: number) => {
     const h = Math.floor(s / 3600);
