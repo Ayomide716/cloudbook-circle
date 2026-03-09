@@ -422,15 +422,37 @@ const VideoCall = ({
 
     signalingChannelRef.current = channel;
 
-    // Timeout: end call if not connected within 45 seconds
+    // Periodically re-send "ready" signal until connected, handles missed broadcasts
+    const readyInterval = setInterval(() => {
+      if (
+        setupCompleteRef.current &&
+        channelReadyRef.current &&
+        peerConnectionRef.current &&
+        peerConnectionRef.current.connectionState !== "connected"
+      ) {
+        console.log("[WebRTC] Re-sending ready signal");
+        signalingChannelRef.current?.send({
+          type: "broadcast",
+          event: "signal",
+          payload: { type: "ready", payload: {}, from: currentUserId, to: remoteUserId },
+        });
+        // If caller and remote was already ready but offer wasn't sent, retry
+        if (!isIncoming && remoteReadyRef.current && !hasCreatedOfferRef.current) {
+          createAndSendOffer(peerConnectionRef.current);
+        }
+      }
+    }, 2000);
+
+    // Timeout: end call if not connected within 60 seconds
     const connectTimeout = setTimeout(() => {
       if (!peerConnectionRef.current || peerConnectionRef.current.connectionState !== "connected") {
         console.log("[WebRTC] Connection timeout - ending call");
         handleEndCall();
       }
-    }, 45000);
+    }, 60000);
 
     return () => {
+      clearInterval(readyInterval);
       clearTimeout(connectTimeout);
       cleanup();
     };
