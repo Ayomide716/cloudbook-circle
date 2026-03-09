@@ -410,20 +410,30 @@ const VideoCall = ({
     const channel = supabase
       .channel(`video-call-${roomId}`)
       .on("broadcast", { event: "signal" }, ({ payload }) => {
-        // Use ref to always call the latest handleSignal
         handleSignalRef.current?.(payload as SignalMessage);
       })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           console.log("[WebRTC] Signaling channel subscribed");
           channelReadyRef.current = true;
-          // Small delay to ensure both sides are subscribed
           setTimeout(() => setupCallRef.current?.(), 500);
         }
       });
 
     signalingChannelRef.current = channel;
-    return () => { cleanup(); };
+
+    // Timeout: end call if not connected within 45 seconds
+    const connectTimeout = setTimeout(() => {
+      if (!peerConnectionRef.current || peerConnectionRef.current.connectionState !== "connected") {
+        console.log("[WebRTC] Connection timeout - ending call");
+        handleEndCall();
+      }
+    }, 45000);
+
+    return () => {
+      clearTimeout(connectTimeout);
+      cleanup();
+    };
   }, []); // Mount once only
 
   const qualityColor = signalQuality === "good" ? "bg-green-500" : signalQuality === "fair" ? "bg-yellow-500" : "bg-red-500";
