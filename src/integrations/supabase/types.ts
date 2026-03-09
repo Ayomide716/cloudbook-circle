@@ -2017,6 +2017,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_watch_views: {
+        Args: { _user_id: string; _video_id: string }
+        Returns: undefined
+      }
       is_group_member: {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean

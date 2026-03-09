@@ -207,15 +207,17 @@ const Watch = () => {
   };
 
   const incrementViews = async (videoId: string) => {
+    if (!currentUserId) return;
     const video = videos.find(v => v.id === videoId);
     if (!video) return;
     // Don't count views on own videos or if already viewed this session
     if (video.user_id === currentUserId || viewedVideoIds.has(videoId)) return;
     setViewedVideoIds(prev => new Set(prev).add(videoId));
     setVideos(prev => prev.map(v => v.id === videoId ? { ...v, views_count: v.views_count + 1 } : v));
-    await supabase.from("watch_videos").update({
-      views_count: video.views_count + 1,
-    }).eq("id", videoId);
+    await supabase.rpc("increment_watch_views", {
+      _video_id: videoId,
+      _user_id: currentUserId,
+    });
   };
 
   const handleUpload = async () => {
