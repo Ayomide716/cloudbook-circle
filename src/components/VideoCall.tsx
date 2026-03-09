@@ -313,6 +313,10 @@ const VideoCall = ({
     [remoteUserId, currentUserId, isIncoming, createAndSendOffer, processSignal]
   );
 
+  // Keep refs up to date so the channel callback always uses the latest version
+  handleSignalRef.current = handleSignal;
+  setupCallRef.current = setupCall;
+
   const toggleVideo = () => {
     if (localStreamRef.current && !isVoiceOnly) {
       const track = localStreamRef.current.getVideoTracks()[0];
