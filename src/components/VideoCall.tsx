@@ -409,13 +409,16 @@ const VideoCall = ({
 
     const channel = supabase
       .channel(`video-call-${roomId}`)
-      .on("broadcast", { event: "signal" }, ({ payload }) => handleSignal(payload as SignalMessage))
+      .on("broadcast", { event: "signal" }, ({ payload }) => {
+        // Use ref to always call the latest handleSignal
+        handleSignalRef.current?.(payload as SignalMessage);
+      })
       .subscribe(async (status) => {
         if (status === "SUBSCRIBED") {
           console.log("[WebRTC] Signaling channel subscribed");
           channelReadyRef.current = true;
           // Small delay to ensure both sides are subscribed
-          setTimeout(() => setupCall(), 500);
+          setTimeout(() => setupCallRef.current?.(), 500);
         }
       });
 
