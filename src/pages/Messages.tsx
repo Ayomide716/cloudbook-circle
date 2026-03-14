@@ -419,7 +419,7 @@ const Messages = () => {
         <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-0 sm:gap-4 flex-1 overflow-hidden">
             {/* Conversations List */}
-            <Card className={cn("md:col-span-1 flex flex-col rounded-none sm:rounded-lg overflow-hidden", selectedConversation ? "hidden md:flex" : "flex")}>
+            <Card className={cn("md:col-span-1 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
               <div className="p-3 sm:p-4 border-b flex-shrink-0">
                 <h2 className="text-lg sm:text-xl font-bold mb-3">Messages</h2>
                 <NewConversation currentUserId={currentUserId!} onSelectUser={setSelectedConversation} />
