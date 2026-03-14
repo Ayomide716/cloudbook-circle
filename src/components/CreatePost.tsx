@@ -245,6 +245,15 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </div>
             )}
             
+            <div className="flex items-center justify-between">
+              <PostExpirySelector value={postExpiry} onChange={setPostExpiry} />
+              {postExpiry && (
+                <span className="text-xs text-muted-foreground">
+                  ⏱ This post will auto-delete after {postExpiry === "24h" ? "24 hours" : postExpiry === "7d" ? "7 days" : "30 days"}
+                </span>
+              )}
+            </div>
+
             <Button
               type="submit"
               className="w-full"
