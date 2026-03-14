@@ -425,6 +425,28 @@ const Messages = () => {
                 <NewConversation currentUserId={currentUserId!} onSelectUser={setSelectedConversation} />
               </div>
               <div className="flex-1 overflow-y-auto">
+                {/* AI Companion Entry */}
+                <div
+                  className={cn(
+                    "flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-all duration-200 active:scale-[0.98] border-b",
+                    showAIChat ? "bg-accent" : "hover:bg-accent/50"
+                  )}
+                  onClick={() => { setShowAIChat(true); setSelectedConversation(null); }}
+                >
+                  <Avatar className="h-12 w-12 flex-shrink-0 gradient-brand">
+                    <AvatarFallback className="gradient-brand text-primary-foreground">
+                      <Bot className="h-5 w-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-semibold">CloudBuddy</p>
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">AI companion • Ask me anything!</p>
+                  </div>
+                  <div className="h-3 w-3 rounded-full bg-green-500 flex-shrink-0" />
+                </div>
                 {conversations.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No conversations yet</p>
                 ) : (
