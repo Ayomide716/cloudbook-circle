@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Image, Video, BarChart3, X, Images } from "lucide-react";
+import PostExpirySelector from "./PostExpirySelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
@@ -34,6 +35,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
+  const [postExpiry, setPostExpiry] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -50,6 +52,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     setIsLoading(true);
 
+    // Calculate expires_at from post expiry setting
+    let expiresAt: string | null = null;
+    if (postExpiry === "24h") expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    else if (postExpiry === "7d") expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    else if (postExpiry === "30d") expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
     const { data: postData, error } = await supabase
       .from("posts")
       .insert({
@@ -58,7 +66,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
         image_url: imageUrl || (imageUrls.length === 1 ? imageUrls[0] : null),
         image_urls: imageUrls.length > 0 ? imageUrls : [],
         video_url: videoUrl || null,
-       })
+        expires_at: expiresAt,
+       } as any)
        .select()
        .single();
 
@@ -88,6 +97,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     setImageUrls([]);
     setVideoUrl("");
     setPollData(null);
+    setPostExpiry(null);
     setShowDialog(false);
     toast({ title: "Post created!" });
     onPostCreated();
@@ -235,6 +245,15 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </div>
             )}
             
+            <div className="flex items-center justify-between">
+              <PostExpirySelector value={postExpiry} onChange={setPostExpiry} />
+              {postExpiry && (
+                <span className="text-xs text-muted-foreground">
+                  ⏱ This post will auto-delete after {postExpiry === "24h" ? "24 hours" : postExpiry === "7d" ? "7 days" : "30 days"}
+                </span>
+              )}
+            </div>
+
             <Button
               type="submit"
               className="w-full"

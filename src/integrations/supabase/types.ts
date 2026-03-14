@@ -1293,6 +1293,7 @@ export type Database = {
         Row: {
           content: string
           created_at: string | null
+          expires_at: string | null
           id: string
           image_url: string | null
           image_urls: string[] | null
@@ -1302,6 +1303,7 @@ export type Database = {
         Insert: {
           content: string
           created_at?: string | null
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           image_urls?: string[] | null
@@ -1311,6 +1313,7 @@ export type Database = {
         Update: {
           content?: string
           created_at?: string | null
+          expires_at?: string | null
           id?: string
           image_url?: string | null
           image_urls?: string[] | null
@@ -1986,6 +1989,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_expired_posts: { Args: never; Returns: undefined }
       get_ranked_posts: {
         Args: {
           _cursor_id?: string

@@ -17,11 +17,12 @@ import ChatBubble from "@/components/ChatBubble";
 import type { ChatMessage } from "@/components/ChatBubble";
 import ChatSettingsModal from "@/components/ChatSettingsModal";
 import MessageSearch from "@/components/MessageSearch";
+import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, CornerUpLeft } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, CornerUpLeft, Bot, Sparkles } from "lucide-react";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -52,6 +53,7 @@ const Messages = () => {
   const [currentUserName, setCurrentUserName] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Profile | null>(null);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageContent, setMessageContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
@@ -417,12 +419,34 @@ const Messages = () => {
         <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-0 sm:gap-4 flex-1 overflow-hidden">
             {/* Conversations List */}
-            <Card className={cn("md:col-span-1 flex flex-col rounded-none sm:rounded-lg overflow-hidden", selectedConversation ? "hidden md:flex" : "flex")}>
+            <Card className={cn("md:col-span-1 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
               <div className="p-3 sm:p-4 border-b flex-shrink-0">
                 <h2 className="text-lg sm:text-xl font-bold mb-3">Messages</h2>
                 <NewConversation currentUserId={currentUserId!} onSelectUser={setSelectedConversation} />
               </div>
               <div className="flex-1 overflow-y-auto">
+                {/* AI Companion Entry */}
+                <div
+                  className={cn(
+                    "flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-all duration-200 active:scale-[0.98] border-b",
+                    showAIChat ? "bg-accent" : "hover:bg-accent/50"
+                  )}
+                  onClick={() => { setShowAIChat(true); setSelectedConversation(null); }}
+                >
+                  <Avatar className="h-12 w-12 flex-shrink-0 gradient-brand">
+                    <AvatarFallback className="gradient-brand text-primary-foreground">
+                      <Bot className="h-5 w-5" />
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-semibold">CloudBuddy</p>
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                    </div>
+                    <p className="text-sm text-muted-foreground truncate">AI companion • Ask me anything!</p>
+                  </div>
+                  <div className="h-3 w-3 rounded-full bg-green-500 flex-shrink-0" />
+                </div>
                 {conversations.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No conversations yet</p>
                 ) : (
@@ -474,8 +498,15 @@ const Messages = () => {
               </div>
             </Card>
 
+            {/* AI Chat Area */}
+            {showAIChat && (
+              <div className={cn("md:col-span-2 flex flex-col overflow-hidden", !showAIChat ? "hidden md:flex" : "flex")}>
+                <AIChatCompanion onBack={() => setShowAIChat(false)} />
+              </div>
+            )}
+
             {/* Chat Area */}
-            <Card className={cn("md:col-span-2 flex flex-col rounded-none sm:rounded-lg overflow-hidden", !selectedConversation ? "hidden md:flex" : "flex")}>
+            <Card className={cn("md:col-span-2 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (!selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
               {selectedConversation ? (
                 <>
                   {/* Chat Header */}

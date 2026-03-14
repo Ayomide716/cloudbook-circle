@@ -19,6 +19,8 @@ import { motion } from "framer-motion";
 import LoginStreakBadge from "@/components/LoginStreakBadge";
 import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 import NewPostsBanner from "@/components/NewPostsBanner";
+import MoodSelector from "@/components/MoodSelector";
+import ScreenTimeWidget from "@/components/ScreenTimeWidget";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -38,6 +40,9 @@ const Index = () => {
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lastFetchTime, setLastFetchTime] = useState(new Date());
+  const [currentMood, setCurrentMood] = useState<string | null>(() => {
+    return localStorage.getItem("cloudbook_mood") || null;
+  });
 
   const {
     data,
@@ -151,6 +156,12 @@ const Index = () => {
     }));
   };
 
+  const handleMoodChange = (mood: string | null) => {
+    setCurrentMood(mood);
+    if (mood) localStorage.setItem("cloudbook_mood", mood);
+    else localStorage.removeItem("cloudbook_mood");
+  };
+
   const handleRefresh = useCallback(async () => {
     await refetch();
     setLastFetchTime(new Date());
@@ -184,8 +195,9 @@ const Index = () => {
 
             {/* Main Feed - Bento Grid */}
             <main className="space-y-5 min-w-0">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <LoginStreakBadge userId={currentUser.id} />
+                <MoodSelector currentMood={currentMood} onMoodChange={handleMoodChange} />
               </div>
 
               <ProfileCompletionPrompt userId={currentUser.id} />
@@ -268,6 +280,7 @@ const Index = () => {
           </div>
         </div>
       </PullToRefresh>
+      <ScreenTimeWidget />
     </div>
   );
 };
