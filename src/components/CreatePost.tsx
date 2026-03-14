@@ -52,6 +52,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     setIsLoading(true);
 
+    // Calculate expires_at from post expiry setting
+    let expiresAt: string | null = null;
+    if (postExpiry === "24h") expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
+    else if (postExpiry === "7d") expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+    else if (postExpiry === "30d") expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+
     const { data: postData, error } = await supabase
       .from("posts")
       .insert({
@@ -60,7 +66,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
         image_url: imageUrl || (imageUrls.length === 1 ? imageUrls[0] : null),
         image_urls: imageUrls.length > 0 ? imageUrls : [],
         video_url: videoUrl || null,
-       })
+        expires_at: expiresAt,
+       } as any)
        .select()
        .single();
 
