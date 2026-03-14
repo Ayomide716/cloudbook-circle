@@ -53,6 +53,7 @@ const Messages = () => {
   const [currentUserName, setCurrentUserName] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<Profile | null>(null);
+  const [showAIChat, setShowAIChat] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageContent, setMessageContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
