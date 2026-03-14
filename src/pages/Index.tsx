@@ -156,6 +156,12 @@ const Index = () => {
     }));
   };
 
+  const handleMoodChange = (mood: string | null) => {
+    setCurrentMood(mood);
+    if (mood) localStorage.setItem("cloudbook_mood", mood);
+    else localStorage.removeItem("cloudbook_mood");
+  };
+
   const handleRefresh = useCallback(async () => {
     await refetch();
     setLastFetchTime(new Date());
