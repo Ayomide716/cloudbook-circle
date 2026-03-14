@@ -35,6 +35,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
   const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
+  const [postExpiry, setPostExpiry] = useState<string | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
