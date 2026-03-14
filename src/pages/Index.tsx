@@ -195,8 +195,9 @@ const Index = () => {
 
             {/* Main Feed - Bento Grid */}
             <main className="space-y-5 min-w-0">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between flex-wrap gap-2">
                 <LoginStreakBadge userId={currentUser.id} />
+                <MoodSelector currentMood={currentMood} onMoodChange={handleMoodChange} />
               </div>
 
               <ProfileCompletionPrompt userId={currentUser.id} />
