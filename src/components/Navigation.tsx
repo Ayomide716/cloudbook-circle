@@ -269,7 +269,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       </header>
 
       {/* Desktop Floating Dock - centered bottom (hidden on Reels) */}
-      {currentUserId && location.pathname !== "/reels" && (
+      {currentUserId && location.pathname !== "/reels" && location.pathname !== "/messages" && (
         <div className="hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <motion.nav
             initial={{ y: 100, opacity: 0 }}
