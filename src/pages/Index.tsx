@@ -40,6 +40,9 @@ const Index = () => {
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lastFetchTime, setLastFetchTime] = useState(new Date());
+  const [currentMood, setCurrentMood] = useState<string | null>(() => {
+    return localStorage.getItem("cloudbook_mood") || null;
+  });
 
   const {
     data,
