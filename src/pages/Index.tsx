@@ -19,6 +19,8 @@ import { motion } from "framer-motion";
 import LoginStreakBadge from "@/components/LoginStreakBadge";
 import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 import NewPostsBanner from "@/components/NewPostsBanner";
+import MoodSelector from "@/components/MoodSelector";
+import ScreenTimeWidget from "@/components/ScreenTimeWidget";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
