@@ -280,6 +280,7 @@ const Index = () => {
           </div>
         </div>
       </PullToRefresh>
+      <ScreenTimeWidget />
     </div>
   );
 };
