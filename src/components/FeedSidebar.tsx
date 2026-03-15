@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import OnlineFriendsWidget from "./OnlineFriendsWidget";
 
 interface FeedSidebarProps {
   currentUser: {
