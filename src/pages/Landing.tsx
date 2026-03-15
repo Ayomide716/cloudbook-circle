@@ -77,17 +77,17 @@ const Landing = () => {
     <div className="min-h-screen bg-background overflow-x-hidden">
       {/* ─── Navbar ─── */}
       <nav className="fixed top-0 inset-x-0 z-50 glass">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 h-16">
-          <Link to="/" className="flex items-center gap-2.5">
-            <img src={logo} alt="CloudBook" className="h-9 w-9 rounded-xl" />
-            <span className="text-xl font-display font-bold gradient-text">CloudBook</span>
+        <div className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 h-14 sm:h-16">
+          <Link to="/" className="flex items-center gap-2 shrink-0">
+            <img src={logo} alt="CloudBook" className="h-8 w-8 sm:h-9 sm:w-9 rounded-xl" />
+            <span className="text-lg sm:text-xl font-display font-bold gradient-text">CloudBook</span>
           </Link>
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="sm" asChild>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button variant="ghost" size="sm" className="text-xs sm:text-sm px-2 sm:px-3" asChild>
               <Link to="/auth">Log In</Link>
             </Button>
-            <Button size="sm" className="gradient-brand text-primary-foreground rounded-xl glow-primary" asChild>
-              <Link to="/auth">Get Started <ArrowRight className="ml-1 h-4 w-4" /></Link>
+            <Button size="sm" className="gradient-brand text-primary-foreground rounded-xl glow-primary text-xs sm:text-sm px-3 sm:px-4" asChild>
+              <Link to="/auth">Get Started <ArrowRight className="ml-1 h-3.5 w-3.5 sm:h-4 sm:w-4" /></Link>
             </Button>
           </div>
         </div>
