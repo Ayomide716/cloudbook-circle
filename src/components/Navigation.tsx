@@ -47,6 +47,24 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       loadUserProfile();
       setupRealtimeSubscriptions();
       checkAdmin();
+      
+      // Global online status tracking
+      updateOnlineStatus(currentUserId, true);
+      const presenceInterval = setInterval(() => updateOnlineStatus(currentUserId, true), 30000);
+      const handleUnload = () => updateOnlineStatus(currentUserId, false);
+      const handleVisibility = () => {
+        if (document.hidden) updateOnlineStatus(currentUserId, false);
+        else updateOnlineStatus(currentUserId, true);
+      };
+      window.addEventListener("beforeunload", handleUnload);
+      document.addEventListener("visibilitychange", handleVisibility);
+      
+      return () => {
+        clearInterval(presenceInterval);
+        window.removeEventListener("beforeunload", handleUnload);
+        document.removeEventListener("visibilitychange", handleVisibility);
+        updateOnlineStatus(currentUserId, false);
+      };
     }
   }, [currentUserId]);
 
