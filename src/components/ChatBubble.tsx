@@ -22,6 +22,7 @@ interface ChatMessage {
   reply_to?: string | null;
   edited?: boolean;
   deleted_at?: string | null;
+  expires_at?: string | null;
 }
 
 interface ChatBubbleProps {
