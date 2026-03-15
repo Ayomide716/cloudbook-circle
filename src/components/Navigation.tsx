@@ -124,7 +124,6 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       await supabase.from("user_status").insert({ user_id: userId, is_online: isOnline, last_seen: new Date().toISOString() });
     }
   };
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
