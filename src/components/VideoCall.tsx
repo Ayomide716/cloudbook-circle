@@ -338,33 +338,48 @@ const VideoCall = ({
     setIsSpeakerMuted(nextMuted);
   };
 
-  const toggleScreenShare = async () => {
+  const stopScreenShare = useCallback(async () => {
     const pc = peerConnectionRef.current;
     if (!pc) return;
-    if (isScreenSharing) {
-      if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach((t) => t.stop());
-      screenStreamRef.current = null;
-      const camStream = localStreamRef.current;
-      if (camStream) {
-        const videoTrack = camStream.getVideoTracks()[0];
-        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-        if (sender && videoTrack) await sender.replaceTrack(videoTrack);
-        if (localVideoRef.current) localVideoRef.current.srcObject = camStream;
-      }
-      setIsScreenSharing(false);
-    } else {
-      try {
-        const screen = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } as any, audio: true });
-        screenStreamRef.current = screen;
-        const videoTrack = screen.getVideoTracks()[0];
-        const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-        if (sender) await sender.replaceTrack(videoTrack);
-        if (localVideoRef.current) localVideoRef.current.srcObject = screen;
-        videoTrack.onended = () => toggleScreenShare();
-        setIsScreenSharing(true);
-      } catch {}
+    if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach((t) => t.stop());
+    screenStreamRef.current = null;
+    const camStream = localStreamRef.current;
+    if (camStream) {
+      const videoTrack = camStream.getVideoTracks()[0];
+      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+      if (sender && videoTrack) await sender.replaceTrack(videoTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = camStream;
     }
-  };
+    setIsScreenSharing(false);
+  }, []);
+
+  const stopScreenShareRef = useRef(stopScreenShare);
+  stopScreenShareRef.current = stopScreenShare;
+
+  const startScreenShare = useCallback(async () => {
+    const pc = peerConnectionRef.current;
+    if (!pc) return;
+    try {
+      const screen = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } as any, audio: true });
+      screenStreamRef.current = screen;
+      const videoTrack = screen.getVideoTracks()[0];
+      const sender = pc.getSenders().find((s) => s.track?.kind === "video");
+      if (sender) await sender.replaceTrack(videoTrack);
+      if (localVideoRef.current) localVideoRef.current.srcObject = screen;
+      videoTrack.onended = () => stopScreenShareRef.current();
+      setIsScreenSharing(true);
+    } catch (err) {
+      console.log("[WebRTC] Screen share cancelled or failed:", err);
+    }
+  }, []);
+
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      await stopScreenShare();
+    } else {
+      await startScreenShare();
+    }
+  }, [isScreenSharing, stopScreenShare, startScreenShare]);
 
   const switchCamera = async () => {
     if (!localStreamRef.current || isVoiceOnly) return;
