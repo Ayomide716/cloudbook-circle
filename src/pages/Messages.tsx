@@ -556,7 +556,7 @@ const Messages = () => {
                   {/* Virtualized Messages */}
                   <VirtualizedChatList
                     itemCount={visibleMessages.length}
-                    scrollToBottomKey={messages.length}
+                    scrollToBottomKey={visibleMessages.length}
                     scrollToIndex={highlightedMessageId ? messages.findIndex(m => m.id === highlightedMessageId) : undefined}
                     estimatedItemSize={80}
                     className="flex-1 overflow-hidden"
