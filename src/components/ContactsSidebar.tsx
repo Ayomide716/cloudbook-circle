@@ -20,10 +20,17 @@ const ContactsSidebar = ({ currentUserId }: ContactsSidebarProps) => {
 
   useEffect(() => {
     fetchContacts();
+
+    const channel = supabase
+      .channel("contacts-status-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => fetchContacts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => fetchContacts())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
   }, [currentUserId]);
 
   const fetchContacts = async () => {
-    // Get accepted friendships
     const { data: friendships } = await supabase
       .from("friendships")
       .select("user_id, friend_id")
@@ -31,6 +38,7 @@ const ContactsSidebar = ({ currentUserId }: ContactsSidebarProps) => {
       .eq("status", "accepted");
 
     if (!friendships || friendships.length === 0) {
+      setContacts([]);
       setLoading(false);
       return;
     }
@@ -39,25 +47,20 @@ const ContactsSidebar = ({ currentUserId }: ContactsSidebarProps) => {
       f.user_id === currentUserId ? f.friend_id : f.user_id
     );
 
-    // Get profiles and online status
-    const { data: profiles } = await supabase
-      .from("profiles")
-      .select("id, full_name, avatar_url")
-      .in("id", friendIds);
+    const [{ data: profiles }, { data: statuses }] = await Promise.all([
+      supabase.from("profiles").select("id, full_name, avatar_url").in("id", friendIds),
+      supabase.from("user_status").select("user_id, is_online, last_seen").in("user_id", friendIds),
+    ]);
 
-    const { data: statuses } = await supabase
-      .from("user_status")
-      .select("user_id, is_online")
-      .in("user_id", friendIds);
-
-    const statusMap = new Map(statuses?.map((s) => [s.user_id, s.is_online]) ?? []);
+    const statusMap = new Map(statuses?.map((s) => [s.user_id, {
+      is_online: s.is_online && new Date(s.last_seen).getTime() > Date.now() - 5 * 60 * 1000,
+    }]) ?? []);
 
     const contactList: Contact[] = (profiles ?? []).map((p) => ({
       ...p,
-      is_online: statusMap.get(p.id) ?? false,
+      is_online: statusMap.get(p.id)?.is_online ?? false,
     }));
 
-    // Sort: online first, then alphabetically
     contactList.sort((a, b) => {
       if (a.is_online !== b.is_online) return a.is_online ? -1 : 1;
       return (a.full_name ?? "").localeCompare(b.full_name ?? "");

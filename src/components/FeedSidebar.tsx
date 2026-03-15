@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import OnlineFriendsWidget from "./OnlineFriendsWidget";
 
 interface FeedSidebarProps {
   currentUser: {
@@ -75,9 +74,6 @@ const FeedSidebar = ({ currentUser }: FeedSidebarProps) => {
           </motion.div>
         ))}
 
-        <motion.div variants={item} className="pt-3 border-t border-border/50">
-          <OnlineFriendsWidget currentUserId={currentUser.id} />
-        </motion.div>
       </motion.div>
     </aside>
   );

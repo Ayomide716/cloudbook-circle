@@ -47,6 +47,24 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       loadUserProfile();
       setupRealtimeSubscriptions();
       checkAdmin();
+      
+      // Global online status tracking
+      updateOnlineStatus(currentUserId, true);
+      const presenceInterval = setInterval(() => updateOnlineStatus(currentUserId, true), 30000);
+      const handleUnload = () => updateOnlineStatus(currentUserId, false);
+      const handleVisibility = () => {
+        if (document.hidden) updateOnlineStatus(currentUserId, false);
+        else updateOnlineStatus(currentUserId, true);
+      };
+      window.addEventListener("beforeunload", handleUnload);
+      document.addEventListener("visibilitychange", handleVisibility);
+      
+      return () => {
+        clearInterval(presenceInterval);
+        window.removeEventListener("beforeunload", handleUnload);
+        document.removeEventListener("visibilitychange", handleVisibility);
+        updateOnlineStatus(currentUserId, false);
+      };
     }
   }, [currentUserId]);
 
@@ -96,6 +114,15 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
+  };
+
+  const updateOnlineStatus = async (userId: string, isOnline: boolean) => {
+    const { data: existing } = await supabase.from("user_status").select("id").eq("user_id", userId).maybeSingle();
+    if (existing) {
+      await supabase.from("user_status").update({ is_online: isOnline, last_seen: new Date().toISOString() }).eq("user_id", userId);
+    } else {
+      await supabase.from("user_status").insert({ user_id: userId, is_online: isOnline, last_seen: new Date().toISOString() });
+    }
   };
 
   const handleLogout = async () => {
