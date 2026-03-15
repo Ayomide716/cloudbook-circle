@@ -368,12 +368,18 @@ const Messages = () => {
     return messages.find((m) => m.id === replyToId) || null;
   };
 
+  // Filter out expired disappearing messages
+  const visibleMessages = messages.filter((m) => {
+    if (m.expires_at && new Date(m.expires_at) < new Date()) return false;
+    return true;
+  });
+
   const renderMessage = useCallback((index: number): ReactElement | null => {
-    const message = messages[index];
+    const message = visibleMessages[index];
     if (!message) return null;
     const isCurrentUser = message.sender_id === currentUserId;
-    const isLastOwnMessage = isCurrentUser && !messages.slice(index + 1).some((m) => m.sender_id === currentUserId);
-    const isLastMessage = index === messages.length - 1;
+    const isLastOwnMessage = isCurrentUser && !visibleMessages.slice(index + 1).some((m) => m.sender_id === currentUserId);
+    const isLastMessage = index === visibleMessages.length - 1;
 
     return (
       <div
@@ -397,7 +403,7 @@ const Messages = () => {
         />
       </div>
     );
-  }, [messages, currentUserId, highlightedMessageId, chatTheme]);
+  }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme]);
 
   if (isLoading) return <MessagesSkeleton />;
 
