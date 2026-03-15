@@ -108,18 +108,7 @@ const Messages = () => {
     setCurrentUserId(session.user.id);
     const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", session.user.id).single();
     if (profile?.full_name) setCurrentUserName(profile.full_name);
-    await updateOnlineStatus(session.user.id, true);
-    presenceIntervalRef.current = setInterval(() => updateOnlineStatus(session.user.id, true), 30000);
-    window.addEventListener("beforeunload", () => updateOnlineStatus(session.user.id, false));
-  };
-
-  const updateOnlineStatus = async (userId: string, isOnline: boolean) => {
-    const { data: existing } = await supabase.from("user_status").select("id").eq("user_id", userId).maybeSingle();
-    if (existing) {
-      await supabase.from("user_status").update({ is_online: isOnline, last_seen: new Date().toISOString() }).eq("user_id", userId);
-    } else {
-      await supabase.from("user_status").insert({ user_id: userId, is_online: isOnline, last_seen: new Date().toISOString() });
-    }
+    // Online status is now handled globally in Navigation
   };
 
   const loadChatPrefs = async (otherUserId: string) => {

@@ -116,6 +116,16 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
     return () => { supabase.removeChannel(channel); };
   };
 
+  const updateOnlineStatus = async (userId: string, isOnline: boolean) => {
+    const { data: existing } = await supabase.from("user_status").select("id").eq("user_id", userId).maybeSingle();
+    if (existing) {
+      await supabase.from("user_status").update({ is_online: isOnline, last_seen: new Date().toISOString() }).eq("user_id", userId);
+    } else {
+      await supabase.from("user_status").insert({ user_id: userId, is_online: isOnline, last_seen: new Date().toISOString() });
+    }
+  };
+  };
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     toast({ title: "Logged out successfully" });
