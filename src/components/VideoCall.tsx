@@ -381,15 +381,16 @@ const VideoCall = ({
     }
   }, [isScreenSharing, stopScreenShare, startScreenShare]);
 
-  const switchCamera = async () => {
+  const facingModeRef = useRef<"user" | "environment">("user");
+
+  const switchCamera = useCallback(async () => {
     if (!localStreamRef.current || isVoiceOnly) return;
     const track = localStreamRef.current.getVideoTracks()[0];
     if (!track) return;
-    const constraints = track.getConstraints();
-    const facingMode = (constraints.facingMode as string) === "user" ? "environment" : "user";
+    const newFacingMode = facingModeRef.current === "user" ? "environment" : "user";
     try {
       const newStream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: { facingMode: { exact: newFacingMode }, width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
       const newTrack = newStream.getVideoTracks()[0];
@@ -402,8 +403,11 @@ const VideoCall = ({
       localStreamRef.current.removeTrack(track);
       localStreamRef.current.addTrack(newTrack);
       if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
-    } catch {}
-  };
+      facingModeRef.current = newFacingMode;
+    } catch (err) {
+      console.log("[WebRTC] Camera switch failed:", err);
+    }
+  }, [isVoiceOnly]);
 
   const togglePiP = async () => {
     if (!remoteVideoRef.current) return;

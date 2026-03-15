@@ -487,11 +487,11 @@ const Messages = () => {
               </div>
             </Card>
 
-            {/* AI Chat Area */}
+            {/* AI Chat Area - renders inside the same chat card layout */}
             {showAIChat && (
-              <div className={cn("md:col-span-2 flex flex-col overflow-hidden", !showAIChat ? "hidden md:flex" : "flex")}>
-                <AIChatCompanion onBack={() => setShowAIChat(false)} />
-              </div>
+              <Card className={cn("md:col-span-2 flex flex-col rounded-none sm:rounded-lg overflow-hidden", !showAIChat ? "hidden md:flex" : "flex")}>
+                <AIChatCompanion onBack={() => { setShowAIChat(false); }} />
+              </Card>
             )}
 
             {/* Chat Area */}
