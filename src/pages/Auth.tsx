@@ -19,7 +19,7 @@ const Auth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
-  const [showVerifyEmail, setShowVerifyEmail] = useState(false);
+  const navigate = useNavigate();
   const navigate = useNavigate();
   const { toast } = useToast();
 
