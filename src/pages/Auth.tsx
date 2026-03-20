@@ -51,12 +51,7 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        // Check if email confirmation is needed
-        if (data.user && !data.session) {
-          setShowVerifyEmail(true);
-        } else {
-          toast({ title: "Account created!", description: "Welcome to CloudBook!" });
-        }
+        toast({ title: "Account created!", description: "Welcome to CloudBook!" });
       }
     } catch (error: any) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
