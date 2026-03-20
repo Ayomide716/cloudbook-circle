@@ -60,47 +60,6 @@ const Auth = () => {
     }
   };
 
-  if (showVerifyEmail) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
-        <div className="auth-gradient-bg" />
-        <div className="auth-orb auth-orb-1" />
-        <div className="auth-orb auth-orb-2" />
-        <div className="auth-orb auth-orb-3" />
-        <div className="absolute inset-0 auth-grid-overlay pointer-events-none" />
-        <motion.div
-          initial={{ opacity: 0, scale: 0.9 }}
-          animate={{ opacity: 1, scale: 1 }}
-          className="w-full max-w-md relative z-10"
-        >
-          <div className="auth-card rounded-2xl p-[1px]">
-            <div className="auth-card-inner rounded-2xl p-8 text-center space-y-4">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 300, damping: 20, delay: 0.2 }}
-              >
-                <CheckCircle2 className="h-16 w-16 mx-auto text-primary" />
-              </motion.div>
-              <h2 className="text-2xl font-display font-bold">Check your email</h2>
-              <p className="text-muted-foreground text-sm">
-                We sent a verification link to <strong className="text-foreground">{email}</strong>. 
-                Click the link to activate your account.
-              </p>
-              <Button
-                variant="outline"
-                className="rounded-xl"
-                onClick={() => { setShowVerifyEmail(false); setIsLogin(true); }}
-              >
-                Back to Login
-              </Button>
-            </div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex items-center justify-center p-4 relative overflow-hidden">
       {/* Animated gradient background */}
