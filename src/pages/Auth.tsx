@@ -20,7 +20,6 @@ const Auth = () => {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const navigate = useNavigate();
-  const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
