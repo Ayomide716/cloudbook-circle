@@ -38,6 +38,7 @@ import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import ProfileAchievements from "@/components/ProfileAchievements";
+import AnonymousQA from "@/components/AnonymousQA";
 
 interface ProfileData {
   id: string;
