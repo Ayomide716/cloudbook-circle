@@ -105,9 +105,10 @@ async function fetchFeedPage(
 
   const lastPost = rankedData?.[rankedData.length - 1];
   const nextCursor =
-    rankedData && rankedData.length === PAGE_SIZE && lastPost
+    isDigest ? null :
+    (rankedData && rankedData.length === PAGE_SIZE && lastPost
       ? { score: Number(lastPost.engagement_score), id: lastPost.id }
-      : null;
+      : null);
 
   return { posts, nextCursor };
 }
