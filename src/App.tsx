@@ -29,6 +29,8 @@ const Pages = lazy(() => import("./pages/Pages"));
 const PageDetail = lazy(() => import("./pages/PageDetail"));
 const Ads = lazy(() => import("./pages/Ads"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
+const TermsOfService = lazy(() => import("./pages/TermsOfService"));
+const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 
 // Lazy-loaded skeletons
 const FeedSkeleton = lazy(() => import("./components/skeletons/FeedSkeleton"));
