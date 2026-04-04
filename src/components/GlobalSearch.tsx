@@ -83,6 +83,7 @@ export default function GlobalSearch() {
       case "user": return <User className="h-4 w-4 text-muted-foreground" />;
       case "post": return <FileText className="h-4 w-4 text-muted-foreground" />;
       case "group": return <Users className="h-4 w-4 text-muted-foreground" />;
+      case "page": return <BookOpen className="h-4 w-4 text-muted-foreground" />;
       default: return <Search className="h-4 w-4 text-muted-foreground" />;
     }
   };
