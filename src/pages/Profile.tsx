@@ -533,7 +533,7 @@ const Profile = () => {
               "text-muted-foreground hover:text-foreground"
             )}>
             
-              {tab}
+              {tab === "qa" ? "Q&A" : tab}
             </button>
           )}
         </div>
