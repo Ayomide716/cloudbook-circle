@@ -272,6 +272,10 @@ const Landing = () => {
             <img src={logo} alt="CloudBook" className="h-7 w-7 rounded-lg" />
             <span className="font-display font-semibold gradient-text">CloudBook</span>
           </div>
+          <div className="flex items-center gap-4">
+            <Link to="/terms" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Terms of Service</Link>
+            <Link to="/privacy" className="text-xs text-muted-foreground hover:text-foreground transition-colors">Privacy Policy</Link>
+          </div>
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} CloudBook. All rights reserved.
           </p>

@@ -38,6 +38,7 @@ import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import ProfileAchievements from "@/components/ProfileAchievements";
+import AnonymousQA from "@/components/AnonymousQA";
 
 interface ProfileData {
   id: string;
@@ -99,7 +100,7 @@ const Profile = () => {
   const [reactionsData, setReactionsData] = useState<Record<string, {reactions: Record<string, number>;userReaction: string | null;}>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const [friendCount, setFriendCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums" | "qa">("posts");
 
   // Albums state
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -521,7 +522,7 @@ const Profile = () => {
 
         {/* ─── Tab bar ─── */}
         <div className="flex gap-1 p-1 rounded-xl bg-muted/50 mb-6">
-          {(["posts", "about", "photos", "albums"] as const).map((tab) =>
+          {(["posts", "about", "photos", "albums", "qa"] as const).map((tab) =>
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -532,7 +533,7 @@ const Profile = () => {
               "text-muted-foreground hover:text-foreground"
             )}>
             
-              {tab}
+              {tab === "qa" ? "Q&A" : tab}
             </button>
           )}
         </div>
@@ -985,6 +986,15 @@ const Profile = () => {
           }
           </motion.div>
         }
+      {activeTab === "qa" && (
+        <div className="max-w-2xl">
+          <AnonymousQA
+            profileId={userId || ""}
+            isOwnProfile={isOwnProfile}
+            currentUserId={currentUserId}
+          />
+        </div>
+      )}
       </div>
 
       {profile &&

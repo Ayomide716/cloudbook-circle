@@ -35,7 +35,7 @@ const Index = () => {
   const { toast } = useToast();
   useSEO({ title: "Home", description: "Your CloudBook news feed - see updates from friends and community." });
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
-  const [feedFilter, setFeedFilter] = useState<"all" | "friends">("all");
+  const [feedFilter, setFeedFilter] = useState<"all" | "friends" | "digest">("all");
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);

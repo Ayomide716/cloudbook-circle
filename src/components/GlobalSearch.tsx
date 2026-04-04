@@ -1,12 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, User, FileText, Users } from "lucide-react";
+import { Search, X, User, FileText, Users, BookOpen } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface SearchResult {
-  type: "user" | "post" | "group";
+  type: "user" | "post" | "group" | "page";
   id: string;
   title: string;
   subtitle?: string;
@@ -42,10 +42,11 @@ export default function GlobalSearch() {
     setLoading(true);
     const lower = `%${q.toLowerCase()}%`;
 
-    const [profiles, posts, groups] = await Promise.all([
+    const [profiles, posts, groups, pages] = await Promise.all([
       supabase.from("profiles").select("id, full_name, avatar_url").ilike("full_name", lower).limit(5),
       supabase.from("posts").select("id, content, user_id").ilike("content", lower).limit(5),
       supabase.from("groups").select("id, name, image_url").ilike("name", lower).limit(5),
+      supabase.from("pages").select("id, name, avatar_url, category").ilike("name", lower).limit(5),
     ]);
 
     const items: SearchResult[] = [
@@ -57,6 +58,9 @@ export default function GlobalSearch() {
       })),
       ...(groups.data || []).map((g) => ({
         type: "group" as const, id: g.id, title: g.name, avatar: g.image_url,
+      })),
+      ...(pages.data || []).map((p) => ({
+        type: "page" as const, id: p.id, title: p.name, subtitle: p.category, avatar: p.avatar_url,
       })),
     ];
     setResults(items);
@@ -70,6 +74,7 @@ export default function GlobalSearch() {
       case "user": navigate(`/profile/${item.id}`); break;
       case "post": navigate(`/?post=${item.id}`); break;
       case "group": navigate(`/groups/${item.id}`); break;
+      case "page": navigate(`/pages/${item.id}`); break;
     }
   };
 
@@ -78,6 +83,7 @@ export default function GlobalSearch() {
       case "user": return <User className="h-4 w-4 text-muted-foreground" />;
       case "post": return <FileText className="h-4 w-4 text-muted-foreground" />;
       case "group": return <Users className="h-4 w-4 text-muted-foreground" />;
+      case "page": return <BookOpen className="h-4 w-4 text-muted-foreground" />;
       default: return <Search className="h-4 w-4 text-muted-foreground" />;
     }
   };

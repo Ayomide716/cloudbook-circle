@@ -31,15 +31,16 @@ interface FeedPage {
 
 async function fetchFeedPage(
   userId: string,
-  feedFilter: "all" | "friends",
+  feedFilter: "all" | "friends" | "digest",
   cursor: { score: number; id: string } | null
 ): Promise<FeedPage> {
+  const isDigest = feedFilter === "digest";
   const { data: rankedData, error } = await supabase.rpc("get_ranked_posts", {
     _user_id: userId,
-    _feed_filter: feedFilter,
-    _cursor_score: cursor?.score ?? null,
-    _cursor_id: cursor?.id ?? null,
-    _page_size: PAGE_SIZE,
+    _feed_filter: isDigest ? "all" : feedFilter,
+    _cursor_score: isDigest ? null : (cursor?.score ?? null),
+    _cursor_id: isDigest ? null : (cursor?.id ?? null),
+    _page_size: isDigest ? 15 : PAGE_SIZE,
   });
 
   if (error) throw error;
@@ -104,14 +105,15 @@ async function fetchFeedPage(
 
   const lastPost = rankedData?.[rankedData.length - 1];
   const nextCursor =
-    rankedData && rankedData.length === PAGE_SIZE && lastPost
+    isDigest ? null :
+    (rankedData && rankedData.length === PAGE_SIZE && lastPost
       ? { score: Number(lastPost.engagement_score), id: lastPost.id }
-      : null;
+      : null);
 
   return { posts, nextCursor };
 }
 
-export function useFeedQuery(userId: string | null, feedFilter: "all" | "friends") {
+export function useFeedQuery(userId: string | null, feedFilter: "all" | "friends" | "digest") {
   return useInfiniteQuery({
     queryKey: ["feed", userId, feedFilter],
     queryFn: ({ pageParam }) => fetchFeedPage(userId!, feedFilter, pageParam),
