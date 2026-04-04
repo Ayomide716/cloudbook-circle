@@ -74,6 +74,7 @@ export default function GlobalSearch() {
       case "user": navigate(`/profile/${item.id}`); break;
       case "post": navigate(`/?post=${item.id}`); break;
       case "group": navigate(`/groups/${item.id}`); break;
+      case "page": navigate(`/pages/${item.id}`); break;
     }
   };
 
