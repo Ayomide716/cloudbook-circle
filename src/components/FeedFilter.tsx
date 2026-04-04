@@ -1,9 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Sparkles } from "lucide-react";
 
 interface FeedFilterProps {
-  filter: 'all' | 'friends';
-  onFilterChange: (filter: 'all' | 'friends') => void;
+  filter: 'all' | 'friends' | 'digest';
+  onFilterChange: (filter: 'all' | 'friends' | 'digest') => void;
 }
 
 const FeedFilter = ({ filter, onFilterChange }: FeedFilterProps) => {
@@ -25,6 +26,15 @@ const FeedFilter = ({ filter, onFilterChange }: FeedFilterProps) => {
           className="flex-1"
         >
           Friends Only
+        </Button>
+        <Button
+          variant={filter === 'digest' ? 'default' : 'outline'}
+          size="sm"
+          onClick={() => onFilterChange('digest')}
+          className="flex-1 gap-1"
+        >
+          <Sparkles className="h-3.5 w-3.5" />
+          Digest
         </Button>
       </div>
     </Card>

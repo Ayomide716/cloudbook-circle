@@ -510,6 +510,8 @@ const PostCard = ({
           <Share2 className="h-5 w-5" />
           <span className="hidden sm:inline">Share</span>
         </Button>
+
+        <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} />
       </div>
  
        {/* Share Dialog */}
