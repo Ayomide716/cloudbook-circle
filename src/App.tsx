@@ -135,6 +135,8 @@ const AppRoutes = () => {
           <Route path="/pages/:pageId" element={<AnimatedPage><PageDetail /></AnimatedPage>} />
           <Route path="/ads" element={<AnimatedPage><Ads /></AnimatedPage>} />
           <Route path="/admin" element={<AnimatedPage><AdminDashboard /></AnimatedPage>} />
+          <Route path="/terms" element={<AnimatedPage><TermsOfService /></AnimatedPage>} />
+          <Route path="/privacy" element={<AnimatedPage><PrivacyPolicy /></AnimatedPage>} />
           <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Routes>
       </AnimatePresence>
