@@ -59,6 +59,9 @@ export default function GlobalSearch() {
       ...(groups.data || []).map((g) => ({
         type: "group" as const, id: g.id, title: g.name, avatar: g.image_url,
       })),
+      ...(pages.data || []).map((p) => ({
+        type: "page" as const, id: p.id, title: p.name, subtitle: p.category, avatar: p.avatar_url,
+      })),
     ];
     setResults(items);
     setLoading(false);
