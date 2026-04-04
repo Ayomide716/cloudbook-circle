@@ -31,7 +31,7 @@ interface FeedPage {
 
 async function fetchFeedPage(
   userId: string,
-  feedFilter: "all" | "friends",
+  feedFilter: "all" | "friends" | "digest",
   cursor: { score: number; id: string } | null
 ): Promise<FeedPage> {
   const { data: rankedData, error } = await supabase.rpc("get_ranked_posts", {
