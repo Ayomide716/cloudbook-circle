@@ -279,6 +279,7 @@ const Landing = () => {
           <p className="text-xs text-muted-foreground">
             © {new Date().getFullYear()} CloudBook. All rights reserved.
           </p>
+        </div>
       </footer>
     </div>
   );
