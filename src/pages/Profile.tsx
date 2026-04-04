@@ -100,7 +100,7 @@ const Profile = () => {
   const [reactionsData, setReactionsData] = useState<Record<string, {reactions: Record<string, number>;userReaction: string | null;}>>({});
   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
   const [friendCount, setFriendCount] = useState(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums" | "qa">("posts");
 
   // Albums state
   const [albums, setAlbums] = useState<Album[]>([]);
