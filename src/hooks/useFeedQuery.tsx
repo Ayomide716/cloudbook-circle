@@ -112,7 +112,7 @@ async function fetchFeedPage(
   return { posts, nextCursor };
 }
 
-export function useFeedQuery(userId: string | null, feedFilter: "all" | "friends") {
+export function useFeedQuery(userId: string | null, feedFilter: "all" | "friends" | "digest") {
   return useInfiniteQuery({
     queryKey: ["feed", userId, feedFilter],
     queryFn: ({ pageParam }) => fetchFeedPage(userId!, feedFilter, pageParam),
