@@ -42,10 +42,11 @@ export default function GlobalSearch() {
     setLoading(true);
     const lower = `%${q.toLowerCase()}%`;
 
-    const [profiles, posts, groups] = await Promise.all([
+    const [profiles, posts, groups, pages] = await Promise.all([
       supabase.from("profiles").select("id, full_name, avatar_url").ilike("full_name", lower).limit(5),
       supabase.from("posts").select("id, content, user_id").ilike("content", lower).limit(5),
       supabase.from("groups").select("id, name, image_url").ilike("name", lower).limit(5),
+      supabase.from("pages").select("id, name, avatar_url, category").ilike("name", lower).limit(5),
     ]);
 
     const items: SearchResult[] = [
