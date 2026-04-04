@@ -232,6 +232,44 @@ export type Database = {
           },
         ]
       }
+      anonymous_questions: {
+        Row: {
+          answer: string | null
+          answered_at: string | null
+          created_at: string
+          id: string
+          is_public: boolean
+          profile_id: string
+          question: string
+        }
+        Insert: {
+          answer?: string | null
+          answered_at?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          profile_id: string
+          question: string
+        }
+        Update: {
+          answer?: string | null
+          answered_at?: string | null
+          created_at?: string
+          id?: string
+          is_public?: boolean
+          profile_id?: string
+          question?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "anonymous_questions_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       blocks: {
         Row: {
           blocked_id: string
@@ -1285,6 +1323,44 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      post_tips: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          message: string | null
+          post_id: string
+          receiver_id: string
+          tipper_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          message?: string | null
+          post_id: string
+          receiver_id: string
+          tipper_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          message?: string | null
+          post_id?: string
+          receiver_id?: string
+          tipper_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "post_tips_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "posts"
             referencedColumns: ["id"]
           },
         ]
