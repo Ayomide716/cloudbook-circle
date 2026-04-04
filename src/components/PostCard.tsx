@@ -16,6 +16,7 @@ import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
 import ReportDialog from "./ReportDialog";
 import ImageCarousel from "./ImageCarousel";
+import TipButton from "./TipButton";
 
 interface Comment {
   id: string;
