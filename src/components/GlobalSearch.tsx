@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
 interface SearchResult {
-  type: "user" | "post" | "group";
+  type: "user" | "post" | "group" | "page";
   id: string;
   title: string;
   subtitle?: string;
