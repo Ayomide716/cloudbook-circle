@@ -337,7 +337,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       )}
 
       {/* Mobile Bottom Navigation */}
-      {currentUserId && <BottomNav currentUserId={currentUserId} />}
+      {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} />}
     </>
   );
 };
