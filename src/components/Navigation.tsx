@@ -24,7 +24,7 @@ import {
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-new.png";
 
 interface NavigationProps {
   currentUserId?: string;

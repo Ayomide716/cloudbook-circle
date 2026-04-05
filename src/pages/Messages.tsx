@@ -493,15 +493,12 @@ const Messages = () => {
               </div>
             </Card>
 
-            {/* AI Chat Area - renders inside the same chat card layout */}
-            {showAIChat && (
-              <Card className={cn("md:col-span-2 flex flex-col rounded-none sm:rounded-lg overflow-hidden", !showAIChat ? "hidden md:flex" : "flex")}>
+            {/* Chat Area — AI or regular conversation */}
+            <Card className={cn("md:col-span-2 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (!selectedConversation && !showAIChat) ? "hidden md:flex" : "flex")}>
+              {showAIChat ? (
                 <AIChatCompanion onBack={() => { setShowAIChat(false); }} />
-              </Card>
-            )}
-
-            {/* Chat Area */}
-            <Card className={cn("md:col-span-2 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (!selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
+              ) : selectedConversation ? (
+                <>
               {selectedConversation ? (
                 <>
                   {/* Chat Header */}
