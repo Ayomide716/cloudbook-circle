@@ -240,7 +240,7 @@ const Index = () => {
                             damping: 20,
                             delay: Math.min(index, 5) * 0.06,
                           }}
-                          className={size === "full" ? "sm:col-span-2" : "sm:col-span-1"}
+                          className={size === "full" ? "md:col-span-2" : "md:col-span-1"}
                         >
                           {ad && currentUser && (
                             <div className="mb-4">
