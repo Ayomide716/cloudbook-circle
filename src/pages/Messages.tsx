@@ -499,8 +499,6 @@ const Messages = () => {
                 <AIChatCompanion onBack={() => { setShowAIChat(false); }} />
               ) : selectedConversation ? (
                 <>
-              {selectedConversation ? (
-                <>
                   {/* Chat Header */}
                   <div className="border-b p-3 sm:p-4 flex items-center gap-3 flex-shrink-0 bg-card">
                     <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-target" onClick={() => { setSelectedConversation(null); setReplyingTo(null); setEditingMessage(null); }}>
