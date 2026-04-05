@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
 import GroupChat from "@/components/GroupChat";
+import VoiceRooms from "@/components/VoiceRooms";
 import EditGroupModal from "@/components/EditGroupModal";
 import GroupVideoCall from "@/components/GroupVideoCall";
 import { Card } from "@/components/ui/card";
