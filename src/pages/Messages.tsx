@@ -602,7 +602,7 @@ const Messages = () => {
                   )}
 
                   {/* Message input */}
-                  <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 pb-20 md:pb-4 flex-shrink-0 bg-card">
+                  <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 pb-4 flex-shrink-0 bg-card">
                     {imageUrl && (
                       <div className="mb-2 relative inline-block">
                         {mediaType === "video" ? (
