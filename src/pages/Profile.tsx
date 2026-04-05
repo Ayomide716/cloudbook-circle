@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import ProfileAchievements from "@/components/ProfileAchievements";
 import AnonymousQA from "@/components/AnonymousQA";
+import CreatorSubscriptions from "@/components/CreatorSubscriptions";
 
 interface ProfileData {
   id: string;
