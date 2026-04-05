@@ -5,7 +5,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import { useVideoCall } from "@/hooks/use-video-call";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
+
 import NewConversation from "@/components/NewConversation";
 import ChatImageUpload from "@/components/ChatImageUpload";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
@@ -602,7 +602,7 @@ const Messages = () => {
                   )}
 
                   {/* Message input */}
-                  <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 pb-20 md:pb-4 flex-shrink-0 bg-card">
+                  <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 pb-4 flex-shrink-0 bg-card">
                     {imageUrl && (
                       <div className="mb-2 relative inline-block">
                         {mediaType === "video" ? (
@@ -658,7 +658,7 @@ const Messages = () => {
         </div>
       </div>
 
-      <BottomNav currentUserId={currentUserId || undefined} />
+      
 
       {/* Chat Settings Modal */}
       {selectedConversation && currentUserId && (
