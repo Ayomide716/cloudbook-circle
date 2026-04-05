@@ -23,7 +23,7 @@ interface Participant {
   user_id: string;
   is_muted: boolean;
   is_speaker: boolean;
-  profile?: { full_name: string | null; avatar_url: string | null };
+  profile?: { full_name: string | null; avatar_url: string | null } | null;
 }
 
 interface VoiceRoomsProps {
