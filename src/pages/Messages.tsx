@@ -5,7 +5,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import { useVideoCall } from "@/hooks/use-video-call";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
+
 import NewConversation from "@/components/NewConversation";
 import ChatImageUpload from "@/components/ChatImageUpload";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
