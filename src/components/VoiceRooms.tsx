@@ -80,7 +80,7 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
       ...room,
       participants: (participants || [])
         .filter(p => p.room_id === room.id)
-        .map(p => ({ ...p, profile: profileMap.get(p.user_id) || undefined })),
+        .map(p => ({ ...p, profile: profileMap.get(p.user_id) || null })),
     }));
 
     setRooms(enriched);
