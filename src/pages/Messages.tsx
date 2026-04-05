@@ -658,7 +658,7 @@ const Messages = () => {
         </div>
       </div>
 
-      <BottomNav currentUserId={currentUserId || undefined} />
+      
 
       {/* Chat Settings Modal */}
       {selectedConversation && currentUserId && (
