@@ -225,7 +225,7 @@ const Index = () => {
               ) : (
                 <>
                   {/* Bento Grid Layout */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {allPosts.map((post, index) => {
                       const size = getBentoSize(index);
                       const ad = getAdForPosition(index);
