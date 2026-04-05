@@ -198,25 +198,23 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   return (
     <>
       <div className="mb-4">
-        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide px-1">
           {/* Create Story Card */}
           <div
             className="flex-shrink-0 cursor-pointer group"
             onClick={() => setIsCreating(true)}
           >
-            <div className="relative w-[112px] h-[200px] rounded-xl overflow-hidden border border-border bg-card">
-              <div className="h-[140px] bg-secondary flex items-center justify-center">
-                <Avatar className="h-16 w-16">
-                  <AvatarFallback className="bg-muted text-muted-foreground">
-                    <Plus className="h-6 w-6" />
-                  </AvatarFallback>
-                </Avatar>
+            <div className="relative w-28 h-48 sm:w-[112px] sm:h-[200px] rounded-2xl overflow-hidden border-2 border-border/60 bg-card shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
+              <div className="h-[60%] bg-secondary/60 flex items-center justify-center">
+                <div className="w-14 h-14 rounded-full bg-muted/80 flex items-center justify-center">
+                  <Plus className="h-6 w-6 text-muted-foreground" />
+                </div>
               </div>
-              <div className="absolute bottom-0 inset-x-0 h-[60px] bg-card flex flex-col items-center justify-center border-t border-border">
-                <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center -mt-4 mb-1 border-4 border-card">
+              <div className="absolute bottom-0 inset-x-0 h-[40%] bg-card flex flex-col items-center justify-center border-t border-border/50">
+                <div className="w-9 h-9 rounded-full gradient-brand flex items-center justify-center -mt-5 mb-1.5 border-[3px] border-card shadow-md">
                   <Plus className="h-4 w-4 text-primary-foreground" />
                 </div>
-                <p className="text-xs font-medium">Create story</p>
+                <p className="text-xs font-semibold">Create story</p>
               </div>
             </div>
           </div>
@@ -228,25 +226,25 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               className="flex-shrink-0 cursor-pointer group"
               onClick={() => handleViewStory(story)}
             >
-              <div className="relative w-[112px] h-[200px] rounded-xl overflow-hidden border border-border">
+              <div className="relative w-28 h-48 sm:w-[112px] sm:h-[200px] rounded-2xl overflow-hidden border-2 border-primary/30 shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
                 <img
                   src={story.media_url}
                   alt="Story"
-                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/60" />
+                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
                 {/* User avatar with ring */}
-                <div className="absolute top-2 left-2">
-                  <Avatar className="h-9 w-9 border-[3px] border-primary">
+                <div className="absolute top-2.5 left-2.5">
+                  <Avatar className="h-9 w-9 border-[3px] border-primary ring-1 ring-primary/30">
                     <AvatarImage src={story.profiles.avatar_url || undefined} />
-                    <AvatarFallback className="text-xs">
+                    <AvatarFallback className="text-xs bg-primary text-primary-foreground">
                       {story.profiles.full_name?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
                 </div>
                 {/* Name at bottom */}
-                <div className="absolute bottom-2 left-2 right-2">
-                  <p className="text-white text-xs font-semibold leading-tight line-clamp-2 drop-shadow-md">
+                <div className="absolute bottom-2.5 left-2.5 right-2.5">
+                  <p className="text-white text-xs font-semibold leading-tight line-clamp-2 drop-shadow-lg">
                     {story.user_id === currentUserId
                       ? "Your Story"
                       : story.profiles.full_name || "Anonymous"}
