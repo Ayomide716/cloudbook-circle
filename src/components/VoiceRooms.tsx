@@ -74,7 +74,7 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
       ? await supabase.from("profiles").select("id, full_name, avatar_url").in("id", userIds)
       : { data: [] };
 
-    const profileMap = new Map(profiles?.map(p => [p.id, p]));
+    const profileMap = new Map((profiles || []).map(p => [p.id, p] as const));
 
     const enriched: VoiceRoom[] = roomsData.map(room => ({
       ...room,
