@@ -988,7 +988,14 @@ const Profile = () => {
           </motion.div>
         }
       {activeTab === "qa" && (
-        <div className="max-w-2xl">
+        <div className="max-w-2xl space-y-6">
+          {currentUserId && userId && (
+            <CreatorSubscriptions
+              creatorId={userId}
+              currentUserId={currentUserId}
+              isOwnProfile={isOwnProfile}
+            />
+          )}
           <AnonymousQA
             profileId={userId || ""}
             isOwnProfile={isOwnProfile}
