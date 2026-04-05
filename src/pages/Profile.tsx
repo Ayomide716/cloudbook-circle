@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import ProfileAchievements from "@/components/ProfileAchievements";
 import AnonymousQA from "@/components/AnonymousQA";
+import CreatorSubscriptions from "@/components/CreatorSubscriptions";
 
 interface ProfileData {
   id: string;
@@ -987,7 +988,14 @@ const Profile = () => {
           </motion.div>
         }
       {activeTab === "qa" && (
-        <div className="max-w-2xl">
+        <div className="max-w-2xl space-y-6">
+          {currentUserId && userId && (
+            <CreatorSubscriptions
+              creatorId={userId}
+              currentUserId={currentUserId}
+              isOwnProfile={isOwnProfile}
+            />
+          )}
           <AnonymousQA
             profileId={userId || ""}
             isOwnProfile={isOwnProfile}

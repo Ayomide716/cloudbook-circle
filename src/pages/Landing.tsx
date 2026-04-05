@@ -15,7 +15,7 @@ import {
   Heart,
   Bell,
 } from "lucide-react";
-import logo from "@/assets/logo.png";
+import logo from "@/assets/logo-new.png";
 import phone1 from "@/assets/landing-phone-1.png";
 import phone2 from "@/assets/landing-phone-2.png";
 

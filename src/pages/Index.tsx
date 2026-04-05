@@ -225,7 +225,7 @@ const Index = () => {
               ) : (
                 <>
                   {/* Bento Grid Layout */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {allPosts.map((post, index) => {
                       const size = getBentoSize(index);
                       const ad = getAdForPosition(index);
@@ -240,7 +240,7 @@ const Index = () => {
                             damping: 20,
                             delay: Math.min(index, 5) * 0.06,
                           }}
-                          className={size === "full" ? "sm:col-span-2" : "sm:col-span-1"}
+                          className={size === "full" ? "md:col-span-2" : "md:col-span-1"}
                         >
                           {ad && currentUser && (
                             <div className="mb-4">

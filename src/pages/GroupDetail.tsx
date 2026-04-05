@@ -5,6 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
 import GroupChat from "@/components/GroupChat";
+import VoiceRooms from "@/components/VoiceRooms";
 import EditGroupModal from "@/components/EditGroupModal";
 import GroupVideoCall from "@/components/GroupVideoCall";
 import { Card } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 
@@ -390,10 +391,14 @@ const GroupDetail = () => {
         )}
 
         <Tabs defaultValue="chat" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="chat" className="flex items-center gap-1">
               <MessageCircle className="h-4 w-4" />
               Chat
+            </TabsTrigger>
+            <TabsTrigger value="voice" className="flex items-center gap-1">
+              <Radio className="h-4 w-4" />
+              Voice
             </TabsTrigger>
             <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>
@@ -412,6 +417,17 @@ const GroupDetail = () => {
                   <UserPlus className="h-4 w-4 mr-2" />
                   Join Group
                 </Button>
+              </Card>
+            )}
+          </TabsContent>
+
+          <TabsContent value="voice">
+            {isMember && currentUserId ? (
+              <VoiceRooms groupId={groupId!} currentUserId={currentUserId} />
+            ) : (
+              <Card className="p-12 text-center">
+                <Radio className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Join the group to access voice rooms</p>
               </Card>
             )}
           </TabsContent>

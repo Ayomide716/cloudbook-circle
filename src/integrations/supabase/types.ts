@@ -400,6 +400,74 @@ export type Database = {
           },
         ]
       }
+      creator_subscriptions: {
+        Row: {
+          creator_id: string
+          expires_at: string | null
+          id: string
+          started_at: string
+          status: string
+          subscriber_id: string
+          tier_id: string
+        }
+        Insert: {
+          creator_id: string
+          expires_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          subscriber_id: string
+          tier_id: string
+        }
+        Update: {
+          creator_id?: string
+          expires_at?: string | null
+          id?: string
+          started_at?: string
+          status?: string
+          subscriber_id?: string
+          tier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_subscriptions_tier_id_fkey"
+            columns: ["tier_id"]
+            isOneToOne: false
+            referencedRelation: "creator_tiers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      creator_tiers: {
+        Row: {
+          created_at: string
+          creator_id: string
+          description: string | null
+          id: string
+          name: string
+          price_credits: number
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          description?: string | null
+          id?: string
+          name: string
+          price_credits?: number
+          tier: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          description?: string | null
+          id?: string
+          name?: string
+          price_credits?: number
+          tier?: Database["public"]["Enums"]["subscription_tier"]
+        }
+        Relationships: []
+      }
       credit_transactions: {
         Row: {
           amount: number
@@ -1899,6 +1967,76 @@ export type Database = {
           },
         ]
       }
+      voice_room_participants: {
+        Row: {
+          id: string
+          is_muted: boolean
+          is_speaker: boolean
+          joined_at: string
+          room_id: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          is_muted?: boolean
+          is_speaker?: boolean
+          joined_at?: string
+          room_id: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          is_muted?: boolean
+          is_speaker?: boolean
+          joined_at?: string
+          room_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_room_participants_room_id_fkey"
+            columns: ["room_id"]
+            isOneToOne: false
+            referencedRelation: "voice_rooms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      voice_rooms: {
+        Row: {
+          created_at: string
+          created_by: string
+          group_id: string
+          id: string
+          is_active: boolean
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          group_id: string
+          id?: string
+          is_active?: boolean
+          title?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          group_id?: string
+          id?: string
+          is_active?: boolean
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "voice_rooms_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       watch_comments: {
         Row: {
           content: string
@@ -2108,6 +2246,7 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
+      subscription_tier: "supporter" | "superfan" | "vip"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -2236,6 +2375,7 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user"],
+      subscription_tier: ["supporter", "superfan", "vip"],
     },
   },
 } as const
