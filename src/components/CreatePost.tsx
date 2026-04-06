@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Image, Video, BarChart3, X, Images } from "lucide-react";
 import PostExpirySelector from "./PostExpirySelector";
+import ContentScheduler from "./ContentScheduler";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
@@ -36,6 +37,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [showDialog, setShowDialog] = useState(false);
   const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
   const [postExpiry, setPostExpiry] = useState<string | null>(null);
+  const [scheduledDate, setScheduledDate] = useState<Date | null>(null);
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -245,11 +247,14 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </div>
             )}
             
-            <div className="flex items-center justify-between">
-              <PostExpirySelector value={postExpiry} onChange={setPostExpiry} />
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-1">
+                <PostExpirySelector value={postExpiry} onChange={setPostExpiry} />
+                <ContentScheduler scheduledDate={scheduledDate} onScheduleChange={setScheduledDate} />
+              </div>
               {postExpiry && (
                 <span className="text-xs text-muted-foreground">
-                  ⏱ This post will auto-delete after {postExpiry === "24h" ? "24 hours" : postExpiry === "7d" ? "7 days" : "30 days"}
+                  ⏱ Auto-deletes after {postExpiry === "24h" ? "24h" : postExpiry === "7d" ? "7d" : "30d"}
                 </span>
               )}
             </div>
@@ -257,10 +262,10 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
             <Button
               type="submit"
               className="w-full"
-               disabled={isLoading || (!content.trim() && !pollData)}
+              disabled={isLoading || (!content.trim() && !pollData)}
             >
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Post
+              {scheduledDate ? `Schedule for ${scheduledDate.toLocaleDateString()}` : "Post"}
             </Button>
           </form>
         </DialogContent>

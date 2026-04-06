@@ -1,10 +1,9 @@
-import { Home, Users, Film, MessageCircle, Search } from "lucide-react";
+import { Home, Film, MessageCircle, Compass } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
-import MobileSearchOverlay from "./MobileSearchOverlay";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
 
@@ -17,7 +16,6 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   const location = useLocation();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (currentUserId) {
@@ -45,8 +43,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
 
   const navItems = [
     { icon: Home, path: "/", label: "Home", badge: unreadNotifications, action: undefined as (() => void) | undefined },
-    { icon: Users, path: "/groups", label: "Groups", badge: pendingRequests, action: undefined as (() => void) | undefined },
-    { icon: Search, path: "", label: "Search", badge: 0, action: () => setSearchOpen(true) },
+    { icon: Compass, path: "/explore", label: "Explore", badge: 0, action: undefined as (() => void) | undefined },
     { icon: Film, path: "/reels", label: "Reels", badge: 0, action: undefined as (() => void) | undefined },
     { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0, action: undefined as (() => void) | undefined },
   ];
@@ -98,8 +95,6 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
           </div>
         )}
       </div>
-      
-      <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </motion.nav>
   );
 };

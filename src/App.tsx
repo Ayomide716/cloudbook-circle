@@ -31,6 +31,7 @@ const Ads = lazy(() => import("./pages/Ads"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const Explore = lazy(() => import("./pages/Explore"));
 
 // Lazy-loaded skeletons
 const FeedSkeleton = lazy(() => import("./components/skeletons/FeedSkeleton"));
@@ -137,6 +138,7 @@ const AppRoutes = () => {
           <Route path="/admin" element={<AnimatedPage><AdminDashboard /></AnimatedPage>} />
           <Route path="/terms" element={<AnimatedPage><TermsOfService /></AnimatedPage>} />
           <Route path="/privacy" element={<AnimatedPage><PrivacyPolicy /></AnimatedPage>} />
+          <Route path="/explore" element={<AnimatedPage><Explore /></AnimatedPage>} />
           <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
         </Routes>
       </AnimatePresence>
