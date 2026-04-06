@@ -45,8 +45,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
 
   const navItems = [
     { icon: Home, path: "/", label: "Home", badge: unreadNotifications, action: undefined as (() => void) | undefined },
-    { icon: Users, path: "/groups", label: "Groups", badge: pendingRequests, action: undefined as (() => void) | undefined },
-    { icon: Search, path: "", label: "Search", badge: 0, action: () => setSearchOpen(true) },
+    { icon: Compass, path: "/explore", label: "Explore", badge: 0, action: undefined as (() => void) | undefined },
     { icon: Film, path: "/reels", label: "Reels", badge: 0, action: undefined as (() => void) | undefined },
     { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0, action: undefined as (() => void) | undefined },
   ];
