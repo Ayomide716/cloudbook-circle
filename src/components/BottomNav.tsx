@@ -1,4 +1,4 @@
-import { Home, Users, Film, MessageCircle, Compass } from "lucide-react";
+import { Home, Film, MessageCircle, Compass } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
