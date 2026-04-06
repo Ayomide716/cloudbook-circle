@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Globe, Users } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface FeedFilterProps {
   filter: 'all' | 'friends' | 'digest';
@@ -8,36 +8,30 @@ interface FeedFilterProps {
 }
 
 const FeedFilter = ({ filter, onFilterChange }: FeedFilterProps) => {
+  const filters = [
+    { key: 'all' as const, label: 'All', icon: Globe },
+    { key: 'friends' as const, label: 'Friends', icon: Users },
+    { key: 'digest' as const, label: 'Digest', icon: Sparkles },
+  ];
+
   return (
-    <Card className="p-4 mb-4">
-      <div className="flex gap-2">
+    <div className="flex gap-1.5 mb-4 overflow-x-auto scrollbar-hide">
+      {filters.map(f => (
         <Button
-          variant={filter === 'all' ? 'default' : 'outline'}
+          key={f.key}
+          variant={filter === f.key ? "default" : "outline"}
           size="sm"
-          onClick={() => onFilterChange('all')}
-          className="flex-1"
+          onClick={() => onFilterChange(f.key)}
+          className={cn(
+            "rounded-full gap-1.5 text-xs sm:text-sm px-3.5 h-8 flex-shrink-0 transition-all",
+            filter === f.key && "shadow-md"
+          )}
         >
-          All Posts
+          <f.icon className="h-3.5 w-3.5" />
+          {f.label}
         </Button>
-        <Button
-          variant={filter === 'friends' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => onFilterChange('friends')}
-          className="flex-1"
-        >
-          Friends Only
-        </Button>
-        <Button
-          variant={filter === 'digest' ? 'default' : 'outline'}
-          size="sm"
-          onClick={() => onFilterChange('digest')}
-          className="flex-1 gap-1"
-        >
-          <Sparkles className="h-3.5 w-3.5" />
-          Digest
-        </Button>
-      </div>
-    </Card>
+      ))}
+    </div>
   );
 };
 
