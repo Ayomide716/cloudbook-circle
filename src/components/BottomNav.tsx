@@ -96,8 +96,6 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
           </div>
         )}
       </div>
-      
-      <MobileSearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
     </motion.nav>
   );
 };
