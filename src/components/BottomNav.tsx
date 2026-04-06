@@ -17,7 +17,6 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   const location = useLocation();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
-  const [searchOpen, setSearchOpen] = useState(false);
 
   useEffect(() => {
     if (currentUserId) {
