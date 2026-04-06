@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Image, Video, BarChart3, X, Images } from "lucide-react";
 import PostExpirySelector from "./PostExpirySelector";
+import ContentScheduler from "./ContentScheduler";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
@@ -11,6 +12,12 @@ import VideoUpload from "./VideoUpload";
 import PollCreator from "./PollCreator";
 import MultiImageUpload from "./MultiImageUpload";
 import MentionInput from "./MentionInput";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   Dialog,
   DialogContent,
