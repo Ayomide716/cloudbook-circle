@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
 import { prefetchRoute } from "@/lib/prefetch";
-import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
 
 interface BottomNavProps {
