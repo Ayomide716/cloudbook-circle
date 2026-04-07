@@ -48,6 +48,12 @@ interface Member {
   };
 }
 
+interface GroupCallAlert {
+  initiatorName: string;
+  initiatorAvatar?: string | null;
+  isVoiceOnly: boolean;
+}
+
 const GroupDetail = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
@@ -65,6 +71,7 @@ const GroupDetail = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeGroupCall, setActiveGroupCall] = useState<{ isVoiceOnly: boolean } | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
+  const [incomingGroupCall, setIncomingGroupCall] = useState<GroupCallAlert | null>(null);
 
   useEffect(() => {
     checkAuth();
@@ -93,33 +100,64 @@ const GroupDetail = () => {
       .channel(`group-${groupId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "group_posts",
-          filter: `group_id=eq.${groupId}`,
-        },
-        () => {
-          loadPosts();
-        }
+        { event: "*", schema: "public", table: "group_posts", filter: `group_id=eq.${groupId}` },
+        () => { loadPosts(); }
       )
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "group_members",
-          filter: `group_id=eq.${groupId}`,
-        },
-        () => {
-          loadMembers();
-        }
+        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${groupId}` },
+        () => { loadMembers(); }
       )
+      .subscribe();
+
+    // Listen for group call alerts
+    const callChannel = supabase
+      .channel(`group-call-alert-${groupId}`)
+      .on("broadcast", { event: "group-call-started" }, ({ payload }) => {
+        if (payload.initiatorId !== currentUserId && !activeGroupCall) {
+          setIncomingGroupCall({
+            initiatorName: payload.initiatorName,
+            initiatorAvatar: payload.initiatorAvatar,
+            isVoiceOnly: payload.isVoiceOnly,
+          });
+        }
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(callChannel);
     };
+  };
+
+  const broadcastCallStart = async (isVoiceOnly: boolean) => {
+    if (!currentUserId || !groupId) return;
+    const channel = supabase.channel(`group-call-alert-${groupId}`);
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.send({
+          type: "broadcast",
+          event: "group-call-started",
+          payload: {
+            initiatorId: currentUserId,
+            initiatorName: currentUserProfile?.full_name || "Someone",
+            initiatorAvatar: currentUserProfile?.avatar_url,
+            isVoiceOnly,
+          },
+        });
+        setTimeout(() => supabase.removeChannel(channel), 1000);
+      }
+    });
+  };
+
+  const startGroupCall = (isVoiceOnly: boolean) => {
+    broadcastCallStart(isVoiceOnly);
+    setActiveGroupCall({ isVoiceOnly });
+  };
+
+  const joinGroupCall = (isVoiceOnly: boolean) => {
+    setIncomingGroupCall(null);
+    setActiveGroupCall({ isVoiceOnly });
   };
 
   const loadGroupData = async () => {
@@ -335,6 +373,27 @@ const GroupDetail = () => {
           Back to Groups
         </Button>
 
+        {/* Incoming group call alert */}
+        {incomingGroupCall && !activeGroupCall && (
+          <Card className="p-4 mb-4 border-primary/50 bg-primary/5 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full gradient-brand flex items-center justify-center">
+                {incomingGroupCall.isVoiceOnly ? <Phone className="h-5 w-5 text-primary-foreground" /> : <Video className="h-5 w-5 text-primary-foreground" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">{incomingGroupCall.initiatorName} started a {incomingGroupCall.isVoiceOnly ? "voice" : "video"} call</p>
+                <p className="text-xs text-muted-foreground">Tap to join the call</p>
+              </div>
+              <Button size="sm" onClick={() => joinGroupCall(incomingGroupCall.isVoiceOnly)} className="gradient-brand text-primary-foreground">
+                Join
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setIncomingGroupCall(null)}>
+                Dismiss
+              </Button>
+            </div>
+          </Card>
+        )}
+
         <Card className="p-6 mb-6">
           {group.image_url && (
             <img
@@ -357,10 +416,10 @@ const GroupDetail = () => {
             <div className="flex gap-2">
               {isMember && (
                 <>
-                  <Button variant="outline" size="icon" onClick={() => setActiveGroupCall({ isVoiceOnly: true })} title="Group Voice Call">
+                  <Button variant="outline" size="icon" onClick={() => startGroupCall(true)} title="Group Voice Call">
                     <Phone className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" onClick={() => setActiveGroupCall({ isVoiceOnly: false })} title="Group Video Call">
+                  <Button variant="outline" size="icon" onClick={() => startGroupCall(false)} title="Group Video Call">
                     <Video className="h-4 w-4" />
                   </Button>
                 </>

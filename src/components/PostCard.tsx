@@ -396,11 +396,14 @@ const PostCard = ({
         <ImageCarousel images={post.image_urls} />
       )}
       {!post.video_url && (!post.image_urls || post.image_urls.length <= 1) && post.image_url && (
-        <img
-          src={post.image_url}
-          alt="Post content"
-          className="w-full max-h-[500px] object-cover"
-        />
+        <div className="w-full flex justify-center bg-muted/30">
+          <img
+            src={post.image_url}
+            alt="Post content"
+            className="w-full max-h-[600px] object-contain"
+            loading="lazy"
+          />
+        </div>
       )}
  
        {/* Poll */}
