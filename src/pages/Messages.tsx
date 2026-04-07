@@ -416,7 +416,12 @@ const Messages = () => {
             {/* Conversations List */}
             <Card className={cn("md:col-span-1 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
               <div className="p-3 sm:p-4 border-b flex-shrink-0">
-                <h2 className="text-lg sm:text-xl font-bold mb-3">Messages</h2>
+                <div className="flex items-center gap-2 mb-3">
+                  <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-target" onClick={() => navigate("/")}>
+                    <ArrowLeft className="h-5 w-5" />
+                  </Button>
+                  <h2 className="text-lg sm:text-xl font-bold">Messages</h2>
+                </div>
                 <NewConversation currentUserId={currentUserId!} onSelectUser={setSelectedConversation} />
               </div>
               <div className="flex-1 overflow-y-auto">
