@@ -100,33 +100,64 @@ const GroupDetail = () => {
       .channel(`group-${groupId}`)
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "group_posts",
-          filter: `group_id=eq.${groupId}`,
-        },
-        () => {
-          loadPosts();
-        }
+        { event: "*", schema: "public", table: "group_posts", filter: `group_id=eq.${groupId}` },
+        () => { loadPosts(); }
       )
       .on(
         "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "group_members",
-          filter: `group_id=eq.${groupId}`,
-        },
-        () => {
-          loadMembers();
-        }
+        { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${groupId}` },
+        () => { loadMembers(); }
       )
+      .subscribe();
+
+    // Listen for group call alerts
+    const callChannel = supabase
+      .channel(`group-call-alert-${groupId}`)
+      .on("broadcast", { event: "group-call-started" }, ({ payload }) => {
+        if (payload.initiatorId !== currentUserId && !activeGroupCall) {
+          setIncomingGroupCall({
+            initiatorName: payload.initiatorName,
+            initiatorAvatar: payload.initiatorAvatar,
+            isVoiceOnly: payload.isVoiceOnly,
+          });
+        }
+      })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
+      supabase.removeChannel(callChannel);
     };
+  };
+
+  const broadcastCallStart = async (isVoiceOnly: boolean) => {
+    if (!currentUserId || !groupId) return;
+    const channel = supabase.channel(`group-call-alert-${groupId}`);
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.send({
+          type: "broadcast",
+          event: "group-call-started",
+          payload: {
+            initiatorId: currentUserId,
+            initiatorName: currentUserProfile?.full_name || "Someone",
+            initiatorAvatar: currentUserProfile?.avatar_url,
+            isVoiceOnly,
+          },
+        });
+        setTimeout(() => supabase.removeChannel(channel), 1000);
+      }
+    });
+  };
+
+  const startGroupCall = (isVoiceOnly: boolean) => {
+    broadcastCallStart(isVoiceOnly);
+    setActiveGroupCall({ isVoiceOnly });
+  };
+
+  const joinGroupCall = (isVoiceOnly: boolean) => {
+    setIncomingGroupCall(null);
+    setActiveGroupCall({ isVoiceOnly });
   };
 
   const loadGroupData = async () => {
