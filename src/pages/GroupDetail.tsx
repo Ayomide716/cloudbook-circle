@@ -395,10 +395,10 @@ const GroupDetail = () => {
             <div className="flex gap-2">
               {isMember && (
                 <>
-                  <Button variant="outline" size="icon" onClick={() => setActiveGroupCall({ isVoiceOnly: true })} title="Group Voice Call">
+                  <Button variant="outline" size="icon" onClick={() => startGroupCall(true)} title="Group Voice Call">
                     <Phone className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" onClick={() => setActiveGroupCall({ isVoiceOnly: false })} title="Group Video Call">
+                  <Button variant="outline" size="icon" onClick={() => startGroupCall(false)} title="Group Video Call">
                     <Video className="h-4 w-4" />
                   </Button>
                 </>
