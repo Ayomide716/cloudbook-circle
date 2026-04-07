@@ -431,7 +431,7 @@ const Profile = () => {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="bento-card overflow-hidden mb-5 py-[50px]">
+          className="bento-card overflow-hidden mb-5">
           
           {/* Top section with avatar and actions */}
           <div className="relative px-5 sm:px-8 pt-4 pb-5">
