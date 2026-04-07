@@ -48,6 +48,12 @@ interface Member {
   };
 }
 
+interface GroupCallAlert {
+  initiatorName: string;
+  initiatorAvatar?: string | null;
+  isVoiceOnly: boolean;
+}
+
 const GroupDetail = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
@@ -65,6 +71,7 @@ const GroupDetail = () => {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [activeGroupCall, setActiveGroupCall] = useState<{ isVoiceOnly: boolean } | null>(null);
   const [currentUserProfile, setCurrentUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
+  const [incomingGroupCall, setIncomingGroupCall] = useState<GroupCallAlert | null>(null);
 
   useEffect(() => {
     checkAuth();
