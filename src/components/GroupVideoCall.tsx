@@ -258,35 +258,52 @@ const GroupVideoCall = ({
     }
   };
 
-  const toggleScreenShare = async () => {
-    if (isScreenSharing) {
-      if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach(t => t.stop());
-      screenStreamRef.current = null;
-      // Replace all senders with camera track
-      const camTrack = localStreamRef.current?.getVideoTracks()[0];
-      if (camTrack) {
-        peerConnectionsRef.current.forEach(pc => {
-          const sender = pc.getSenders().find(s => s.track?.kind === "video");
-          if (sender) sender.replaceTrack(camTrack);
-        });
-      }
-      if (localVideoRef.current && localStreamRef.current) localVideoRef.current.srcObject = localStreamRef.current;
-      setIsScreenSharing(false);
-    } else {
-      try {
-        const screen = await navigator.mediaDevices.getDisplayMedia({ video: true });
-        screenStreamRef.current = screen;
-        const videoTrack = screen.getVideoTracks()[0];
-        peerConnectionsRef.current.forEach(pc => {
-          const sender = pc.getSenders().find(s => s.track?.kind === "video");
-          if (sender) sender.replaceTrack(videoTrack);
-        });
-        if (localVideoRef.current) localVideoRef.current.srcObject = screen;
-        videoTrack.onended = () => toggleScreenShare();
-        setIsScreenSharing(true);
-      } catch {}
+  const stopScreenShareRef = useRef<() => void>(() => {});
+
+  const stopScreenSharing = useCallback(() => {
+    if (screenStreamRef.current) screenStreamRef.current.getTracks().forEach(t => t.stop());
+    screenStreamRef.current = null;
+    const camTrack = localStreamRef.current?.getVideoTracks()[0];
+    if (camTrack) {
+      peerConnectionsRef.current.forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track?.kind === "video");
+        if (sender) sender.replaceTrack(camTrack);
+      });
     }
-  };
+    if (localVideoRef.current && localStreamRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+    setIsScreenSharing(false);
+  }, []);
+
+  stopScreenShareRef.current = stopScreenSharing;
+
+  const startScreenSharing = useCallback(async () => {
+    try {
+      const screen = await navigator.mediaDevices.getDisplayMedia({ video: true });
+      screenStreamRef.current = screen;
+      const videoTrack = screen.getVideoTracks()[0];
+      peerConnectionsRef.current.forEach(pc => {
+        const sender = pc.getSenders().find(s => s.track?.kind === "video");
+        if (sender) {
+          sender.replaceTrack(videoTrack);
+        } else {
+          pc.addTrack(videoTrack, screen);
+        }
+      });
+      if (localVideoRef.current) localVideoRef.current.srcObject = screen;
+      videoTrack.onended = () => stopScreenShareRef.current();
+      setIsScreenSharing(true);
+    } catch (err) {
+      console.log("[GroupCall] Screen share cancelled:", err);
+    }
+  }, []);
+
+  const toggleScreenShare = useCallback(async () => {
+    if (isScreenSharing) {
+      stopScreenSharing();
+    } else {
+      await startScreenSharing();
+    }
+  }, [isScreenSharing, stopScreenSharing, startScreenSharing]);
 
   const handleEndCall = () => {
     cleanup();

@@ -431,7 +431,7 @@ const Profile = () => {
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={spring}
-          className="bento-card overflow-hidden mb-5 py-[50px]">
+          className="bento-card overflow-hidden mb-5">
           
           {/* Top section with avatar and actions */}
           <div className="relative px-5 sm:px-8 pt-4 pb-5">
@@ -498,24 +498,28 @@ const Profile = () => {
             }
           </div>
 
-          {/* Stats bar — separated with a top border */}
-          <div className="border-t border-border bg-muted/30">
-            <div className="flex items-center divide-x divide-border">
+          {/* Stats bar */}
+          <div className="border-t border-border">
+            <div className="grid grid-cols-3">
               {[
-              { value: posts.length, label: "Posts", icon: MessageSquare },
-              { value: friendCount, label: "Friends", icon: Users },
-              { value: photoPosts.length, label: "Photos", icon: ImageIcon }].
+              { value: posts.length, label: "Posts", icon: MessageSquare, color: "text-primary" },
+              { value: friendCount, label: "Friends", icon: Users, color: "text-blue-500" },
+              { value: photoPosts.length, label: "Photos", icon: ImageIcon, color: "text-amber-500" }].
               map((s) =>
-              <motion.div
+              <motion.button
                 key={s.label}
-                whileHover={{ scale: 1.05, y: -2 }}
+                whileHover={{ scale: 1.03 }}
+                whileTap={{ scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 py-3.5 cursor-default hover:bg-accent/10 transition-colors rounded-lg">
+                onClick={() => s.label === "Photos" ? setActiveTab("photos") : s.label === "Friends" ? navigate("/friends") : undefined}
+                className="flex flex-col items-center justify-center gap-1 py-4 cursor-pointer hover:bg-accent/50 transition-colors first:rounded-bl-2xl last:rounded-br-2xl">
                 
-                  <s.icon className="h-4 w-4 text-primary/60" />
-                  <span className="font-display font-bold text-base">{s.value}</span>
+                  <div className={cn("h-8 w-8 rounded-xl bg-accent/80 flex items-center justify-center", s.color)}>
+                    <s.icon className="h-4 w-4" />
+                  </div>
+                  <span className="font-display font-bold text-lg">{s.value}</span>
                   <span className="text-[11px] text-muted-foreground">{s.label}</span>
-                </motion.div>
+                </motion.button>
               )}
             </div>
           </div>

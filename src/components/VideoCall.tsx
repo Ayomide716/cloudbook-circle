@@ -364,10 +364,16 @@ const VideoCall = ({
       screenStreamRef.current = screen;
       const videoTrack = screen.getVideoTracks()[0];
       const sender = pc.getSenders().find((s) => s.track?.kind === "video");
-      if (sender) await sender.replaceTrack(videoTrack);
+      if (sender) {
+        await sender.replaceTrack(videoTrack);
+      } else {
+        // No existing video sender (e.g. voice-only fallback) — add a new one
+        pc.addTrack(videoTrack, screen);
+      }
       if (localVideoRef.current) localVideoRef.current.srcObject = screen;
       videoTrack.onended = () => stopScreenShareRef.current();
       setIsScreenSharing(true);
+      setIsVideoEnabled(true);
     } catch (err) {
       console.log("[WebRTC] Screen share cancelled or failed:", err);
     }
