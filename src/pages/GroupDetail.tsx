@@ -373,6 +373,27 @@ const GroupDetail = () => {
           Back to Groups
         </Button>
 
+        {/* Incoming group call alert */}
+        {incomingGroupCall && !activeGroupCall && (
+          <Card className="p-4 mb-4 border-primary/50 bg-primary/5 animate-pulse">
+            <div className="flex items-center gap-3">
+              <div className="h-10 w-10 rounded-full gradient-brand flex items-center justify-center">
+                {incomingGroupCall.isVoiceOnly ? <Phone className="h-5 w-5 text-primary-foreground" /> : <Video className="h-5 w-5 text-primary-foreground" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm">{incomingGroupCall.initiatorName} started a {incomingGroupCall.isVoiceOnly ? "voice" : "video"} call</p>
+                <p className="text-xs text-muted-foreground">Tap to join the call</p>
+              </div>
+              <Button size="sm" onClick={() => joinGroupCall(incomingGroupCall.isVoiceOnly)} className="gradient-brand text-primary-foreground">
+                Join
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setIncomingGroupCall(null)}>
+                Dismiss
+              </Button>
+            </div>
+          </Card>
+        )}
+
         <Card className="p-6 mb-6">
           {group.image_url && (
             <img
