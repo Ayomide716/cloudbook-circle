@@ -5,7 +5,7 @@ import { useDraggable } from "@/hooks/use-draggable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Maximize2, Mic, MicOff, Minimize2, Monitor, MonitorOff, PhoneOff, Users, Video, VideoOff } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { canShareScreen, formatCallDuration, getIceServers } from "@/lib/webrtc";
+import { canShareScreen, formatCallDuration, getIceServers, loadIceServers } from "@/lib/webrtc";
 import { freshChannel } from "@/lib/realtime-broadcast";
 import { CallButton, StreamAudio, StreamVideo } from "@/components/calls/CallControls";
 import { toast } from "@/hooks/use-toast";
@@ -229,6 +229,7 @@ const GroupVideoCall = ({
     }
     localStreamRef.current = stream;
     setLocalPreview(stream);
+    await loadIceServers();
 
     const channel = await freshChannel(`group-call-${groupId}`, { config: { presence: { key: currentUserId } } });
     if (isCancelled()) {

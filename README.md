@@ -69,10 +69,10 @@ VITE_TENOR_API_KEY="..."
 VITE_GIPHY_API_KEY="..."
 ```
 
-Calls connect devices directly when they can. Across mobile networks and strict firewalls they need a TURN relay. Add one from any provider (for example Metered, Cloudflare Calls or Twilio):
+Calls connect devices directly when they can. Across mobile networks and strict firewalls they need a TURN relay (for example from Metered, Cloudflare Calls or Twilio). The relay login is kept secret: the `turn-credentials` backend function gives it only to signed-in users when a call starts. Add these secrets in Lovable Cloud (or with `supabase secrets set`):
 
-```sh
-VITE_TURN_URLS="turn:relay.example.com:3478,turns:relay.example.com:5349"
-VITE_TURN_USERNAME="..."
-VITE_TURN_CREDENTIAL="..."
-```
+| Secret | Value |
+| --- | --- |
+| `TURN_USERNAME` | The relay username |
+| `TURN_CREDENTIAL` | The relay password |
+| `TURN_URLS` | Optional, comma-separated relay addresses. Defaults to Metered's global relay |
