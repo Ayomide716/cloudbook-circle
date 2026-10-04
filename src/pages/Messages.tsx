@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef, useCallback, ReactElement } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
@@ -242,6 +242,27 @@ const Messages = () => {
       return () => { if (channel) supabase.removeChannel(channel); };
     }
   }, [currentUserId, loadConversations, setupRealtimeSubscription]);
+
+  // Open a specific chat from links like /messages?user=<id> (contacts, profiles, online friends).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const targetUserId = searchParams.get("user");
+  const openRequestedChat = useEffectEvent(async (userId: string) => {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id, full_name, avatar_url")
+      .eq("id", userId)
+      .maybeSingle();
+    if (profile) {
+      setShowAIChat(false);
+      setSelectedConversation(profile);
+    }
+    // Drop the param so closing the chat or going back doesn't reopen it.
+    setSearchParams({}, { replace: true });
+  });
+
+  useEffect(() => {
+    if (currentUserId && targetUserId && targetUserId !== currentUserId) openRequestedChat(targetUserId);
+  }, [currentUserId, targetUserId, openRequestedChat]);
 
   const setupTypingChannel = useEffectEvent(() => {
     if (!selectedConversation || !currentUserId) return;

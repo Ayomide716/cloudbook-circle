@@ -25,8 +25,13 @@
     --muted: 180 8% 93%;
     --muted-foreground: 200 10% 48%;
 
-    --accent: 36 95% 55%;
-    --accent-foreground: 0 0% 100%;
+    /* Hover/selected surfaces (menus, ghost buttons, list rows): a soft brand-teal tint. */
+    --accent: 174 35% 92%;
+    --accent-foreground: 200 25% 10%;
+
+    /* Brand gold: the warm half of the logo gradient, for intentional highlights. */
+    --gold: 36 95% 55%;
+    --gold-foreground: 0 0% 100%;
 
     --destructive: 0 80% 58%;
     --destructive-foreground: 0 0% 100%;
@@ -73,8 +78,11 @@
     --muted: 220 14% 15%;
     --muted-foreground: 210 12% 55%;
 
-    --accent: 36 90% 52%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 174 25% 18%;
+    --accent-foreground: 210 20% 94%;
+
+    --gold: 36 90% 52%;
+    --gold-foreground: 0 0% 100%;
 
     --destructive: 0 70% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -184,6 +192,12 @@
     background-clip: text;
   }
 
+  /* Default avatar background (initials). Declared before .gradient-brand so avatars
+     that set their own background (gradient-brand, bg-*) override it. */
+  .avatar-fallback {
+    background: var(--gradient-brand-soft);
+  }
+
   /* Brand gradient bg */
   .gradient-brand {
     background: var(--gradient-brand);
@@ -264,8 +278,8 @@
   }
 
   @keyframes badge-glow {
-    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--accent) / 0.4); }
-    50% { box-shadow: 0 0 0 4px hsl(var(--accent) / 0); }
+    0%, 100% { box-shadow: 0 0 0 0 hsl(var(--gold) / 0.4); }
+    50% { box-shadow: 0 0 0 4px hsl(var(--gold) / 0); }
   }
 
   @keyframes shimmer {
@@ -328,7 +342,7 @@
     135deg,
     hsl(var(--primary) / 0.08) 0%,
     hsl(var(--background)) 25%,
-    hsl(var(--accent) / 0.06) 50%,
+    hsl(var(--gold) / 0.06) 50%,
     hsl(var(--background)) 75%,
     hsl(var(--primary) / 0.1) 100%
   );
@@ -341,7 +355,7 @@
     135deg,
     hsl(var(--primary) / 0.15) 0%,
     hsl(var(--background)) 25%,
-    hsl(var(--accent) / 0.1) 50%,
+    hsl(var(--gold) / 0.1) 50%,
     hsl(var(--background)) 75%,
     hsl(var(--primary) / 0.18) 100%
   );
@@ -370,7 +384,7 @@
   height: 250px;
   bottom: -40px;
   left: -40px;
-  background: hsl(var(--accent) / 0.1);
+  background: hsl(var(--gold) / 0.1);
   animation: auth-orb-float-2 10s ease-in-out infinite;
 }
 
@@ -384,7 +398,7 @@
 }
 
 .dark .auth-orb-1 { background: hsl(var(--primary) / 0.2); }
-.dark .auth-orb-2 { background: hsl(var(--accent) / 0.15); }
+.dark .auth-orb-2 { background: hsl(var(--gold) / 0.15); }
 .dark .auth-orb-3 { background: hsl(var(--primary) / 0.12); }
 
 .dark .auth-grid-overlay {
@@ -406,7 +420,7 @@
     135deg,
     hsl(var(--primary) / 0.15),
     hsl(var(--border) / 0.5),
-    hsl(var(--accent) / 0.1)
+    hsl(var(--gold) / 0.1)
   );
 }
 
