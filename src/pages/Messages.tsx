@@ -439,7 +439,7 @@ const Messages = () => {
   if (isLoading) return <MessagesSkeleton />;
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-background">
+    <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       <div className="flex-1 flex overflow-hidden">
         <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">

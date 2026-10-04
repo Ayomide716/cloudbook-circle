@@ -3,6 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { motion } from "framer-motion";
 import {
+  BadgeCheck, BookOpen, Crown, Flame, Gem, HeartHandshake, PenLine, Star, Users, type LucideIcon,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
@@ -11,20 +15,22 @@ import {
 interface Achievement {
   type: string;
   label: string;
-  icon: string;
+  icon: LucideIcon;
+  /** Colour of the icon once earned (milestones use the brand gold). */
+  color: string;
   description: string;
 }
 
 const ALL_ACHIEVEMENTS: Achievement[] = [
-  { type: "first_post", label: "First Post", icon: "✍️", description: "Published your first post" },
-  { type: "10_friends", label: "Social Butterfly", icon: "🦋", description: "Made 10 friends" },
-  { type: "50_friends", label: "Popular", icon: "⭐", description: "Made 50 friends" },
-  { type: "100_friends", label: "Celebrity", icon: "👑", description: "Made 100 friends" },
-  { type: "first_story", label: "Storyteller", icon: "📖", description: "Shared your first story" },
-  { type: "7_day_streak", label: "On Fire", icon: "🔥", description: "7-day login streak" },
-  { type: "30_day_streak", label: "Dedicated", icon: "💎", description: "30-day login streak" },
-  { type: "first_group", label: "Community Builder", icon: "🏘️", description: "Created your first group" },
-  { type: "verified", label: "Verified", icon: "✅", description: "Got verified" },
+  { type: "first_post", label: "First Post", icon: PenLine, color: "text-primary", description: "Published your first post" },
+  { type: "10_friends", label: "Social Butterfly", icon: HeartHandshake, color: "text-primary", description: "Made 10 friends" },
+  { type: "50_friends", label: "Popular", icon: Star, color: "text-gold", description: "Made 50 friends" },
+  { type: "100_friends", label: "Celebrity", icon: Crown, color: "text-gold", description: "Made 100 friends" },
+  { type: "first_story", label: "Storyteller", icon: BookOpen, color: "text-primary", description: "Shared your first story" },
+  { type: "7_day_streak", label: "On Fire", icon: Flame, color: "text-gold", description: "7-day login streak" },
+  { type: "30_day_streak", label: "Dedicated", icon: Gem, color: "text-gold", description: "30-day login streak" },
+  { type: "first_group", label: "Community Builder", icon: Users, color: "text-primary", description: "Created your first group" },
+  { type: "verified", label: "Verified", icon: BadgeCheck, color: "text-primary", description: "Got verified" },
 ];
 
 interface ProfileAchievementsProps {
@@ -154,9 +160,10 @@ const ProfileAchievements = ({ userId, isOwnProfile }: ProfileAchievementsProps)
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: i * 0.05, type: "spring", stiffness: 400 }}
-                className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-lg cursor-default hover:scale-110 transition-transform"
+                className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center cursor-default hover:scale-110 transition-transform"
+                aria-label={a.label}
               >
-                {a.icon}
+                <a.icon className={cn("h-5 w-5", a.color)} />
               </motion.div>
             </TooltipTrigger>
             <TooltipContent>
@@ -168,8 +175,8 @@ const ProfileAchievements = ({ userId, isOwnProfile }: ProfileAchievementsProps)
         {isOwnProfile && unearnedList.map((a) => (
           <Tooltip key={a.type}>
             <TooltipTrigger asChild>
-              <div className="h-10 w-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center text-lg opacity-30 cursor-default grayscale">
-                {a.icon}
+              <div className="h-10 w-10 rounded-xl bg-muted/50 border border-border/50 flex items-center justify-center opacity-40 cursor-default" aria-label={`${a.label} (locked)`}>
+                <a.icon className="h-5 w-5 text-muted-foreground" />
               </div>
             </TooltipTrigger>
             <TooltipContent>

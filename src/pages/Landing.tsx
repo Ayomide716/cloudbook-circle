@@ -15,9 +15,9 @@ import {
   Heart,
   Bell,
 } from "lucide-react";
-import logo from "@/assets/logo-new.png";
-import phone1 from "@/assets/landing-phone-1.png";
-import phone2 from "@/assets/landing-phone-2.png";
+import logo from "@/assets/logo-new.webp";
+import phone1 from "@/assets/landing-phone-1.webp";
+import phone2 from "@/assets/landing-phone-2.webp";
 
 const spring = { type: "spring" as const, stiffness: 200, damping: 25 };
 
@@ -102,10 +102,11 @@ const Landing = () => {
 
         <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-12 items-center relative z-10">
           <motion.div style={{ y: heroY }}>
+            {/* Visible from the first frame (only slides in), so the headline paints immediately. */}
             <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...spring, delay: 0.1 }}
+              initial={{ y: 16 }}
+              animate={{ y: 0 }}
+              transition={spring}
             >
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-primary/10 text-primary mb-6">
                 <Sparkles className="h-3.5 w-3.5" /> Now in public beta

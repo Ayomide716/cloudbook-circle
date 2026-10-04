@@ -3,7 +3,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, X, Send, Loader2, ChevronLeft, ChevronRight, Pause, Play } from "lucide-react";
+import { Plus, X, Send, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
@@ -156,6 +160,35 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   // ---- Viewer Logic ----
   const activeGroup = storyGroups[activeGroupIndex];
   const activeStory = activeGroup?.stories[activeStoryIndex];
+  const isOwnStory = activeGroup?.userId === currentUserId;
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteStory = async () => {
+    if (!activeStory) return;
+    setIsDeleting(true);
+    const { error } = await supabase.from("stories").delete().eq("id", activeStory.id).eq("user_id", currentUserId);
+    setIsDeleting(false);
+    setConfirmDelete(false);
+    if (error) {
+      toast({ title: "Couldn't delete story", description: error.message, variant: "destructive" });
+      setIsPaused(false);
+      return;
+    }
+    const remaining = activeGroup.stories.filter((st) => st.id !== activeStory.id);
+    setStoryGroups((groups) =>
+      remaining.length
+        ? groups.map((g, i) => (i === activeGroupIndex ? { ...g, stories: remaining } : g))
+        : groups.filter((_, i) => i !== activeGroupIndex)
+    );
+    if (remaining.length === 0) {
+      setViewerOpen(false);
+    } else {
+      setActiveStoryIndex((idx) => Math.min(idx, remaining.length - 1));
+      setIsPaused(false);
+    }
+    toast({ title: "Story deleted" });
+  };
 
   const goNext = useCallback(() => {
     if (!activeGroup) return;
@@ -252,7 +285,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   return (
     <>
       <div className="mb-4">
-        <div className="flex gap-2.5 overflow-x-auto pb-2 scrollbar-hide px-1">
+        <div className="flex gap-3 overflow-x-auto py-2 px-1.5 -mx-1.5 scrollbar-hide">
           {/* Create Story */}
           <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)}>
             <div className="relative w-[88px] h-[140px] sm:w-[100px] sm:h-[160px] rounded-2xl overflow-hidden border-2 border-border/60 bg-card shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
@@ -330,7 +363,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
       {/* Full-Screen Story Viewer */}
       {viewerOpen && activeGroup && activeStory && (
-        <div className="fixed inset-0 z-[100] bg-black flex items-center justify-center">
+        <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] z-[100] bg-black flex items-center justify-center">
           {/* Progress bars */}
           <div className="absolute top-0 left-0 right-0 z-20 flex gap-0.5 px-2 pt-2 sm:pt-3 sm:px-4">
             {activeGroup.stories.map((_, i) => (
@@ -358,10 +391,21 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               </div>
             </div>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setIsPaused(p => !p)}>
+              {isOwnStory && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="text-white hover:bg-white/20 h-8 w-8"
+                  onClick={() => { setIsPaused(true); setConfirmDelete(true); }}
+                  aria-label="Delete story"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setIsPaused(p => !p)} aria-label={isPaused ? "Play" : "Pause"}>
                 {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               </Button>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setViewerOpen(false)}>
+              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setViewerOpen(false)} aria-label="Close">
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -431,6 +475,29 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           )}
         </div>
       )}
+
+      <AlertDialog
+        open={confirmDelete}
+        onOpenChange={(open) => { setConfirmDelete(open); if (!open) setIsPaused(false); }}
+      >
+        {/* Above the full-screen story viewer (z-[100]). */}
+        <AlertDialogContent className="z-[110]">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this story?</AlertDialogTitle>
+            <AlertDialogDescription>It will be removed for everyone. This can't be undone.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); handleDeleteStory(); }}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

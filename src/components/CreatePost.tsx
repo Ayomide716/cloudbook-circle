@@ -12,6 +12,7 @@ import VideoUpload from "./VideoUpload";
 import PollCreator from "./PollCreator";
 import MultiImageUpload from "./MultiImageUpload";
 import MentionInput from "./MentionInput";
+import { cn } from "@/lib/utils";
 import {
   Dialog,
   DialogContent,
@@ -186,20 +187,23 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   userId={currentUser.id}
                   onUploadComplete={(url) => { setImageUrl(url); if (url) { setVideoUrl(""); setImageUrls([]); } }}
                   currentImage={imageUrl}
-                  label=""
+                  label="Add photo"
+                  showPreview={false}
                 />
                 <MultiImageUpload
                   bucket="post-images"
                   userId={currentUser.id}
                   onUploadComplete={(urls) => { setImageUrls(urls); if (urls.length > 0) { setImageUrl(""); setVideoUrl(""); } }}
                   currentImages={imageUrls}
+                  showPreview={false}
                 />
                 <VideoUpload
                   bucket="post-videos"
                   userId={currentUser.id}
                   onUploadComplete={(url) => { setVideoUrl(url); if (url) { setImageUrl(""); setImageUrls([]); } }}
                   currentVideo={videoUrl}
-                  label=""
+                  label="Add video"
+                  showPreview={false}
                 />
                 <PollCreator onCreatePoll={handleCreatePoll} />
               </div>
@@ -227,23 +231,41 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                </div>
              )}
  
+            {/* One preview area for whatever is attached: the whole photo (not cropped), a grid
+                for several photos, or the video. Each item can be removed. */}
             {(imageUrl || videoUrl) && (
-              <div className="relative rounded-lg overflow-hidden bg-secondary">
+              <div className="relative rounded-xl overflow-hidden bg-muted">
                 {imageUrl && (
-                  <img src={imageUrl} alt="Preview" className="w-full max-h-60 object-cover" />
+                  <img src={imageUrl} alt="Attached photo" className="w-full max-h-80 object-contain" />
                 )}
                 {videoUrl && (
-                  <video src={videoUrl} className="w-full max-h-60 bg-black" controls playsInline preload="metadata" />
+                  <video src={videoUrl} className="w-full max-h-80 bg-black" controls playsInline preload="metadata" />
                 )}
-                <Button
+                <button
                   type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="absolute top-2 right-2"
+                  className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/75 transition-colors"
                   onClick={() => { setImageUrl(""); setVideoUrl(""); }}
+                  aria-label={videoUrl ? "Remove video" : "Remove photo"}
                 >
-                  Remove
-                </Button>
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+            {imageUrls.length > 0 && (
+              <div className={cn("grid gap-2", imageUrls.length === 2 || imageUrls.length === 4 ? "grid-cols-2" : "grid-cols-3")}>
+                {imageUrls.map((url, i) => (
+                  <div key={url} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
+                    <img src={url} alt={`Attached photo ${i + 1}`} className="h-full w-full object-cover" />
+                    <button
+                      type="button"
+                      className="absolute top-1.5 right-1.5 h-7 w-7 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/75 transition-colors"
+                      onClick={() => setImageUrls((prev) => prev.filter((_, j) => j !== i))}
+                      aria-label={`Remove photo ${i + 1}`}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
             
@@ -259,14 +281,17 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               )}
             </div>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading || (!content.trim() && !pollData)}
-            >
-              {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              {scheduledDate ? `Schedule for ${scheduledDate.toLocaleDateString()}` : "Post"}
-            </Button>
+            {/* Stays visible at the bottom of the sheet, even with a long post or the keyboard open. */}
+            <div className="sticky -bottom-4 sm:-bottom-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 pt-2 pb-4 sm:pb-6 bg-background border-t border-border/50">
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={isLoading || (!content.trim() && !pollData)}
+              >
+                {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                {scheduledDate ? `Schedule for ${scheduledDate.toLocaleDateString()}` : "Post"}
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>

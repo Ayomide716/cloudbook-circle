@@ -17,6 +17,7 @@ import VerifiedBadge from "./VerifiedBadge";
 import ReportDialog from "./ReportDialog";
 import ImageCarousel from "./ImageCarousel";
 import TipButton from "./TipButton";
+import { isPostSaved } from "@/lib/saved-posts";
 import type { TablesInsert } from "@/integrations/supabase/types";
 
 export interface PostComment {
@@ -116,16 +117,13 @@ const PostCard = ({
  
    // Check if post is saved
    useEffect(() => {
-     const checkSaved = async () => {
-       const { data } = await supabase
-         .from("saved_posts")
-         .select("id")
-         .eq("post_id", post.id)
-         .eq("user_id", currentUserId)
-         .maybeSingle();
-       setIsSaved(!!data);
+     let cancelled = false;
+     isPostSaved(post.id, currentUserId).then((saved) => {
+       if (!cancelled) setIsSaved(saved);
+     });
+     return () => {
+       cancelled = true;
      };
-     checkSaved();
    }, [post.id, currentUserId]);
  
    const handleSavePost = async () => {

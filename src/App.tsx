@@ -1,15 +1,17 @@
 import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
-import InstallPrompt from "@/components/InstallPrompt";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { motion } from "framer-motion";
 import SessionProvider from "@/components/SessionProvider";
 import RequireAuth from "@/components/RequireAuth";
 import ScrollToTop from "@/components/ScrollToTop";
+import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+
+// Shown after a delay, so it shouldn't weigh down the first load.
+const InstallPrompt = lazy(() => import("@/components/InstallPrompt"));
 
 // Lazy-loaded page components
 const Landing = lazy(() => import("./pages/Landing"));
@@ -52,14 +54,11 @@ const queryClient = new QueryClient();
 
 // Quick fade-in for each page. There is no exit animation, so the next page
 // never waits for the previous one to animate out.
+// (Plain CSS, so the animation library isn't needed before the first paint.)
 const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 6 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 0.18, ease: "easeOut" }}
-  >
+  <div className="animate-in fade-in-0 slide-in-from-bottom-1 duration-200 ease-out">
     {children}
-  </motion.div>
+  </div>
 );
 
 /** Signed-in pages: wait for the session (showing the page skeleton), then render or redirect. */
@@ -71,11 +70,7 @@ const Protected = ({ children, redirectTo }: { children: React.ReactNode; redire
 
 const MiniFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
-    <motion.div
-      animate={{ rotate: 360 }}
-      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-      className="w-8 h-8 rounded-lg gradient-brand"
-    />
+    <div className="w-8 h-8 rounded-lg gradient-brand animate-spin" />
   </div>
 );
 
@@ -141,7 +136,10 @@ const AppRoutes = () => {
   );
 };
 
-const App = () => (
+const App = () => {
+  useKeyboardInset();
+
+  return (
   <QueryClientProvider client={queryClient}>
     <SessionProvider>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
@@ -151,12 +149,15 @@ const App = () => (
         <BrowserRouter>
           <ScrollToTop />
           <AppRoutes />
-          <InstallPrompt />
+          <Suspense fallback={null}>
+            <InstallPrompt />
+          </Suspense>
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
     </SessionProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

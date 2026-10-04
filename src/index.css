@@ -1,5 +1,3 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;500;600;700;800;900&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -259,6 +257,14 @@
     .has-dock {
       padding-bottom: 6.5rem;
     }
+  }
+
+  /* While typing on a phone the dock would float right above the keyboard, over the input. */
+  body.keyboard-open .app-dock {
+    display: none !important;
+  }
+  body.keyboard-open.has-dock {
+    padding-bottom: 0;
   }
 
   .animate-spin-slow {
