@@ -322,7 +322,7 @@ const Explore = () => {
 
           <TabsContent value="people" className="space-y-3">
             <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
-              <Star className="h-4 w-4 text-accent" /> People you might know
+              <Star className="h-4 w-4 text-gold" /> People you might know
             </h3>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {suggestedUsers.map(user => (

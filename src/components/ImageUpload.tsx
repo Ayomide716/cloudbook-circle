@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Image, Loader2, X } from "lucide-react";
-import { getErrorMessage } from "@/lib/utils";
+import { Camera, Image, Loader2, X } from "lucide-react";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 interface ImageUploadProps {
   bucket: string;
@@ -12,9 +12,19 @@ interface ImageUploadProps {
   onUploadComplete: (url: string) => void;
   currentImage?: string;
   label?: string;
+  /**
+   * "icon" (default): small image button that shows a preview after upload (post composers).
+   * "pill": labelled frosted button, no preview (e.g. "Edit cover").
+   * "avatar": round camera button for profile photos, no preview.
+   */
+  variant?: "icon" | "pill" | "avatar";
+  className?: string;
 }
 
-const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "Upload Image" }: ImageUploadProps) => {
+const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "Upload Image", variant = "icon", className }: ImageUploadProps) => {
+  // Unique per instance: two uploaders for the same bucket (cover + avatar) must not share an id.
+  const inputId = `file-upload-${bucket}-${useId()}`;
+  const showPreview = variant === "icon";
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentImage || null);
   const { toast } = useToast();
@@ -83,7 +93,7 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
 
   return (
     <div className="space-y-2">
-      {preview ? (
+      {showPreview && preview ? (
         <div className="relative">
           <img
             src={preview}
@@ -108,25 +118,41 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
             onChange={handleFileChange}
             disabled={isUploading}
             className="hidden"
-            id={`file-upload-${bucket}`}
+            id={inputId}
           />
-          <label htmlFor={`file-upload-${bucket}`}>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-full text-green-500 hover:bg-green-500/10"
-              disabled={isUploading}
-              asChild
-            >
-              <span>
-                {isUploading ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : (
-                  <Image className="h-5 w-5" />
-                )}
+          <label htmlFor={inputId} className="cursor-pointer">
+            {variant === "pill" ? (
+              <span className={cn("inline-flex items-center gap-2 h-9 px-3.5 rounded-full glass-strong text-sm font-medium shadow-sm hover:bg-card transition-colors", className)}>
+                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+                {label}
               </span>
-            </Button>
+            ) : variant === "avatar" ? (
+              <span
+                className={cn("flex h-9 w-9 items-center justify-center rounded-full bg-card text-foreground border-2 border-card shadow-md ring-1 ring-border hover:bg-secondary transition-colors", className)}
+                aria-label={label}
+                title={label}
+              >
+                {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Camera className="h-4 w-4" />}
+              </span>
+            ) : (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className={cn("h-9 w-9 rounded-full text-green-500 hover:bg-green-500/10", className)}
+                disabled={isUploading}
+                aria-label={label}
+                asChild
+              >
+                <span>
+                  {isUploading ? (
+                    <Loader2 className="h-5 w-5 animate-spin" />
+                  ) : (
+                    <Image className="h-5 w-5" />
+                  )}
+                </span>
+              </Button>
+            )}
           </label>
         </div>
       )}

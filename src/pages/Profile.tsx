@@ -348,7 +348,7 @@ const Profile = () => {
 
   const startMessage = () => {
     if (!userId) return;
-    navigate("/messages", { state: { selectedUserId: userId } });
+    navigate(`/messages?user=${userId}`);
   };
 
   if (isLoading) {
@@ -423,12 +423,13 @@ const Profile = () => {
           <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
         </motion.div>
         {isOwnProfile &&
-        <div className="absolute bottom-3 right-3 z-10">
+        <div className="absolute inset-x-0 top-3 z-10 max-w-5xl mx-auto px-3 sm:px-6 flex justify-end">
             <ImageUpload
             bucket="avatars"
             userId={currentUserId!}
             onUploadComplete={handleCoverUpload}
-            label="Edit Cover" />
+            label="Edit cover"
+            variant="pill" />
           
           </div>
         }
@@ -455,17 +456,18 @@ const Profile = () => {
                     </AvatarFallback>
                   </Avatar>
                 </motion.div>
-                <div className="absolute bottom-2 right-2">
-                  <OnlineStatusIndicator userId={userId || ""} />
-                </div>
-                {isOwnProfile &&
-                <div className="absolute bottom-0 right-0">
+                {/* Own profile: camera button to change the photo. Others: online dot. Never both in one corner. */}
+                {isOwnProfile ?
+                <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2">
                     <ImageUpload
                     bucket="avatars"
                     userId={currentUserId!}
                     onUploadComplete={handleAvatarUpload}
-                    label="" />
-                  
+                    label="Change profile photo"
+                    variant="avatar" />
+                  </div> :
+                <div className="absolute bottom-2 right-2">
+                    <OnlineStatusIndicator userId={userId || ""} />
                   </div>
                 }
               </div>
@@ -511,23 +513,19 @@ const Profile = () => {
           <div className="border-t border-border">
             <div className="grid grid-cols-3">
               {[
-              { value: posts.length, label: "Posts", icon: MessageSquare, color: "text-primary" },
-              { value: friendCount, label: "Friends", icon: Users, color: "text-blue-500" },
-              { value: photoPosts.length, label: "Photos", icon: ImageIcon, color: "text-amber-500" }].
+              { value: posts.length, label: "Posts" },
+              { value: friendCount, label: "Friends" },
+              { value: photoPosts.length, label: "Photos" }].
               map((s) =>
               <motion.button
                 key={s.label}
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                onClick={() => s.label === "Photos" ? setActiveTab("photos") : s.label === "Friends" ? navigate("/friends") : undefined}
-                className="flex flex-col items-center justify-center gap-1 py-4 cursor-pointer hover:bg-accent/50 transition-colors first:rounded-bl-2xl last:rounded-br-2xl">
-                
-                  <div className={cn("h-8 w-8 rounded-xl bg-accent/80 flex items-center justify-center", s.color)}>
-                    <s.icon className="h-4 w-4" />
-                  </div>
-                  <span className="font-display font-bold text-lg">{s.value}</span>
-                  <span className="text-[11px] text-muted-foreground">{s.label}</span>
+                onClick={() => s.label === "Photos" ? setActiveTab("photos") : s.label === "Friends" ? navigate("/friends") : setActiveTab("posts")}
+                className="flex flex-col items-center justify-center gap-0.5 py-4 cursor-pointer hover:bg-accent/60 transition-colors first:rounded-bl-2xl last:rounded-br-2xl">
+                  <span className="font-display font-bold text-xl">{s.value}</span>
+                  <span className="text-xs text-muted-foreground">{s.label}</span>
                 </motion.button>
               )}
             </div>
@@ -678,10 +676,10 @@ const Profile = () => {
                     
                           <div className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 relative z-10",
-                      item.type === "photo" ? "bg-accent/20" : "bg-primary/10"
+                      item.type === "photo" ? "bg-gold/15" : "bg-primary/10"
                     )}>
                             {item.type === "photo" ?
-                      <ImageIcon className="h-3.5 w-3.5 text-accent" /> :
+                      <ImageIcon className="h-3.5 w-3.5 text-gold" /> :
 
                       <MessageSquare className="h-3.5 w-3.5 text-primary" />
                       }

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import OnlineStatusIndicator from "./OnlineStatusIndicator";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface Contact {
   id: string;
@@ -105,15 +106,13 @@ const ContactsSidebar = ({ currentUserId }: ContactsSidebarProps) => {
                 <Link
                   key={contact.id}
                   to={`/messages?user=${contact.id}`}
-                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-accent transition-colors group"
+                  className="flex items-center gap-3 p-2 rounded-lg hover:bg-secondary transition-colors group"
                 >
                   <div className="relative">
-                    <img
-                      src={contact.avatar_url || "/placeholder.svg"}
-                      alt=""
-                      className="w-8 h-8 rounded-full object-cover"
-                      loading="lazy"
-                    />
+                    <Avatar className="w-8 h-8">
+                      <AvatarImage src={contact.avatar_url || undefined} alt="" className="object-cover" loading="lazy" />
+                      <AvatarFallback className="text-xs">{(contact.full_name || "U")[0].toUpperCase()}</AvatarFallback>
+                    </Avatar>
                     {contact.is_online && (
                       <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-background" />
                     )}
