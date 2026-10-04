@@ -13,7 +13,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 200 25% 10%;
 
-    --primary: 174 72% 40%;
+    /* Deep enough for white text and teal links to read clearly (about 4.5:1). */
+    --primary: 174 82% 29%;
     --primary-foreground: 0 0% 100%;
     --primary-glow: 174 80% 50%;
 
@@ -36,12 +37,12 @@
 
     --border: 180 10% 88%;
     --input: 180 10% 88%;
-    --ring: 174 72% 40%;
+    --ring: 174 82% 29%;
 
     --radius: 1rem;
 
     /* Gradient tokens */
-    --gradient-brand: linear-gradient(135deg, hsl(174 72% 40%), hsl(36 95% 55%));
+    --gradient-brand: linear-gradient(135deg, hsl(174 82% 29%), hsl(30 92% 42%));
     --gradient-brand-soft: linear-gradient(135deg, hsl(174 72% 40% / 0.12), hsl(36 95% 55% / 0.12));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(180 10% 97%));
 
@@ -67,7 +68,8 @@
     --popover-foreground: 210 20% 94%;
 
     --primary: 174 72% 45%;
-    --primary-foreground: 0 0% 100%;
+    /* The bright teal reads best with dark text on it (white was 2.2:1). */
+    --primary-foreground: 180 60% 6%;
     --primary-glow: 174 80% 55%;
 
     --secondary: 220 14% 15%;
