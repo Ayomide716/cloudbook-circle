@@ -253,7 +253,7 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
   }
 
   return (
-    <div className="flex flex-col h-[calc(100vh-350px)] min-h-[300px] max-h-[600px] bg-card rounded-lg border overflow-hidden mb-20 md:mb-0">
+    <div className="flex flex-col h-[calc(100dvh-32rem)] min-h-[320px] max-h-[600px] bg-card rounded-lg border overflow-hidden">
       {/* Virtualized Messages Area */}
       {messages.length === 0 ? (
         <div className="flex-1 flex items-center justify-center text-muted-foreground">

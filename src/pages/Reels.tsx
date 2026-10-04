@@ -240,12 +240,12 @@ export default function Reels() {
 
       <div className="md:hidden absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/60 to-transparent safe-area-top">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="text-white/80 hover:text-white">
+          <button onClick={() => navigate("/")} className="text-white/80 hover:text-white p-2 -m-2" aria-label="Back to home">
             <ArrowLeft className="h-6 w-6" />
           </button>
           <h1 className="text-white font-bold text-xl">Reels</h1>
         </div>
-        <button onClick={() => setShowUpload(true)} className="text-white"><Plus className="h-6 w-6" /></button>
+        <button onClick={() => setShowUpload(true)} className="text-white p-2 -m-2" aria-label="Create reel"><Plus className="h-6 w-6" /></button>
       </div>
 
       {reels.length === 0 ? (
