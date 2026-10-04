@@ -43,7 +43,7 @@ const AdminDashboard = () => {
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { navigate("/landing"); return; }
+    if (!session) { navigate("/auth"); return; }
     setCurrentUserId(session.user.id);
 
     // Check admin role

@@ -1,12 +1,12 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Loader2, Mail, Lock, User, ArrowRight, MessageCircle, Video, Users, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, getErrorMessage, safeRedirectPath } from "@/lib/utils";
 import logo from "@/assets/logo-new.webp";
@@ -75,29 +75,71 @@ const Auth = () => {
       {/* Grid overlay */}
       <div className="absolute inset-0 auth-grid-overlay pointer-events-none" />
 
+      <div className="w-full max-w-6xl relative z-10 grid lg:grid-cols-2 lg:gap-16 items-center">
+      {/* Wide screens: what CloudBook is, next to the form (this page is the front door). */}
+      <motion.section
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className="hidden lg:block"
+        aria-label="About CloudBook"
+      >
+        <div className="flex items-center gap-3 mb-6">
+          <img src={logo} alt="" className="h-12 w-12 rounded-xl" />
+          <span className="text-4xl font-display font-bold tracking-tight gradient-text">CloudBook</span>
+        </div>
+        <h2 className="text-5xl font-display font-bold leading-[1.1] tracking-tight mb-5">
+          Your people, your communities, <span className="gradient-text">one place.</span>
+        </h2>
+        <p className="text-lg text-muted-foreground mb-8 max-w-lg">
+          Share posts and stories, chat in real time, call friends, and build communities around what you love.
+        </p>
+        <ul className="grid grid-cols-2 gap-3 max-w-lg">
+          {[
+            { icon: MessageCircle, title: "Real-time chat", text: "Messages, voice notes and reactions" },
+            { icon: Video, title: "Voice & video calls", text: "One-to-one and group calls" },
+            { icon: Users, title: "Communities", text: "Groups, pages, events and voice rooms" },
+            { icon: Sparkles, title: "Stories & reels", text: "Plus CloudBuddy, your AI companion" },
+          ].map((f) => (
+            <li key={f.title} className="flex gap-3 rounded-2xl bg-card/70 border border-border/60 p-4 backdrop-blur-sm">
+              <span className="h-9 w-9 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center">
+                <f.icon className="h-[18px] w-[18px]" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold">{f.title}</span>
+                <span className="block text-xs text-muted-foreground mt-0.5">{f.text}</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </motion.section>
+
       <motion.div
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
-        className="w-full max-w-md relative z-10"
+        className="w-full max-w-md mx-auto relative"
       >
-        {/* Logo & tagline */}
+        {/* Logo & tagline (phones and tablets; wide screens show the panel instead) */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.4 }}
-          className="text-center mb-8"
+          className="text-center mb-8 lg:hidden"
         >
           <div className="inline-flex items-center gap-2 mb-3">
             <img src={logo} alt="CloudBook" className="h-10 w-10 rounded-xl" />
-            <h1 className="text-4xl font-display font-bold tracking-tight gradient-text">
+            <span className="text-4xl font-display font-bold tracking-tight gradient-text">
               CloudBook
-            </h1>
+            </span>
           </div>
           <p className="text-muted-foreground text-sm">
             Connect with friends and the world around you
           </p>
         </motion.div>
+        <h1 className="sr-only lg:not-sr-only lg:block text-2xl font-display font-bold mb-6 text-center">
+          {isLogin ? "Welcome back" : "Create your account"}
+        </h1>
 
         {/* Glass card */}
         <div className="auth-card rounded-2xl p-[1px]">
@@ -294,11 +336,14 @@ const Auth = () => {
 
             {/* Footer */}
             <p className="text-center text-xs text-muted-foreground mt-6">
-              By continuing, you agree to our Terms of Service and Privacy Policy
+              By continuing, you agree to our{" "}
+              <Link to="/terms" className="underline underline-offset-2 hover:text-foreground">Terms of Service</Link> and{" "}
+              <Link to="/privacy" className="underline underline-offset-2 hover:text-foreground">Privacy Policy</Link>
             </p>
           </div>
         </div>
       </motion.div>
+      </div>
     </div>
   );
 };

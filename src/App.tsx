@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import SessionProvider from "@/components/SessionProvider";
 import RequireAuth from "@/components/RequireAuth";
@@ -14,7 +14,6 @@ import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 const InstallPrompt = lazy(() => import("@/components/InstallPrompt"));
 
 // Lazy-loaded page components
-const Landing = lazy(() => import("./pages/Landing"));
 const Index = lazy(() => import("./pages/Index"));
 const Auth = lazy(() => import("./pages/Auth"));
 const Profile = lazy(() => import("./pages/Profile"));
@@ -107,8 +106,9 @@ const AppRoutes = () => {
   return (
     <Suspense fallback={<PageFallback />}>
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Protected redirectTo="/landing"><Index /></Protected>} />
-        <Route path="/landing" element={<AnimatedPage><Landing /></AnimatedPage>} />
+        <Route path="/" element={<Protected><Index /></Protected>} />
+        {/* The marketing landing page was removed; keep old links working. */}
+        <Route path="/landing" element={<Navigate to="/auth" replace />} />
         <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
         <Route path="/profile/:userId" element={<Protected><Profile /></Protected>} />
         <Route path="/messages" element={<Protected><Messages /></Protected>} />

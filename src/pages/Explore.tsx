@@ -40,7 +40,7 @@ const Explore = () => {
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { navigate("/landing"); return; }
+    if (!session) { navigate("/auth"); return; }
     const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
     if (profile) {
       setCurrentUser(profile);
