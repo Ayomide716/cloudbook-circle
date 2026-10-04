@@ -40,11 +40,11 @@ interface ChatBubbleProps {
 
 const themeColors: Record<string, { sent: string; received: string }> = {
   default: { sent: "bg-primary text-primary-foreground", received: "bg-secondary text-foreground" },
-  ocean: { sent: "bg-blue-500 text-white", received: "bg-blue-100 dark:bg-blue-900/40 text-foreground" },
-  sunset: { sent: "bg-orange-500 text-white", received: "bg-orange-100 dark:bg-orange-900/40 text-foreground" },
-  forest: { sent: "bg-green-600 text-white", received: "bg-green-100 dark:bg-green-900/40 text-foreground" },
-  lavender: { sent: "bg-purple-500 text-white", received: "bg-purple-100 dark:bg-purple-900/40 text-foreground" },
-  crimson: { sent: "bg-red-500 text-white", received: "bg-red-100 dark:bg-red-900/40 text-foreground" },
+  ocean: { sent: "bg-blue-600 text-white", received: "bg-blue-100 dark:bg-blue-900/40 text-foreground" },
+  sunset: { sent: "bg-orange-700 text-white", received: "bg-orange-100 dark:bg-orange-900/40 text-foreground" },
+  forest: { sent: "bg-green-700 text-white", received: "bg-green-100 dark:bg-green-900/40 text-foreground" },
+  lavender: { sent: "bg-purple-600 text-white", received: "bg-purple-100 dark:bg-purple-900/40 text-foreground" },
+  crimson: { sent: "bg-red-600 text-white", received: "bg-red-100 dark:bg-red-900/40 text-foreground" },
   midnight: { sent: "bg-indigo-600 text-white", received: "bg-indigo-100 dark:bg-indigo-900/40 text-foreground" },
 };
 

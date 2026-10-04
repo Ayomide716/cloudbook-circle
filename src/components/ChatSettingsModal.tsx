@@ -16,11 +16,11 @@ interface ChatSettingsModalProps {
 
 const themes = [
   { id: "default", label: "Default", color: "bg-primary" },
-  { id: "ocean", label: "Ocean", color: "bg-blue-500" },
-  { id: "sunset", label: "Sunset", color: "bg-orange-500" },
-  { id: "forest", label: "Forest", color: "bg-green-600" },
-  { id: "lavender", label: "Lavender", color: "bg-purple-500" },
-  { id: "crimson", label: "Crimson", color: "bg-red-500" },
+  { id: "ocean", label: "Ocean", color: "bg-blue-600" },
+  { id: "sunset", label: "Sunset", color: "bg-orange-700" },
+  { id: "forest", label: "Forest", color: "bg-green-700" },
+  { id: "lavender", label: "Lavender", color: "bg-purple-600" },
+  { id: "crimson", label: "Crimson", color: "bg-red-600" },
   { id: "midnight", label: "Midnight", color: "bg-indigo-600" },
 ];
 
