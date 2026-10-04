@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,10 +11,13 @@ interface MultiImageUploadProps {
   userId: string;
   onUploadComplete: (urls: string[]) => void;
   currentImages: string[];
+  /** Set false when the parent renders its own preview (e.g. the post composer). */
+  showPreview?: boolean;
   maxImages?: number;
 }
 
-const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, maxImages = 10 }: MultiImageUploadProps) => {
+const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, maxImages = 10, showPreview = true }: MultiImageUploadProps) => {
+  const inputId = `multi-image-upload-${useId()}`;
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
 
@@ -70,7 +73,7 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
 
   return (
     <div className="space-y-2">
-      {currentImages.length > 0 && (
+      {showPreview && currentImages.length > 0 && (
         <div className="grid grid-cols-3 gap-2">
           {currentImages.map((url, i) => (
             <div key={i} className="relative rounded-lg overflow-hidden aspect-square">
@@ -98,9 +101,9 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
             onChange={handleFilesChange}
             disabled={isUploading}
             className="hidden"
-            id="multi-image-upload"
+            id={inputId}
           />
-          <label htmlFor="multi-image-upload">
+          <label htmlFor={inputId} aria-label="Add photos">
             <Button
               type="button"
               variant="ghost"

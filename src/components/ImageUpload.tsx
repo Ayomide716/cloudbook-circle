@@ -19,12 +19,14 @@ interface ImageUploadProps {
    */
   variant?: "icon" | "pill" | "avatar";
   className?: string;
+  /** Icon variant only: set false when the parent renders its own preview (e.g. the post composer). */
+  showPreview?: boolean;
 }
 
-const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "Upload Image", variant = "icon", className }: ImageUploadProps) => {
+const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "Upload Image", variant = "icon", className, showPreview: showPreviewProp = true }: ImageUploadProps) => {
   // Unique per instance: two uploaders for the same bucket (cover + avatar) must not share an id.
   const inputId = `file-upload-${bucket}-${useId()}`;
-  const showPreview = variant === "icon";
+  const showPreview = variant === "icon" && showPreviewProp;
   const [isUploading, setIsUploading] = useState(false);
   const [preview, setPreview] = useState<string | null>(currentImage || null);
   const { toast } = useToast();

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -12,10 +12,13 @@ interface VideoUploadProps {
   userId: string;
   onUploadComplete: (url: string) => void;
   currentVideo?: string;
+  /** Set false when the parent renders its own preview (e.g. the post composer). */
+  showPreview?: boolean;
   label?: string;
 }
 
-const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "Upload Video" }: VideoUploadProps) => {
+const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "Upload Video", showPreview = true }: VideoUploadProps) => {
+  const inputId = `video-upload-${bucket}-${useId()}`;
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [preview, setPreview] = useState<string | null>(currentVideo || null);
@@ -115,7 +118,7 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
 
   return (
     <div className="space-y-2">
-      {preview ? (
+      {showPreview && preview ? (
         <div className="relative">
           <video
             src={preview}
@@ -140,9 +143,9 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
             onChange={handleFileChange}
             disabled={isUploading}
             className="hidden"
-            id={`video-upload-${bucket}`}
+            id={inputId}
           />
-          <label htmlFor={`video-upload-${bucket}`}>
+          <label htmlFor={inputId} aria-label={label || "Add video"}>
             <Button
               type="button"
               variant="ghost"

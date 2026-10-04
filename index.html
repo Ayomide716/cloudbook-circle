@@ -2,12 +2,19 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- interactive-widget: Android shrinks the page above the on-screen keyboard instead of covering inputs. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <title>CloudBook - Connect with Friends & Build Community</title>
     <meta name="description" content="CloudBook is a social networking platform to connect with friends, share updates, create groups, and build your community. Join now!" />
     <meta name="author" content="CloudBook" />
     <meta name="robots" content="index, follow" />
     <link rel="canonical" href="https://cloudbook-circle.lovable.app/" />
+
+    <!-- Fonts: connect early and load without blocking the first paint (display=swap). -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" media="print" onload="this.media='all'" />
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Outfit:wght@500;600;700;800&display=swap" /></noscript>
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.png" type="image/png" />

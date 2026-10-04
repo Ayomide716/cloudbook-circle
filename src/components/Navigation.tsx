@@ -25,7 +25,7 @@ import {
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
-import logo from "@/assets/logo-new.png";
+import logo from "@/assets/logo-new.webp";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface NavigationProps {
@@ -336,7 +336,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
       {/* Desktop Floating Dock - centered bottom (hidden on Reels) */}
       {currentUserId && location.pathname !== "/reels" && location.pathname !== "/messages" && (
-        <div className="hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <div className="app-dock hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <motion.nav
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}

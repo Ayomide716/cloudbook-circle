@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn, getErrorMessage, safeRedirectPath } from "@/lib/utils";
-import logo from "@/assets/logo-new.png";
+import logo from "@/assets/logo-new.webp";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);

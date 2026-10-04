@@ -52,7 +52,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 28 }}
-      className="fixed bottom-4 left-4 right-4 glass-strong dock-nav rounded-2xl z-50 md:hidden"
+      className="app-dock fixed bottom-4 left-4 right-4 glass-strong dock-nav rounded-2xl z-50 md:hidden"
     >
       <div className="flex items-center justify-around h-[3.5rem] px-1">
         {navItems.map((item) => {
