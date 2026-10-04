@@ -7,7 +7,8 @@ import BottomNav from "@/components/BottomNav";
 import GroupChat from "@/components/GroupChat";
 import VoiceRooms from "@/components/VoiceRooms";
 import EditGroupModal from "@/components/EditGroupModal";
-import GroupVideoCall from "@/components/GroupVideoCall";
+import { useCalls } from "@/hooks/use-calls";
+import { useGroupCallParticipants } from "@/hooks/use-group-call-participants";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -49,12 +50,6 @@ interface Member {
   };
 }
 
-interface GroupCallAlert {
-  initiatorName: string;
-  initiatorAvatar?: string | null;
-  isVoiceOnly: boolean;
-}
-
 const GroupDetail = () => {
   const { groupId } = useParams();
   const navigate = useNavigate();
@@ -70,9 +65,10 @@ const GroupDetail = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [activeGroupCall, setActiveGroupCall] = useState<{ isVoiceOnly: boolean } | null>(null);
-  const [currentUserProfile, setCurrentUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
-  const [incomingGroupCall, setIncomingGroupCall] = useState<GroupCallAlert | null>(null);
+  const { startGroupCall: startCall, joinGroupCall, activeGroupId } = useCalls();
+  const inThisCall = !!groupId && activeGroupId === groupId;
+  // Who's in this group's call right now (only watched while you're a member and not in it).
+  const callParticipants = useGroupCallParticipants(groupId, isMember && !inThisCall);
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -81,8 +77,6 @@ const GroupDetail = () => {
       return;
     }
     setCurrentUserId(session.user.id);
-    const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", session.user.id).single();
-    if (profile) setCurrentUserProfile(profile);
   });
 
   useEffect(() => {
@@ -104,54 +98,14 @@ const GroupDetail = () => {
       )
       .subscribe();
 
-    // Listen for group call alerts
-    const callChannel = supabase
-      .channel(`group-call-alert-${groupId}`)
-      .on("broadcast", { event: "group-call-started" }, ({ payload }) => {
-        if (payload.initiatorId !== currentUserId && !activeGroupCall) {
-          setIncomingGroupCall({
-            initiatorName: payload.initiatorName,
-            initiatorAvatar: payload.initiatorAvatar,
-            isVoiceOnly: payload.isVoiceOnly,
-          });
-        }
-      })
-      .subscribe();
-
     return () => {
       supabase.removeChannel(channel);
-      supabase.removeChannel(callChannel);
     };
   });
 
-  const broadcastCallStart = async (isVoiceOnly: boolean) => {
-    if (!currentUserId || !groupId) return;
-    const channel = supabase.channel(`group-call-alert-${groupId}`);
-    channel.subscribe(async (status) => {
-      if (status === "SUBSCRIBED") {
-        await channel.send({
-          type: "broadcast",
-          event: "group-call-started",
-          payload: {
-            initiatorId: currentUserId,
-            initiatorName: currentUserProfile?.full_name || "Someone",
-            initiatorAvatar: currentUserProfile?.avatar_url,
-            isVoiceOnly,
-          },
-        });
-        setTimeout(() => supabase.removeChannel(channel), 1000);
-      }
-    });
-  };
-
   const startGroupCall = (isVoiceOnly: boolean) => {
-    broadcastCallStart(isVoiceOnly);
-    setActiveGroupCall({ isVoiceOnly });
-  };
-
-  const joinGroupCall = (isVoiceOnly: boolean) => {
-    setIncomingGroupCall(null);
-    setActiveGroupCall({ isVoiceOnly });
+    if (!group) return;
+    startCall({ id: group.id, name: group.name }, isVoiceOnly, members.map((m) => m.profiles.id));
   };
 
   const loadGroupData = useEffectEvent(async () => {
@@ -378,22 +332,33 @@ const GroupDetail = () => {
           Back to Groups
         </Button>
 
-        {/* Incoming group call alert */}
-        {incomingGroupCall && !activeGroupCall && (
-          <Card className="p-4 mb-4 border-primary/50 bg-primary/5 animate-pulse">
+        {/* A call is running in this group: offer to join it */}
+        {callParticipants.length > 0 && group && (
+          <Card className="p-3 sm:p-4 mb-4 border-primary/40 bg-primary/5">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full gradient-brand flex items-center justify-center">
-                {incomingGroupCall.isVoiceOnly ? <Phone className="h-5 w-5 text-primary-foreground" /> : <Video className="h-5 w-5 text-primary-foreground" />}
+              <div className="flex -space-x-2 shrink-0">
+                {callParticipants.slice(0, 3).map((p) => (
+                  <Avatar key={p.userId} className="h-9 w-9 ring-2 ring-background">
+                    <AvatarImage src={p.avatar || undefined} alt="" />
+                    <AvatarFallback className="text-xs">{p.name?.[0]?.toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                ))}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm">{incomingGroupCall.initiatorName} started a {incomingGroupCall.isVoiceOnly ? "voice" : "video"} call</p>
-                <p className="text-xs text-muted-foreground">Tap to join the call</p>
+                <p className="font-semibold text-sm flex items-center gap-1.5">
+                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  {callParticipants.some((p) => p.video) ? "Video" : "Voice"} call in progress
+                </p>
+                <p className="text-xs text-muted-foreground truncate">
+                  {callParticipants.map((p) => p.name).join(", ")}
+                </p>
               </div>
-              <Button size="sm" onClick={() => joinGroupCall(incomingGroupCall.isVoiceOnly)} className="gradient-brand text-primary-foreground">
+              <Button
+                size="sm"
+                onClick={() => joinGroupCall({ id: group.id, name: group.name }, !callParticipants.some((p) => p.video))}
+                className="gradient-brand text-primary-foreground rounded-full px-4 shrink-0"
+              >
                 Join
-              </Button>
-              <Button size="sm" variant="ghost" onClick={() => setIncomingGroupCall(null)}>
-                Dismiss
               </Button>
             </div>
           </Card>
@@ -421,10 +386,10 @@ const GroupDetail = () => {
             <div className="flex gap-2">
               {isMember && (
                 <>
-                  <Button variant="outline" size="icon" onClick={() => startGroupCall(true)} title="Group Voice Call">
+                  <Button variant="outline" size="icon" onClick={() => startGroupCall(true)} aria-label="Start group voice call" title="Start group voice call">
                     <Phone className="h-4 w-4" />
                   </Button>
-                  <Button variant="outline" size="icon" onClick={() => startGroupCall(false)} title="Group Video Call">
+                  <Button variant="outline" size="icon" onClick={() => startGroupCall(false)} aria-label="Start group video call" title="Start group video call">
                     <Video className="h-4 w-4" />
                   </Button>
                 </>
@@ -607,18 +572,6 @@ const GroupDetail = () => {
 
       <BottomNav currentUserId={currentUserId || undefined} />
 
-      {/* Group Video Call */}
-      {activeGroupCall && currentUserId && group && (
-        <GroupVideoCall
-          groupId={group.id}
-          groupName={group.name}
-          currentUserId={currentUserId}
-          currentUserName={currentUserProfile?.full_name || "You"}
-          currentUserAvatar={currentUserProfile?.avatar_url}
-          isVoiceOnly={activeGroupCall.isVoiceOnly}
-          onEnd={() => setActiveGroupCall(null)}
-        />
-      )}
     </div>
   );
 };

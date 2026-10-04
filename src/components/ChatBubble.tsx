@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
-import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
+import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus } from "lucide-react";
+import { format, isToday, isYesterday } from "date-fns";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
 import MessageReactions from "./MessageReactions";
 import {
@@ -51,8 +51,6 @@ const themeColors: Record<string, { sent: string; received: string }> = {
 const ChatBubble = ({
   message,
   isCurrentUser,
-  isLastOwnMessage,
-  isLastMessage,
   currentUserId,
   replyMessage,
   onReply,
@@ -61,14 +59,29 @@ const ChatBubble = ({
   theme = "default",
 }: ChatBubbleProps) => {
   const [showActions, setShowActions] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const rowRef = useRef<HTMLDivElement>(null);
   const colors = themeColors[theme] || themeColors.default;
+
+  // On touch screens actions open with a tap; close them when tapping anywhere else.
+  useEffect(() => {
+    if (!showActions && !pickerOpen) return;
+    const close = (e: PointerEvent) => {
+      if (rowRef.current && !rowRef.current.contains(e.target as Node)) {
+        setShowActions(false);
+        setPickerOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [showActions, pickerOpen]);
 
   // Deleted message
   if (message.deleted_at) {
     return (
       <div className={cn("flex", isCurrentUser ? "justify-end" : "justify-start")}>
         <div className="px-3 py-2 rounded-[18px] bg-muted/50 border border-border/50 italic text-muted-foreground text-sm">
-          🚫 This message was unsent
+          This message was unsent
         </div>
       </div>
     );
@@ -78,32 +91,68 @@ const ChatBubble = ({
   const isMedia = message.image_url && !message.content?.startsWith("🎤");
   const isVideo = isMedia && (message.image_url?.includes('.mp4') || message.image_url?.includes('.mov') || message.image_url?.includes('.webm'));
   const isGif = isMedia && (message.image_url?.includes('giphy.com') || message.image_url?.includes('tenor.com'));
+  const hasText = !!message.content && message.content !== "Sent an image" && !message.content.startsWith("🎤");
+
+  const sentAt = new Date(message.created_at);
+  const time = format(sentAt, "HH:mm");
+  const fullTime = isToday(sentAt) ? `Today ${time}` : isYesterday(sentAt) ? `Yesterday ${time}` : format(sentAt, "d MMM yyyy, HH:mm");
+
+  // Time + read receipt, always visible inside the bubble (no hover needed).
+  const meta = (
+    <span
+      className={cn(
+        "inline-flex items-center gap-0.5 text-[10px] leading-none whitespace-nowrap select-none",
+        isMedia && !hasText
+          ? "absolute bottom-2 right-2 rounded-full bg-black/55 text-white px-1.5 py-1"
+          : cn("float-right ml-2 mt-1.5 translate-y-0.5", isCurrentUser ? "text-current" : "text-muted-foreground")
+      )}
+      title={fullTime}
+    >
+      {message.edited && <span className="mr-0.5">edited</span>}
+      {time}
+      {isCurrentUser &&
+        (message.read ? (
+          <CheckCheck className="h-3.5 w-3.5 ml-0.5 opacity-100" strokeWidth={2.5} aria-label="Read" />
+        ) : (
+          <Check className="h-3.5 w-3.5 ml-0.5 opacity-60" aria-label="Sent" />
+        ))}
+    </span>
+  );
 
   return (
     <div
+      ref={rowRef}
       className={cn("flex group relative", isCurrentUser ? "justify-end" : "justify-start")}
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-      onTouchStart={() => setShowActions(true)}
+      onPointerEnter={(e) => { if (e.pointerType === "mouse") setShowActions(true); }}
+      onPointerLeave={(e) => { if (e.pointerType === "mouse" && !pickerOpen) setShowActions(false); }}
     >
-      {/* Action menu - appears on hover/touch, contained within the message row */}
+      {/* Actions: hover on desktop, tap the bubble on phones */}
       <div className={cn(
-        "flex items-center gap-0.5 flex-shrink-0 transition-opacity duration-150",
-        showActions ? "opacity-100" : "opacity-0 pointer-events-none",
+        "flex items-center gap-0.5 flex-shrink-0 self-center transition-opacity duration-150",
+        showActions || pickerOpen ? "opacity-100" : "opacity-0 pointer-events-none",
         isCurrentUser ? "order-first mr-1" : "order-last ml-1"
       )}>
         <button
-          onClick={() => onReply(message)}
+          onClick={() => { setPickerOpen((o) => !o); setShowActions(true); }}
           className="p-1.5 rounded-full hover:bg-accent transition-colors"
+          aria-label="React"
+          title="React"
+        >
+          <SmilePlus className="h-4 w-4 text-muted-foreground" />
+        </button>
+        <button
+          onClick={() => { onReply(message); setShowActions(false); }}
+          className="p-1.5 rounded-full hover:bg-accent transition-colors"
+          aria-label="Reply"
           title="Reply"
         >
-          <CornerUpLeft className="h-3.5 w-3.5 text-muted-foreground" />
+          <CornerUpLeft className="h-4 w-4 text-muted-foreground" />
         </button>
         {isCurrentUser && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="p-1.5 rounded-full hover:bg-accent transition-colors">
-                <MoreHorizontal className="h-3.5 w-3.5 text-muted-foreground" />
+              <button className="p-1.5 rounded-full hover:bg-accent transition-colors" aria-label="More actions">
+                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align={isCurrentUser ? "end" : "start"} className="w-40">
@@ -112,9 +161,11 @@ const ChatBubble = ({
                   <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
                 </DropdownMenuItem>
               )}
-              <DropdownMenuItem onClick={() => navigator.clipboard.writeText(message.content)}>
-                <Copy className="h-3.5 w-3.5 mr-2" /> Copy
-              </DropdownMenuItem>
+              {hasText && (
+                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(message.content)}>
+                  <Copy className="h-3.5 w-3.5 mr-2" /> Copy
+                </DropdownMenuItem>
+              )}
               <DropdownMenuItem className="text-destructive" onClick={() => onUnsend(message.id)}>
                 <Trash2 className="h-3.5 w-3.5 mr-2" /> Unsend
               </DropdownMenuItem>
@@ -123,27 +174,31 @@ const ChatBubble = ({
         )}
       </div>
 
-      <div className={cn("flex flex-col gap-0.5", isCurrentUser ? "items-end" : "items-start")}>
+      <div className={cn("flex flex-col gap-0.5 min-w-0", isCurrentUser ? "items-end" : "items-start")}>
         {/* Reply preview */}
         {replyMessage && (
           <div className={cn(
-            "text-xs px-3 py-1.5 rounded-lg max-w-[240px] truncate border-l-2",
-            isCurrentUser
-              ? "bg-primary/10 border-primary/40 text-primary-foreground/70"
-              : "bg-muted border-muted-foreground/30 text-muted-foreground"
+            "text-xs px-3 py-1.5 rounded-lg max-w-[240px] truncate border-l-2 text-muted-foreground",
+            isCurrentUser ? "bg-primary/10 border-primary/50" : "bg-muted border-muted-foreground/30"
           )}>
-            ↩ {replyMessage.deleted_at ? "Deleted message" : replyMessage.content?.substring(0, 60)}
+            {replyMessage.deleted_at ? "Deleted message" : replyMessage.content?.substring(0, 60)}
           </div>
         )}
 
-        {/* Message bubble */}
-        <div className={cn(
-          "max-w-[280px] sm:max-w-[360px] relative",
-          isCurrentUser ? colors.sent : colors.received,
-          "rounded-[18px]",
-          isCurrentUser ? "rounded-br-[4px]" : "rounded-bl-[4px]",
-          isMedia ? "p-1" : "px-3 py-2"
-        )}>
+        {/* Message bubble (tap to show actions on touch screens) */}
+        <div
+          className={cn(
+            "max-w-[min(280px,75vw)] sm:max-w-[360px] relative",
+            isCurrentUser ? colors.sent : colors.received,
+            "rounded-[18px]",
+            isCurrentUser ? "rounded-br-[4px]" : "rounded-bl-[4px]",
+            isMedia ? "p-1" : "px-3 py-2"
+          )}
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest("button, a, video, audio")) return;
+            if (window.matchMedia("(hover: none)").matches) setShowActions((v) => !v);
+          }}
+        >
           {/* Voice */}
           {isVoice && message.image_url && (
             <VoiceMessagePlayer audioUrl={message.image_url} isOwnMessage={isCurrentUser} />
@@ -165,36 +220,16 @@ const ChatBubble = ({
               onClick={() => window.open(message.image_url!, "_blank")}
             />
           )}
-          {/* Text */}
-          {message.content && message.content !== "Sent an image" && !message.content?.startsWith("🎤") && (
-            <p className="text-[15px] leading-snug break-words whitespace-pre-wrap">
+          {/* Text (time and ticks float at its end, like most messengers) */}
+          {hasText ? (
+            <p className={cn("text-[15px] leading-snug break-words whitespace-pre-wrap", isMedia && "px-2 pt-1 pb-1")}>
               {message.content}
+              {meta}
             </p>
-          )}
-          {message.edited && (
-            <span className={cn("text-[10px] opacity-60 ml-1", isCurrentUser ? "text-primary-foreground/60" : "text-muted-foreground")}>
-              (edited)
-            </span>
-          )}
-        </div>
-
-        {/* Timestamp & read receipt */}
-        <div className={cn(
-          "flex items-center gap-1 px-1 transition-opacity",
-          isCurrentUser ? "flex-row-reverse" : "flex-row",
-          isLastOwnMessage || isLastMessage ? "opacity-100" : "opacity-0 group-hover:opacity-100"
-        )}>
-          <span className="text-[11px] text-muted-foreground">
-            {formatDistanceToNow(new Date(message.created_at), { addSuffix: true })}
-          </span>
-          {isCurrentUser && (
-            <span>
-              {message.read ? (
-                <CheckCheck className="h-3.5 w-3.5 text-primary" />
-              ) : (
-                <Check className="h-3.5 w-3.5 text-muted-foreground" />
-              )}
-            </span>
+          ) : isVoice ? (
+            <div className="flex justify-end px-1 pb-0.5">{meta}</div>
+          ) : (
+            meta
           )}
         </div>
 
@@ -202,6 +237,8 @@ const ChatBubble = ({
           messageId={message.id}
           currentUserId={currentUserId}
           isOwnMessage={isCurrentUser}
+          pickerOpen={pickerOpen}
+          onPickerOpenChange={(open) => { setPickerOpen(open); if (!open) setShowActions(false); }}
         />
       </div>
     </div>

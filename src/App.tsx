@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import SessionProvider from "@/components/SessionProvider";
 import RequireAuth from "@/components/RequireAuth";
 import ScrollToTop from "@/components/ScrollToTop";
+import CallProvider from "@/components/calls/CallProvider";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 
 // Shown after a delay, so it shouldn't weigh down the first load.
@@ -148,7 +149,9 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           <ScrollToTop />
-          <AppRoutes />
+          <CallProvider>
+            <AppRoutes />
+          </CallProvider>
           <Suspense fallback={null}>
             <InstallPrompt />
           </Suspense>
