@@ -20,6 +20,12 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
 import { AvatarImage } from "@/components/ui/avatar";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { formatDistanceToNow } from "date-fns";
+import { useMyProfile } from "@/hooks/use-my-profile";
 
 interface Reel {
   id: string;
@@ -57,6 +63,8 @@ export default function Reels() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
+  const myProfile = useMyProfile();
 
   const loadFriendIds = async (userId: string) => {
     const { data } = await supabase
@@ -79,10 +87,8 @@ export default function Reels() {
     const isFriend = friendIds.has(targetUserId);
     const isPending = pendingIds.has(targetUserId);
     if (isFriend) {
-      await supabase.from("friendships").delete()
-        .or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`);
-      setFriendIds(prev => { const n = new Set(prev); n.delete(targetUserId); return n; });
-      toast({ title: "Unfriended" });
+      // Unfriending is done from their profile, never by one tap on a reel.
+      return;
     } else if (isPending) {
       // Cancel pending request
       await supabase.from("friendships").delete()
@@ -110,9 +116,10 @@ export default function Reels() {
     const { data, error } = await supabase
       .from("reels")
       .select(`*, profiles (full_name, avatar_url), reel_likes (user_id), reel_comments (id, content, user_id, created_at, profiles (full_name, avatar_url))`)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(40);
     if (error) {
-      toast({ title: "Error loading reels", variant: "destructive" });
+      toast({ title: "Couldn't load reels", variant: "destructive" });
     } else {
       setReels(data || []);
       if (data && data.length > 0) {
@@ -151,17 +158,26 @@ export default function Reels() {
       ? { ...r, reel_likes: hasLiked ? r.reel_likes.filter(l => l.user_id !== user.id) : [...r.reel_likes, { user_id: user.id }] }
       : r
     ));
-    if (hasLiked) {
-      await supabase.from("reel_likes").delete().eq("reel_id", reelId).eq("user_id", user.id);
-    } else {
-      await supabase.from("reel_likes").insert({ reel_id: reelId, user_id: user.id });
+    const { error } = hasLiked
+      ? await supabase.from("reel_likes").delete().eq("reel_id", reelId).eq("user_id", user.id)
+      : await supabase.from("reel_likes").insert({ reel_id: reelId, user_id: user.id });
+    if (error) {
+      // Put it back as it was.
+      setReels(prev => prev.map(r => r.id === reelId ? { ...r, reel_likes: reel.reel_likes } : r));
+      toast({ title: "Couldn't save your like", variant: "destructive" });
     }
+  };
+
+  const handleDeleteComment = async (commentId: string) => {
+    const { error } = await supabase.from("reel_comments").delete().eq("id", commentId);
+    if (error) return;
+    setReels(prev => prev.map(r => ({ ...r, reel_comments: r.reel_comments.filter(c => c.id !== commentId) })));
   };
 
   const handleComment = async () => {
     if (!user || !commentText.trim() || !activeReelId) return;
     const { data, error } = await supabase.from("reel_comments").insert({
-      reel_id: activeReelId, user_id: user.id, content: commentText,
+      reel_id: activeReelId, user_id: user.id, content: commentText.trim(),
     }).select(`*, profiles (full_name, avatar_url)`).single();
     if (error) {
       toast({ title: "Error posting comment", variant: "destructive" });
@@ -172,22 +188,33 @@ export default function Reels() {
   };
 
   const handleShare = async (reelId: string) => {
+    const url = `${window.location.origin}/reels/${reelId}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ url });
+        return;
+      } catch {
+        // Cancelled: copy instead.
+      }
+    }
+    // No share sheet (most desktop browsers): copy the link.
     try {
-      await navigator.share?.({ url: `${window.location.origin}/reels/${reelId}` });
-    } catch {
-      await navigator.clipboard.writeText(`${window.location.origin}/reels/${reelId}`);
+      await navigator.clipboard.writeText(url);
       toast({ title: "Link copied!" });
+    } catch {
+      toast({ title: "Couldn't copy the link", description: url });
     }
   };
 
   const handleUpload = async () => {
     if (!user || !uploadVideoUrl) return;
-    const { error } = await supabase.from("reels").insert({ user_id: user.id, video_url: uploadVideoUrl, caption: uploadCaption });
+    const { error } = await supabase.from("reels").insert({ user_id: user.id, video_url: uploadVideoUrl, caption: uploadCaption.trim() || null });
     if (error) { toast({ title: "Error uploading reel", variant: "destructive" }); }
     else { toast({ title: "Reel uploaded!" }); setShowUpload(false); setUploadCaption(""); setUploadVideoUrl(""); loadReels(); }
   };
 
   const handleDeleteReel = async (reelId: string) => {
+    setPendingDelete(null);
     const { error } = await supabase.from("reels").delete().eq("id", reelId);
     if (error) { toast({ title: "Error deleting reel", variant: "destructive" }); }
     else { toast({ title: "Reel deleted" }); setReels(prev => prev.filter(r => r.id !== reelId)); }
@@ -206,6 +233,19 @@ export default function Reels() {
   };
 
   const activeReel = reels.find(r => r.id === activeReelId);
+
+  // Up/down arrow keys move between reels on desktop.
+  const onKey = useEffectEvent((e: KeyboardEvent) => {
+    if (showComments || showUpload || pendingDelete) return;
+    const t = e.target as HTMLElement;
+    if (t.closest("input, textarea, [contenteditable=true]")) return;
+    if (e.key === "ArrowDown" || e.key === "j") { e.preventDefault(); scroll(1); }
+    if (e.key === "ArrowUp" || e.key === "k") { e.preventDefault(); scroll(-1); }
+  });
+  useEffect(() => {
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onKey]);
 
   if (loading) {
     return (
@@ -261,7 +301,7 @@ export default function Reels() {
           <div
             ref={containerRef}
             onScroll={handleScroll}
-            className="h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] w-full md:w-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide"
+            className="h-[100dvh] md:h-[calc(100dvh-57px)] w-full md:w-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-contain"
           >
             {reels.map((reel) => (
               <ReelCard
@@ -274,7 +314,7 @@ export default function Reels() {
                 onLike={handleLike}
                 onComment={(id) => { setActiveReelId(id); setShowComments(true); }}
                 onShare={handleShare}
-                onDelete={handleDeleteReel}
+                onDelete={(id) => setPendingDelete(id)}
                 onShowUpload={() => setShowUpload(true)}
                 onVideoError={(id) => {
                   if (id === activeReelId) toast({ title: "Video couldn't play", description: "Re-upload from your device.", variant: "destructive" });
@@ -288,10 +328,10 @@ export default function Reels() {
           </div>
 
           <div className="hidden md:flex flex-col gap-2 absolute right-8 top-1/2 -translate-y-1/2 z-20">
-            <button onClick={() => scroll(-1)} className="h-12 w-12 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center shadow-lg transition-colors">
+            <button onClick={() => scroll(-1)} aria-label="Previous reel" className="h-12 w-12 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center shadow-lg transition-colors">
               <ChevronUp className="h-6 w-6" />
             </button>
-            <button onClick={() => scroll(1)} className="h-12 w-12 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center shadow-lg transition-colors">
+            <button onClick={() => scroll(1)} aria-label="Next reel" className="h-12 w-12 rounded-full bg-secondary hover:bg-secondary/80 flex items-center justify-center shadow-lg transition-colors">
               <ChevronDown className="h-6 w-6" />
             </button>
           </div>
@@ -300,11 +340,11 @@ export default function Reels() {
 
       {/* Comments Sheet */}
       <Sheet open={showComments} onOpenChange={setShowComments}>
-        <SheetContent side="bottom" className="h-[70vh] rounded-t-3xl">
+        <SheetContent side="bottom" className="h-[70dvh] rounded-t-3xl">
           <SheetHeader className="border-b pb-3">
             <SheetTitle className="text-center">{activeReel?.reel_comments.length || 0} Comments</SheetTitle>
           </SheetHeader>
-          <div className="flex-1 overflow-y-auto py-4 space-y-4 max-h-[calc(70vh-140px)]">
+          <div className="flex-1 overflow-y-auto py-4 space-y-4 max-h-[calc(70dvh-140px)]">
             {activeReel?.reel_comments.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No comments yet. Be the first!</p>
             ) : (
@@ -314,9 +354,15 @@ export default function Reels() {
                     <AvatarImage src={comment.profiles.avatar_url || ""} />
                     <AvatarFallback>{comment.profiles.full_name?.[0] || "U"}</AvatarFallback>
                   </Avatar>
-                  <div className="flex-1">
+                  <div className="flex-1 min-w-0">
                     <p className="text-sm font-semibold">{comment.profiles.full_name || "User"}</p>
-                    <p className="text-sm text-foreground/80">{comment.content}</p>
+                    <p className="text-sm text-foreground/80 break-words">{comment.content}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 flex gap-3">
+                      {comment.created_at && formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                      {comment.user_id === user?.id && (
+                        <button className="hover:text-destructive" onClick={() => handleDeleteComment(comment.id)}>Delete</button>
+                      )}
+                    </p>
                   </div>
                 </div>
               ))
@@ -324,18 +370,39 @@ export default function Reels() {
           </div>
           <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t">
             <div className="flex gap-2">
-              <Avatar className="h-8 w-8"><AvatarFallback>You</AvatarFallback></Avatar>
-              <Input placeholder="Add a comment..." value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleComment()} className="flex-1" />
-              <Button size="icon" onClick={handleComment} disabled={!commentText.trim()}><Send className="h-4 w-4" /></Button>
+              <Avatar className="h-9 w-9">
+                <AvatarImage src={myProfile?.avatar_url || undefined} alt="" />
+                <AvatarFallback>{myProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+              </Avatar>
+              <Input aria-label="Add a comment" placeholder="Add a comment..." value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleComment()} className="flex-1 rounded-full" />
+              <Button size="icon" className="rounded-full" onClick={handleComment} disabled={!commentText.trim()} aria-label="Post comment"><Send className="h-4 w-4" /></Button>
             </div>
           </div>
         </SheetContent>
       </Sheet>
 
+      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this reel?</AlertDialogTitle>
+            <AlertDialogDescription>It will be removed with its likes and comments.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => pendingDelete && handleDeleteReel(pendingDelete)}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Upload Dialog */}
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Create Reel</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>Create reel</DialogTitle></DialogHeader>
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-foreground">Video</label>
@@ -346,7 +413,7 @@ export default function Reels() {
             </div>
             <div>
               <label className="text-sm font-medium text-foreground">Caption</label>
-              <Textarea placeholder="Write something fun..." value={uploadCaption} onChange={(e) => setUploadCaption(e.target.value)} className="mt-1" rows={3} />
+              <Textarea aria-label="Caption" maxLength={300} placeholder="Write something fun..." value={uploadCaption} onChange={(e) => setUploadCaption(e.target.value)} className="mt-1" rows={3} />
             </div>
             <Button onClick={handleUpload} className="w-full" disabled={!uploadVideoUrl}>Post Reel</Button>
           </div>
