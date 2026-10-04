@@ -1,27 +1,25 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectEvent } from "@/hooks/use-effect-event";
-import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  Video, VideoOff, Mic, MicOff, Phone, PhoneOff,
+  Video, VideoOff, Mic, MicOff, PhoneOff,
   Maximize2, Minimize2, Monitor, MonitorOff,
   SwitchCamera, Volume2, VolumeX, PictureInPicture2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { getIceServers } from "@/lib/webrtc";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { canShareScreen, formatCallDuration, getIceServers } from "@/lib/webrtc";
+import { useDraggable } from "@/hooks/use-draggable";
+import { CallButton, StreamAudio, StreamVideo } from "@/components/calls/CallControls";
+
+export type CallEndReason = "hangup" | "no-answer" | "failed" | "no-media";
 
 interface VideoCallProps {
   currentUserId: string;
   remoteUserId: string;
   remoteUserName: string;
   remoteUserAvatar?: string | null;
-  onEnd: () => void;
+  onEnd: (reason: CallEndReason) => void;
   isIncoming?: boolean;
   isVoiceOnly?: boolean;
 }
@@ -29,7 +27,14 @@ interface VideoCallProps {
 type SignalBody =
   | { type: "offer" | "answer"; payload: RTCSessionDescriptionInit }
   | { type: "ice-candidate"; payload: RTCIceCandidateInit }
-  | { type: "ready" | "screen-share-start" | "screen-share-stop"; payload: Record<string, never> };
+  | { type: "ready"; payload: Record<string, never> }
+  | { type: "media-state"; payload: MediaState };
+
+interface MediaState {
+  audio: boolean;
+  video: boolean;
+  screen: boolean;
+}
 
 type SignalMessage = SignalBody & { from: string; to: string };
 
@@ -45,17 +50,18 @@ const VideoCall = ({
   const [isVideoEnabled, setIsVideoEnabled] = useState(!isVoiceOnly);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(true);
-  const [isPiP, setIsPiP] = useState(false);
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [isSpeakerMuted, setIsSpeakerMuted] = useState(false);
   const [callDuration, setCallDuration] = useState(0);
   const [callStatus, setCallStatus] = useState<"connecting" | "connected" | "ended">("connecting");
   const [signalQuality, setSignalQuality] = useState<"good" | "fair" | "poor">("good");
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  // What you see of yourself: the camera, or your screen while sharing.
+  const [localPreview, setLocalPreview] = useState<MediaStream | null>(null);
+  const [remoteReady, setRemoteReady] = useState(false);
+  const [remoteMedia, setRemoteMedia] = useState<MediaState>({ audio: true, video: !isVoiceOnly, screen: false });
+  const drag = useDraggable<HTMLDivElement>();
 
-  const localVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const remoteAudioRef = useRef<HTMLAudioElement>(null);
   const peerConnectionRef = useRef<RTCPeerConnection | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const screenStreamRef = useRef<MediaStream | null>(null);
@@ -69,20 +75,10 @@ const VideoCall = ({
   const remoteReadyRef = useRef(false);
   const setupCompleteRef = useRef(false);
   const hasEndedRef = useRef(false);
-  const containerRef = useRef<HTMLDivElement>(null);
 
   const roomId = [currentUserId, remoteUserId].sort().join("-");
   const handleSignalRef = useRef<(msg: SignalMessage) => Promise<void>>();
   const setupCallRef = useRef<() => Promise<void>>();
-
-  const formatDuration = (s: number) => {
-    const h = Math.floor(s / 3600);
-    const m = Math.floor((s % 3600) / 60);
-    const sec = s % 60;
-    return h > 0
-      ? `${h}:${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`
-      : `${m.toString().padStart(2, "0")}:${sec.toString().padStart(2, "0")}`;
-  };
 
   const cleanup = useCallback(() => {
     if (callTimerRef.current) clearInterval(callTimerRef.current);
@@ -102,6 +98,7 @@ const VideoCall = ({
     setupCompleteRef.current = false;
     hasCreatedOfferRef.current = false;
     setRemoteStream(null);
+    setLocalPreview(null);
   }, []);
 
   const sendSignal = useCallback(
@@ -116,21 +113,12 @@ const VideoCall = ({
     [currentUserId, remoteUserId]
   );
 
-  const attachRemoteStream = useCallback((stream: MediaStream) => {
-    if (remoteVideoRef.current) {
-      remoteVideoRef.current.srcObject = stream;
-      remoteVideoRef.current.play().catch(() => {});
-    }
-    if (remoteAudioRef.current) {
-      remoteAudioRef.current.srcObject = stream;
-      remoteAudioRef.current.muted = isSpeakerMuted;
-      remoteAudioRef.current.play().catch(() => {});
-    }
-  }, [isSpeakerMuted]);
-
-  useEffect(() => {
-    if (remoteStream) attachRemoteStream(remoteStream);
-  }, [remoteStream, attachRemoteStream]);
+  // Tell the other side when the mic, camera or screen share changes, so they see it.
+  const mediaStateRef = useRef<MediaState>({ audio: true, video: !isVoiceOnly, screen: false });
+  const sendMediaState = useCallback((patch: Partial<MediaState> = {}) => {
+    mediaStateRef.current = { ...mediaStateRef.current, ...patch };
+    sendSignal({ type: "media-state", payload: mediaStateRef.current });
+  }, [sendSignal]);
 
   const monitorStats = useCallback(() => {
     statsIntervalRef.current = setInterval(async () => {
@@ -152,12 +140,12 @@ const VideoCall = ({
     }, 3000);
   }, []);
 
-  const handleEndCall = useCallback(() => {
+  const handleEndCall = useCallback((reason: CallEndReason = "hangup") => {
     if (hasEndedRef.current) return;
     hasEndedRef.current = true;
     setCallStatus("ended");
     cleanup();
-    onEnd();
+    onEnd(reason);
   }, [cleanup, onEnd]);
 
   const createPeerConnection = useCallback(() => {
@@ -181,7 +169,6 @@ const VideoCall = ({
       const stream = event.streams[0] ?? new MediaStream([event.track]);
       console.log("[WebRTC] Got remote track:", event.track.kind);
       setRemoteStream(stream);
-      attachRemoteStream(stream);
     };
 
     pc.onconnectionstatechange = () => {
@@ -193,16 +180,17 @@ const VideoCall = ({
           callTimerRef.current = setInterval(() => setCallDuration((p) => p + 1), 1000);
         }
         if (!statsIntervalRef.current) monitorStats();
+        sendMediaState();
       } else if (pc.connectionState === "disconnected") {
         setIsConnected(false);
         setCallStatus("connecting");
       } else if (pc.connectionState === "failed" || pc.connectionState === "closed") {
-        handleEndCall();
+        handleEndCall("failed");
       }
     };
 
     return pc;
-  }, [sendSignal, monitorStats, handleEndCall, attachRemoteStream]);
+  }, [sendSignal, monitorStats, handleEndCall, sendMediaState]);
 
   const startLocalStream = useCallback(async () => {
     try {
@@ -211,12 +199,15 @@ const VideoCall = ({
         audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       localStreamRef.current = stream;
-      if (localVideoRef.current && !isVoiceOnly) localVideoRef.current.srcObject = stream;
+      setLocalPreview(stream);
       return stream;
     } catch (error) {
+      // No camera (or it's in use): carry on with sound only.
       console.error("[WebRTC] Failed to get media:", error);
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       localStreamRef.current = stream;
+      mediaStateRef.current.video = false;
+      setIsVideoEnabled(false);
       return stream;
     }
   }, [isVoiceOnly]);
@@ -259,6 +250,10 @@ const VideoCall = ({
         pendingIceCandidatesRef.current = [];
         break;
       }
+      case "media-state": {
+        setRemoteMedia(message.payload);
+        break;
+      }
       case "ice-candidate": {
         const candidate = new RTCIceCandidate(message.payload);
         if (pc.remoteDescription) {
@@ -272,9 +267,16 @@ const VideoCall = ({
   }, [sendSignal]);
 
   const setupCall = useCallback(async () => {
+    let stream: MediaStream;
+    try {
+      stream = await startLocalStream();
+    } catch (error) {
+      console.error("[WebRTC] No microphone:", error);
+      handleEndCall("no-media");
+      return;
+    }
     try {
       console.log("[WebRTC] Setting up call, isIncoming:", isIncoming);
-      const stream = await startLocalStream();
       const pc = createPeerConnection();
       peerConnectionRef.current = pc;
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));
@@ -293,7 +295,7 @@ const VideoCall = ({
       }
     } catch (error) {
       console.error("[WebRTC] Error setting up call:", error);
-      handleEndCall();
+      handleEndCall("failed");
     }
   }, [startLocalStream, createPeerConnection, isIncoming, sendSignal, processSignal, createAndSendOffer, handleEndCall]);
 
@@ -303,6 +305,7 @@ const VideoCall = ({
 
       if (message.type === "ready") {
         remoteReadyRef.current = true;
+        setRemoteReady(true);
         if (!isIncoming && setupCompleteRef.current && peerConnectionRef.current) {
           await createAndSendOffer(peerConnectionRef.current);
         }
@@ -326,23 +329,26 @@ const VideoCall = ({
   const toggleVideo = () => {
     if (localStreamRef.current && !isVoiceOnly) {
       const track = localStreamRef.current.getVideoTracks()[0];
-      if (track) { track.enabled = !track.enabled; setIsVideoEnabled(track.enabled); }
+      if (track) {
+        track.enabled = !track.enabled;
+        setIsVideoEnabled(track.enabled);
+        if (!screenStreamRef.current) sendMediaState({ video: track.enabled });
+      }
     }
   };
 
   const toggleAudio = () => {
     if (localStreamRef.current) {
       const track = localStreamRef.current.getAudioTracks()[0];
-      if (track) { track.enabled = !track.enabled; setIsAudioEnabled(track.enabled); }
+      if (track) {
+        track.enabled = !track.enabled;
+        setIsAudioEnabled(track.enabled);
+        sendMediaState({ audio: track.enabled });
+      }
     }
   };
 
-  const toggleSpeaker = () => {
-    const nextMuted = !isSpeakerMuted;
-    if (remoteAudioRef.current) remoteAudioRef.current.muted = nextMuted;
-    if (remoteVideoRef.current) remoteVideoRef.current.muted = nextMuted;
-    setIsSpeakerMuted(nextMuted);
-  };
+  const toggleSpeaker = () => setIsSpeakerMuted((m) => !m);
 
   const stopScreenShare = useCallback(async () => {
     const pc = peerConnectionRef.current;
@@ -354,10 +360,11 @@ const VideoCall = ({
       const videoTrack = camStream.getVideoTracks()[0];
       const sender = pc.getSenders().find((s) => s.track?.kind === "video");
       if (sender && videoTrack) await sender.replaceTrack(videoTrack);
-      if (localVideoRef.current) localVideoRef.current.srcObject = camStream;
+      setLocalPreview(camStream);
+      sendMediaState({ screen: false, video: !!videoTrack?.enabled });
     }
     setIsScreenSharing(false);
-  }, []);
+  }, [sendMediaState]);
 
   const stopScreenShareRef = useRef(stopScreenShare);
   stopScreenShareRef.current = stopScreenShare;
@@ -376,14 +383,15 @@ const VideoCall = ({
         // No existing video sender (e.g. voice-only fallback) — add a new one
         pc.addTrack(videoTrack, screen);
       }
-      if (localVideoRef.current) localVideoRef.current.srcObject = screen;
+      setLocalPreview(screen);
+      // "Stop sharing" in the browser's own bar ends it too.
       videoTrack.onended = () => stopScreenShareRef.current();
       setIsScreenSharing(true);
-      setIsVideoEnabled(true);
+      sendMediaState({ screen: true, video: true });
     } catch (err) {
       console.log("[WebRTC] Screen share cancelled or failed:", err);
     }
-  }, []);
+  }, [sendMediaState]);
 
   const toggleScreenShare = useCallback(async () => {
     if (isScreenSharing) {
@@ -414,22 +422,21 @@ const VideoCall = ({
       track.stop();
       localStreamRef.current.removeTrack(track);
       localStreamRef.current.addTrack(newTrack);
-      if (localVideoRef.current) localVideoRef.current.srcObject = localStreamRef.current;
+      if (!screenStreamRef.current) setLocalPreview(new MediaStream(localStreamRef.current.getTracks()));
       facingModeRef.current = newFacingMode;
     } catch (err) {
       console.log("[WebRTC] Camera switch failed:", err);
     }
   }, [isVoiceOnly]);
 
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const togglePiP = async () => {
     if (!remoteVideoRef.current) return;
     try {
       if (document.pictureInPictureElement) {
         await document.exitPictureInPicture();
-        setIsPiP(false);
       } else {
         await remoteVideoRef.current.requestPictureInPicture();
-        setIsPiP(true);
       }
     } catch (e) {
       console.warn("Picture-in-picture is not available", e);
@@ -457,11 +464,11 @@ const VideoCall = ({
     }
   });
 
-  // End call if not connected within 60 seconds
+  // Give up if the call hasn't connected within 50 seconds (the other side stops ringing after 45).
   const endIfNotConnected = useEffectEvent(() => {
     if (!peerConnectionRef.current || peerConnectionRef.current.connectionState !== "connected") {
       console.log("[WebRTC] Connection timeout - ending call");
-      handleEndCall();
+      handleEndCall(remoteReadyRef.current || isIncoming ? "failed" : "no-answer");
     }
   });
 
@@ -487,7 +494,7 @@ const VideoCall = ({
     signalingChannelRef.current = channel;
 
     const readyInterval = setInterval(resendReadyIfNeeded, 2000);
-    const connectTimeout = setTimeout(endIfNotConnected, 60000);
+    const connectTimeout = setTimeout(endIfNotConnected, 50000);
 
     return () => {
       clearInterval(readyInterval);
@@ -499,218 +506,199 @@ const VideoCall = ({
   useEffect(() => startCall(), [startCall]);
 
   const qualityColor = signalQuality === "good" ? "bg-green-500" : signalQuality === "fair" ? "bg-yellow-500" : "bg-red-500";
+  const statusText = isConnected
+    ? formatCallDuration(callDuration)
+    : callDuration > 0
+      ? "Reconnecting…"
+      : !isIncoming && !remoteReady
+        ? "Ringing…"
+        : "Connecting…";
+  const showRemoteVideo = !isVoiceOnly && !!remoteStream && (remoteMedia.video || remoteMedia.screen);
+  const initial = remoteUserName?.[0]?.toUpperCase() || "U";
+  const micButton = (size: "sm" | "md") => (
+    <CallButton label={isAudioEnabled ? "Mute microphone" : "Unmute microphone"} tone={isAudioEnabled ? "default" : "off"} size={size} onClick={toggleAudio}>
+      {isAudioEnabled ? <Mic /> : <MicOff />}
+    </CallButton>
+  );
+  const endButton = (size: "sm" | "lg") => (
+    <CallButton label="End call" tone="end" size={size} onClick={() => handleEndCall("hangup")}>
+      <PhoneOff />
+    </CallButton>
+  );
 
   return (
-    <div
-      ref={containerRef}
-      className={cn(
-        "fixed z-50 flex flex-col transition-all duration-300",
-        isFullscreen
-          ? "inset-0 bg-black"
-          : "bottom-4 right-4 w-[340px] h-[460px] rounded-2xl shadow-2xl border border-border overflow-hidden bg-background/95 backdrop-blur-xl"
-      )}
-    >
-      {/* Header */}
-      <div className={cn(
-        "p-3 flex items-center justify-between z-10",
-        isFullscreen ? "absolute top-0 left-0 right-0 bg-gradient-to-b from-black/70 to-transparent text-white" : "border-b"
-      )}>
-        <div className="flex items-center gap-2">
-          <div className={cn("h-2.5 w-2.5 rounded-full", isConnected ? qualityColor : "bg-yellow-500 animate-pulse")} />
-          <span className="text-sm font-medium">
-            {isVoiceOnly ? "Voice Call" : isScreenSharing ? "Screen Sharing" : "Video Call"}
-          </span>
-          {isConnected && (
-            <span className="text-sm opacity-75 font-mono ml-2">{formatDuration(callDuration)}</span>
-          )}
-        </div>
-        <div className="flex items-center gap-1">
-          {isConnected && !isVoiceOnly && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className={cn("h-8 w-8", isFullscreen && "text-white hover:bg-white/20")} onClick={togglePiP}>
-                  <PictureInPicture2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Picture-in-Picture</TooltipContent>
-            </Tooltip>
-          )}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon" className={cn("h-8 w-8", isFullscreen && "text-white hover:bg-white/20")} onClick={() => setIsFullscreen(!isFullscreen)}>
-                {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isFullscreen ? "Minimize" : "Fullscreen"}</TooltipContent>
-          </Tooltip>
-        </div>
-      </div>
+    <>
+      {/* Sound plays from here in both layouts, so switching layout never interrupts it. */}
+      <StreamAudio stream={remoteStream} muted={isSpeakerMuted} />
 
-      {/* Remote Video / Avatar */}
-      <div className="flex-1 relative bg-black overflow-hidden">
-        {remoteStream && !isVoiceOnly ? (
-          <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-contain" />
-        ) : (
-          <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-background">
-            <div className="text-center">
-              <Avatar className={cn(
-                "mx-auto mb-4 ring-4 h-28 w-28",
-                !isConnected ? "ring-primary/30 animate-pulse" : "ring-primary/20"
-              )}>
-                <AvatarImage src={remoteUserAvatar || undefined} />
-                <AvatarFallback className="text-3xl bg-primary/20">{remoteUserName?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-              </Avatar>
-              <p className={cn("font-semibold text-lg", isFullscreen && "text-white")}>{remoteUserName}</p>
-              <p className={cn("text-sm mt-1", isFullscreen ? "text-white/60" : "text-muted-foreground")}>
-                {callStatus === "connecting" && (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="flex gap-1">
-                      {[0, 150, 300].map((d) => (
-                        <span key={d} className="h-2 w-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                      ))}
-                    </span>
-                    Connecting...
-                  </span>
-                )}
-                {callStatus === "connected" && isVoiceOnly && formatDuration(callDuration)}
-              </p>
+      {isFullscreen ? (
+        <div
+          role="dialog"
+          aria-label={`${isVoiceOnly ? "Voice" : "Video"} call with ${remoteUserName}`}
+          className={cn(
+            "fixed inset-0 z-50 flex flex-col text-white animate-in fade-in-0 duration-200",
+            isVoiceOnly ? "bg-gradient-to-b from-neutral-900 via-neutral-950 to-black" : "bg-black"
+          )}
+        >
+          {/* Header */}
+          <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-4 pb-6 pt-[calc(env(safe-area-inset-top)+0.75rem)] bg-gradient-to-b from-black/70 to-transparent">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className={cn("h-2.5 w-2.5 rounded-full shrink-0", isConnected ? qualityColor : "bg-yellow-500 animate-pulse")} />
+              <span className="text-sm font-medium truncate">
+                {isScreenSharing ? "You're sharing your screen" : remoteMedia.screen ? `${remoteUserName} is sharing their screen` : isVoiceOnly ? "Voice call" : "Video call"}
+              </span>
+              {isConnected && <span className="text-sm text-white/70 font-mono tabular-nums">{formatCallDuration(callDuration)}</span>}
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              {isConnected && showRemoteVideo && "pictureInPictureEnabled" in document && (
+                <CallButton label="Picture in picture" size="sm" onClick={togglePiP} className="bg-transparent hover:bg-white/15">
+                  <PictureInPicture2 />
+                </CallButton>
+              )}
+              <CallButton label="Minimize call" size="sm" onClick={() => setIsFullscreen(false)} className="bg-transparent hover:bg-white/15">
+                <Minimize2 />
+              </CallButton>
             </div>
           </div>
-        )}
 
-        <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
+          {/* The other person */}
+          <div className="relative flex-1 overflow-hidden">
+            {showRemoteVideo ? (
+              <StreamVideo
+                ref={remoteVideoRef}
+                data-remote
+                stream={remoteStream}
+                className={cn("h-full w-full", remoteMedia.screen ? "object-contain" : "object-cover sm:object-contain")}
+              />
+            ) : (
+              <div className="flex h-full w-full flex-col items-center justify-center px-6 text-center">
+                <div className="relative">
+                  {!isConnected && [0, 1].map((i) => (
+                    <span
+                      key={i}
+                      className="absolute inset-0 rounded-full border-2 border-white/20 animate-ping"
+                      style={{ animationDelay: `${i * 700}ms`, animationDuration: "2s" }}
+                    />
+                  ))}
+                  <Avatar className="h-28 w-28 sm:h-32 sm:w-32 ring-4 ring-white/10">
+                    <AvatarImage src={remoteUserAvatar || undefined} alt="" />
+                    <AvatarFallback className="text-4xl bg-primary/30 text-white">{initial}</AvatarFallback>
+                  </Avatar>
+                </div>
+                <p className="mt-5 text-2xl font-semibold">{remoteUserName}</p>
+                <p className="mt-1 text-sm text-white/60 tabular-nums" aria-live="polite">
+                  {statusText}
+                  {isConnected && !isVoiceOnly && !remoteMedia.video && " · camera off"}
+                </p>
+              </div>
+            )}
 
-        {/* Local Video PIP */}
-        {!isVoiceOnly && (
-          <div className={cn(
-            "absolute rounded-xl overflow-hidden shadow-2xl border-2 border-white/20 transition-all duration-300",
-            isFullscreen ? "bottom-24 right-6 w-40 h-56" : "bottom-4 right-4 w-24 h-32"
-          )}>
-            <video
-              ref={localVideoRef}
-              autoPlay playsInline muted
-              className={cn("w-full h-full object-cover", !isVideoEnabled && "hidden")}
-            />
-            {!isVideoEnabled && (
-              <div className="w-full h-full bg-muted flex items-center justify-center">
-                <VideoOff className="h-6 w-6 text-muted-foreground" />
+            {isConnected && !remoteMedia.audio && (
+              <div className="absolute left-1/2 top-[calc(env(safe-area-inset-top)+4rem)] -translate-x-1/2 flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-1.5 text-xs backdrop-blur">
+                <MicOff className="h-3.5 w-3.5" /> {remoteUserName} is muted
+              </div>
+            )}
+
+            {/* You */}
+            {!isVoiceOnly && (
+              <div className="absolute bottom-28 right-4 h-40 w-28 sm:bottom-28 sm:right-6 sm:h-56 sm:w-40 overflow-hidden rounded-2xl border border-white/20 bg-neutral-800 shadow-2xl">
+                {isVideoEnabled || isScreenSharing ? (
+                  <StreamVideo
+                    stream={localPreview}
+                    mirror={!isScreenSharing && facingModeRef.current === "user"}
+                    className={cn("h-full w-full", isScreenSharing ? "object-contain bg-black" : "object-cover")}
+                  />
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center">
+                    <VideoOff className="h-6 w-6 text-white/50" />
+                  </div>
+                )}
+                <span className="absolute bottom-1.5 left-2 text-[11px] font-medium text-white/90 drop-shadow">You</span>
               </div>
             )}
           </div>
-        )}
 
-        {/* Audio waveform for voice calls */}
-        {isConnected && isVoiceOnly && (
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 flex items-end gap-1.5 h-12">
-            {[...Array(7)].map((_, i) => (
-              <div
-                key={i}
-                className="w-1.5 bg-primary rounded-full"
-                style={{
-                  height: `${Math.random() * 32 + 12}px`,
-                  animation: `pulse 0.5s ease-in-out infinite alternate`,
-                  animationDelay: `${i * 80}ms`,
-                }}
-              />
-            ))}
+          {/* Controls */}
+          <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-2.5 sm:gap-3 bg-gradient-to-t from-black/80 to-transparent px-4 pt-8 pb-[calc(env(safe-area-inset-bottom)+1.5rem)]">
+            {micButton("md")}
+            {!isVoiceOnly && (
+              <CallButton label={isVideoEnabled ? "Turn camera off" : "Turn camera on"} tone={isVideoEnabled ? "default" : "off"} onClick={toggleVideo}>
+                {isVideoEnabled ? <Video /> : <VideoOff />}
+              </CallButton>
+            )}
+            {endButton("lg")}
+            {!isVoiceOnly && isConnected && canShareScreen() && (
+              <CallButton label={isScreenSharing ? "Stop sharing screen" : "Share screen"} tone={isScreenSharing ? "on" : "default"} onClick={toggleScreenShare}>
+                {isScreenSharing ? <MonitorOff /> : <Monitor />}
+              </CallButton>
+            )}
+            {!isVoiceOnly && isConnected && !canShareScreen() && (
+              <CallButton label="Switch camera" onClick={switchCamera}>
+                <SwitchCamera />
+              </CallButton>
+            )}
+            <CallButton label={isSpeakerMuted ? "Turn sound on" : "Turn sound off"} tone={isSpeakerMuted ? "off" : "default"} onClick={toggleSpeaker}>
+              {isSpeakerMuted ? <VolumeX /> : <Volume2 />}
+            </CallButton>
           </div>
-        )}
-      </div>
-
-      {/* Controls */}
-      <div className={cn(
-        "flex items-center justify-center gap-2 py-4 px-6",
-        isFullscreen
-          ? "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pb-8"
-          : "bg-card/80 backdrop-blur"
-      )}>
-        {/* Mic */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={isAudioEnabled ? "secondary" : "destructive"}
-              size="icon"
-              className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && isAudioEnabled && "bg-white/20 hover:bg-white/30 text-white")}
-              onClick={toggleAudio}
-            >
-              {isAudioEnabled ? <Mic className="h-5 w-5" /> : <MicOff className="h-5 w-5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{isAudioEnabled ? "Mute" : "Unmute"}</TooltipContent>
-        </Tooltip>
-
-        {/* Speaker */}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant={isSpeakerMuted ? "destructive" : "secondary"}
-              size="icon"
-              className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && !isSpeakerMuted && "bg-white/20 hover:bg-white/30 text-white")}
-              onClick={toggleSpeaker}
-            >
-              {isSpeakerMuted ? <VolumeX className="h-5 w-5" /> : <Volume2 className="h-5 w-5" />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>{isSpeakerMuted ? "Unmute Speaker" : "Mute Speaker"}</TooltipContent>
-        </Tooltip>
-
-        {/* End call */}
-        <Button variant="destructive" size="icon" className="h-14 w-14 rounded-full shadow-lg" onClick={handleEndCall}>
-          <PhoneOff className="h-6 w-6" />
-        </Button>
-
-        {/* Camera toggle */}
-        {!isVoiceOnly && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isVideoEnabled ? "secondary" : "destructive"}
-                size="icon"
-                className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && isVideoEnabled && "bg-white/20 hover:bg-white/30 text-white")}
-                onClick={toggleVideo}
-              >
-                {isVideoEnabled ? <Video className="h-5 w-5" /> : <VideoOff className="h-5 w-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isVideoEnabled ? "Camera Off" : "Camera On"}</TooltipContent>
-          </Tooltip>
-        )}
-
-        {/* Screen share */}
-        {!isVoiceOnly && isConnected && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant={isScreenSharing ? "default" : "secondary"}
-                size="icon"
-                className={cn("h-12 w-12 rounded-full shadow-md", isFullscreen && !isScreenSharing && "bg-white/20 hover:bg-white/30 text-white")}
-                onClick={toggleScreenShare}
-              >
-                {isScreenSharing ? <MonitorOff className="h-5 w-5" /> : <Monitor className="h-5 w-5" />}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{isScreenSharing ? "Stop Sharing" : "Share Screen"}</TooltipContent>
-          </Tooltip>
-        )}
-
-        {/* Switch camera (mobile) */}
-        {!isVoiceOnly && isConnected && (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="secondary"
-                size="icon"
-                className={cn("h-12 w-12 rounded-full shadow-md md:hidden", isFullscreen && "bg-white/20 hover:bg-white/30 text-white")}
-                onClick={switchCamera}
-              >
-                <SwitchCamera className="h-5 w-5" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Switch Camera</TooltipContent>
-          </Tooltip>
-        )}
-      </div>
-    </div>
+        </div>
+      ) : (
+        /* Minimized: a small window you can drag anywhere while you keep using the app. */
+        <div
+          ref={drag.ref}
+          style={drag.style}
+          {...drag.handlers}
+          role="dialog"
+          aria-label={`${isVoiceOnly ? "Voice" : "Video"} call with ${remoteUserName}`}
+          className={cn(
+            "fixed z-50 bottom-24 right-3 md:bottom-6 md:right-6 touch-none select-none cursor-grab active:cursor-grabbing",
+            "overflow-hidden text-white shadow-2xl ring-1 ring-white/10 animate-in fade-in-0 zoom-in-95 duration-200",
+            showRemoteVideo ? "h-60 w-40 sm:h-64 sm:w-44 rounded-2xl bg-black" : "w-[min(20rem,calc(100vw-1.5rem))] rounded-full bg-neutral-900/95 backdrop-blur-xl"
+          )}
+        >
+          {showRemoteVideo ? (
+            <>
+              <StreamVideo
+                ref={remoteVideoRef}
+                data-remote
+                stream={remoteStream}
+                className={cn("absolute inset-0 h-full w-full pointer-events-none", remoteMedia.screen ? "object-contain" : "object-cover")}
+              />
+              <div className="absolute inset-x-0 top-0 flex items-center justify-between gap-1 bg-gradient-to-b from-black/70 to-transparent p-2">
+                <span className="truncate text-xs font-medium">{remoteUserName}</span>
+                <span className="text-[11px] font-mono tabular-nums text-white/80">{statusText}</span>
+              </div>
+              <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1.5 bg-gradient-to-t from-black/80 to-transparent p-2 pt-6">
+                {micButton("sm")}
+                <CallButton label="Expand call" size="sm" onClick={() => setIsFullscreen(true)}>
+                  <Maximize2 />
+                </CallButton>
+                {endButton("sm")}
+              </div>
+            </>
+          ) : (
+            <div className="flex items-center gap-2.5 p-2 pl-2.5">
+              <Avatar className={cn("h-10 w-10 shrink-0 ring-2", isConnected ? "ring-green-500/70" : "ring-yellow-500/70 animate-pulse")}>
+                <AvatarImage src={remoteUserAvatar || undefined} alt="" />
+                <AvatarFallback className="bg-primary/30 text-white">{initial}</AvatarFallback>
+              </Avatar>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-semibold leading-tight">{remoteUserName}</p>
+                <p className="truncate text-xs text-white/60 tabular-nums">
+                  {statusText}
+                  {isConnected && !remoteMedia.audio && " · muted"}
+                </p>
+              </div>
+              {micButton("sm")}
+              <CallButton label="Expand call" size="sm" onClick={() => setIsFullscreen(true)}>
+                <Maximize2 />
+              </CallButton>
+              {endButton("sm")}
+            </div>
+          )}
+        </div>
+      )}
+    </>
   );
 };
 

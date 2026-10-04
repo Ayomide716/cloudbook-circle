@@ -19,7 +19,7 @@ const IncomingCallOverlay = ({
   onReject,
 }: IncomingCallOverlayProps) => {
   return (
-    <div className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center">
+    <div role="alertdialog" aria-label={`Incoming ${isVoiceOnly ? "voice" : "video"} call from ${callerName}`} className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center px-6">
       <div className="text-center space-y-8 animate-fade-in">
         {/* Pulsing rings */}
         <div className="relative mx-auto w-36 h-36">
@@ -39,17 +39,17 @@ const IncomingCallOverlay = ({
         </div>
 
         <div>
-          <p className="text-white text-2xl font-bold">{callerName}</p>
+          <p className="text-white text-2xl font-bold break-words">{callerName}</p>
           <p className="text-white/60 text-sm mt-1 flex items-center justify-center gap-2">
             {isVoiceOnly ? (
               <>
                 <Phone className="h-4 w-4" />
-                Incoming voice call...
+                Incoming voice call…
               </>
             ) : (
               <>
                 <Video className="h-4 w-4" />
-                Incoming video call...
+                Incoming video call…
               </>
             )}
           </p>
@@ -63,6 +63,7 @@ const IncomingCallOverlay = ({
               size="icon"
               className="h-16 w-16 rounded-full shadow-lg shadow-red-500/30"
               onClick={onReject}
+              aria-label="Decline call"
             >
               <PhoneOff className="h-7 w-7" />
             </Button>
@@ -73,6 +74,7 @@ const IncomingCallOverlay = ({
               size="icon"
               className="h-16 w-16 rounded-full bg-green-500 hover:bg-green-600 shadow-lg shadow-green-500/30 animate-pulse"
               onClick={onAccept}
+              aria-label="Accept call"
             >
               <Phone className="h-7 w-7 text-white" />
             </Button>

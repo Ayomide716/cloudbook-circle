@@ -4,19 +4,27 @@ import { Mic, Square, Loader2, Play, Pause, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getErrorMessage } from "@/lib/utils";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface VoiceMessageRecorderProps {
   onVoiceMessageSent: (audioUrl: string, duration: number) => void;
   disabled?: boolean;
+  /** Told when recording/previewing starts or ends, so the composer can give the recorder the whole row. */
+  onActiveChange?: (active: boolean) => void;
 }
 
-const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageRecorderProps) => {
+const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled, onActiveChange }: VoiceMessageRecorderProps) => {
+  const notifyActive = useEffectEvent((active: boolean) => onActiveChange?.(active));
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [recordingDuration, setRecordingDuration] = useState(0);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const isActive = isRecording || !!audioUrl;
+  useEffect(() => {
+    notifyActive(isActive);
+  }, [isActive, notifyActive]);
   const [isPlaying, setIsPlaying] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -142,7 +150,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
   // Preview mode - show recorded audio
   if (audioBlob && audioUrl) {
     return (
-      <div className="flex items-center gap-2 bg-secondary/50 rounded-full px-3 py-1.5">
+      <div className="flex flex-1 items-center gap-2 bg-secondary/50 rounded-full px-3 py-1.5">
         <audio
           ref={audioRef}
           src={audioUrl}
@@ -155,6 +163,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
           size="icon"
           className="h-8 w-8 rounded-full"
           onClick={togglePlayback}
+          aria-label={isPlaying ? "Pause recording" : "Play recording"}
         >
           {isPlaying ? (
             <Pause className="h-4 w-4" />
@@ -162,8 +171,8 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
             <Play className="h-4 w-4" />
           )}
         </Button>
-        <div className="flex items-center gap-2">
-          <div className="w-24 h-1 bg-muted rounded-full overflow-hidden">
+        <div className="flex flex-1 items-center gap-2">
+          <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
             <div className="h-full bg-primary w-full" />
           </div>
           <span className="text-xs text-muted-foreground min-w-[32px]">
@@ -176,6 +185,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
           size="icon"
           className="h-8 w-8 rounded-full text-destructive hover:text-destructive"
           onClick={cancelRecording}
+          aria-label="Discard voice message"
         >
           <X className="h-4 w-4" />
         </Button>
@@ -185,6 +195,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
           className="h-8 rounded-full"
           onClick={sendVoiceMessage}
           disabled={isUploading}
+          aria-label="Send voice message"
         >
           {isUploading ? (
             <Loader2 className="h-4 w-4 animate-spin" />
@@ -199,10 +210,10 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
   // Recording mode
   if (isRecording) {
     return (
-      <div className="flex items-center gap-2 bg-destructive/10 rounded-full px-3 py-1.5">
+      <div className="flex flex-1 items-center gap-2 bg-destructive/10 rounded-full px-3 py-1.5">
         <div className="w-2 h-2 bg-destructive rounded-full animate-pulse" />
-        <span className="text-sm font-medium text-destructive">
-          {formatDuration(recordingDuration)}
+        <span className="text-sm font-medium text-destructive flex-1">
+          Recording… {formatDuration(recordingDuration)}
         </span>
         <Button
           type="button"
@@ -210,6 +221,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
           size="icon"
           className="h-8 w-8 rounded-full"
           onClick={stopRecording}
+          aria-label="Stop recording"
         >
           <Square className="h-3 w-3 fill-current" />
         </Button>
@@ -226,6 +238,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
       className="h-10 w-10 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary"
       onClick={startRecording}
       disabled={disabled}
+      aria-label="Record voice message"
     >
       <Mic className="h-5 w-5" />
     </Button>

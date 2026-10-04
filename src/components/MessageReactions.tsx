@@ -8,6 +8,9 @@ interface MessageReactionsProps {
   messageId: string;
   currentUserId: string;
   isOwnMessage: boolean;
+  /** The picker is opened from the message's action bar (tap or click), so it works on phones too. */
+  pickerOpen: boolean;
+  onPickerOpenChange: (open: boolean) => void;
 }
 
 interface Reaction {
@@ -25,9 +28,8 @@ const REACTION_TYPES = [
   { type: "angry", icon: Angry, label: "Angry", color: "text-orange-500" },
 ];
 
-const MessageReactions = ({ messageId, currentUserId, isOwnMessage }: MessageReactionsProps) => {
+const MessageReactions = ({ messageId, currentUserId, isOwnMessage, pickerOpen, onPickerOpenChange }: MessageReactionsProps) => {
   const [reactions, setReactions] = useState<Reaction[]>([]);
-  const [showPicker, setShowPicker] = useState(false);
   const [userReaction, setUserReaction] = useState<string | null>(null);
 
   const loadReactions = useEffectEvent(async () => {
@@ -69,7 +71,7 @@ const MessageReactions = ({ messageId, currentUserId, isOwnMessage }: MessageRea
   }, [messageId, loadReactions, setupRealtimeSubscription]);
 
   const handleReaction = async (reactionType: string) => {
-    setShowPicker(false);
+    onPickerOpenChange(false);
 
     if (userReaction === reactionType) {
       // Remove reaction
@@ -109,54 +111,55 @@ const MessageReactions = ({ messageId, currentUserId, isOwnMessage }: MessageRea
     return <Icon className={cn("h-3 w-3", reaction.color)} />;
   };
 
-  return (
-    <div className={cn("relative flex items-center gap-1", isOwnMessage ? "flex-row-reverse" : "flex-row")}>
-      {/* Reaction picker trigger */}
-      <div
-        className="opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-        onMouseEnter={() => setShowPicker(true)}
-        onMouseLeave={() => setShowPicker(false)}
-      >
-        <span className="text-muted-foreground hover:text-foreground text-xs">😊</span>
-        
-        {/* Reaction picker */}
-        {showPicker && (
-          <div
-            className={cn(
-              "absolute bottom-full mb-1 bg-card border border-border rounded-full shadow-lg p-1.5 flex gap-1 z-50",
-              isOwnMessage ? "right-0" : "left-0"
-            )}
-          >
-            {REACTION_TYPES.map((reaction) => {
-              const Icon = reaction.icon;
-              return (
-                <button
-                  key={reaction.type}
-                  onClick={() => handleReaction(reaction.type)}
-                  className={cn(
-                    "p-1.5 rounded-full transition-all hover:scale-125 hover:bg-accent",
-                    userReaction === reaction.type && "bg-accent scale-110"
-                  )}
-                  title={reaction.label}
-                >
-                  <Icon className={cn("h-5 w-5", reaction.color)} />
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
+  const hasReactions = Object.keys(groupedReactions).length > 0;
+  if (!hasReactions && !pickerOpen) return null;
 
-      {/* Display existing reactions */}
-      {Object.keys(groupedReactions).length > 0 && (
-        <div className="flex items-center gap-0.5 bg-card border border-border rounded-full px-1.5 py-0.5 shadow-sm">
+  return (
+    <div className={cn("relative flex", isOwnMessage ? "justify-end" : "justify-start")}>
+      {pickerOpen && (
+        <div
+          role="menu"
+          aria-label="React to message"
+          className={cn(
+            "absolute bottom-full mb-1 bg-card border border-border rounded-full shadow-lg p-1 flex gap-0.5 z-50 animate-in fade-in-0 zoom-in-95",
+            isOwnMessage ? "right-0" : "left-0"
+          )}
+        >
+          {REACTION_TYPES.map((reaction) => {
+            const Icon = reaction.icon;
+            return (
+              <button
+                key={reaction.type}
+                role="menuitem"
+                onClick={() => handleReaction(reaction.type)}
+                className={cn(
+                  "p-2 rounded-full transition-transform hover:scale-125 hover:bg-accent",
+                  userReaction === reaction.type && "bg-accent scale-110"
+                )}
+                aria-label={reaction.label}
+                title={reaction.label}
+              >
+                <Icon className={cn("h-5 w-5", reaction.color)} />
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Existing reactions; tapping toggles your own */}
+      {hasReactions && (
+        <button
+          onClick={() => onPickerOpenChange(!pickerOpen)}
+          className="-mt-1.5 flex items-center gap-0.5 bg-card border border-border rounded-full px-1.5 py-0.5 shadow-sm"
+          aria-label="Reactions"
+        >
           {Object.entries(groupedReactions).map(([type, count]) => (
-            <div key={type} className="flex items-center gap-0.5">
+            <span key={type} className="flex items-center gap-0.5">
               {getReactionIcon(type)}
               {count > 1 && <span className="text-xs text-muted-foreground">{count}</span>}
-            </div>
+            </span>
           ))}
-        </div>
+        </button>
       )}
     </div>
   );

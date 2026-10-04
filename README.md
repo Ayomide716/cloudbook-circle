@@ -17,7 +17,7 @@ A full-featured social network: feed, stories, real-time chat, voice and video c
 - **Feed:** posts with photos, galleries, video and polls; reactions, threaded comments, shares, saved posts, @mentions and #hashtags; ranked "All", "Friends" and "Digest" views.
 - **Stories and reels:** 24-hour stories with views, reactions and replies; full-screen vertical reels.
 - **Messaging:** real-time one-to-one chat with typing indicators, read receipts, replies, edits, reactions, photos, voice notes, GIFs and disappearing messages.
-- **Calls:** one-to-one and group voice/video calls over WebRTC, with screen sharing.
+- **Calls:** one-to-one and group voice/video calls over WebRTC that ring on any page, with screen sharing, mute indicators and a minimized window you can drag around while you keep using the app.
 - **Communities:** groups with chat, voice rooms and posts; pages with followers; events with RSVPs.
 - **Discovery:** Explore with trending topics and search across people and posts.
 - **More:** a marketplace, watch videos, creator tips and subscriptions, ads manager, achievements and login streaks, and CloudBuddy (an AI chat companion).
@@ -67,4 +67,12 @@ GIF search in chat uses Tenor (falling back to Giphy) with built-in default keys
 ```sh
 VITE_TENOR_API_KEY="..."
 VITE_GIPHY_API_KEY="..."
+```
+
+Calls connect devices directly when they can. Across mobile networks and strict firewalls they need a TURN relay. Add one from any provider (for example Metered, Cloudflare Calls or Twilio):
+
+```sh
+VITE_TURN_URLS="turn:relay.example.com:3478,turns:relay.example.com:5349"
+VITE_TURN_USERNAME="..."
+VITE_TURN_CREDENTIAL="..."
 ```

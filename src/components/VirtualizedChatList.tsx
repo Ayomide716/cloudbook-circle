@@ -9,6 +9,9 @@ interface VirtualizedChatListProps {
   footer?: ReactElement | null;
   scrollToBottomKey?: number | string;
   scrollToIndex?: number;
+  /** Identity of the first item. If it changes when items are added, older items were prepended
+   *  (keep the reader's position); otherwise new items were appended (scroll to the bottom). */
+  firstItemKey?: string;
   /** Called when the user scrolls near the top — use for loading older messages */
   onLoadMore?: () => void;
   isLoadingMore?: boolean;
@@ -36,6 +39,7 @@ const VirtualizedChatList = ({
   footer,
   scrollToBottomKey,
   scrollToIndex,
+  firstItemKey,
   onLoadMore,
   isLoadingMore,
   hasMore,
@@ -51,16 +55,21 @@ const VirtualizedChatList = ({
   // Only whether "load more" is enabled matters here; the callback itself is recreated by the parent on every render.
   const canLoadMore = !!onLoadMore;
   const prevCountRef = useRef(itemCount);
+  const prevFirstKeyRef = useRef(firstItemKey);
   const isInitialLoad = useRef(true);
 
   // Scroll to bottom on initial load and new messages appended at bottom
   useEffect(() => {
     const prevCount = prevCountRef.current;
+    const prevFirstKey = prevFirstKeyRef.current;
     prevCountRef.current = itemCount;
+    prevFirstKeyRef.current = firstItemKey;
 
     if (itemCount > 0 && listRef.current) {
-      // If items were prepended (loading older), maintain scroll position
-      if (!isInitialLoad.current && itemCount > prevCount && canLoadMore) {
+      // Older items were prepended (the first item changed): keep the reader's position.
+      // A new message at the bottom keeps the same first item and falls through to scroll down.
+      const prepended = firstItemKey !== undefined && prevFirstKey !== undefined && firstItemKey !== prevFirstKey;
+      if (!isInitialLoad.current && itemCount > prevCount && canLoadMore && prepended) {
         const addedCount = itemCount - prevCount;
         // Scroll to the first "new-old" message to maintain position
         requestAnimationFrame(() => {
@@ -78,7 +87,7 @@ const VirtualizedChatList = ({
       }
 
       isInitialLoad.current = false;
-      requestAnimationFrame(() => {
+      const scrollToEnd = () => {
         try {
           listRef.current?.scrollToRow({
             index: itemCount - 1,
@@ -88,9 +97,13 @@ const VirtualizedChatList = ({
         } catch {
           // Row may not exist yet if the list re-rendered in between.
         }
-      });
+      };
+      requestAnimationFrame(scrollToEnd);
+      // Again once new rows have been measured (images/voice players change heights).
+      const settle = setTimeout(scrollToEnd, 150);
+      return () => clearTimeout(settle);
     }
-  }, [itemCount, scrollToBottomKey, canLoadMore, listRef]);
+  }, [itemCount, scrollToBottomKey, canLoadMore, firstItemKey, listRef]);
 
   // Scroll to specific index (for message search highlight)
   useEffect(() => {

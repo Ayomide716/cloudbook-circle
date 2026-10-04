@@ -3,14 +3,12 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
-import { useVideoCall } from "@/hooks/use-video-call";
+import { useCalls } from "@/hooks/use-calls";
 import Navigation from "@/components/Navigation";
 
 import NewConversation from "@/components/NewConversation";
 import ChatImageUpload from "@/components/ChatImageUpload";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
-import VideoCall from "@/components/VideoCall";
-import IncomingCallOverlay from "@/components/IncomingCallOverlay";
 import VoiceMessageRecorder from "@/components/VoiceMessageRecorder";
 import GifPicker from "@/components/GifPicker";
 import ChatBubble from "@/components/ChatBubble";
@@ -25,7 +23,7 @@ import { Card } from "@/components/ui/card";
 import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, CornerUpLeft, Bot, Sparkles } from "lucide-react";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
-import { formatDistanceToNow } from "date-fns";
+import { format, isThisWeek, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -41,6 +39,15 @@ interface Conversation {
   lastMessage?: ChatMessage;
   unreadCount: number;
 }
+
+/** Compact timestamp for the conversation list: 13:38, Yesterday, Mon, 12 Mar. */
+const shortTime = (iso: string) => {
+  const d = new Date(iso);
+  if (isToday(d)) return format(d, "HH:mm");
+  if (isYesterday(d)) return "Yesterday";
+  if (isThisWeek(d)) return format(d, "EEE");
+  return format(d, "d MMM");
+};
 
 interface TypingPresence {
   userId: string;
@@ -67,6 +74,8 @@ const Messages = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  // While a voice note is being recorded/previewed, the recorder takes the whole composer row.
+  const [voiceActive, setVoiceActive] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
@@ -84,10 +93,10 @@ const Messages = () => {
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const {
-    incomingCall, activeCall,
-    initiateCall, acceptIncomingCall, rejectIncomingCall, endCall,
-  } = useVideoCall(currentUserId);
+  const { startCall } = useCalls();
+  const callPeer = selectedConversation
+    ? { id: selectedConversation.id, name: selectedConversation.full_name || "Anonymous", avatar: selectedConversation.avatar_url }
+    : null;
 
   // Scroll to highlighted message
   useEffect(() => {
@@ -223,7 +232,9 @@ const Messages = () => {
                 return [...withoutTemp, newMessage];
               });
               if (newMessage.sender_id === selected.id) {
-                supabase.from("messages").update({ read: true }).eq("id", newMessage.id);
+                // Query builders are lazy: without then() the update was never sent,
+                // so the sender never saw the "read" ticks for messages read in an open chat.
+                supabase.from("messages").update({ read: true }).eq("id", newMessage.id).then(() => loadConversations());
               }
             }
           }
@@ -297,13 +308,20 @@ const Messages = () => {
     };
   }, [selectedConversation, currentUserId, loadChatPrefs, loadMessages, setupTypingChannel]);
 
-  const handleTyping = useCallback(async () => {
+  // Announce typing only when it starts and stops. Tracking on every keystroke hit the realtime
+  // presence rate limit, which closed the channel and broke the indicator for the rest of the session.
+  const isTypingRef = useRef(false);
+  const handleTyping = useCallback(() => {
     if (!typingChannelRef.current || !currentUserId) return;
-    await typingChannelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: true });
+    if (!isTypingRef.current) {
+      isTypingRef.current = true;
+      typingChannelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: true });
+    }
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(async () => {
-      await typingChannelRef.current?.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
-    }, 2000);
+    typingTimeoutRef.current = setTimeout(() => {
+      isTypingRef.current = false;
+      typingChannelRef.current?.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
+    }, 2500);
   }, [currentUserId, currentUserName]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -500,7 +518,7 @@ const Messages = () => {
                             <p className="font-semibold truncate">{conv.profile.full_name || "Anonymous"}</p>
                             {conv.lastMessage && (
                               <span className="text-[11px] text-muted-foreground flex-shrink-0 ml-2">
-                                {formatDistanceToNow(new Date(conv.lastMessage.created_at), { addSuffix: true })}
+                                {shortTime(conv.lastMessage.created_at)}
                               </span>
                             )}
                           </div>
@@ -561,10 +579,10 @@ const Messages = () => {
                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowChatSettings(true)} aria-label="Chat settings">
                       <Settings className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => initiateCall(selectedConversation.id, selectedConversation.full_name || "Anonymous", selectedConversation.avatar_url, true)} aria-label="Voice call">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
                       <Phone className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => initiateCall(selectedConversation.id, selectedConversation.full_name || "Anonymous", selectedConversation.avatar_url, false)} aria-label="Video call">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
                       <Video className="h-5 w-5" />
                     </Button>
                     </div>
@@ -590,6 +608,7 @@ const Messages = () => {
                   <VirtualizedChatList
                     itemCount={visibleMessages.length}
                     scrollToBottomKey={visibleMessages.length}
+                    firstItemKey={visibleMessages[0]?.id}
                     scrollToIndex={highlightedMessageId ? visibleMessages.findIndex(m => m.id === highlightedMessageId) : undefined}
                     estimatedItemSize={80}
                     className="flex-1 overflow-hidden"
@@ -647,7 +666,8 @@ const Messages = () => {
                       </div>
                     )}
                     {/* Attachment buttons keep their size; only the text box flexes. */}
-                    <div className="flex gap-1 sm:gap-2 items-center [&>*]:shrink-0">
+                    <div className={cn("flex gap-1 sm:gap-2 items-center", !voiceActive && "[&>*]:shrink-0")}>
+                      {!voiceActive && (
                       <ChatImageUpload
                         onMediaUploaded={(url, type) => { setImageUrl(url); setMediaType(type); }}
                         onMediaCleared={() => { setImageUrl(null); setMediaType(null); }}
@@ -656,7 +676,9 @@ const Messages = () => {
                         isUploading={isUploadingImage}
                         setIsUploading={setIsUploadingImage}
                       />
-                      <VoiceMessageRecorder onVoiceMessageSent={handleVoiceMessageSent} disabled={isSending} />
+                      )}
+                      <VoiceMessageRecorder onVoiceMessageSent={handleVoiceMessageSent} disabled={isSending} onActiveChange={setVoiceActive} />
+                      {!voiceActive && (<>
                       <GifPicker
                         onSelect={(content) => {
                           if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }
@@ -674,6 +696,7 @@ const Messages = () => {
                       <Button type="submit" size="icon" disabled={isSending || (!messageContent.trim() && !imageUrl)} className="touch-target">
                         {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
                       </Button>
+                      </>)}
                     </div>
                   </form>
                 </>
@@ -706,29 +729,6 @@ const Messages = () => {
         />
       )}
 
-      {/* Video Call */}
-      {activeCall && (
-        <VideoCall
-          currentUserId={currentUserId!}
-          remoteUserId={activeCall.remoteUserId}
-          remoteUserName={activeCall.remoteUserName}
-          remoteUserAvatar={activeCall.remoteUserAvatar}
-          onEnd={endCall}
-          isIncoming={activeCall.isIncoming}
-          isVoiceOnly={activeCall.isVoiceOnly}
-        />
-      )}
-
-      {/* Incoming Call Overlay */}
-      {incomingCall && !activeCall && (
-        <IncomingCallOverlay
-          callerName={incomingCall.fromName}
-          callerAvatar={incomingCall.fromAvatar}
-          isVoiceOnly={incomingCall.isVoiceOnly}
-          onAccept={acceptIncomingCall}
-          onReject={rejectIncomingCall}
-        />
-      )}
     </div>
   );
 };
