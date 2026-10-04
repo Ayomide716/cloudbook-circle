@@ -332,6 +332,7 @@ const Friends = () => {
   };
 
   const handleSendRequest = async (userId: string) => {
+    if (!currentUserId) return;
     // Immediately hide the suggestion
     setHiddenSuggestions((prev) => new Set(prev).add(userId));
 

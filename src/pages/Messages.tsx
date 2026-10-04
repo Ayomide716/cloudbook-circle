@@ -27,6 +27,7 @@ import VirtualizedChatList from "@/components/VirtualizedChatList";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import type { TablesInsert } from "@/integrations/supabase/types";
 
 interface Profile {
   id: string;
@@ -38,6 +39,12 @@ interface Conversation {
   profile: Profile;
   lastMessage?: ChatMessage;
   unreadCount: number;
+}
+
+interface TypingPresence {
+  userId: string;
+  userName: string;
+  isTyping: boolean;
 }
 
 interface TypingUser {
@@ -252,8 +259,8 @@ const Messages = () => {
       .on("presence", { event: "sync" }, () => {
         const state = typingChannelRef.current?.presenceState() || {};
         const typingList: TypingUser[] = [];
-        Object.values(state).forEach((presences: any) => {
-          presences.forEach((p: any) => {
+        Object.values(state).forEach((presences) => {
+          (presences as unknown as TypingPresence[]).forEach((p) => {
             if (p.userId !== currentUserId && p.isTyping) typingList.push({ id: p.userId, name: p.userName });
           });
         });
@@ -317,7 +324,7 @@ const Messages = () => {
     setReplyingTo(null);
     setIsSending(true);
 
-    const insertObj: any = {
+    const insertObj: TablesInsert<"messages"> = {
       sender_id: currentUserId,
       receiver_id: selectedConversation.id,
       content,

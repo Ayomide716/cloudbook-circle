@@ -29,7 +29,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
 
     if (!profile) return;
 
-    const fields = [
+    const fields: { key: keyof typeof profile; label: string }[] = [
       { key: "full_name", label: "Add your name" },
       { key: "avatar_url", label: "Upload a profile photo" },
       { key: "cover_url", label: "Add a cover photo" },
@@ -39,11 +39,11 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
       { key: "education", label: "Add your education" },
     ];
 
-    const filled = fields.filter((f) => !!(profile as any)[f.key]).length;
+    const filled = fields.filter((f) => !!profile[f.key]).length;
     const pct = Math.round((filled / fields.length) * 100);
     setCompletion(pct);
 
-    const missing = fields.find((f) => !(profile as any)[f.key]);
+    const missing = fields.find((f) => !profile[f.key]);
     if (missing) setNextStep(missing.label);
   };
 

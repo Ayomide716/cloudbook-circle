@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Image, Loader2, X } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 
 interface ImageUploadProps {
   bucket: string;
@@ -64,10 +65,10 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
       toast({
         title: "Image uploaded successfully",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {

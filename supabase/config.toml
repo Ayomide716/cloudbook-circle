@@ -1,1 +1,3 @@
-project_id = "xlmyfbcdlbuxndlqbgjm"
+# Local identifier for the Supabase CLI. Link your hosted project with:
+#   npx supabase link --project-ref <your-project-ref>
+project_id = "cloudbook-circle"

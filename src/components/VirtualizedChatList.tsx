@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef, ReactElement, CSSProperties } from "react";
-import { List, useDynamicRowHeight, useListRef } from "react-window";
+import { List, useDynamicRowHeight, useListRef, type RowComponentProps } from "react-window";
 import { Loader2 } from "lucide-react";
 
 interface VirtualizedChatListProps {
@@ -17,16 +17,11 @@ interface VirtualizedChatListProps {
   style?: CSSProperties;
 }
 
-const RowComponent = ({
-  index,
-  style,
-  renderItem,
-}: {
-  ariaAttributes: { "aria-posinset": number; "aria-setsize": number; role: "listitem" };
-  index: number;
-  style: CSSProperties;
+interface RowProps {
   renderItem: (index: number) => ReactElement | null;
-}) => (
+}
+
+const RowComponent = ({ index, style, renderItem }: RowComponentProps<RowProps>) => (
   <div style={style} data-message-row={index}>
     <div className="px-3 sm:px-4 py-1">
       {renderItem(index)}
@@ -47,7 +42,7 @@ const VirtualizedChatList = ({
   className,
   style,
 }: VirtualizedChatListProps) => {
-  const listRef = useListRef();
+  const listRef = useListRef(null);
   const dynamicRowHeight = useDynamicRowHeight({
     defaultRowHeight: estimatedItemSize,
     key: itemCount,
@@ -72,7 +67,9 @@ const VirtualizedChatList = ({
               align: "start",
               behavior: "instant",
             });
-          } catch {}
+          } catch {
+            // Row may not exist yet if the list re-rendered in between.
+          }
         });
         return;
       }
@@ -85,7 +82,9 @@ const VirtualizedChatList = ({
             align: "end",
             behavior: "instant",
           });
-        } catch {}
+        } catch {
+          // Row may not exist yet if the list re-rendered in between.
+        }
       });
     }
   }, [itemCount, scrollToBottomKey]);
@@ -99,7 +98,9 @@ const VirtualizedChatList = ({
           align: "center",
           behavior: "smooth",
         });
-      } catch {}
+      } catch {
+        // Ignore out-of-range indexes from stale search results.
+      }
     }
   }, [scrollToIndex]);
 
@@ -148,7 +149,7 @@ const VirtualizedChatList = ({
         rowCount={itemCount}
         rowHeight={dynamicRowHeight}
         rowComponent={RowComponent}
-        rowProps={{ renderItem } as any}
+        rowProps={{ renderItem }}
         overscanCount={10}
         style={{ height: "100%", overflow: "auto" }}
       />

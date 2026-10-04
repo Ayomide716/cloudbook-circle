@@ -92,7 +92,7 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
       group_id: groupId,
       title: newTitle.trim(),
       created_by: currentUserId,
-    } as any);
+    });
 
     if (error) {
       toast({ title: "Error creating room", variant: "destructive" });
@@ -110,7 +110,7 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
       room_id: roomId,
       user_id: currentUserId,
       is_speaker: true,
-    } as any);
+    });
 
     if (error && !error.message.includes("duplicate")) {
       toast({ title: "Error joining room", variant: "destructive" });

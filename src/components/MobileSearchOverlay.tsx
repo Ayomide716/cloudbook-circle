@@ -33,7 +33,7 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
       });
       const saved = localStorage.getItem("recent_searches");
       if (saved) {
-        try { setRecentSearches(JSON.parse(saved)); } catch {}
+        try { setRecentSearches(JSON.parse(saved)); } catch { localStorage.removeItem("recent_searches"); }
       }
     } else {
       setQuery("");

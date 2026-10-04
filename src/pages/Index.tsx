@@ -21,6 +21,7 @@ import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 import NewPostsBanner from "@/components/NewPostsBanner";
 import MoodSelector from "@/components/MoodSelector";
 import ScreenTimeWidget from "@/components/ScreenTimeWidget";
+import type { PostComment } from "@/components/PostCard";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -37,7 +38,7 @@ const Index = () => {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [feedFilter, setFeedFilter] = useState<"all" | "friends" | "digest">("all");
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
-  const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+  const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lastFetchTime, setLastFetchTime] = useState(new Date());
   const [currentMood, setCurrentMood] = useState<string | null>(() => {

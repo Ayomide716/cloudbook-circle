@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import type { PostComment } from "@/components/PostCard";
 
 const PAGE_SIZE = 10;
 
@@ -38,14 +39,14 @@ async function fetchFeedPage(
   const { data: rankedData, error } = await supabase.rpc("get_ranked_posts", {
     _user_id: userId,
     _feed_filter: isDigest ? "all" : feedFilter,
-    _cursor_score: isDigest ? null : (cursor?.score ?? null),
-    _cursor_id: isDigest ? null : (cursor?.id ?? null),
+    _cursor_score: isDigest ? undefined : cursor?.score,
+    _cursor_id: isDigest ? undefined : cursor?.id,
     _page_size: isDigest ? 15 : PAGE_SIZE,
   });
 
   if (error) throw error;
 
-  const posts: FeedPost[] = (rankedData || []).map((r: any) => ({
+  const posts: FeedPost[] = (rankedData || []).map((r) => ({
     id: r.id,
     content: r.content,
     image_url: r.image_url,
@@ -161,7 +162,7 @@ export function useFeedReactions(userId: string | null) {
       .in("post_id", postIds)
       .order("created_at", { ascending: true });
 
-    const commentsMap: Record<string, any[]> = {};
+    const commentsMap: Record<string, PostComment[]> = {};
     postIds.forEach((id) => {
       commentsMap[id] = commentsData?.filter((c) => c.post_id === id) || [];
     });

@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, Play, Pause, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 
 interface VoiceMessageRecorderProps {
   onVoiceMessageSent: (audioUrl: string, duration: number) => void;
@@ -121,11 +121,11 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled }: VoiceMessageReco
 
       onVoiceMessageSent(urlData.publicUrl, recordingDuration);
       cancelRecording();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Voice message upload error:", error);
       toast({
         title: "Error sending voice message",
-        description: error.message || "Failed to upload voice message",
+        description: getErrorMessage(error) || "Failed to upload voice message",
         variant: "destructive",
       });
     } finally {

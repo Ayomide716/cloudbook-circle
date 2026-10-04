@@ -76,7 +76,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       const allowedUserIds = [currentUserId, ...friendIds];
 
       const { data, error } = await supabase
-        .from("stories" as any)
+        .from("stories")
         .select(`*, profiles:user_id (id, full_name, avatar_url)`)
         .in("user_id", allowedUserIds)
         .gt("expires_at", new Date().toISOString())
@@ -85,18 +85,18 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       if (error || !data) return;
 
       // Fetch viewed story IDs
-      const storyIds = (data as any[]).map((s: any) => s.id);
+      const storyIds = data.map((s) => s.id);
       const { data: views } = await supabase
-        .from("story_views" as any)
+        .from("story_views")
         .select("story_id")
         .eq("viewer_id", currentUserId)
         .in("story_id", storyIds);
 
-      const viewedIds = new Set((views || []).map((v: any) => v.story_id));
+      const viewedIds = new Set((views || []).map((v) => v.story_id));
 
       // Group by user
       const groupMap = new Map<string, UserStoryGroup>();
-      (data as any[]).forEach((story: any) => {
+      data.forEach((story) => {
         const uid = story.user_id;
         if (!groupMap.has(uid)) {
           groupMap.set(uid, {
@@ -141,8 +141,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       return;
     }
     const { error } = await supabase
-      .from("stories" as any)
-      .insert({ user_id: currentUserId, media_url: storyImage, media_type: "image", caption: storyCaption || null } as any);
+      .from("stories")
+      .insert({ user_id: currentUserId, media_url: storyImage, media_type: "image", caption: storyCaption || null });
 
     if (error) { toast({ title: "Error creating story", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Story created!" });
@@ -202,7 +202,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   // Mark as viewed when story changes
   useEffect(() => {
     if (!viewerOpen || !activeStory) return;
-    supabase.from("story_views" as any).insert({ story_id: activeStory.id, viewer_id: currentUserId } as any).then(() => {});
+    supabase.from("story_views").insert({ story_id: activeStory.id, viewer_id: currentUserId }).then(() => {});
   }, [viewerOpen, activeStory?.id]);
 
   const openViewer = (groupIndex: number) => {
@@ -228,8 +228,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   const handleReaction = async (emoji: string, type: string) => {
     if (!activeStory) return;
-    await supabase.from("story_reactions" as any).upsert(
-      { story_id: activeStory.id, user_id: currentUserId, reaction_type: type } as any,
+    await supabase.from("story_reactions").upsert(
+      { story_id: activeStory.id, user_id: currentUserId, reaction_type: type },
       { onConflict: "story_id,user_id" }
     );
     await supabase.from("messages").insert({

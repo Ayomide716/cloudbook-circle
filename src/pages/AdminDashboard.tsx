@@ -73,8 +73,7 @@ const AdminDashboard = () => {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(100);
-    // Note: This only shows the current user's reports due to RLS
-    // In production, you'd use a service role or admin-specific RLS
+    // Admins can read every report via the "Admins can view all reports" RLS policy.
     setReports((data as Report[]) || []);
   };
 

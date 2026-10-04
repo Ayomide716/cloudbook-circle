@@ -140,7 +140,7 @@ const GroupVideoCall = ({
   const handleIceCandidate = useCallback(async (fromUserId: string, candidate: RTCIceCandidateInit) => {
     const pc = peerConnectionsRef.current.get(fromUserId);
     if (pc) {
-      try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch {}
+      try { await pc.addIceCandidate(new RTCIceCandidate(candidate)); } catch (e) { console.warn("[WebRTC] Failed to add ICE candidate", e); }
     }
   }, []);
 

@@ -66,7 +66,7 @@ const Groups = () => {
     setIsLoading(true);
 
     const { data: groupsData, error } = await supabase
-      .from("groups" as any)
+      .from("groups")
       .select("*")
       .order("created_at", { ascending: false });
 
@@ -82,14 +82,14 @@ const Groups = () => {
 
     // Load member counts and membership status for each group
     const groupsWithCounts = await Promise.all(
-      (groupsData || []).map(async (group: any) => {
+      (groupsData || []).map(async (group) => {
         const [countResult, membershipResult] = await Promise.all([
           supabase
-            .from("group_members" as any)
+            .from("group_members")
             .select("*", { count: "exact", head: true })
             .eq("group_id", group.id),
           supabase
-            .from("group_members" as any)
+            .from("group_members")
             .select("id")
             .eq("group_id", group.id)
             .eq("user_id", currentUserId)
@@ -104,7 +104,7 @@ const Groups = () => {
       })
     );
 
-    setGroups(groupsWithCounts as any);
+    setGroups(groupsWithCounts);
     setIsLoading(false);
   };
 
@@ -163,12 +163,12 @@ const Groups = () => {
     setIsUploading(true);
 
     const { data, error } = await supabase
-      .from("groups" as any)
+      .from("groups")
       .insert({
         name: formData.name,
         description: formData.description,
         created_by: currentUserId,
-      } as any)
+      })
       .select()
       .single();
 
@@ -182,27 +182,27 @@ const Groups = () => {
       return;
     }
 
-    const groupId = (data as any).id;
+    const groupId = data.id;
 
     // Upload image if selected
     if (groupImage) {
       const imageUrl = await uploadGroupImage(groupId);
       if (imageUrl) {
         await supabase
-          .from("groups" as any)
-          .update({ image_url: imageUrl } as any)
+          .from("groups")
+          .update({ image_url: imageUrl })
           .eq("id", groupId);
       }
     }
 
     // Add creator as admin member
     await supabase
-      .from("group_members" as any)
+      .from("group_members")
       .insert({
         group_id: groupId,
         user_id: currentUserId,
         role: "admin",
-      } as any);
+      });
 
     toast({
       title: "Group created successfully",
@@ -221,12 +221,12 @@ const Groups = () => {
     if (!currentUserId) return;
 
     const { error } = await supabase
-      .from("group_members" as any)
+      .from("group_members")
       .insert({
         group_id: groupId,
         user_id: currentUserId,
         role: "member",
-      } as any);
+      });
 
     if (error) {
       toast({
@@ -239,7 +239,7 @@ const Groups = () => {
 
     // Verify membership before navigating
     const { data: memberCheck } = await supabase
-      .from("group_members" as any)
+      .from("group_members")
       .select("id")
       .eq("group_id", groupId)
       .eq("user_id", currentUserId)

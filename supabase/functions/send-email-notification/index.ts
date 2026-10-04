@@ -1,12 +1,17 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const jsonResponse = (body: unknown, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -14,60 +19,50 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Server-to-server only: this looks up any user's email, so callers must hold the service role key.
+    const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+    if (token !== serviceRoleKey) {
+      return jsonResponse({ error: "Forbidden" }, 403);
+    }
 
     const { user_id, type, content, actor_name } = await req.json();
 
     if (!user_id || !type || !content) {
-      return new Response(JSON.stringify({ error: "Missing required fields" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Missing required fields" }, 400);
+    }
+    if (typeof user_id !== "string" || !UUID_RE.test(user_id)) {
+      return jsonResponse({ error: "Invalid user_id" }, 400);
     }
 
+    const adminHeaders = { apikey: serviceRoleKey, Authorization: `Bearer ${serviceRoleKey}` };
+
     // Check if user has email notifications enabled
-    const { data: prefs } = await supabase
-      .from("notification_preferences")
-      .select("push_enabled")
-      .eq("user_id", user_id)
-      .maybeSingle();
+    const prefsRes = await fetch(
+      `${supabaseUrl}/rest/v1/notification_preferences?select=push_enabled&user_id=eq.${user_id}`,
+      { headers: adminHeaders },
+    );
+    const [prefs] = prefsRes.ok ? await prefsRes.json() : [];
 
     // If push_enabled is explicitly false, skip
     if (prefs && prefs.push_enabled === false) {
-      return new Response(JSON.stringify({ skipped: true, reason: "notifications_disabled" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ skipped: true, reason: "notifications_disabled" });
     }
 
     // Get user email from auth
-    const { data: userData } = await supabase.auth.admin.getUserById(user_id);
-    const email = userData?.user?.email;
+    const userRes = await fetch(`${supabaseUrl}/auth/v1/admin/users/${user_id}`, { headers: adminHeaders });
+    const email: string | undefined = userRes.ok ? (await userRes.json()).email : undefined;
 
     if (!email) {
-      return new Response(JSON.stringify({ skipped: true, reason: "no_email" }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+      return jsonResponse({ skipped: true, reason: "no_email" });
     }
 
-    // Send email via Supabase's built-in email (using auth.admin)
     // For now, log the notification - in production, integrate with an email provider
-    console.log(`📧 Email notification to ${email}: [${type}] ${content}`);
+    console.log(`📧 Email notification for user ${user_id}: [${type}] ${actor_name || "Someone"}: ${content}`);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        to: email,
-        type,
-        content,
-        actor_name: actor_name || "Someone",
-      }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+    return jsonResponse({ success: true, type });
   } catch (error) {
     console.error("Error:", error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return jsonResponse({ error: error instanceof Error ? error.message : "Unknown error" }, 500);
   }
 });

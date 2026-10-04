@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Video, Loader2, X } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 
 interface VideoUploadProps {
   bucket: string;
@@ -95,10 +96,10 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
       toast({
         title: "Video uploaded successfully",
       });
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {

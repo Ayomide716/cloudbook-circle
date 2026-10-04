@@ -74,7 +74,7 @@ const Notifications = () => {
 
     // Fetch actor profiles for notifications that have actor_id
     const notifs = data || [];
-    const actorIds = [...new Set(notifs.map(n => (n as any).actor_id).filter(Boolean))];
+    const actorIds = [...new Set(notifs.map(n => n.actor_id).filter((id): id is string => !!id))];
     let actorMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
     if (actorIds.length > 0) {
       const { data: profiles } = await supabase
@@ -88,8 +88,7 @@ const Notifications = () => {
 
     const enriched: Notification[] = notifs.map(n => ({
       ...n,
-      actor_id: (n as any).actor_id || null,
-      actor_profile: (n as any).actor_id ? actorMap[(n as any).actor_id] || null : null,
+      actor_profile: n.actor_id ? actorMap[n.actor_id] || null : null,
     }));
 
     setNotifications(enriched);
@@ -128,6 +127,7 @@ const Notifications = () => {
   };
 
   const markAllAsRead = async () => {
+    if (!currentUserId) return;
     await supabase
       .from("notifications")
       .update({ read: true })

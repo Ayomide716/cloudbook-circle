@@ -25,12 +25,15 @@ interface VideoCallProps {
   isVoiceOnly?: boolean;
 }
 
-interface SignalMessage {
-  type: "offer" | "answer" | "ice-candidate" | "ready" | "screen-share-start" | "screen-share-stop";
-  payload: any;
-  from: string;
-  to: string;
-}
+type SignalBody =
+  | { type: "offer" | "answer"; payload: RTCSessionDescriptionInit }
+  | { type: "ice-candidate"; payload: RTCIceCandidateInit }
+  | { type: "ready" | "screen-share-start" | "screen-share-stop"; payload: Record<string, never> };
+
+type SignalMessage = SignalBody & { from: string; to: string };
+
+// `cursor` is a valid display-capture constraint but missing from TypeScript's DOM types.
+const SCREEN_SHARE_VIDEO: MediaTrackConstraints & { cursor?: "always" | "motion" | "never" } = { cursor: "always" };
 
 
 const VideoCall = ({
@@ -101,7 +104,7 @@ const VideoCall = ({
   }, []);
 
   const sendSignal = useCallback(
-    (message: Omit<SignalMessage, "from" | "to">) => {
+    (message: SignalBody) => {
       if (!channelReadyRef.current || !signalingChannelRef.current) return;
       signalingChannelRef.current.send({
         type: "broadcast",
@@ -142,7 +145,9 @@ const VideoCall = ({
             }
           }
         });
-      } catch {}
+      } catch {
+        // Stats are best-effort; the connection may already be closed.
+      }
     }, 3000);
   }, []);
 
@@ -236,7 +241,7 @@ const VideoCall = ({
         console.log("[WebRTC] Received offer, creating answer");
         await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
         for (const c of pendingIceCandidatesRef.current) {
-          try { await pc.addIceCandidate(c); } catch {}
+          try { await pc.addIceCandidate(c); } catch (e) { console.warn("[WebRTC] Failed to add queued ICE candidate", e); }
         }
         pendingIceCandidatesRef.current = [];
         const answer = await pc.createAnswer();
@@ -248,7 +253,7 @@ const VideoCall = ({
         console.log("[WebRTC] Received answer");
         await pc.setRemoteDescription(new RTCSessionDescription(message.payload));
         for (const c of pendingIceCandidatesRef.current) {
-          try { await pc.addIceCandidate(c); } catch {}
+          try { await pc.addIceCandidate(c); } catch (e) { console.warn("[WebRTC] Failed to add queued ICE candidate", e); }
         }
         pendingIceCandidatesRef.current = [];
         break;
@@ -256,7 +261,7 @@ const VideoCall = ({
       case "ice-candidate": {
         const candidate = new RTCIceCandidate(message.payload);
         if (pc.remoteDescription) {
-          try { await pc.addIceCandidate(candidate); } catch {}
+          try { await pc.addIceCandidate(candidate); } catch (e) { console.warn("[WebRTC] Failed to add ICE candidate", e); }
         } else {
           pendingIceCandidatesRef.current.push(candidate);
         }
@@ -360,7 +365,7 @@ const VideoCall = ({
     const pc = peerConnectionRef.current;
     if (!pc) return;
     try {
-      const screen = await navigator.mediaDevices.getDisplayMedia({ video: { cursor: "always" } as any, audio: true });
+      const screen = await navigator.mediaDevices.getDisplayMedia({ video: SCREEN_SHARE_VIDEO, audio: true });
       screenStreamRef.current = screen;
       const videoTrack = screen.getVideoTracks()[0];
       const sender = pc.getSenders().find((s) => s.track?.kind === "video");
@@ -425,7 +430,9 @@ const VideoCall = ({
         await remoteVideoRef.current.requestPictureInPicture();
         setIsPiP(true);
       }
-    } catch {}
+    } catch (e) {
+      console.warn("Picture-in-picture is not available", e);
+    }
   };
 
   // Subscribe to signaling channel and set up call

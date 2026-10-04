@@ -13,7 +13,7 @@ export function useSEO({ title, description }: SEOProps) {
     document.title = fullTitle;
 
     if (description) {
-      let meta = document.querySelector('meta[name="description"]');
+      const meta = document.querySelector('meta[name="description"]');
       if (meta) {
         meta.setAttribute("content", description);
       }

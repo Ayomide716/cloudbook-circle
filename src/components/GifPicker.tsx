@@ -13,7 +13,18 @@
    onSelect: (url: string) => void;
  }
  
- // Using Tenor API (free, no API key required for limited usage)
+ // GIF search uses Tenor, falling back to Giphy. Keys come from .env.
+ const TENOR_API_KEY = import.meta.env.VITE_TENOR_API_KEY ?? "";
+ const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY ?? "";
+
+ interface TenorSearchResponse {
+   results?: { media_formats?: { gif?: { url?: string }; tinygif?: { url?: string } } }[];
+ }
+
+ interface GiphySearchResponse {
+   data?: { images: { fixed_height: { url: string } } }[];
+ }
+
  const STICKERS = [
    "👍", "❤️", "😂", "😢", "😮", "😡", "🎉", "🔥",
    "👏", "💪", "🙏", "💯", "✨", "🌟", "💕", "😍",
@@ -36,22 +47,24 @@
     
     setLoading(true);
     try {
-      // Use Tenor v2 free API
       const response = await fetch(
-        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&client_key=cloudbook&limit=20`
+        `https://tenor.googleapis.com/v2/search?q=${encodeURIComponent(query)}&key=${TENOR_API_KEY}&client_key=cloudbook&limit=20`
       );
-      const data = await response.json();
-      const gifUrls = data.results?.map((gif: any) => gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url).filter(Boolean) || [];
+      if (!response.ok) throw new Error(`Tenor search failed (${response.status})`);
+      const data: TenorSearchResponse = await response.json();
+      const gifUrls = (data.results ?? [])
+        .map((gif) => gif.media_formats?.gif?.url || gif.media_formats?.tinygif?.url)
+        .filter((url): url is string => !!url);
       setGifs(gifUrls);
     } catch (error) {
       console.error("Failed to fetch GIFs:", error);
       // Fallback: try Giphy
       try {
         const response = await fetch(
-          `https://api.giphy.com/v1/gifs/search?api_key=0UTRbFtkMxAplrohufYco5IY74U8hOes&q=${encodeURIComponent(query)}&limit=20&rating=g`
+          `https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_API_KEY}&q=${encodeURIComponent(query)}&limit=20&rating=g`
         );
-        const data = await response.json();
-        const gifUrls = data.data?.map((gif: any) => gif.images.fixed_height.url) || [];
+        const data: GiphySearchResponse = await response.json();
+        const gifUrls = (data.data ?? []).map((gif) => gif.images.fixed_height.url);
         setGifs(gifUrls);
       } catch {
         setGifs([]);

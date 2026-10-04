@@ -46,7 +46,7 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
       supabase.from("creator_tiers").select("*").eq("creator_id", creatorId).order("price_credits"),
       supabase.from("creator_subscriptions").select("tier_id").eq("subscriber_id", currentUserId).eq("creator_id", creatorId).eq("status", "active").maybeSingle(),
     ]);
-    setTiers((tiersData as any[]) || []);
+    setTiers(tiersData || []);
     setCurrentSub(subData?.tier_id || null);
     setLoading(false);
   };
@@ -83,7 +83,7 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
     if (currentSub) {
       await supabase.from("creator_subscriptions").update({ tier_id: tier.id, started_at: new Date().toISOString() }).eq("subscriber_id", currentUserId).eq("creator_id", creatorId);
     } else {
-      await supabase.from("creator_subscriptions").insert({ subscriber_id: currentUserId, creator_id: creatorId, tier_id: tier.id } as any);
+      await supabase.from("creator_subscriptions").insert({ subscriber_id: currentUserId, creator_id: creatorId, tier_id: tier.id });
     }
 
     // Log transaction
@@ -101,13 +101,13 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
 
   const setupDefaultTiers = async () => {
     const defaults = [
-      { tier: "supporter", name: "Supporter", description: "Show your support and get a badge!", price_credits: 50 },
-      { tier: "superfan", name: "Superfan", description: "Exclusive content and early access.", price_credits: 150 },
-      { tier: "vip", name: "VIP", description: "Everything plus direct messaging priority.", price_credits: 500 },
+      { tier: "supporter" as const, name: "Supporter", description: "Show your support and get a badge!", price_credits: 50 },
+      { tier: "superfan" as const, name: "Superfan", description: "Exclusive content and early access.", price_credits: 150 },
+      { tier: "vip" as const, name: "VIP", description: "Everything plus direct messaging priority.", price_credits: 500 },
     ];
 
     for (const t of defaults) {
-      await supabase.from("creator_tiers").insert({ creator_id: currentUserId, ...t } as any);
+      await supabase.from("creator_tiers").insert({ creator_id: currentUserId, ...t });
     }
     toast({ title: "Subscription tiers created! 🚀" });
     setShowSetup(false);

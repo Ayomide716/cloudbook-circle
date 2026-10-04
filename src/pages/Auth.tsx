@@ -4,11 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import logo from "@/assets/logo-new.png";
 
 const Auth = () => {
@@ -52,8 +51,8 @@ const Auth = () => {
         if (error) throw error;
         toast({ title: "Account created!", description: "Welcome to CloudBook!" });
       }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -260,14 +259,15 @@ const Auth = () => {
                 onClick={async () => {
                   setIsGoogleLoading(true);
                   try {
-                    const result = await lovable.auth.signInWithOAuth("google", {
-                      redirect_uri: `${window.location.origin}/`,
+                    const { error } = await supabase.auth.signInWithOAuth({
+                      provider: "google",
+                      options: { redirectTo: `${window.location.origin}/` },
                     });
-                    if (result?.error) {
-                      toast({ title: "Google sign in failed", description: String(result.error), variant: "destructive" });
+                    if (error) {
+                      toast({ title: "Google sign in failed", description: error.message, variant: "destructive" });
                     }
-                  } catch (error: any) {
-                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                  } catch (error) {
+                    toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
                   } finally {
                     setIsGoogleLoading(false);
                   }

@@ -5,6 +5,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import type { User } from "@supabase/supabase-js";
 import { Plus, Send, Film, ChevronUp, ChevronDown, ArrowLeft, Home, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,7 +44,7 @@ export default function Reels() {
   useSEO({ title: "Reels", description: "Watch short videos on CloudBook." });
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const [activeReelId, setActiveReelId] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
@@ -334,7 +335,7 @@ export default function Reels() {
               <label className="text-sm font-medium text-foreground">Video</label>
               <div className="mt-2 flex items-center justify-between rounded-lg border p-3">
                 <p className="text-sm text-muted-foreground">{uploadVideoUrl ? "Video selected" : "Upload from your device"}</p>
-                <VideoUpload bucket="post-videos" userId={user?.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" />
+                {user && <VideoUpload bucket="post-videos" userId={user.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" />}
               </div>
             </div>
             <div>

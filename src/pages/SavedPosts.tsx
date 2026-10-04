@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
+import type { PostComment } from "@/components/PostCard";
  import Navigation from "@/components/Navigation";
  import PostCard from "@/components/PostCard";
  import { Loader2, Bookmark } from "lucide-react";
@@ -28,7 +29,7 @@ import { useSEO } from "@/hooks/useSEO";
    const [posts, setPosts] = useState<Post[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
-   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+   const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
  
    useEffect(() => {
      checkAuth();
@@ -95,7 +96,7 @@ import { useSEO } from "@/hooks/useSEO";
          reactionsMap[id] = { reactions: reactionCounts, userReaction: userReaction?.reaction_type || null };
        });
  
-       const commentsMap: Record<string, any[]> = {};
+       const commentsMap: Record<string, PostComment[]> = {};
        postIds.forEach(id => {
          commentsMap[id] = commentData?.filter(c => c.post_id === id) || [];
        });

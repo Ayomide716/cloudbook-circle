@@ -13,6 +13,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Hash, Users, Compass, Search, Flame, Star, Zap } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import type { PostCardProps, PostComment } from "@/components/PostCard";
+import type { Tables } from "@/integrations/supabase/types";
 
 interface TrendingTopic {
   tag: string;
@@ -22,14 +24,14 @@ interface TrendingTopic {
 const Explore = () => {
   const navigate = useNavigate();
   useSEO({ title: "Explore", description: "Discover trending content and new people on CloudBook." });
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const [trendingPosts, setTrendingPosts] = useState<any[]>([]);
-  const [suggestedUsers, setSuggestedUsers] = useState<any[]>([]);
+  const [currentUser, setCurrentUser] = useState<Tables<"profiles"> | null>(null);
+  const [trendingPosts, setTrendingPosts] = useState<(PostCardProps["post"] & { score: number })[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<Tables<"profiles">[]>([]);
   const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("foryou");
-  const [reactionsData, setReactionsData] = useState<Record<string, any>>({});
-  const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+  const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
+  const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
 
   useEffect(() => {
     checkAuth();
@@ -70,8 +72,8 @@ const Explore = () => {
       setTrendingPosts(scored);
 
       // Build reactions & comments maps
-      const rMap: Record<string, any> = {};
-      const cMap: Record<string, any[]> = {};
+      const rMap: Record<string, { reactions: Record<string, number>; userReaction: string | null }> = {};
+      const cMap: Record<string, PostComment[]> = {};
       postIds.forEach(id => {
         const pr = reactions?.filter(r => r.post_id === id) || [];
         const rc: Record<string, number> = {};

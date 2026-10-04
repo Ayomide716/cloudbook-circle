@@ -54,13 +54,13 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
 
   const loadStatus = async () => {
     const { data } = await supabase
-      .from("user_status" as any)
-      .select("*")
+      .from("user_status")
+      .select("is_online, last_seen")
       .eq("user_id", userId)
       .maybeSingle();
 
     if (data) {
-      setStatus(data as any);
+      setStatus(data);
     }
   };
 

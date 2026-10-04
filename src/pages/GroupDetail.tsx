@@ -171,6 +171,7 @@ const GroupDetail = () => {
   };
 
   const loadGroup = async () => {
+    if (!groupId) return;
     const { data, error } = await supabase
       .from("groups")
       .select("*")
@@ -190,6 +191,7 @@ const GroupDetail = () => {
   };
 
   const loadPosts = async () => {
+    if (!groupId) return;
     const { data: postsData, error } = await supabase
       .from("group_posts")
       .select("*")
@@ -226,6 +228,7 @@ const GroupDetail = () => {
   };
 
   const loadMembers = async () => {
+    if (!groupId) return;
     const { data: membersData, error } = await supabase
       .from("group_members")
       .select("id, role, user_id")
@@ -262,7 +265,7 @@ const GroupDetail = () => {
   };
 
   const checkMembership = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId || !groupId) return;
 
     const { data } = await supabase
       .from("group_members")
@@ -276,7 +279,7 @@ const GroupDetail = () => {
   };
 
   const handleJoinGroup = async () => {
-    if (!currentUserId) return;
+    if (!currentUserId || !groupId) return;
 
     const { error } = await supabase
       .from("group_members")
@@ -305,6 +308,7 @@ const GroupDetail = () => {
   const handleCreatePost = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!currentUserId || !groupId) return;
     if (!postContent.trim() && !postImage) return;
 
     setIsPosting(true);

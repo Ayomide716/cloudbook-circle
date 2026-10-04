@@ -17,6 +17,7 @@
  } from "@/components/ui/select";
  import { supabase } from "@/integrations/supabase/client";
  import { useToast } from "@/hooks/use-toast";
+import type { TablesInsert } from "@/integrations/supabase/types";
  
  interface SharePostDialogProps {
    postId: string;
@@ -60,7 +61,7 @@
    const handleShare = async () => {
      setIsLoading(true);
  
-     const shareData: any = {
+     const shareData: TablesInsert<"shared_posts"> = {
        original_post_id: postId,
        user_id: currentUserId,
        content: content.trim() || null,
