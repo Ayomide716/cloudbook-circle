@@ -288,7 +288,7 @@ export default function ReelCard({
               </DropdownMenuItem>
               {currentUserId && currentUserId !== reel.user_id && (
                 <ReportDialog
-                  reportedType="post"
+                  reportedType="reel"
                   reportedId={reel.id}
                   currentUserId={currentUserId}
                 />

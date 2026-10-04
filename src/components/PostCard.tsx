@@ -16,6 +16,7 @@ import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
 import ReportDialog from "./ReportDialog";
+import ConfirmDialog from "./ConfirmDialog";
 import ImageCarousel from "./ImageCarousel";
 import TipButton from "./TipButton";
 import { isPostSaved } from "@/lib/saved-posts";
@@ -92,6 +93,7 @@ const PostCard = ({
   const actionLabelClass = compact ? "sr-only" : "sr-only sm:not-sr-only";
   const [showComments, setShowComments] = useState(defaultShowComments);
   const myProfile = useMyProfile();
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -304,7 +306,7 @@ const PostCard = ({
 
            <DropdownMenu>
              <DropdownMenuTrigger asChild>
-               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full">
+               <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label="Post options">
                  <MoreHorizontal className="h-5 w-5" />
                </Button>
              </DropdownMenuTrigger>
@@ -328,7 +330,7 @@ const PostCard = ({
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit Post
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={handleDeletePost} className="text-destructive">
+                    <DropdownMenuItem onSelect={() => setConfirmDelete(true)} className="text-destructive focus:text-destructive">
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Post
                     </DropdownMenuItem>
@@ -564,6 +566,14 @@ const PostCard = ({
                   placeholder={replyingTo ? `Reply to ${replyingTo.profiles.full_name || "Anonymous"}...` : "Write a comment..."}
                   value={commentContent}
                   onChange={(e) => setCommentContent(e.target.value)}
+                  // Enter sends, Shift+Enter adds a line (and never mid-composition on IME keyboards).
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      e.currentTarget.form?.requestSubmit();
+                    }
+                  }}
+                  aria-label={replyingTo ? "Write a reply" : "Write a comment"}
                   className="min-h-[36px] h-9 py-2 resize-none rounded-full bg-secondary border-0"
                   disabled={isSubmitting}
                   rows={1}
@@ -694,6 +704,13 @@ const PostCard = ({
           })}
         </div>
       )}
+      <ConfirmDialog
+        open={confirmDelete}
+        onOpenChange={setConfirmDelete}
+        title="Delete this post?"
+        description="It will be removed with its reactions and comments."
+        onConfirm={handleDeletePost}
+      />
     </Card>
   );
 };

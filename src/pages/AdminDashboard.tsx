@@ -8,7 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye } from "lucide-react";
+import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye, X } from "lucide-react";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
@@ -36,6 +37,7 @@ const AdminDashboard = () => {
   const { toast } = useToast();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
+  const [pendingDeletePost, setPendingDeletePost] = useState<Report | null>(null);
   const [reports, setReports] = useState<Report[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -100,14 +102,33 @@ const AdminDashboard = () => {
     });
   };
 
-  const handleDeletePost = async (postId: string) => {
-    const { error } = await supabase.from("posts").delete().eq("id", postId);
+  const setReportStatus = async (report: Report, status: "resolved" | "dismissed") => {
+    const { error } = await supabase.from("reports").update({ status }).eq("id", report.id);
+    if (error) {
+      toast({ title: "Couldn't update the report", variant: "destructive" });
+      return false;
+    }
+    setReports((prev) => prev.map((r) => (r.id === report.id ? { ...r, status } : r)));
+    return true;
+  };
+
+  const handleDeletePost = async (report: Report) => {
+    setPendingDeletePost(null);
+    const { error } = await supabase.from("posts").delete().eq("id", report.reported_id);
     if (error) {
       toast({ title: "Cannot delete this post", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Post removed" });
+      return;
     }
+    await setReportStatus(report, "resolved");
+    toast({ title: "Post removed and report resolved" });
   };
+
+  /** Where the reported thing lives (the id is a post's, reel's or person's, depending on the type). */
+  const reportedPath = (report: Report) =>
+    report.reported_type === "post" ? `/post/${report.reported_id}`
+    : report.reported_type === "reel" ? `/reels/${report.reported_id}`
+    : report.reported_type === "profile" ? `/profile/${report.reported_id}`
+    : null;
 
   if (loading) return (
     <div className="min-h-screen bg-background">
@@ -197,31 +218,40 @@ const AdminDashboard = () => {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      {report.reported_type === "post" && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive"
-                          onClick={() => handleDeletePost(report.reported_id)}
-                          title="Delete reported post"
-                        >
+                      {reportedPath(report) && (
+                        <Button variant="ghost" size="icon" onClick={() => navigate(reportedPath(report)!)} title="View" aria-label={`View reported ${report.reported_type}`}>
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {report.reported_type === "post" && report.status === "pending" && (
+                        <Button variant="ghost" size="icon" className="text-destructive" onClick={() => setPendingDeletePost(report)} title="Delete post" aria-label="Delete reported post">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => navigate(`/profile/${report.reported_id}`)}
-                        title="View profile"
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      {report.status === "pending" && (
+                        <>
+                          <Button variant="ghost" size="icon" className="text-green-600" onClick={() => setReportStatus(report, "resolved")} title="Mark resolved" aria-label="Mark resolved">
+                            <CheckCircle className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" onClick={() => setReportStatus(report, "dismissed")} title="Dismiss" aria-label="Dismiss report">
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </Card>
               ))
             )}
           </TabsContent>
+
+          <ConfirmDialog
+            open={!!pendingDeletePost}
+            onOpenChange={(open) => !open && setPendingDeletePost(null)}
+            title="Delete the reported post?"
+            description="The post is removed for everyone and the report is marked resolved."
+            onConfirm={() => pendingDeletePost && handleDeletePost(pendingDeletePost)}
+          />
 
           <TabsContent value="users" className="space-y-2 mt-4">
             {users.map((user) => (

@@ -76,3 +76,10 @@ Calls connect devices directly when they can. Across mobile networks and strict 
 | `TURN_USERNAME` | The relay username |
 | `TURN_CREDENTIAL` | The relay password |
 | `TURN_URLS` | Optional, comma-separated relay addresses. Defaults to Metered's global relay |
+
+### Database updates
+
+Schema changes live in `supabase/migrations/`. If the hosted database doesn't pick them up automatically, run the newest files in the SQL editor, oldest first. For example:
+
+- `20261004150000_voice_room_creator_can_end.sql`: lets a voice room's creator end it.
+- `20261005090000_fix_notification_triggers.sql`: stops duplicate notifications and notifies people when someone reacts to their post.
