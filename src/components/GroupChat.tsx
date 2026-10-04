@@ -4,7 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, MessageCircle, Send } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import VirtualizedChatList from "./VirtualizedChatList";
@@ -256,8 +256,9 @@ const GroupChat = ({ groupId, currentUserId }: GroupChatProps) => {
     <div className="flex flex-col h-[calc(100dvh-32rem)] min-h-[320px] max-h-[600px] bg-card rounded-lg border overflow-hidden">
       {/* Virtualized Messages Area */}
       {messages.length === 0 ? (
-        <div className="flex-1 flex items-center justify-center text-muted-foreground">
-          <p>No messages yet. Start the conversation!</p>
+        <div className="flex-1 flex flex-col items-center justify-center gap-2 px-6 text-center text-muted-foreground">
+          <MessageCircle className="h-8 w-8 opacity-50" />
+          <p className="text-sm">No messages yet. Start the conversation!</p>
         </div>
       ) : (
         <VirtualizedChatList

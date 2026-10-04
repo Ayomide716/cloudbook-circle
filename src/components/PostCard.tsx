@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck, Pencil } from "lucide-react";
@@ -62,6 +63,8 @@ export interface PostCardProps {
   onDelete?: () => void;
   /** Narrow card (e.g. half-width in the feed grid): action buttons show icons only. */
   compact?: boolean;
+  /** Open the comments straight away (the single post page). */
+  defaultShowComments?: boolean;
 }
 
 const REACTION_TYPES = [
@@ -83,10 +86,12 @@ const PostCard = ({
   onCommentAdded,
   onDelete,
   compact = false,
+  defaultShowComments = false,
 }: PostCardProps) => {
   // Labels stay available to screen readers even when visually hidden.
   const actionLabelClass = compact ? "sr-only" : "sr-only sm:not-sr-only";
-  const [showComments, setShowComments] = useState(false);
+  const [showComments, setShowComments] = useState(defaultShowComments);
+  const myProfile = useMyProfile();
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -473,6 +478,7 @@ const PostCard = ({
                     onClick={() => handleReaction(type)}
                     className="p-1.5 hover:scale-125 transition-transform rounded-full hover:bg-accent"
                     title={label}
+                    aria-label={label}
                   >
                     <Icon className={cn("h-6 w-6", color)} />
                   </button>
@@ -484,7 +490,9 @@ const PostCard = ({
           <Button
             variant="ghost"
             className="w-full gap-2 text-muted-foreground hover:bg-accent"
-            onClick={() => handleReaction('like')}
+            // Tapping removes your reaction, whichever it is; with none it's a like.
+            onClick={() => handleReaction(userReaction ?? 'like')}
+            aria-pressed={!!userReaction}
           >
             {currentReaction ? (
               <>
@@ -548,7 +556,8 @@ const PostCard = ({
             )}
             <div className="flex gap-2">
               <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarFallback className="bg-secondary text-xs">U</AvatarFallback>
+                <AvatarImage src={myProfile?.avatar_url || undefined} alt="" />
+                <AvatarFallback className="bg-secondary text-xs">{myProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
               </Avatar>
               <div className="flex-1 flex gap-2">
                 <Textarea

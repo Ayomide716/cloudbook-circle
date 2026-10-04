@@ -365,9 +365,14 @@ const Groups = () => {
                         {group.name}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        <Users className="h-3.5 w-3.5" />
-                        <span>{group.member_count || 0} members</span>
-                        <span>·</span>
+                        {/* Only members can see who's in a group, so others can't count them. */}
+                        {(group.is_member || !!group.member_count) && (
+                          <>
+                            <Users className="h-3.5 w-3.5" />
+                            <span>{group.member_count} {group.member_count === 1 ? "member" : "members"}</span>
+                            <span>·</span>
+                          </>
+                        )}
                         <Globe className="h-3.5 w-3.5" />
                         <span>Public</span>
                       </div>

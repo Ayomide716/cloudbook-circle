@@ -97,7 +97,7 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
 
   if (showText) {
     return (
-      <span className="text-sm text-muted-foreground">
+      <span className="block truncate text-xs sm:text-sm text-muted-foreground">
         {isOnline ? (
           <span className="text-green-500">● Online</span>
         ) : (

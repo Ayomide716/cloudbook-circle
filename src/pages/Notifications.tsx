@@ -153,7 +153,7 @@ const Notifications = () => {
       case "comment":
         // Navigate to the post (related_id is post_id)
         if (notification.related_id) {
-          navigate(`/?post=${notification.related_id}`);
+          navigate(`/post/${notification.related_id}`);
         }
         break;
       case "friend_request":

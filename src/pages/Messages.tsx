@@ -20,7 +20,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, CornerUpLeft, Bot, Sparkles } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, CornerUpLeft, Bot, Sparkles, MoreVertical } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
@@ -555,7 +556,7 @@ const Messages = () => {
                 <>
                   {/* Chat Header */}
                   <div className="border-b p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3 flex-shrink-0 bg-card">
-                    <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-target" onClick={() => { setSelectedConversation(null); setReplyingTo(null); setEditingMessage(null); }}>
+                    <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-target" aria-label="Back to conversations" onClick={() => { setSelectedConversation(null); setReplyingTo(null); setEditingMessage(null); }}>
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div className="relative">
@@ -573,10 +574,11 @@ const Messages = () => {
                     </div>
 
                     <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowMessageSearch(!showMessageSearch)} aria-label="Search messages">
+                    {/* Search and settings sit in a menu on phones, so the name has room. */}
+                    <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowMessageSearch(!showMessageSearch)} aria-label="Search messages">
                       <Search className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowChatSettings(true)} aria-label="Chat settings">
+                    <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowChatSettings(true)} aria-label="Chat settings">
                       <Settings className="h-4 w-4" />
                     </Button>
                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
@@ -585,6 +587,21 @@ const Messages = () => {
                     <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
                       <Video className="h-5 w-5" />
                     </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9 rounded-full hover:bg-accent" aria-label="More options">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onSelect={() => setShowMessageSearch((v) => !v)}>
+                          <Search className="h-4 w-4 mr-2" /> Search messages
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onSelect={() => setShowChatSettings(true)}>
+                          <Settings className="h-4 w-4 mr-2" /> Chat settings
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                     </div>
                   </div>
 
