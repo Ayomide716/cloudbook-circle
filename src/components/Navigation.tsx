@@ -8,6 +8,7 @@ import BottomNav from "./BottomNav";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
 import GlobalSearch from "./GlobalSearch";
+import MobileSearchOverlay from "./MobileSearchOverlay";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -36,6 +37,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   const location = useLocation();
   const { toast } = useToast();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -135,6 +137,13 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   const isActive = (path: string) => location.pathname === path;
 
+  // Messages has its own full-height layout, and Reels plays full-screen behind the dock.
+  const showDock = !!currentUserId && location.pathname !== "/messages" && location.pathname !== "/reels";
+  useEffect(() => {
+    document.body.classList.toggle("has-dock", showDock);
+    return () => document.body.classList.remove("has-dock");
+  }, [showDock]);
+
   const dockItems = [
     { icon: Home, path: "/", label: "Home" },
     { icon: MonitorPlay, path: "/watch", label: "Watch" },
@@ -162,7 +171,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   className="h-9 w-9 rounded-xl" 
                 />
               </motion.div>
-              <span className="hidden sm:block text-lg font-display font-bold gradient-text">CloudBook</span>
+              <span className="text-lg font-display font-bold gradient-text">CloudBook</span>
             </Link>
 
             {/* Center - Search (desktop) */}
@@ -174,6 +183,34 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
             {/* Right - Action Icons */}
             <div className="flex items-center gap-1.5">
+              {/* Mobile: search + notifications (everything else lives in the bottom bar) */}
+              {currentUserId && (
+                <div className="flex md:hidden items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full hover:bg-secondary"
+                    onClick={() => setMobileSearchOpen(true)}
+                    aria-label="Search"
+                  >
+                    <Search className="h-5 w-5" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full relative hover:bg-secondary"
+                    onClick={() => navigate("/notifications")}
+                    aria-label={unreadNotifications > 0 ? `Notifications, ${unreadNotifications} unread` : "Notifications"}
+                  >
+                    <Bell className="h-5 w-5" />
+                    {unreadNotifications > 0 && (
+                      <span className="absolute top-0.5 right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+                        {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                      </span>
+                    )}
+                  </Button>
+                </div>
+              )}
               {currentUserId && (
                 <div className="hidden md:flex items-center gap-1.5">
                   <Tooltip>
@@ -337,6 +374,8 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
           </motion.nav>
         </div>
       )}
+
+      <MobileSearchOverlay open={mobileSearchOpen} onClose={() => setMobileSearchOpen(false)} />
 
       {/* Mobile Bottom Navigation */}
       {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} />}

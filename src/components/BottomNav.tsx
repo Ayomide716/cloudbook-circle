@@ -15,17 +15,16 @@ interface BottomNavProps {
 const BottomNav = ({ currentUserId }: BottomNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
 
   const loadCounts = useEffectEvent(async () => {
     if (!currentUserId) return;
-    const [notifResult, requestsResult] = await Promise.all([
-      supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", currentUserId).eq("read", false),
-      supabase.from("friendships").select("id", { count: "exact", head: true }).eq("friend_id", currentUserId).eq("status", "pending"),
-    ]);
-    setUnreadNotifications(notifResult.count || 0);
-    setPendingRequests(requestsResult.count || 0);
+    const { count } = await supabase
+      .from("friendships")
+      .select("id", { count: "exact", head: true })
+      .eq("friend_id", currentUserId)
+      .eq("status", "pending");
+    setPendingRequests(count || 0);
   });
 
   useEffect(() => {
@@ -34,7 +33,6 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
       
       const channel = supabase
         .channel("bottom-nav-counts")
-        .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => loadCounts())
         .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
         .subscribe();
 
@@ -43,7 +41,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   }, [currentUserId, loadCounts]);
 
   const navItems = [
-    { icon: Home, path: "/", label: "Home", badge: unreadNotifications, action: undefined as (() => void) | undefined },
+    { icon: Home, path: "/", label: "Home", badge: 0, action: undefined as (() => void) | undefined },
     { icon: Compass, path: "/explore", label: "Explore", badge: 0, action: undefined as (() => void) | undefined },
     { icon: Film, path: "/reels", label: "Reels", badge: 0, action: undefined as (() => void) | undefined },
     { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0, action: undefined as (() => void) | undefined },

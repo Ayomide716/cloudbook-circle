@@ -29,11 +29,10 @@ const PostContent = ({ content }: PostContentProps) => {
       
       if (matchedText.startsWith('#')) {
         // Hashtag
-        const tag = matchedText.slice(1);
         parts.push(
           <Link
             key={key}
-            to={`/search?q=${encodeURIComponent(matchedText)}`}
+            to={`/explore?q=${encodeURIComponent(matchedText)}`}
             className="text-primary hover:underline font-medium"
             onClick={(e) => e.stopPropagation()}
           >
@@ -46,7 +45,7 @@ const PostContent = ({ content }: PostContentProps) => {
         parts.push(
           <Link
             key={key}
-            to={`/search?q=${encodeURIComponent(username)}`}
+            to={`/explore?q=${encodeURIComponent(username)}`}
             className="text-primary hover:underline font-medium"
             onClick={(e) => e.stopPropagation()}
           >

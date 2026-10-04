@@ -146,7 +146,7 @@ const Marketplace = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId} />
 
-      <div className="max-w-[1200px] mx-auto px-4 py-6 pb-24 md:pb-6">
+      <div className="max-w-[1200px] mx-auto px-4 py-6 md:pb-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl md:text-3xl font-bold font-display">Marketplace</h1>

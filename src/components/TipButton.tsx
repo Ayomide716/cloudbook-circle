@@ -10,9 +10,10 @@ interface TipButtonProps {
   postId: string;
   receiverId: string;
   currentUserId: string;
+  compact?: boolean;
 }
 
-const TipButton = ({ postId, receiverId, currentUserId }: TipButtonProps) => {
+const TipButton = ({ postId, receiverId, currentUserId, compact = false }: TipButtonProps) => {
   const [open, setOpen] = useState(false);
   const [amount, setAmount] = useState(5);
   const [message, setMessage] = useState("");
@@ -87,7 +88,7 @@ const TipButton = ({ postId, receiverId, currentUserId }: TipButtonProps) => {
       <DialogTrigger asChild>
         <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground hover:text-amber-500">
           <Coins className="h-4 w-4" />
-          <span className="hidden sm:inline">Tip</span>
+          <span className={compact ? "sr-only" : "sr-only sm:not-sr-only"}>Tip</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-sm">

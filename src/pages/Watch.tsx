@@ -294,7 +294,7 @@ const Watch = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUserId || undefined} />
 
-      <div className="flex-1 pb-20 md:pb-0">
+      <div className="flex-1">
         <div className="max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">

@@ -59,6 +59,8 @@ export interface PostCardProps {
   onReactionToggle: (reactionType: string) => void;
   onCommentAdded: () => void;
   onDelete?: () => void;
+  /** Narrow card (e.g. half-width in the feed grid): action buttons show icons only. */
+  compact?: boolean;
 }
 
 const REACTION_TYPES = [
@@ -79,7 +81,10 @@ const PostCard = ({
   onReactionToggle,
   onCommentAdded,
   onDelete,
+  compact = false,
 }: PostCardProps) => {
+  // Labels stay available to screen readers even when visually hidden.
+  const actionLabelClass = compact ? "sr-only" : "sr-only sm:not-sr-only";
   const [showComments, setShowComments] = useState(false);
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -486,12 +491,12 @@ const PostCard = ({
             {currentReaction ? (
               <>
                 <currentReaction.icon className={cn("h-5 w-5", currentReaction.color)} />
-                <span className={cn("hidden sm:inline", currentReaction.color)}>{currentReaction.label}</span>
+                <span className={cn(actionLabelClass, currentReaction.color)}>{currentReaction.label}</span>
               </>
             ) : (
               <>
                 <ThumbsUp className="h-5 w-5" />
-                <span className="hidden sm:inline">Like</span>
+                <span className={actionLabelClass}>Like</span>
               </>
             )}
           </Button>
@@ -503,7 +508,7 @@ const PostCard = ({
           onClick={() => setShowComments(!showComments)}
         >
           <MessageCircle className="h-5 w-5" />
-          <span className="hidden sm:inline">Comment</span>
+          <span className={actionLabelClass}>Comment</span>
         </Button>
 
         <Button
@@ -512,10 +517,10 @@ const PostCard = ({
            onClick={() => setShowShareDialog(true)}
         >
           <Share2 className="h-5 w-5" />
-          <span className="hidden sm:inline">Share</span>
+          <span className={actionLabelClass}>Share</span>
         </Button>
 
-        <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} />
+        <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact={compact} />
       </div>
  
        {/* Share Dialog */}
