@@ -24,7 +24,7 @@ Changes pushed to `main` sync back to the Lovable editor.
 
 ### Optional settings
 
-GIF search in chat uses Tenor (falling back to Giphy). Add your keys to `.env` to enable it:
+GIF search in chat uses Tenor (falling back to Giphy) with built-in default keys. To use your own keys, add them to `.env`:
 
 ```sh
 VITE_TENOR_API_KEY="..."

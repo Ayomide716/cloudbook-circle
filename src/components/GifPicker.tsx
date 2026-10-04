@@ -13,9 +13,10 @@
    onSelect: (url: string) => void;
  }
  
- // GIF search uses Tenor, falling back to Giphy. Keys come from .env.
- const TENOR_API_KEY = import.meta.env.VITE_TENOR_API_KEY ?? "";
- const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY ?? "";
+ // GIF search uses Tenor, falling back to Giphy. These are public client keys
+ // (they ship to the browser); set VITE_TENOR_API_KEY / VITE_GIPHY_API_KEY in .env to override.
+ const TENOR_API_KEY = import.meta.env.VITE_TENOR_API_KEY || "AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ";
+ const GIPHY_API_KEY = import.meta.env.VITE_GIPHY_API_KEY || "0UTRbFtkMxAplrohufYco5IY74U8hOes";
 
  interface TenorSearchResponse {
    results?: { media_formats?: { gif?: { url?: string }; tinygif?: { url?: string } } }[];
