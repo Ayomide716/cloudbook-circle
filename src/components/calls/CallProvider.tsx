@@ -188,10 +188,13 @@ const CallProvider = ({ children }: { children: ReactNode }) => {
 
   const joinGroupCall = useEffectEvent((group: CallGroup, isVoiceOnly: boolean) => {
     if (groupCall?.group.id === group.id) return;
-    if (alreadyInCall()) return;
+    // Moving from one group call or voice room to another is fine; a 1:1 call must end first.
+    if (active && alreadyInCall()) return;
     setGroupInvite(null);
     setGroupCall({ group, isVoiceOnly });
   });
+
+  const leaveGroupCall = useEffectEvent(() => setGroupCall(null));
 
   const accept = () => {
     if (!incoming) return;
@@ -220,10 +223,11 @@ const CallProvider = ({ children }: { children: ReactNode }) => {
       startCall,
       startGroupCall,
       joinGroupCall,
+      leaveGroupCall,
       activeGroupId: groupCall?.group.id ?? null,
       inCall: !!active || !!groupCall,
     }),
-    [startCall, startGroupCall, joinGroupCall, groupCall, active]
+    [startCall, startGroupCall, joinGroupCall, leaveGroupCall, groupCall, active]
   );
 
   return (

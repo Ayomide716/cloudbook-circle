@@ -16,8 +16,10 @@ export interface CallsApi {
   startCall: (peer: CallPeer, isVoiceOnly: boolean) => void;
   /** Start a group call and alert the other members, wherever they are in the app. */
   startGroupCall: (group: CallGroup, isVoiceOnly: boolean, memberIds: string[]) => void;
-  /** Join a group call that is already running. */
+  /** Join a group call that is already running (leaving any other group call or room). */
   joinGroupCall: (group: CallGroup, isVoiceOnly: boolean) => void;
+  /** Leave the current group call or voice room. */
+  leaveGroupCall: () => void;
   /** The group whose call you're in, if any. */
   activeGroupId: string | null;
   inCall: boolean;

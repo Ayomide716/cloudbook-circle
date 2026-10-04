@@ -239,9 +239,17 @@ const GroupVideoCall = ({
     channel
       .on("presence", { event: "sync" }, () => onPresenceSync())
       .on("broadcast", { event: "signal" }, ({ payload }) => onSignal(payload as Signal))
+      .on("broadcast", { event: "room-ended" }, () => onRoomEnded())
       .subscribe((status) => {
         if (status === "SUBSCRIBED") channel.track(presenceRef.current);
       });
+  });
+
+  // A voice room's creator ended it.
+  const onRoomEnded = useEffectEvent(() => {
+    toast({ title: `${groupName} was ended` });
+    leave();
+    onEnd();
   });
 
   const leave = useEffectEvent(() => {
