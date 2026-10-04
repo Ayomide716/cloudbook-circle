@@ -491,10 +491,11 @@ const Profile = () => {
                         <Edit className="h-4 w-4 mr-2" /> Edit Profile
                       </Button> :
 
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                         <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} />
-                        <Button variant="outline" size="sm" onClick={startMessage} className="rounded-xl">
-                          <MessageCircle className="h-4 w-4 mr-2" /> Message
+                        <Button variant="outline" size="sm" onClick={startMessage} className="rounded-xl" aria-label="Message">
+                          <MessageCircle className="h-4 w-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Message</span>
                         </Button>
                       </div>
                     }

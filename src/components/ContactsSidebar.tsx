@@ -75,7 +75,7 @@ const ContactsSidebar = ({ currentUserId }: ContactsSidebarProps) => {
   const onlineCount = contacts.filter((c) => c.is_online).length;
 
   return (
-    <aside className="hidden lg:block">
+    <aside className="hidden xl:block">
       <div className="sticky top-20 space-y-4">
         <div>
           <div className="flex items-center justify-between mb-3">

@@ -529,7 +529,7 @@ const Friends = () => {
         )}
 
         <Tabs defaultValue="requests" className="w-full">
-          <TabsList className="w-full grid grid-cols-4 mb-4">
+          <TabsList className="w-full grid grid-cols-4 mb-4 [&>button]:text-xs sm:[&>button]:text-sm [&>button]:px-1.5 sm:[&>button]:px-3">
             <TabsTrigger value="requests" className="relative">
               Requests
               {pendingRequests.length > 0 && (
@@ -540,7 +540,10 @@ const Friends = () => {
             </TabsTrigger>
             <TabsTrigger value="sent">Sent</TabsTrigger>
             <TabsTrigger value="friends">Friends</TabsTrigger>
-            <TabsTrigger value="suggestions">People You May Know</TabsTrigger>
+            <TabsTrigger value="suggestions">
+              <span className="sm:hidden">Suggested</span>
+              <span className="hidden sm:inline">People You May Know</span>
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="requests">
@@ -558,9 +561,9 @@ const Friends = () => {
               ) : (
                 <div className="divide-y">
                   {pendingRequests.map((request) => (
-                    <div key={request.id} className="flex items-center gap-4 p-4">
+                    <div key={request.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
                       <Link to={`/profile/${request.profiles.id}`}>
-                        <Avatar className="h-14 w-14">
+                        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
                           <AvatarImage src={request.profiles.avatar_url || undefined} />
                           <AvatarFallback>
                             {request.profiles.full_name?.[0]?.toUpperCase() || "U"}
@@ -579,7 +582,7 @@ const Friends = () => {
                           })}
                         </p>
                       </div>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 shrink-0">
                         <Button
                           size="sm"
                           onClick={() => handleAccept(request.id)}
@@ -592,6 +595,7 @@ const Friends = () => {
                           size="sm"
                           variant="outline"
                           onClick={() => handleDecline(request.id)}
+                          aria-label="Decline request"
                         >
                           <X className="h-4 w-4" />
                         </Button>
@@ -618,9 +622,9 @@ const Friends = () => {
               ) : (
                 <div className="divide-y">
                   {sentRequests.map((request) => (
-                    <div key={request.id} className="flex items-center gap-4 p-4">
+                    <div key={request.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
                       <Link to={`/profile/${request.profiles.id}`}>
-                        <Avatar className="h-14 w-14">
+                        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
                           <AvatarImage src={request.profiles.avatar_url || undefined} />
                           <AvatarFallback>
                             {request.profiles.full_name?.[0]?.toUpperCase() || "U"}
@@ -673,7 +677,7 @@ const Friends = () => {
                       className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
                     >
                       <Link to={`/profile/${friendship.friend.id}`}>
-                        <Avatar className="h-14 w-14">
+                        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
                           <AvatarImage src={friendship.friend.avatar_url || undefined} />
                           <AvatarFallback>
                             {friendship.friend.full_name?.[0]?.toUpperCase() || "U"}
@@ -722,9 +726,9 @@ const Friends = () => {
               ) : (
                 <div className="divide-y">
                   {suggestions.filter(s => !hiddenSuggestions.has(s.id)).map((profile) => (
-                    <div key={profile.id} className="flex items-center gap-4 p-4">
+                    <div key={profile.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
                       <Link to={`/profile/${profile.id}`}>
-                        <Avatar className="h-14 w-14">
+                        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
                           <AvatarImage src={profile.avatar_url || undefined} />
                           <AvatarFallback>
                             {profile.full_name?.[0]?.toUpperCase() || "U"}

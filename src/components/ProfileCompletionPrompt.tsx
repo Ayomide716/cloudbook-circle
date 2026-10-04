@@ -60,7 +60,8 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
       >
         <button
           onClick={() => setDismissed(true)}
-          className="absolute top-2.5 right-2.5 text-muted-foreground hover:text-foreground transition-colors"
+          className="absolute top-1 right-1 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          aria-label="Dismiss"
         >
           <X className="h-4 w-4" />
         </button>

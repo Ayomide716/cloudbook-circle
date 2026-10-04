@@ -443,9 +443,9 @@ const Messages = () => {
       <Navigation currentUserId={currentUserId || undefined} />
       <div className="flex-1 flex overflow-hidden">
         <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-0 sm:gap-4 flex-1 overflow-hidden">
+          <div className="grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] gap-0 sm:gap-4 flex-1 overflow-hidden">
             {/* Conversations List */}
-            <Card className={cn("md:col-span-1 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
+            <Card className={cn("min-w-0 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
               <div className="p-3 sm:p-4 border-b flex-shrink-0">
                 <div className="flex items-center gap-2 mb-3">
                   <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-target" onClick={() => navigate("/")}>
@@ -530,13 +530,13 @@ const Messages = () => {
             </Card>
 
             {/* Chat Area — AI or regular conversation */}
-            <Card className={cn("md:col-span-2 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (!selectedConversation && !showAIChat) ? "hidden md:flex" : "flex")}>
+            <Card className={cn("min-w-0 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (!selectedConversation && !showAIChat) ? "hidden md:flex" : "flex")}>
               {showAIChat ? (
                 <AIChatCompanion onBack={() => { setShowAIChat(false); }} />
               ) : selectedConversation ? (
                 <>
                   {/* Chat Header */}
-                  <div className="border-b p-3 sm:p-4 flex items-center gap-3 flex-shrink-0 bg-card">
+                  <div className="border-b p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3 flex-shrink-0 bg-card">
                     <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-target" onClick={() => { setSelectedConversation(null); setReplyingTo(null); setEditingMessage(null); }}>
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
@@ -549,23 +549,25 @@ const Messages = () => {
                         <OnlineStatusIndicator userId={selectedConversation.id} currentUserId={currentUserId || undefined} />
                       </div>
                     </div>
-                    <div className="flex-1">
-                      <p className="font-semibold">{selectedConversation.full_name || "Anonymous"}</p>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold truncate">{selectedConversation.full_name || "Anonymous"}</p>
                       <OnlineStatusIndicator userId={selectedConversation.id} showText currentUserId={currentUserId || undefined} />
                     </div>
 
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowMessageSearch(!showMessageSearch)}>
+                    <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowMessageSearch(!showMessageSearch)} aria-label="Search messages">
                       <Search className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowChatSettings(true)}>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowChatSettings(true)} aria-label="Chat settings">
                       <Settings className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => initiateCall(selectedConversation.id, selectedConversation.full_name || "Anonymous", selectedConversation.avatar_url, true)}>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => initiateCall(selectedConversation.id, selectedConversation.full_name || "Anonymous", selectedConversation.avatar_url, true)} aria-label="Voice call">
                       <Phone className="h-5 w-5" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => initiateCall(selectedConversation.id, selectedConversation.full_name || "Anonymous", selectedConversation.avatar_url, false)}>
+                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => initiateCall(selectedConversation.id, selectedConversation.full_name || "Anonymous", selectedConversation.avatar_url, false)} aria-label="Video call">
                       <Video className="h-5 w-5" />
                     </Button>
+                    </div>
                   </div>
 
                   {/* Message search */}
@@ -644,7 +646,8 @@ const Messages = () => {
                         <button type="button" onClick={() => { setImageUrl(null); setMediaType(null); }} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs">✕</button>
                       </div>
                     )}
-                    <div className="flex gap-2 items-center">
+                    {/* Attachment buttons keep their size; only the text box flexes. */}
+                    <div className="flex gap-1 sm:gap-2 items-center [&>*]:shrink-0">
                       <ChatImageUpload
                         onMediaUploaded={(url, type) => { setImageUrl(url); setMediaType(type); }}
                         onMediaCleared={() => { setImageUrl(null); setMediaType(null); }}
@@ -665,7 +668,8 @@ const Messages = () => {
                         value={messageContent}
                         onChange={handleInputChange}
                         disabled={isSending}
-                        className="flex-1"
+                        className="flex-1 min-w-0 !shrink"
+                        aria-label="Message"
                       />
                       <Button type="submit" size="icon" disabled={isSending || (!messageContent.trim() && !imageUrl)} className="touch-target">
                         {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
