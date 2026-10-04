@@ -119,7 +119,7 @@ import type { PostComment } from "@/components/PostCard";
    }
  
    return (
-     <div className="min-h-screen bg-background pb-safe">
+     <div className="min-h-screen bg-background">
        <Navigation currentUserId={currentUserId} />
  
        <div className="max-w-2xl mx-auto px-4 py-6">

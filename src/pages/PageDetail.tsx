@@ -285,7 +285,7 @@ const PageDetail = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUserId || undefined} />
 
-      <div className="flex-1 pb-20 md:pb-0">
+      <div className="flex-1">
         <div className="max-w-3xl mx-auto px-2 sm:px-4 py-4 sm:py-6">
           {/* Cover + Avatar */}
           <Card className="overflow-hidden mb-6">

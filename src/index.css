@@ -235,13 +235,15 @@
     @apply transition-all duration-200 hover:bg-accent/10 rounded-xl;
   }
 
-  .pb-safe {
-    padding-bottom: calc(5rem + env(safe-area-inset-bottom, 0px));
+  /* Room for the floating dock (mobile bottom bar / desktop dock) so it never covers content.
+     Navigation adds this class to <body> whenever a dock is shown. */
+  .has-dock {
+    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
   }
 
   @screen md {
-    .pb-safe {
-      padding-bottom: 0;
+    .has-dock {
+      padding-bottom: 6.5rem;
     }
   }
 

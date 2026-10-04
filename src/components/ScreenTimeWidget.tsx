@@ -76,7 +76,7 @@ const ScreenTimeWidget = () => {
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setShowWidget(!showWidget)}
-        className="fixed bottom-20 right-4 md:bottom-20 md:right-6 z-40 flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-strong text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+        className="fixed bottom-6 right-6 z-40 hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full glass-strong text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
       >
         <Clock className="h-3.5 w-3.5" />
         {formatTime(sessionMinutes)}
@@ -89,7 +89,7 @@ const ScreenTimeWidget = () => {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-32 right-4 md:bottom-32 md:right-6 z-40 w-64"
+            className="fixed bottom-16 right-6 z-40 w-64"
           >
             <Card className="p-4 glass-strong border-border/50 space-y-3">
               <div className="flex items-center justify-between">

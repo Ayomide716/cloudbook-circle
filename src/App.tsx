@@ -6,7 +6,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
+import SessionProvider from "@/components/SessionProvider";
+import RequireAuth from "@/components/RequireAuth";
+import ScrollToTop from "@/components/ScrollToTop";
 
 // Lazy-loaded page components
 const Landing = lazy(() => import("./pages/Landing"));
@@ -47,29 +50,23 @@ const FriendsSkeleton = lazy(() => import("./components/skeletons/FriendsSkeleto
 
 const queryClient = new QueryClient();
 
-// Spring-based page transitions
-const pageVariants = {
-  initial: { opacity: 0, y: 12, scale: 0.99 },
-  animate: { opacity: 1, y: 0, scale: 1 },
-  exit: { opacity: 0, y: -8, scale: 0.99 },
-};
-
-const pageTransition = {
-  type: "spring" as const,
-  stiffness: 300,
-  damping: 30,
-};
-
+// Quick fade-in for each page. There is no exit animation, so the next page
+// never waits for the previous one to animate out.
 const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
   <motion.div
-    variants={pageVariants}
-    initial="initial"
-    animate="animate"
-    exit="exit"
-    transition={pageTransition}
+    initial={{ opacity: 0, y: 6 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.18, ease: "easeOut" }}
   >
     {children}
   </motion.div>
+);
+
+/** Signed-in pages: wait for the session (showing the page skeleton), then render or redirect. */
+const Protected = ({ children, redirectTo }: { children: React.ReactNode; redirectTo?: string }) => (
+  <RequireAuth fallback={<PageFallback />} redirectTo={redirectTo}>
+    <AnimatedPage>{children}</AnimatedPage>
+  </RequireAuth>
 );
 
 const MiniFallback = () => (
@@ -114,50 +111,51 @@ const AppRoutes = () => {
 
   return (
     <Suspense fallback={<PageFallback />}>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<AnimatedPage><Index /></AnimatedPage>} />
-          <Route path="/landing" element={<AnimatedPage><Landing /></AnimatedPage>} />
-          <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
-          <Route path="/profile/:userId" element={<AnimatedPage><Profile /></AnimatedPage>} />
-          <Route path="/messages" element={<AnimatedPage><Messages /></AnimatedPage>} />
-          <Route path="/groups" element={<AnimatedPage><Groups /></AnimatedPage>} />
-          <Route path="/groups/:groupId" element={<AnimatedPage><GroupDetail /></AnimatedPage>} />
-          <Route path="/reels" element={<AnimatedPage><Reels /></AnimatedPage>} />
-          <Route path="/reels/:reelId" element={<AnimatedPage><Reels /></AnimatedPage>} />
-          <Route path="/notifications" element={<AnimatedPage><Notifications /></AnimatedPage>} />
-          <Route path="/friends" element={<AnimatedPage><Friends /></AnimatedPage>} />
-          <Route path="/events" element={<AnimatedPage><Events /></AnimatedPage>} />
-          <Route path="/saved" element={<AnimatedPage><SavedPosts /></AnimatedPage>} />
-          <Route path="/settings" element={<AnimatedPage><Settings /></AnimatedPage>} />
-          <Route path="/marketplace" element={<AnimatedPage><Marketplace /></AnimatedPage>} />
-          <Route path="/watch" element={<AnimatedPage><Watch /></AnimatedPage>} />
-          <Route path="/pages" element={<AnimatedPage><Pages /></AnimatedPage>} />
-          <Route path="/pages/:pageId" element={<AnimatedPage><PageDetail /></AnimatedPage>} />
-          <Route path="/ads" element={<AnimatedPage><Ads /></AnimatedPage>} />
-          <Route path="/admin" element={<AnimatedPage><AdminDashboard /></AnimatedPage>} />
-          <Route path="/terms" element={<AnimatedPage><TermsOfService /></AnimatedPage>} />
-          <Route path="/privacy" element={<AnimatedPage><PrivacyPolicy /></AnimatedPage>} />
-          <Route path="/explore" element={<AnimatedPage><Explore /></AnimatedPage>} />
-          <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
-        </Routes>
-      </AnimatePresence>
+      <Routes location={location} key={location.pathname}>
+        <Route path="/" element={<Protected redirectTo="/landing"><Index /></Protected>} />
+        <Route path="/landing" element={<AnimatedPage><Landing /></AnimatedPage>} />
+        <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
+        <Route path="/profile/:userId" element={<Protected><Profile /></Protected>} />
+        <Route path="/messages" element={<Protected><Messages /></Protected>} />
+        <Route path="/groups" element={<Protected><Groups /></Protected>} />
+        <Route path="/groups/:groupId" element={<Protected><GroupDetail /></Protected>} />
+        <Route path="/reels" element={<Protected><Reels /></Protected>} />
+        <Route path="/reels/:reelId" element={<Protected><Reels /></Protected>} />
+        <Route path="/notifications" element={<Protected><Notifications /></Protected>} />
+        <Route path="/friends" element={<Protected><Friends /></Protected>} />
+        <Route path="/events" element={<Protected><Events /></Protected>} />
+        <Route path="/saved" element={<Protected><SavedPosts /></Protected>} />
+        <Route path="/settings" element={<Protected><Settings /></Protected>} />
+        <Route path="/marketplace" element={<Protected><Marketplace /></Protected>} />
+        <Route path="/watch" element={<Protected><Watch /></Protected>} />
+        <Route path="/pages" element={<Protected><Pages /></Protected>} />
+        <Route path="/pages/:pageId" element={<Protected><PageDetail /></Protected>} />
+        <Route path="/ads" element={<Protected><Ads /></Protected>} />
+        <Route path="/admin" element={<Protected><AdminDashboard /></Protected>} />
+        <Route path="/terms" element={<AnimatedPage><TermsOfService /></AnimatedPage>} />
+        <Route path="/privacy" element={<AnimatedPage><PrivacyPolicy /></AnimatedPage>} />
+        <Route path="/explore" element={<Protected><Explore /></Protected>} />
+        <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
+      </Routes>
     </Suspense>
   );
 };
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <SessionProvider>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
         <Toaster />
         <Sonner />
         <BrowserRouter>
+          <ScrollToTop />
           <AppRoutes />
           <InstallPrompt />
         </BrowserRouter>
       </TooltipProvider>
     </ThemeProvider>
+    </SessionProvider>
   </QueryClientProvider>
 );
 

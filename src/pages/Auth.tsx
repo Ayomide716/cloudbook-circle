@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,7 +8,7 @@ import { lovable } from "@/integrations/lovable";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, getErrorMessage, safeRedirectPath } from "@/lib/utils";
 import logo from "@/assets/logo-new.png";
 
 const Auth = () => {
@@ -21,16 +21,19 @@ const Auth = () => {
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
+  // Page the visitor was trying to open before being asked to sign in.
+  const redirectPath = safeRedirectPath(searchParams.get("redirect"));
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) navigate("/");
+      if (session) navigate(redirectPath, { replace: true });
     });
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_, session) => {
-      if (session) navigate("/");
+      if (session) navigate(redirectPath, { replace: true });
     });
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigate, redirectPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -261,7 +264,7 @@ const Auth = () => {
                   setIsGoogleLoading(true);
                   try {
                     const result = await lovable.auth.signInWithOAuth("google", {
-                      redirect_uri: `${window.location.origin}/`,
+                      redirect_uri: `${window.location.origin}${redirectPath}`,
                     });
                     if (result?.error) {
                       toast({ title: "Google sign in failed", description: String(result.error), variant: "destructive" });

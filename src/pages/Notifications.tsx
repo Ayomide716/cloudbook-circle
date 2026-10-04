@@ -236,7 +236,7 @@ const Notifications = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-4">
+    <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
       <div className="max-w-[800px] mx-auto px-4 py-4 sm:py-6">

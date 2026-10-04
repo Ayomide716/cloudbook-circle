@@ -391,7 +391,7 @@ const Profile = () => {
   filter(Boolean) as {icon: LucideIcon;label: string;isLink?: boolean;}[];
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-20">
+    <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
 
       {/* Sticky mini-header on scroll */}

@@ -62,7 +62,7 @@ export const usePushNotifications = (userId: string | undefined) => {
         },
         (payload) => {
           const notification = payload.new as { content: string; type: string };
-          showNotification("AYO-CHAT", notification.content);
+          showNotification("CloudBook", notification.content);
         }
       )
       .subscribe();

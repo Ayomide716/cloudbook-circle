@@ -269,7 +269,7 @@ const Groups = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-20 md:pb-4">
+    <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
       <div className="max-w-[1200px] mx-auto px-4 lg:px-6 py-4 sm:py-6">

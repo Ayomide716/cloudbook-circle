@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import Navigation from "@/components/Navigation";
@@ -29,7 +29,11 @@ const Explore = () => {
   const [trendingPosts, setTrendingPosts] = useState<(PostCardProps["post"] & { score: number })[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<Tables<"profiles">[]>([]);
   const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The search box mirrors ?q= so hashtag/mention links (and shared URLs) open with results.
+  const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
+  const [searchResults, setSearchResults] = useState<{ posts: PostCardProps["post"][]; people: Tables<"profiles">[] } | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState("foryou");
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
@@ -47,6 +51,73 @@ const Explore = () => {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Follow ?q= when it changes from outside (e.g. clicking another hashtag).
+  const urlQuery = searchParams.get("q") ?? "";
+  useEffect(() => {
+    setSearchQuery(urlQuery);
+  }, [urlQuery]);
+
+  const updateSearch = (value: string) => {
+    setSearchQuery(value);
+    setSearchParams(value.trim() ? { q: value } : {}, { replace: true });
+  };
+
+  const runSearch = useEffectEvent(async (query: string, userId: string) => {
+    setIsSearching(true);
+    const pattern = `%${query}%`;
+    // Characters with meaning inside a PostgREST `or` filter are dropped from that part of the search.
+    const filterSafe = query.replace(/[,()*:"\\]/g, " ").trim();
+    const [{ data: posts }, { data: people }] = await Promise.all([
+      supabase
+        .from("posts")
+        .select(`*, profiles:user_id (id, full_name, avatar_url, is_verified)`)
+        .ilike("content", pattern)
+        .order("created_at", { ascending: false })
+        .limit(30),
+      // Mentions are written without spaces (@AliceJohnson), so match names loosely.
+      supabase
+        .from("profiles")
+        .select("*")
+        .or(`full_name.ilike.%${filterSafe}%,full_name.ilike.%${filterSafe.replace(/^@/, "").split(/(?=[A-Z])/).join("%")}%`)
+        .neq("id", userId)
+        .limit(12),
+    ]);
+    const found = posts ?? [];
+    if (found.length > 0) await loadPostExtras(found.map((p) => p.id), userId);
+    setSearchResults({ posts: found, people: people ?? [] });
+    setIsSearching(false);
+  });
+
+  const trimmedQuery = searchQuery.trim();
+  const currentUserId = currentUser?.id;
+  useEffect(() => {
+    if (!trimmedQuery || !currentUserId) {
+      setSearchResults(null);
+      return;
+    }
+    const timer = setTimeout(() => runSearch(trimmedQuery, currentUserId), 300);
+    return () => clearTimeout(timer);
+  }, [trimmedQuery, currentUserId, runSearch]);
+
+  // Reactions/comments for search results, merged into the existing maps.
+  const loadPostExtras = async (postIds: string[], userId: string) => {
+    const [{ data: reactions }, { data: comments }] = await Promise.all([
+      supabase.from("reactions").select("post_id, reaction_type, user_id").in("post_id", postIds),
+      supabase.from("comments").select("*, profiles:user_id (id, full_name, avatar_url)").in("post_id", postIds).order("created_at", { ascending: true }),
+    ]);
+    const rMap: Record<string, { reactions: Record<string, number>; userReaction: string | null }> = {};
+    const cMap: Record<string, PostComment[]> = {};
+    postIds.forEach((id) => {
+      const pr = reactions?.filter((r) => r.post_id === id) || [];
+      const rc: Record<string, number> = {};
+      pr.forEach((r) => { rc[r.reaction_type] = (rc[r.reaction_type] || 0) + 1; });
+      rMap[id] = { reactions: rc, userReaction: pr.find((r) => r.user_id === userId)?.reaction_type || null };
+      cMap[id] = comments?.filter((c) => c.post_id === id) || [];
+    });
+    setReactionsData((prev) => ({ ...prev, ...rMap }));
+    setCommentsData((prev) => ({ ...prev, ...cMap }));
+  };
 
   const loadContent = async (userId: string) => {
     // Load trending posts (most reacted in last 7 days)
@@ -116,13 +187,66 @@ const Explore = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
-      <div className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 mb-20 md:mb-6">
+      <div className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6">
         {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search topics, people, content..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="pl-10 rounded-full bg-secondary border-0 h-10" />
+          <Input placeholder="Search topics, people, content..." value={searchQuery} onChange={e => updateSearch(e.target.value)} className="pl-10 rounded-full bg-secondary border-0 h-10" aria-label="Search" />
         </div>
 
+        {trimmedQuery ? (
+          <div className="space-y-6">
+            {isSearching && !searchResults && (
+              <p className="text-sm text-muted-foreground text-center py-8">Searching…</p>
+            )}
+            {searchResults && searchResults.people.length > 0 && (
+              <section>
+                <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
+                  <Users className="h-4 w-4 text-primary" /> People
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                  {searchResults.people.map((user) => (
+                    <Link key={user.id} to={`/profile/${user.id}`}>
+                      <Card className="p-4 text-center hover:shadow-md transition-shadow h-full">
+                        <Avatar className="h-14 w-14 mx-auto mb-2">
+                          <AvatarImage src={user.avatar_url || undefined} />
+                          <AvatarFallback className="bg-primary/10 text-primary text-lg">{user.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                        </Avatar>
+                        <p className="font-semibold text-sm line-clamp-1">{user.full_name || "User"}</p>
+                      </Card>
+                    </Link>
+                  ))}
+                </div>
+              </section>
+            )}
+            {searchResults && searchResults.posts.length > 0 && (
+              <section className="space-y-4">
+                <h3 className="font-semibold text-sm flex items-center gap-2">
+                  <Hash className="h-4 w-4 text-primary" /> Posts
+                </h3>
+                {searchResults.posts.map((post) => (
+                  <PostCard
+                    key={post.id}
+                    post={post}
+                    currentUserId={currentUser.id}
+                    reactions={reactionsData[post.id]?.reactions || {}}
+                    userReaction={reactionsData[post.id]?.userReaction || null}
+                    comments={commentsData[post.id] || []}
+                    onReactionToggle={() => {}}
+                    onCommentAdded={() => {}}
+                    onDelete={() => runSearch(trimmedQuery, currentUser.id)}
+                  />
+                ))}
+              </section>
+            )}
+            {searchResults && searchResults.people.length === 0 && searchResults.posts.length === 0 && (
+              <div className="text-center py-16">
+                <Search className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No results for “{trimmedQuery}”</p>
+              </div>
+            )}
+          </div>
+        ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="w-full grid grid-cols-3 mb-4">
             <TabsTrigger value="foryou" className="gap-1.5 text-xs sm:text-sm">
@@ -167,7 +291,7 @@ const Explore = () => {
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {trendingTopics.map(t => (
-                    <Badge key={t.tag} variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors">
+                    <Badge key={t.tag} variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors" onClick={() => updateSearch(t.tag)}>
                       <Hash className="h-3 w-3 mr-1" /> {t.tag.replace("#", "")}
                       <span className="ml-1.5 text-[10px] opacity-70">{t.count}</span>
                     </Badge>
@@ -229,6 +353,7 @@ const Explore = () => {
             )}
           </TabsContent>
         </Tabs>
+        )}
       </div>
     </div>
   );

@@ -17,3 +17,8 @@ export function getErrorMessage(error: unknown): string {
 export function toDate(value: string | null | undefined): Date {
   return value ? new Date(value) : new Date();
 }
+
+/** Only allow same-site paths as post-login destinations (blocks open redirects). */
+export function safeRedirectPath(value: string | null): string {
+  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+}
