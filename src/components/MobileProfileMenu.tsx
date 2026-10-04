@@ -1,27 +1,24 @@
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
-  Sheet,
-  SheetContent,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { 
-  User, 
-  UserPlus, 
-  Bookmark, 
-  CalendarDays, 
+  Bookmark,
+  CalendarDays,
+  ChevronRight,
+  FileText,
   LogOut,
-  Settings,
-  Moon,
-  Sun,
+  Megaphone,
   Monitor,
   MonitorPlay,
-  ShoppingBag,
-  FileText,
-  Megaphone,
+  Moon,
+  Settings,
   Shield,
-  ChevronRight,
+  ShoppingBag,
+  Sun,
+  UserPlus,
+  Users,
+  type LucideIcon,
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -32,64 +29,101 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface MobileProfileMenuProps {
   currentUserId: string;
-  pendingRequests: number;
 }
 
-const MobileProfileMenu = ({ currentUserId, pendingRequests }: MobileProfileMenuProps) => {
+interface Shortcut {
+  icon: LucideIcon;
+  label: string;
+  path: string;
+  adminOnly?: boolean;
+}
+
+// Places that aren't in the bottom bar (Home, Explore, Reels, Chats).
+const SHORTCUTS: Shortcut[] = [
+  { icon: Users, label: "Communities", path: "/groups" },
+  { icon: MonitorPlay, label: "Watch", path: "/watch" },
+  { icon: CalendarDays, label: "Events", path: "/events" },
+  { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
+  { icon: FileText, label: "Pages", path: "/pages" },
+  { icon: Bookmark, label: "Saved", path: "/saved" },
+  { icon: Megaphone, label: "Ad Manager", path: "/ads" },
+  { icon: Settings, label: "Settings", path: "/settings" },
+  { icon: Shield, label: "Admin", path: "/admin", adminOnly: true },
+];
+
+const THEMES = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "Auto", icon: Monitor },
+] as const;
+
+/** Phone "Menu": a bottom sheet with your profile, friend counts and shortcuts to every section. */
+const MobileProfileMenu = ({ currentUserId }: MobileProfileMenuProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setTheme, theme } = useTheme();
-  const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const [open, setOpen] = useState(false);
+  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
+  const [friendCount, setFriendCount] = useState<number | null>(null);
+  const [requestCount, setRequestCount] = useState(0);
+  const [isAdmin, setIsAdmin] = useState(false);
 
-  const loadUserProfile = useEffectEvent(async () => {
-    const { data } = await supabase
-      .from("profiles")
-      .select("full_name, avatar_url")
-      .eq("id", currentUserId)
-      .single();
-    if (data) setUserProfile(data);
+  const loadProfile = useEffectEvent(async () => {
+    const [{ data: profileData }, { data: role }] = await Promise.all([
+      supabase.from("profiles").select("full_name, avatar_url").eq("id", currentUserId).maybeSingle(),
+      supabase.from("user_roles").select("role").eq("user_id", currentUserId).eq("role", "admin").maybeSingle(),
+    ]);
+    if (profileData) setProfile(profileData);
+    setIsAdmin(!!role);
+  });
+
+  // Fresh numbers every time: accepted friendships either way round, and requests waiting for you.
+  const loadCounts = useEffectEvent(async () => {
+    const [friends, requests] = await Promise.all([
+      supabase
+        .from("friendships")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "accepted")
+        .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`),
+      supabase
+        .from("friendships")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "pending")
+        .eq("friend_id", currentUserId),
+    ]);
+    if (!friends.error) setFriendCount(friends.count ?? 0);
+    if (!requests.error) setRequestCount(requests.count ?? 0);
   });
 
   useEffect(() => {
-    loadUserProfile();
-  }, [currentUserId, loadUserProfile]);
+    loadProfile();
+    loadCounts();
+    const channel = supabase
+      .channel(`mobile-menu-friendships-${currentUserId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId, loadProfile, loadCounts]);
+
+  useEffect(() => {
+    if (open) loadCounts();
+  }, [open, loadCounts]);
+
+  const go = (path: string) => {
+    setOpen(false);
+    navigate(path);
+  };
 
   const handleLogout = async () => {
+    setOpen(false);
     await supabase.auth.signOut();
     toast({ title: "Logged out successfully" });
     navigate("/auth");
   };
 
-  const handleNavigate = (path: string) => {
-    setOpen(false);
-    navigate(path);
-  };
-
-  const menuSections = [
-    {
-      items: [
-        { icon: User, label: "My Profile", path: `/profile/${currentUserId}`, color: "text-primary" },
-        { icon: UserPlus, label: "Friends", path: "/friends", badge: pendingRequests, color: "text-blue-500" },
-      ]
-    },
-    {
-      items: [
-        { icon: MonitorPlay, label: "Watch", path: "/watch", color: "text-red-500" },
-        { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", color: "text-emerald-500" },
-        { icon: FileText, label: "Pages", path: "/pages", color: "text-orange-500" },
-        { icon: Bookmark, label: "Saved Posts", path: "/saved", color: "text-amber-500" },
-        { icon: CalendarDays, label: "Events", path: "/events", color: "text-purple-500" },
-      ]
-    },
-    {
-      items: [
-        { icon: Megaphone, label: "Ad Manager", path: "/ads", color: "text-pink-500" },
-        { icon: Shield, label: "Admin", path: "/admin", color: "text-slate-500" },
-        { icon: Settings, label: "Settings", path: "/settings", color: "text-muted-foreground" },
-      ]
-    }
-  ];
+  const initial = profile?.full_name?.[0]?.toUpperCase() || "U";
 
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -97,106 +131,121 @@ const MobileProfileMenu = ({ currentUserId, pendingRequests }: MobileProfileMenu
         <Button
           variant="ghost"
           size="icon"
-          className="h-9 w-9 rounded-full p-0 overflow-hidden ring-2 ring-border"
+          className="relative h-9 w-9 rounded-full p-0 ring-2 ring-border"
+          aria-label={requestCount > 0 ? `Menu, ${requestCount} friend request${requestCount === 1 ? "" : "s"}` : "Menu"}
         >
           <Avatar className="h-9 w-9">
-            <AvatarImage src={userProfile?.avatar_url || undefined} />
-            <AvatarFallback className="bg-gradient-to-br from-primary/20 to-primary/10 text-foreground font-medium text-sm">
-              {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
-            </AvatarFallback>
+            <AvatarImage src={profile?.avatar_url || undefined} alt="" />
+            <AvatarFallback className="text-sm">{initial}</AvatarFallback>
           </Avatar>
+          {requestCount > 0 && (
+            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full gradient-brand ring-2 ring-background" />
+          )}
         </Button>
       </SheetTrigger>
-      <SheetContent side="right" className="w-[300px] p-0 flex flex-col">
-        {/* Profile Header */}
-        <div
-          className="p-5 cursor-pointer hover:bg-accent/50 transition-colors"
-          onClick={() => handleNavigate(`/profile/${currentUserId}`)}
-        >
-          <div className="flex items-center gap-4">
-            <Avatar className="h-14 w-14 ring-2 ring-primary/20 shadow-md">
-              <AvatarImage src={userProfile?.avatar_url || undefined} />
-              <AvatarFallback className="gradient-brand text-primary-foreground text-lg font-bold">
-                {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
-              </AvatarFallback>
+
+      <SheetContent
+        side="bottom"
+        className="rounded-t-3xl p-0 max-h-[calc(88dvh-var(--keyboard-inset,0px))] overflow-y-auto pb-[env(safe-area-inset-bottom)]"
+      >
+        <div className="mx-auto mt-2.5 h-1.5 w-10 rounded-full bg-muted-foreground/25" aria-hidden />
+        <SheetTitle className="sr-only">Menu</SheetTitle>
+        <SheetDescription className="sr-only">Your profile, friends and shortcuts to every section</SheetDescription>
+
+        <div className="px-4 pt-3 pb-4 space-y-4">
+          {/* Profile */}
+          <button
+            onClick={() => go(`/profile/${currentUserId}`)}
+            className="w-full flex items-center gap-3 rounded-2xl p-3 bg-secondary/60 hover:bg-secondary transition-colors text-left"
+          >
+            <Avatar className="h-12 w-12 ring-2 ring-primary/20">
+              <AvatarImage src={profile?.avatar_url || undefined} alt="" />
+              <AvatarFallback className="gradient-brand text-primary-foreground font-bold">{initial}</AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <p className="font-bold text-base truncate">{userProfile?.full_name || "User"}</p>
-              <p className="text-xs text-muted-foreground">View your profile</p>
-            </div>
-            <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <span className="flex-1 min-w-0">
+              <span className="block font-semibold truncate">{profile?.full_name || "Your profile"}</span>
+              <span className="block text-xs text-muted-foreground">View your profile</span>
+            </span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground shrink-0" />
+          </button>
+
+          {/* Friends */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              onClick={() => go("/friends")}
+              className="flex items-center gap-3 rounded-2xl border border-border/70 p-3 hover:bg-accent transition-colors text-left"
+            >
+              <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <Users className="h-[18px] w-[18px]" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-lg font-bold leading-tight">{friendCount ?? "–"}</span>
+                <span className="block text-xs text-muted-foreground">{friendCount === 1 ? "Friend" : "Friends"}</span>
+              </span>
+            </button>
+            <button
+              onClick={() => go("/friends")}
+              className={cn(
+                "flex items-center gap-3 rounded-2xl border p-3 transition-colors text-left",
+                requestCount > 0 ? "border-primary/40 bg-primary/5 hover:bg-primary/10" : "border-border/70 hover:bg-accent"
+              )}
+            >
+              <span className="h-9 w-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                <UserPlus className="h-[18px] w-[18px]" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-lg font-bold leading-tight">{requestCount}</span>
+                <span className="block text-xs text-muted-foreground">{requestCount === 1 ? "Request" : "Requests"}</span>
+              </span>
+            </button>
           </div>
-        </div>
 
-        <div className="h-px bg-border mx-4" />
+          {/* Shortcuts */}
+          <nav aria-label="Shortcuts" className="grid grid-cols-3 gap-2">
+            {SHORTCUTS.filter((s) => !s.adminOnly || isAdmin).map((s) => (
+              <button
+                key={s.path}
+                onClick={() => go(s.path)}
+                className="flex flex-col items-center gap-2 rounded-2xl bg-secondary/50 hover:bg-accent py-3.5 px-1 transition-colors"
+              >
+                <span className="h-10 w-10 rounded-xl bg-card text-primary shadow-sm flex items-center justify-center">
+                  <s.icon className="h-5 w-5" />
+                </span>
+                <span className="text-xs font-medium">{s.label}</span>
+              </button>
+            ))}
+          </nav>
 
-        {/* Menu Items */}
-        <div className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
-          {menuSections.map((section, sIdx) => (
-            <div key={sIdx}>
-              {sIdx > 0 && <div className="h-px bg-border my-2 mx-1" />}
-              {section.items.map((item) => (
+          {/* Appearance */}
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium">Appearance</span>
+            <div className="flex rounded-xl bg-secondary/70 p-1" role="radiogroup" aria-label="Appearance">
+              {THEMES.map((t) => (
                 <button
-                  key={item.path}
-                  onClick={() => handleNavigate(item.path)}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-accent transition-colors group"
-                >
-                  <div className={cn("h-9 w-9 rounded-xl bg-accent/80 flex items-center justify-center flex-shrink-0 group-hover:scale-105 transition-transform", item.color)}>
-                    <item.icon className="h-[18px] w-[18px]" />
-                  </div>
-                  <span className="flex-1 text-left text-sm font-medium">{item.label}</span>
-                  {item.badge && item.badge > 0 && (
-                    <span className="bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1.5 flex items-center justify-center">
-                      {item.badge > 9 ? "9+" : item.badge}
-                    </span>
+                  key={t.value}
+                  role="radio"
+                  aria-checked={theme === t.value}
+                  onClick={() => setTheme(t.value)}
+                  className={cn(
+                    "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors",
+                    theme === t.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
                   )}
+                >
+                  <t.icon className="h-3.5 w-3.5" />
+                  {t.label}
                 </button>
               ))}
             </div>
-          ))}
-        </div>
-
-        {/* Theme + Logout */}
-        <div className="border-t border-border p-4 space-y-3">
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-2 px-1">Appearance</p>
-            <div className="flex gap-1.5">
-              <Button
-                variant={theme === "light" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTheme("light")}
-                className="flex-1 h-8 text-xs rounded-lg"
-              >
-                <Sun className="h-3.5 w-3.5 mr-1" />
-                Light
-              </Button>
-              <Button
-                variant={theme === "dark" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setTheme("dark")}
-                className="flex-1 h-8 text-xs rounded-lg"
-              >
-                <Moon className="h-3.5 w-3.5 mr-1" />
-                Dark
-              </Button>
-              <Button
-                variant={theme === "system" ? "default" : "outline"}
-                size="icon"
-                onClick={() => setTheme("system")}
-                className="h-8 w-8 rounded-lg"
-              >
-                <Monitor className="h-3.5 w-3.5" />
-              </Button>
-            </div>
           </div>
 
-          <button
+          <Button
+            variant="outline"
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-destructive/10 text-destructive transition-colors"
+            className="w-full rounded-xl text-destructive border-destructive/30 hover:bg-destructive/10 hover:text-destructive"
           >
-            <LogOut className="h-[18px] w-[18px]" />
-            <span className="text-sm font-medium">Log Out</span>
-          </button>
+            <LogOut className="h-4 w-4 mr-2" />
+            Log out
+          </Button>
         </div>
       </SheetContent>
     </Sheet>
