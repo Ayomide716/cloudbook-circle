@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
 
 interface ReportDialogProps {
-  reportedType: "post" | "comment" | "profile";
+  reportedType: "post" | "reel" | "comment" | "profile";
   reportedId: string;
   currentUserId: string;
 }

@@ -8,7 +8,17 @@ import BottomNav from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, Sun, Moon, Monitor, LogOut, KeyRound, Mail } from "lucide-react";
+import { useTheme } from "next-themes";
+import { cn } from "@/lib/utils";
+
+const THEMES = [
+  { value: "light", label: "Light", icon: Sun },
+  { value: "dark", label: "Dark", icon: Moon },
+  { value: "system", label: "Auto", icon: Monitor },
+] as const;
 
 interface NotificationPrefs {
   likes: boolean;
@@ -33,6 +43,36 @@ const defaultPrefs: NotificationPrefs = {
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  useSEO({ title: "Settings", description: "Your CloudBook account, appearance and notification settings." });
+  const { theme, setTheme } = useTheme();
+  const [email, setEmail] = useState<string | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [savingPassword, setSavingPassword] = useState(false);
+  const passwordError =
+    newPassword && newPassword.length < 8 ? "At least 8 characters"
+    : confirmPassword && confirmPassword !== newPassword ? "The passwords don't match"
+    : null;
+
+  const changePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newPassword || passwordError || newPassword !== confirmPassword) return;
+    setSavingPassword(true);
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
+    setSavingPassword(false);
+    if (error) {
+      toast({ title: "Couldn't change your password", description: error.message, variant: "destructive" });
+      return;
+    }
+    setNewPassword("");
+    setConfirmPassword("");
+    toast({ title: "Password changed" });
+  };
+
+  const signOut = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth", { replace: true });
+  };
   useSEO({ title: "Settings", description: "Manage your CloudBook settings." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
@@ -45,6 +85,7 @@ const Settings = () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { navigate("/auth"); return; }
       setCurrentUserId(session.user.id);
+      setEmail(session.user.email ?? null);
       
       if ("Notification" in window) {
         setPushPermission(Notification.permission);
@@ -97,6 +138,10 @@ const Settings = () => {
       toast({ title: "Not supported", description: "Your browser doesn't support push notifications" });
       return;
     }
+    if (Notification.permission === "denied") {
+      toast({ title: "Notifications are blocked", description: "Allow them for this site in your browser's settings, then come back." });
+      return;
+    }
     const permission = await Notification.requestPermission();
     setPushPermission(permission);
     if (permission === "granted") {
@@ -131,13 +176,76 @@ const Settings = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
-      <div className="max-w-[600px] mx-auto px-4 py-4 sm:py-6">
+      <div className="max-w-[600px] mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8">
         <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full">
+          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full" aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl sm:text-3xl font-bold">Notification Settings</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold font-display">Settings</h1>
         </div>
+
+        {/* Appearance */}
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Appearance</h2>
+        <Card className="p-4 mb-6">
+          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Theme">
+            {THEMES.map((t) => (
+              <button
+                key={t.value}
+                role="radio"
+                aria-checked={theme === t.value}
+                onClick={() => setTheme(t.value)}
+                className={cn(
+                  "flex flex-col items-center gap-1.5 rounded-xl border p-3 text-sm font-medium transition-colors",
+                  theme === t.value ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:bg-accent"
+                )}
+              >
+                <t.icon className="h-5 w-5" />
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        {/* Account */}
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Account</h2>
+        <Card className="mb-6 divide-y divide-border overflow-hidden">
+          {email && (
+            <div className="flex items-center gap-3 p-4">
+              <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+                <Mail className="h-4 w-4" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-medium">Email</p>
+                <p className="text-xs text-muted-foreground truncate">{email}</p>
+              </div>
+            </div>
+          )}
+          <form className="p-4 space-y-3" onSubmit={changePassword}>
+            <p className="flex items-center gap-2 text-sm font-medium"><KeyRound className="h-4 w-4" /> Change password</p>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <Label htmlFor="new-password" className="text-xs">New password</Label>
+                <Input id="new-password" type="password" autoComplete="new-password" className="mt-1" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+              </div>
+              <div>
+                <Label htmlFor="confirm-password" className="text-xs">Confirm it</Label>
+                <Input id="confirm-password" type="password" autoComplete="new-password" className="mt-1" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              </div>
+            </div>
+            {passwordError && <p className="text-xs text-destructive" role="alert">{passwordError}</p>}
+            <Button type="submit" size="sm" className="rounded-xl" disabled={savingPassword || !newPassword || !!passwordError || newPassword !== confirmPassword}>
+              {savingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Update password
+            </Button>
+          </form>
+          <button onClick={signOut} className="flex w-full items-center gap-3 p-4 text-left text-destructive hover:bg-destructive/5 transition-colors">
+            <div className="h-9 w-9 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
+              <LogOut className="h-4 w-4" />
+            </div>
+            <span className="text-sm font-medium">Log out</span>
+          </button>
+        </Card>
+
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notifications</h2>
 
         {/* Push Permission Banner */}
         {pushPermission !== "granted" && (
@@ -147,10 +255,14 @@ const Settings = () => {
                 <Bell className="h-5 w-5 text-primary" />
               </div>
               <div className="flex-1">
-                <p className="font-medium text-sm">Enable Push Notifications</p>
-                <p className="text-xs text-muted-foreground">Get notified even when the app isn't open</p>
+                <p className="font-medium text-sm">{pushPermission === "denied" ? "Notifications are blocked" : "Turn on notifications"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {pushPermission === "denied" ? "Allow them for this site in your browser's settings." : "Get notified even when the app isn't open"}
+                </p>
               </div>
-              <Button size="sm" onClick={requestPushPermission}>Enable</Button>
+              <Button size="sm" variant={pushPermission === "denied" ? "outline" : "default"} onClick={requestPushPermission}>
+                {pushPermission === "denied" ? "How?" : "Turn on"}
+              </Button>
             </div>
           </Card>
         )}
@@ -168,6 +280,7 @@ const Settings = () => {
               <Switch
                 checked={prefs[item.key]}
                 onCheckedChange={(val) => handleToggle(item.key, val)}
+                aria-label={item.label}
                 disabled={isSaving}
               />
             </div>

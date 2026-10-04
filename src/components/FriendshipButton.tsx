@@ -4,6 +4,7 @@ import { UserPlus, UserCheck, UserMinus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface FriendshipButtonProps {
   currentUserId: string;
@@ -13,6 +14,7 @@ interface FriendshipButtonProps {
 const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProps) => {
   const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'friends' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [confirmUnfriend, setConfirmUnfriend] = useState(false);
   const { toast } = useToast();
 
   const checkFriendshipStatus = useEffectEvent(async () => {
@@ -124,14 +126,24 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
 
   if (friendshipStatus === 'friends') {
     return (
-      <Button variant="secondary" onClick={removeFriend} disabled={isLoading}>
-        {isLoading ? (
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-        ) : (
-          <UserMinus className="h-4 w-4 mr-2" />
-        )}
-        Unfriend
-      </Button>
+      <>
+        <Button variant="secondary" onClick={() => setConfirmUnfriend(true)} disabled={isLoading}>
+          {isLoading ? (
+            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+          ) : (
+            <UserMinus className="h-4 w-4 mr-2" />
+          )}
+          Unfriend
+        </Button>
+        <ConfirmDialog
+          open={confirmUnfriend}
+          onOpenChange={setConfirmUnfriend}
+          title="Remove this friend?"
+          description="You'll need to send a new friend request to be friends again."
+          confirmLabel="Unfriend"
+          onConfirm={removeFriend}
+        />
+      </>
     );
   }
 

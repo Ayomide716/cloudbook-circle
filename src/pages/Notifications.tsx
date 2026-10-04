@@ -23,7 +23,25 @@ interface Notification {
   related_id: string | null;
   actor_id: string | null;
   actor_profile?: { full_name: string | null; avatar_url: string | null } | null;
+  /** Identical copies hidden from the list (an old bug created many notifications twice). */
+  duplicateIds?: string[];
 }
+
+/** Keeps the newest of each identical notification, remembering the others' ids. */
+const collapseDuplicates = (list: Notification[]) => {
+  const seen = new Map<string, Notification>();
+  for (const n of list) {
+    const key = `${n.type}|${n.actor_id}|${n.related_id}|${n.content}`;
+    const kept = seen.get(key);
+    if (kept) {
+      kept.duplicateIds = [...(kept.duplicateIds ?? []), n.id];
+      if (!n.read) kept.read = false;
+    } else {
+      seen.set(key, { ...n });
+    }
+  }
+  return [...seen.values()];
+};
 
 
 
@@ -85,7 +103,7 @@ const Notifications = () => {
       actor_profile: n.actor_id ? actorMap[n.actor_id] || null : null,
     }));
 
-    setNotifications(enriched);
+    setNotifications(collapseDuplicates(enriched));
     setIsLoading(false);
   });
 
@@ -118,11 +136,11 @@ const Notifications = () => {
     }
   }, [currentUserId, loadNotifications, setupRealtimeSubscription]);
 
-  const markAsRead = async (notificationId: string) => {
+  const markAsRead = async (notification: Notification) => {
     await supabase
       .from("notifications")
       .update({ read: true })
-      .eq("id", notificationId);
+      .in("id", [notification.id, ...(notification.duplicateIds ?? [])]);
 
     loadNotifications();
   };
@@ -144,7 +162,7 @@ const Notifications = () => {
   const handleNotificationClick = async (notification: Notification) => {
     // Mark as read first
     if (!notification.read) {
-      await markAsRead(notification.id);
+      await markAsRead(notification);
     }
     
     // Navigate based on notification type

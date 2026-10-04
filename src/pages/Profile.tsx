@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";
 import { usePostInteractions } from "@/hooks/use-post-interactions";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -387,8 +388,9 @@ const Profile = () => {
   profile.work && { icon: Briefcase, label: profile.work },
   profile.education && { icon: GraduationCap, label: profile.education },
   profile.location && { icon: MapPin, label: profile.location },
-  profile.website && { icon: LinkIcon, label: profile.website, isLink: true }].
-  filter(Boolean) as {icon: LucideIcon;label: string;isLink?: boolean;}[];
+  // Only http(s) links, so a "javascript:" website can't run code when clicked.
+  profile.website && { icon: LinkIcon, label: profile.website, href: safeWebsiteUrl(profile.website) }].
+  filter(Boolean) as {icon: LucideIcon;label: string;href?: string | null;}[];
 
   return (
     <div className="min-h-screen bg-background">
@@ -571,9 +573,9 @@ const Profile = () => {
                         <div className="w-8 h-8 rounded-lg gradient-brand-soft flex items-center justify-center flex-shrink-0">
                           <item.icon className="h-4 w-4 text-primary" />
                         </div>
-                        {item.isLink ?
-                  <a href={item.label} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                            {item.label}
+                        {item.href ?
+                  <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                            {displayUrl(item.href)}
                           </a> :
 
                   <span className="truncate">{item.label}</span>
@@ -754,9 +756,9 @@ const Profile = () => {
                       <div className="w-10 h-10 rounded-xl gradient-brand-soft flex items-center justify-center">
                         <item.icon className="h-5 w-5 text-primary" />
                       </div>
-                      {item.isLink ?
-                <a href={item.label} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">
-                          {item.label}
+                      {item.href ?
+                <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
+                          {displayUrl(item.href)}
                         </a> :
 
                 <span>{item.label}</span>

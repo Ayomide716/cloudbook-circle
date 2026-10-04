@@ -84,10 +84,10 @@ export default function ReelCard({
     }
   }, [isActive, isMuted, isVisible]);
 
-  // Progress bar update loop
+  // Progress bar update loop (only for the reel on screen)
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !isActive) return;
     const update = () => {
       if (video.duration) {
         setProgress((video.currentTime / video.duration) * 100);
@@ -99,7 +99,7 @@ export default function ReelCard({
     };
     animFrameRef.current = requestAnimationFrame(update);
     return () => cancelAnimationFrame(animFrameRef.current);
-  }, [isVisible]);
+  }, [isVisible, isActive]);
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
@@ -108,16 +108,22 @@ export default function ReelCard({
     else { video.pause(); setIsPaused(true); }
   }, []);
 
+  // A single tap pauses; a double tap likes. Wait briefly before pausing so a double tap
+  // doesn't also pause the video.
+  const singleTapTimer = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => () => clearTimeout(singleTapTimer.current), []);
   const handleTap = useCallback(() => {
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
+      clearTimeout(singleTapTimer.current);
       if (!isLiked) onLike(reel.id);
       setDoubleTapHeart(true);
       setTimeout(() => setDoubleTapHeart(false), 800);
-    } else {
-      togglePlayPause();
+      lastTapRef.current = 0;
+      return;
     }
     lastTapRef.current = now;
+    singleTapTimer.current = setTimeout(togglePlayPause, 260);
   }, [isLiked, reel.id, onLike, togglePlayPause]);
 
   const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
@@ -130,17 +136,21 @@ export default function ReelCard({
 
   const handleCopyLink = async () => {
     const url = `${window.location.origin}/reels/${reel.id}`;
-    await navigator.clipboard.writeText(url);
-    toast({ title: "Link copied!" });
+    try {
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Link copied!" });
+    } catch {
+      toast({ title: "Couldn't copy the link", description: url });
+    }
   };
 
   const formatCount = (n: number) => n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
 
-  const followLabel = isFollowing ? "Friends" : isPending ? "Requested" : "· Follow";
+  const followLabel = isFollowing ? "Friends" : isPending ? "Requested" : "Add friend";
 
   return (
-    <div ref={containerRef} className="h-[calc(100vh-56px)] md:h-[calc(100vh-56px)] snap-start flex items-center justify-center relative">
-      <div className="relative h-full w-full md:w-[400px] md:max-h-[calc(100vh-80px)] md:rounded-xl md:overflow-hidden md:mx-auto">
+    <div ref={containerRef} className="h-[100dvh] md:h-[calc(100dvh-57px)] snap-start snap-always flex items-center justify-center relative">
+      <div className="relative h-full w-full md:w-[400px] md:max-h-[calc(100dvh-80px)] md:rounded-xl md:overflow-hidden md:mx-auto">
         {canPlayInline ? (
           <>
             {isVisible && (
@@ -175,15 +185,9 @@ export default function ReelCard({
               </div>
             )}
 
-            <button onClick={onToggleMute} className="absolute top-4 right-4 z-20 h-9 w-9 rounded-full bg-black/40 flex items-center justify-center">
+            <button onClick={onToggleMute} aria-label={isMuted ? "Turn sound on" : "Mute"} className="absolute top-[calc(env(safe-area-inset-top)+3.5rem)] md:top-4 right-4 z-20 h-9 w-9 rounded-full bg-black/40 flex items-center justify-center">
               {isMuted ? <VolumeX className="h-4 w-4 text-white" /> : <Volume2 className="h-4 w-4 text-white" />}
             </button>
-
-            {currentUserId === reel.user_id && (
-              <button onClick={() => onDelete(reel.id)} className="absolute top-4 left-4 z-20 h-9 w-9 rounded-full bg-black/40 flex items-center justify-center">
-                <Trash2 className="h-4 w-4 text-white" />
-              </button>
-            )}
 
             {/* Progress bar */}
             <div className="absolute bottom-0 left-0 right-0 z-20 h-1 cursor-pointer group" onClick={handleSeek}>
@@ -222,7 +226,9 @@ export default function ReelCard({
             </button>
             {currentUserId && currentUserId !== reel.user_id && (
               <button
-                onClick={() => onFollow?.(reel.user_id)}
+                // Already friends: just a label (unfriending belongs on their profile, not one tap away).
+                onClick={() => !isFollowing && onFollow?.(reel.user_id)}
+                disabled={isFollowing}
                 className={cn(
                   "text-sm px-3 py-0.5 rounded-full border transition-colors",
                   isFollowing
@@ -247,21 +253,21 @@ export default function ReelCard({
 
         {/* Side action buttons */}
         <div className="absolute right-3 bottom-20 md:right-4 md:bottom-auto md:top-1/2 md:-translate-y-1/2 flex flex-col items-center gap-5 z-30">
-          <button onClick={() => onLike(reel.id)} className="flex flex-col items-center">
+          <button onClick={() => onLike(reel.id)} className="flex flex-col items-center" aria-label={isLiked ? "Unlike" : "Like"} aria-pressed={isLiked}>
             <div className={cn("h-11 w-11 rounded-full flex items-center justify-center transition-transform active:scale-90", isLiked ? "bg-primary/20" : "bg-black/40")}>
               <ThumbsUp className={cn("h-6 w-6 transition-colors", isLiked ? "fill-primary text-primary" : "text-white")} />
             </div>
             <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">{formatCount(reel.reel_likes.length)}</span>
           </button>
 
-          <button onClick={() => onComment(reel.id)} className="flex flex-col items-center">
+          <button onClick={() => onComment(reel.id)} className="flex flex-col items-center" aria-label="Comments">
             <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center transition-transform active:scale-90">
               <MessageCircle className="h-6 w-6 text-white" />
             </div>
             <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">{formatCount(reel.reel_comments.length)}</span>
           </button>
 
-          <button onClick={() => onShare(reel.id)} className="flex flex-col items-center">
+          <button onClick={() => onShare(reel.id)} className="flex flex-col items-center" aria-label="Share">
             <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center transition-transform active:scale-90">
               <Share2 className="h-6 w-6 text-white" />
             </div>
@@ -270,7 +276,7 @@ export default function ReelCard({
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="flex flex-col items-center">
+              <button className="flex flex-col items-center" aria-label="More options">
                 <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center">
                   <MoreHorizontal className="h-6 w-6 text-white" />
                 </div>
@@ -282,13 +288,13 @@ export default function ReelCard({
               </DropdownMenuItem>
               {currentUserId && currentUserId !== reel.user_id && (
                 <ReportDialog
-                  reportedType="post"
+                  reportedType="reel"
                   reportedId={reel.id}
                   currentUserId={currentUserId}
                 />
               )}
               {currentUserId === reel.user_id && (
-                <DropdownMenuItem onClick={() => onDelete(reel.id)} className="text-destructive focus:text-destructive">
+                <DropdownMenuItem onSelect={() => onDelete(reel.id)} className="text-destructive focus:text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" /> Delete reel
                 </DropdownMenuItem>
               )}

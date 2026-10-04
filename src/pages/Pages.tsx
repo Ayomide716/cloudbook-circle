@@ -16,17 +16,10 @@ import { Search, Plus, Users, Globe, Flag, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { useSEO } from "@/hooks/useSEO";
+import { PAGE_CATEGORIES, pageCategoryLabel } from "@/lib/page-categories";
 
-const PAGE_CATEGORIES = [
-  { value: "business", label: "Business" },
-  { value: "brand", label: "Brand" },
-  { value: "community", label: "Community" },
-  { value: "creator", label: "Creator / Public Figure" },
-  { value: "entertainment", label: "Entertainment" },
-  { value: "education", label: "Education" },
-  { value: "nonprofit", label: "Nonprofit" },
-  { value: "other", label: "Other" },
-];
 
 interface Page {
   id: string;
@@ -49,6 +42,8 @@ const Pages = () => {
   const [followedPageIds, setFollowedPageIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const debouncedSearch = useDebouncedValue(searchQuery.trim());
+  useSEO({ title: "Pages", description: "Discover and follow pages on CloudBook." });
   const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState("discover");
 
@@ -71,9 +66,7 @@ const Pages = () => {
   const loadPages = useEffectEvent(async () => {
     setIsLoading(true);
     let query = supabase.from("pages").select("*");
-    if (searchQuery.trim()) {
-      query = query.ilike("name", `%${searchQuery.trim()}%`);
-    }
+    if (debouncedSearch) query = query.ilike("name", `%${debouncedSearch}%`);
     const { data } = await query.order("followers_count", { ascending: false });
     
     const all = data || [];
@@ -96,21 +89,22 @@ const Pages = () => {
       loadPages();
       loadFollowed();
     }
-  }, [currentUserId, searchQuery, loadFollowed, loadPages]);
+  }, [currentUserId, debouncedSearch, loadFollowed, loadPages]);
 
   const toggleFollow = async (pageId: string) => {
     if (!currentUserId) return;
-    const isFollowing = followedPageIds.has(pageId);
-
-    if (isFollowing) {
-      await supabase.from("page_followers").delete()
-        .eq("user_id", currentUserId).eq("page_id", pageId);
-      setFollowedPageIds(prev => { const n = new Set(prev); n.delete(pageId); return n; });
-      setPages(prev => prev.map(p => p.id === pageId ? { ...p, followers_count: Math.max(0, p.followers_count - 1) } : p));
-    } else {
-      await supabase.from("page_followers").insert({ user_id: currentUserId, page_id: pageId });
-      setFollowedPageIds(prev => new Set(prev).add(pageId));
-      setPages(prev => prev.map(p => p.id === pageId ? { ...p, followers_count: p.followers_count + 1 } : p));
+    const was = followedPageIds.has(pageId);
+    const apply = (following: boolean) => {
+      setFollowedPageIds(prev => { const n = new Set(prev); if (following) n.add(pageId); else n.delete(pageId); return n; });
+      setPages(prev => prev.map(p => p.id === pageId ? { ...p, followers_count: Math.max(0, p.followers_count + (following ? 1 : -1)) } : p));
+    };
+    apply(!was);
+    const { error } = was
+      ? await supabase.from("page_followers").delete().eq("user_id", currentUserId).eq("page_id", pageId)
+      : await supabase.from("page_followers").insert({ user_id: currentUserId, page_id: pageId });
+    if (error) {
+      apply(was);
+      toast({ title: "Couldn't update follow", variant: "destructive" });
     }
   };
 
@@ -137,15 +131,14 @@ const Pages = () => {
     setIsCreating(false);
   };
 
-  const getCategoryLabel = (value: string) =>
-    PAGE_CATEGORIES.find(c => c.value === value)?.label || value;
+  const getCategoryLabel = pageCategoryLabel;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUserId || undefined} />
 
       <div className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-2 sm:px-4 lg:px-6 py-4 sm:py-6">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-28 md:pb-8">
           {/* Header */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -164,13 +157,13 @@ const Pages = () => {
                 </DialogHeader>
                 <div className="space-y-4 pt-2">
                   <div>
-                    <Label>Page Name *</Label>
-                    <Input value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="Your page name" className="mt-1" />
+                    <Label htmlFor="page-name">Page name *</Label>
+                    <Input id="page-name" maxLength={80} value={createName} onChange={(e) => setCreateName(e.target.value)} placeholder="Your page name" className="mt-1" />
                   </div>
                   <div>
                     <Label>Category</Label>
                     <Select value={createCategory} onValueChange={setCreateCategory}>
-                      <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
+                      <SelectTrigger className="mt-1" aria-label="Category"><SelectValue /></SelectTrigger>
                       <SelectContent>
                         {PAGE_CATEGORIES.map(c => (
                           <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
@@ -179,8 +172,8 @@ const Pages = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label>Description</Label>
-                    <Textarea value={createDesc} onChange={(e) => setCreateDesc(e.target.value)} placeholder="Tell people about your page" className="mt-1" rows={3} />
+                    <Label htmlFor="page-desc">Description</Label>
+                    <Textarea id="page-desc" value={createDesc} onChange={(e) => setCreateDesc(e.target.value)} placeholder="Tell people about your page" className="mt-1" rows={3} />
                   </div>
                   <Button className="w-full" onClick={handleCreate} disabled={!createName.trim() || isCreating}>
                     {isCreating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creating...</> : "Create Page"}
@@ -193,7 +186,7 @@ const Pages = () => {
           {/* Search */}
           <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search pages..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
+            <Input aria-label="Search pages" placeholder="Search pages..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
           </div>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -286,8 +279,12 @@ const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNav
           variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
         >
           <Card
-            className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group"
+            className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            role="link"
+            tabIndex={0}
+            aria-label={page.name}
             onClick={() => onNavigate(page.id)}
+            onKeyDown={(e) => { if (e.key === "Enter") onNavigate(page.id); }}
           >
             {/* Cover */}
             <div className="h-24 bg-gradient-to-br from-primary/20 to-primary/5 relative">
@@ -315,7 +312,7 @@ const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNav
               )}
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Users className="h-3 w-3" /> {page.followers_count} followers
+                  <Users className="h-3 w-3" /> {page.followers_count} {page.followers_count === 1 ? "follower" : "followers"}
                 </span>
                 {!isOwner && page.owner_id !== currentUserId && (
                   <Button
