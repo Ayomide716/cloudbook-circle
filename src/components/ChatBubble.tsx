@@ -208,6 +208,5 @@ const ChatBubble = ({
   );
 };
 
-export { themeColors };
 export type { ChatMessage };
 export default ChatBubble;

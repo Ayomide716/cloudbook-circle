@@ -1,17 +1,41 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+const MAX_MESSAGES = 30;
+const MAX_MESSAGE_LENGTH = 4000;
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-serve(async (req) => {
+const jsonResponse = (body: unknown, status: number) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+
+Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { messages, mood } = await req.json();
+    // Only signed-in users may use the AI (it costs money per request).
+    const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
+    if (!token) return jsonResponse({ error: "Please sign in to chat." }, 401);
+    const userRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
+      headers: { apikey: Deno.env.get("SUPABASE_ANON_KEY")!, Authorization: `Bearer ${token}` },
+    });
+    if (!userRes.ok) return jsonResponse({ error: "Please sign in to chat." }, 401);
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+
+    const body = await req.json();
+    const mood = typeof body.mood === "string" ? body.mood.slice(0, 50) : null;
+    // Only pass through plain user/assistant turns, so clients can't inject system prompts.
+    const messages = (Array.isArray(body.messages) ? body.messages : [])
+      .filter((m: { role?: unknown; content?: unknown }) =>
+        (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .slice(-MAX_MESSAGES)
+      .map((m: { role: string; content: string }) => ({ role: m.role, content: m.content.slice(0, MAX_MESSAGE_LENGTH) }));
+    if (messages.length === 0) return jsonResponse({ error: "No message to send." }, 400);
 
     const moodContext = mood ? `The user's current mood is "${mood}". Adapt your tone accordingly — be extra supportive if they're sad, energetic if they're motivated, chill if they're relaxed, and fun if they're happy.` : "";
 

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Story {
   id: string;
@@ -55,13 +56,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadStories();
-    const cleanup = setupRealtimeSubscription();
-    return cleanup;
-  }, [currentUserId]);
-
-  const loadStories = async () => {
+  const loadStories = useEffectEvent(async () => {
     try {
       const { data: friendships } = await supabase
         .from("friendships")
@@ -76,7 +71,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       const allowedUserIds = [currentUserId, ...friendIds];
 
       const { data, error } = await supabase
-        .from("stories" as any)
+        .from("stories")
         .select(`*, profiles:user_id (id, full_name, avatar_url)`)
         .in("user_id", allowedUserIds)
         .gt("expires_at", new Date().toISOString())
@@ -85,18 +80,18 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       if (error || !data) return;
 
       // Fetch viewed story IDs
-      const storyIds = (data as any[]).map((s: any) => s.id);
+      const storyIds = data.map((s) => s.id);
       const { data: views } = await supabase
-        .from("story_views" as any)
+        .from("story_views")
         .select("story_id")
         .eq("viewer_id", currentUserId)
         .in("story_id", storyIds);
 
-      const viewedIds = new Set((views || []).map((v: any) => v.story_id));
+      const viewedIds = new Set((views || []).map((v) => v.story_id));
 
       // Group by user
       const groupMap = new Map<string, UserStoryGroup>();
-      (data as any[]).forEach((story: any) => {
+      data.forEach((story) => {
         const uid = story.user_id;
         if (!groupMap.has(uid)) {
           groupMap.set(uid, {
@@ -125,15 +120,21 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     } catch (e) {
       console.log("Error loading stories:", e);
     }
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("stories-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "stories" }, () => loadStories())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  };
+  });
+
+  useEffect(() => {
+    loadStories();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
+  }, [currentUserId, loadStories, setupRealtimeSubscription]);
 
   const handleCreateStory = async () => {
     if (!storyImage) {
@@ -141,8 +142,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       return;
     }
     const { error } = await supabase
-      .from("stories" as any)
-      .insert({ user_id: currentUserId, media_url: storyImage, media_type: "image", caption: storyCaption || null } as any);
+      .from("stories")
+      .insert({ user_id: currentUserId, media_url: storyImage, media_type: "image", caption: storyCaption || null });
 
     if (error) { toast({ title: "Error creating story", description: error.message, variant: "destructive" }); return; }
     toast({ title: "Story created!" });
@@ -156,21 +157,6 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const activeGroup = storyGroups[activeGroupIndex];
   const activeStory = activeGroup?.stories[activeStoryIndex];
 
-  const startTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setProgress(0);
-    const interval = 50;
-    let elapsed = 0;
-    timerRef.current = setInterval(() => {
-      if (isPaused) return;
-      elapsed += interval;
-      setProgress(Math.min((elapsed / STORY_DURATION) * 100, 100));
-      if (elapsed >= STORY_DURATION) {
-        goNext();
-      }
-    }, interval);
-  }, [isPaused, activeGroupIndex, activeStoryIndex, storyGroups.length]);
-
   const goNext = useCallback(() => {
     if (!activeGroup) return;
     if (activeStoryIndex < activeGroup.stories.length - 1) {
@@ -182,6 +168,28 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       setViewerOpen(false);
     }
   }, [activeGroup, activeStoryIndex, activeGroupIndex, storyGroups.length]);
+
+  // Read the latest pause state inside the timer without restarting it (pausing must not reset progress).
+  const isPausedRef = useRef(isPaused);
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+  const advanceStory = useEffectEvent(() => goNext());
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setProgress(0);
+    const interval = 50;
+    let elapsed = 0;
+    timerRef.current = setInterval(() => {
+      if (isPausedRef.current) return;
+      elapsed += interval;
+      setProgress(Math.min((elapsed / STORY_DURATION) * 100, 100));
+      if (elapsed >= STORY_DURATION) {
+        advanceStory();
+      }
+    }, interval);
+  }, [advanceStory]);
 
   const goPrev = useCallback(() => {
     if (activeStoryIndex > 0) {
@@ -200,10 +208,11 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   }, [viewerOpen, activeGroupIndex, activeStoryIndex, startTimer]);
 
   // Mark as viewed when story changes
+  const activeStoryId = activeStory?.id;
   useEffect(() => {
-    if (!viewerOpen || !activeStory) return;
-    supabase.from("story_views" as any).insert({ story_id: activeStory.id, viewer_id: currentUserId } as any).then(() => {});
-  }, [viewerOpen, activeStory?.id]);
+    if (!viewerOpen || !activeStoryId) return;
+    supabase.from("story_views").insert({ story_id: activeStoryId, viewer_id: currentUserId }).then(() => {});
+  }, [viewerOpen, activeStoryId, currentUserId]);
 
   const openViewer = (groupIndex: number) => {
     setActiveGroupIndex(groupIndex);
@@ -228,8 +237,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   const handleReaction = async (emoji: string, type: string) => {
     if (!activeStory) return;
-    await supabase.from("story_reactions" as any).upsert(
-      { story_id: activeStory.id, user_id: currentUserId, reaction_type: type } as any,
+    await supabase.from("story_reactions").upsert(
+      { story_id: activeStory.id, user_id: currentUserId, reaction_type: type },
       { onConflict: "story_id,user_id" }
     );
     await supabase.from("messages").insert({

@@ -10,13 +10,15 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { useEffectEvent } from "@/hooks/use-effect-event";
+import { toDate } from "@/lib/utils";
 
 interface Notification {
   id: string;
   type: string;
   content: string;
-  read: boolean;
-  created_at: string;
+  read: boolean | null;
+  created_at: string | null;
   related_id: string | null;
 }
 
@@ -29,12 +31,7 @@ const Notifications = ({ userId }: NotificationsProps) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadNotifications();
-    setupRealtimeSubscription();
-  }, [userId]);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useEffectEvent(async () => {
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
@@ -53,9 +50,9 @@ const Notifications = ({ userId }: NotificationsProps) => {
 
     setNotifications(data || []);
     setUnreadCount(data?.filter((n) => !n.read).length || 0);
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("notifications-changes")
       .on(
@@ -75,7 +72,12 @@ const Notifications = ({ userId }: NotificationsProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    loadNotifications();
+    return setupRealtimeSubscription();
+  }, [userId, loadNotifications, setupRealtimeSubscription]);
 
   const markAsRead = async (notificationId: string) => {
     await supabase
@@ -151,7 +153,7 @@ const Notifications = ({ userId }: NotificationsProps) => {
                   )}
                   <p className="text-sm">{notification.content}</p>
                   <p className="text-xs text-muted-foreground mt-1">
-                    {formatDistanceToNow(new Date(notification.created_at), {
+                    {formatDistanceToNow(toDate(notification.created_at), {
                       addSuffix: true,
                     })}
                   </p>

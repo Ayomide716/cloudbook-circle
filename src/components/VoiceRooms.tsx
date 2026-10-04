@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Mic, MicOff, PhoneOff, Plus, Radio, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface VoiceRoom {
   id: string;
@@ -39,19 +40,7 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
   const [newTitle, setNewTitle] = useState("");
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadRooms();
-
-    const channel = supabase
-      .channel(`voice-rooms-${groupId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "voice_rooms", filter: `group_id=eq.${groupId}` }, () => loadRooms())
-      .on("postgres_changes", { event: "*", schema: "public", table: "voice_room_participants" }, () => loadRooms())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [groupId]);
-
-  const loadRooms = async () => {
+  const loadRooms = useEffectEvent(async () => {
     const { data: roomsData } = await supabase
       .from("voice_rooms")
       .select("*")
@@ -84,7 +73,19 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
     }));
 
     setRooms(enriched);
-  };
+  });
+
+  useEffect(() => {
+    loadRooms();
+
+    const channel = supabase
+      .channel(`voice-rooms-${groupId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "voice_rooms", filter: `group_id=eq.${groupId}` }, () => loadRooms())
+      .on("postgres_changes", { event: "*", schema: "public", table: "voice_room_participants" }, () => loadRooms())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [groupId, loadRooms]);
 
   const createRoom = async () => {
     if (!newTitle.trim()) return;
@@ -92,7 +93,7 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
       group_id: groupId,
       title: newTitle.trim(),
       created_by: currentUserId,
-    } as any);
+    });
 
     if (error) {
       toast({ title: "Error creating room", variant: "destructive" });
@@ -110,7 +111,7 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
       room_id: roomId,
       user_id: currentUserId,
       is_speaker: true,
-    } as any);
+    });
 
     if (error && !error.message.includes("duplicate")) {
       toast({ title: "Error joining room", variant: "destructive" });

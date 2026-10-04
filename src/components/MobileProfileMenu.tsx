@@ -28,6 +28,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface MobileProfileMenuProps {
   currentUserId: string;
@@ -41,18 +42,18 @@ const MobileProfileMenu = ({ currentUserId, pendingRequests }: MobileProfileMenu
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    loadUserProfile();
-  }, [currentUserId]);
-
-  const loadUserProfile = async () => {
+  const loadUserProfile = useEffectEvent(async () => {
     const { data } = await supabase
       .from("profiles")
       .select("full_name, avatar_url")
       .eq("id", currentUserId)
       .single();
     if (data) setUserProfile(data);
-  };
+  });
+
+  useEffect(() => {
+    loadUserProfile();
+  }, [currentUserId, loadUserProfile]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

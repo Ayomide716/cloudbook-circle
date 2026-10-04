@@ -1,5 +1,5 @@
 import { useEffect, useCallback, useRef, ReactElement, CSSProperties } from "react";
-import { List, useDynamicRowHeight, useListRef } from "react-window";
+import { List, useDynamicRowHeight, useListRef, type RowComponentProps } from "react-window";
 import { Loader2 } from "lucide-react";
 
 interface VirtualizedChatListProps {
@@ -17,16 +17,11 @@ interface VirtualizedChatListProps {
   style?: CSSProperties;
 }
 
-const RowComponent = ({
-  index,
-  style,
-  renderItem,
-}: {
-  ariaAttributes: { "aria-posinset": number; "aria-setsize": number; role: "listitem" };
-  index: number;
-  style: CSSProperties;
+interface RowProps {
   renderItem: (index: number) => ReactElement | null;
-}) => (
+}
+
+const RowComponent = ({ index, style, renderItem }: RowComponentProps<RowProps>) => (
   <div style={style} data-message-row={index}>
     <div className="px-3 sm:px-4 py-1">
       {renderItem(index)}
@@ -47,11 +42,14 @@ const VirtualizedChatList = ({
   className,
   style,
 }: VirtualizedChatListProps) => {
-  const listRef = useListRef();
+  const listRef = useListRef(null);
   const dynamicRowHeight = useDynamicRowHeight({
     defaultRowHeight: estimatedItemSize,
     key: itemCount,
   });
+  const { observeRowElements } = dynamicRowHeight;
+  // Only whether "load more" is enabled matters here; the callback itself is recreated by the parent on every render.
+  const canLoadMore = !!onLoadMore;
   const prevCountRef = useRef(itemCount);
   const isInitialLoad = useRef(true);
 
@@ -62,7 +60,7 @@ const VirtualizedChatList = ({
 
     if (itemCount > 0 && listRef.current) {
       // If items were prepended (loading older), maintain scroll position
-      if (!isInitialLoad.current && itemCount > prevCount && onLoadMore) {
+      if (!isInitialLoad.current && itemCount > prevCount && canLoadMore) {
         const addedCount = itemCount - prevCount;
         // Scroll to the first "new-old" message to maintain position
         requestAnimationFrame(() => {
@@ -72,7 +70,9 @@ const VirtualizedChatList = ({
               align: "start",
               behavior: "instant",
             });
-          } catch {}
+          } catch {
+            // Row may not exist yet if the list re-rendered in between.
+          }
         });
         return;
       }
@@ -85,10 +85,12 @@ const VirtualizedChatList = ({
             align: "end",
             behavior: "instant",
           });
-        } catch {}
+        } catch {
+          // Row may not exist yet if the list re-rendered in between.
+        }
       });
     }
-  }, [itemCount, scrollToBottomKey]);
+  }, [itemCount, scrollToBottomKey, canLoadMore, listRef]);
 
   // Scroll to specific index (for message search highlight)
   useEffect(() => {
@@ -99,9 +101,11 @@ const VirtualizedChatList = ({
           align: "center",
           behavior: "smooth",
         });
-      } catch {}
+      } catch {
+        // Ignore out-of-range indexes from stale search results.
+      }
     }
-  }, [scrollToIndex]);
+  }, [scrollToIndex, listRef]);
 
   // Detect scroll to top for loading more
   useEffect(() => {
@@ -116,7 +120,7 @@ const VirtualizedChatList = ({
 
     listEl.addEventListener("scroll", handleScroll, { passive: true });
     return () => listEl.removeEventListener("scroll", handleScroll);
-  }, [onLoadMore, isLoadingMore, hasMore, itemCount]);
+  }, [onLoadMore, isLoadingMore, hasMore, itemCount, listRef]);
 
   // Observe row elements for dynamic sizing
   useEffect(() => {
@@ -125,15 +129,15 @@ const VirtualizedChatList = ({
 
     const observer = new MutationObserver(() => {
       const rows = listEl.querySelectorAll("[data-message-row]");
-      if (rows.length > 0) dynamicRowHeight.observeRowElements(rows);
+      if (rows.length > 0) observeRowElements(rows);
     });
 
     observer.observe(listEl, { childList: true, subtree: true });
     const rows = listEl.querySelectorAll("[data-message-row]");
-    if (rows.length > 0) dynamicRowHeight.observeRowElements(rows);
+    if (rows.length > 0) observeRowElements(rows);
 
     return () => observer.disconnect();
-  }, [itemCount]);
+  }, [itemCount, listRef, observeRowElements]);
 
   return (
     <div className={className} style={{ position: "relative", flex: 1, minHeight: 0, ...style }}>
@@ -148,7 +152,7 @@ const VirtualizedChatList = ({
         rowCount={itemCount}
         rowHeight={dynamicRowHeight}
         rowComponent={RowComponent}
-        rowProps={{ renderItem } as any}
+        rowProps={{ renderItem }}
         overscanCount={10}
         style={{ height: "100%", overflow: "auto" }}
       />

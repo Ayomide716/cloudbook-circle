@@ -65,7 +65,7 @@ export const useVideoCall = (currentUserId: string | null) => {
     };
   }, [currentUserId, activeCall]);
 
-  const sendBroadcast = useCallback(async (targetUserId: string, event: string, extra: Record<string, any> = {}) => {
+  const sendBroadcast = useCallback(async (targetUserId: string, event: string, extra: Record<string, unknown> = {}) => {
     if (!currentUserId) return;
     const channel = supabase.channel(`incoming-calls-${targetUserId}`);
     channel.subscribe(async (status) => {

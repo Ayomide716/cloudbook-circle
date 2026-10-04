@@ -35,11 +35,14 @@ import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage, toDate } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import ProfileAchievements from "@/components/ProfileAchievements";
 import AnonymousQA from "@/components/AnonymousQA";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
+import type { PostComment } from "@/components/PostCard";
+import type { LucideIcon } from "lucide-react";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface ProfileData {
   id: string;
@@ -60,7 +63,7 @@ interface Post {
   content: string;
   image_url: string | null;
   video_url?: string | null;
-  created_at: string;
+  created_at: string | null;
   user_id: string;
   profiles: {
     id: string;
@@ -99,7 +102,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [reactionsData, setReactionsData] = useState<Record<string, {reactions: Record<string, number>;userReaction: string | null;}>>({});
-  const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+  const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
   const [friendCount, setFriendCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums" | "qa">("posts");
 
@@ -122,16 +125,18 @@ const Profile = () => {
   const coverScale = useTransform(scrollY, [0, 300], [1, 1.15]);
   const headerOpacity = useTransform(scrollY, [150, 250], [0, 1]);
 
-  useEffect(() => {checkAuth();}, [navigate]);
-  useEffect(() => {if (userId) loadProfile();}, [userId]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {navigate("/auth");return;}
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadProfile = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [navigate, checkAuth]);
+
+  const loadProfile = useEffectEvent(async () => {
+    if (!userId) return;
     setIsLoading(true);
     const { data: profileData, error: profileError } = await supabase.
     from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -145,7 +150,7 @@ const Profile = () => {
       setIsLoading(false);
       return;
     }
-    if (profileData) setProfile(profileData as any);
+    setProfile(profileData);
 
     // Load friend count
     const { count } = await supabase.
@@ -172,7 +177,11 @@ const Profile = () => {
     // Load mutual friends
     loadMutualFriends();
     setIsLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    if (userId) loadProfile();
+  }, [userId, loadProfile]);
 
   const loadMutualFriends = async () => {
     if (!currentUserId || !userId || currentUserId === userId) {
@@ -283,8 +292,8 @@ const Profile = () => {
       if (insertError) throw insertError;
       toast({ title: "Photo added!" });
       loadAlbums();
-    } catch (error: any) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Upload failed", description: getErrorMessage(error), variant: "destructive" });
     }
     setIsUploadingPhoto(false);
   };
@@ -309,7 +318,7 @@ const Profile = () => {
     );
 
     const reactionsMap: Record<string, {reactions: Record<string, number>;userReaction: string | null;}> = {};
-    const commentsMap: Record<string, any[]> = {};
+    const commentsMap: Record<string, PostComment[]> = {};
     postIds.forEach((id) => {
       const pr = rData?.filter((r) => r.post_id === id) || [];
       const rc: Record<string, number> = {};
@@ -331,7 +340,7 @@ const Profile = () => {
 
   const handleCoverUpload = async (url: string) => {
     if (!profile) return;
-    const { error } = await supabase.from("profiles").update({ cover_url: url } as any).eq("id", profile.id);
+    const { error } = await supabase.from("profiles").update({ cover_url: url }).eq("id", profile.id);
     if (error) {toast({ title: "Error", description: error.message, variant: "destructive" });return;}
     setProfile({ ...profile, cover_url: url });
     toast({ title: "Cover photo updated" });
@@ -379,7 +388,7 @@ const Profile = () => {
   profile.education && { icon: GraduationCap, label: profile.education },
   profile.location && { icon: MapPin, label: profile.location },
   profile.website && { icon: LinkIcon, label: profile.website, isLink: true }].
-  filter(Boolean) as {icon: any;label: string;isLink?: boolean;}[];
+  filter(Boolean) as {icon: LucideIcon;label: string;isLink?: boolean;}[];
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-20">
@@ -680,7 +689,7 @@ const Profile = () => {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm truncate">{item.content}</p>
                             <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
+                              {formatDistanceToNow(toDate(item.date), { addSuffix: true })}
                             </p>
                           </div>
                         </motion.div>

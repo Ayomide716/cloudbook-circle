@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface PageData {
   id: string;
@@ -80,25 +81,17 @@ const PageDetail = () => {
   const [showComments, setShowComments] = useState<Record<string, boolean>>({});
   const [commentInputs, setCommentInputs] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (currentUserId && pageId) {
-      loadPage();
-      loadPosts();
-      checkFollowing();
-    }
-  }, [currentUserId, pageId]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadPage = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const loadPage = useEffectEvent(async () => {
     const { data, error } = await supabase.from("pages").select("*").eq("id", pageId!).single();
     if (error || !data) { navigate("/pages"); return; }
     setPage(data);
@@ -109,9 +102,9 @@ const PageDetail = () => {
     setEditPhone(data.phone || "");
     setEditLocation(data.location || "");
     setIsLoading(false);
-  };
+  });
 
-  const loadPosts = async () => {
+  const loadPosts = useEffectEvent(async () => {
     const { data: postsData } = await supabase
       .from("page_posts")
       .select("*")
@@ -142,14 +135,22 @@ const PageDetail = () => {
       comments_count: commentCounts[p.id] || 0,
       user_liked: userLikedSet.has(p.id),
     })));
-  };
+  });
 
-  const checkFollowing = async () => {
+  const checkFollowing = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase.from("page_followers")
       .select("id").eq("page_id", pageId!).eq("user_id", currentUserId).maybeSingle();
     setIsFollowing(!!data);
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId && pageId) {
+      loadPage();
+      loadPosts();
+      checkFollowing();
+    }
+  }, [currentUserId, pageId, checkFollowing, loadPage, loadPosts]);
 
   const toggleFollow = async () => {
     if (!currentUserId || !page) return;

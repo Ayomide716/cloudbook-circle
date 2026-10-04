@@ -5,6 +5,8 @@ import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import type { User } from "@supabase/supabase-js";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 import { Plus, Send, Film, ChevronUp, ChevronDown, ArrowLeft, Home, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -26,13 +28,13 @@ interface Reel {
   caption: string | null;
   created_at: string;
   user_id: string;
-  views_count: number;
-  likes_count: number;
-  shares_count: number;
+  views_count: number | null;
+  likes_count: number | null;
+  shares_count: number | null;
   profiles: { full_name: string | null; avatar_url: string | null };
   reel_likes: { user_id: string }[];
   reel_comments: Array<{
-    id: string; content: string; user_id: string; created_at: string;
+    id: string; content: string; user_id: string; created_at: string | null;
     profiles: { full_name: string | null; avatar_url: string | null };
   }>;
 }
@@ -43,7 +45,7 @@ export default function Reels() {
   useSEO({ title: "Reels", description: "Watch short videos on CloudBook." });
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const { toast } = useToast();
   const [activeReelId, setActiveReelId] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
@@ -55,17 +57,6 @@ export default function Reels() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
-
-  useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate("/auth"); return; }
-      setUser(session.user);
-      loadFriendIds(session.user.id);
-    };
-    init();
-    loadReels();
-  }, []);
 
   const loadFriendIds = async (userId: string) => {
     const { data } = await supabase
@@ -107,7 +98,14 @@ export default function Reels() {
     }
   };
 
-  const loadReels = async () => {
+  const checkAuth = useEffectEvent(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { navigate("/auth"); return; }
+    setUser(session.user);
+    loadFriendIds(session.user.id);
+  });
+
+  const loadReels = useEffectEvent(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("reels")
@@ -133,7 +131,16 @@ export default function Reels() {
       }
     }
     setLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Reload when opening a different shared reel link.
+  useEffect(() => {
+    loadReels();
+  }, [paramReelId, loadReels]);
 
   const handleLike = async (reelId: string) => {
     if (!user) return;
@@ -334,7 +341,7 @@ export default function Reels() {
               <label className="text-sm font-medium text-foreground">Video</label>
               <div className="mt-2 flex items-center justify-between rounded-lg border p-3">
                 <p className="text-sm text-muted-foreground">{uploadVideoUrl ? "Video selected" : "Upload from your device"}</p>
-                <VideoUpload bucket="post-videos" userId={user?.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" />
+                {user && <VideoUpload bucket="post-videos" userId={user.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" />}
               </div>
             </div>
             <div>

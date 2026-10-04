@@ -69,7 +69,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
         image_urls: imageUrls.length > 0 ? imageUrls : [],
         video_url: videoUrl || null,
         expires_at: expiresAt,
-       } as any)
+       })
        .select()
        .single();
 

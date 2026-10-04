@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Send, Loader2, ArrowLeft, Bot, Sparkles } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
   role: "user" | "assistant";
@@ -44,11 +45,15 @@ const AIChatCompanion = ({ onBack, mood }: AIChatCompanionProps) => {
     let assistantSoFar = "";
 
     try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Please sign in to chat with CloudBuddy.");
+
       const resp = await fetch(CHAT_URL, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          Authorization: `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({ messages: newMessages, mood }),
       });
@@ -98,8 +103,8 @@ const AIChatCompanion = ({ onBack, mood }: AIChatCompanionProps) => {
           }
         }
       }
-    } catch (err: any) {
-      setMessages(prev => [...prev, { role: "assistant", content: err.message || "Sorry, I'm having trouble connecting right now. Try again! 🙏" }]);
+    } catch (err) {
+      setMessages(prev => [...prev, { role: "assistant", content: getErrorMessage(err) || "Sorry, I'm having trouble connecting right now. Try again! 🙏" }]);
     } finally {
       setIsLoading(false);
     }

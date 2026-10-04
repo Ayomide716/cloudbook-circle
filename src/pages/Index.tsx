@@ -21,6 +21,8 @@ import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 import NewPostsBanner from "@/components/NewPostsBanner";
 import MoodSelector from "@/components/MoodSelector";
 import ScreenTimeWidget from "@/components/ScreenTimeWidget";
+import type { PostComment } from "@/components/PostCard";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -37,7 +39,7 @@ const Index = () => {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [feedFilter, setFeedFilter] = useState<"all" | "friends" | "digest">("all");
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
-  const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+  const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lastFetchTime, setLastFetchTime] = useState(new Date());
   const [currentMood, setCurrentMood] = useState<string | null>(() => {
@@ -58,17 +60,26 @@ const Index = () => {
 
   const allPosts = data?.pages.flatMap((page) => page.posts) ?? [];
 
+  // Reload reactions/comments whenever the set of visible posts changes (not just their count,
+  // which stays the same when switching feed filters).
+  const postIdsKey = allPosts.map((p) => p.id).join(",");
+  const currentUserId = currentUser?.id;
+  const loadPostExtras = useEffectEvent((postIds: string[]) =>
+    Promise.all([fetchReactions(postIds), fetchComments(postIds)])
+  );
+
   useEffect(() => {
-    if (allPosts.length === 0 || !currentUser) return;
-    const postIds = allPosts.map((p) => p.id);
-    
-    Promise.all([fetchReactions(postIds), fetchComments(postIds)]).then(
-      ([reactions, comments]) => {
-        setReactionsData(reactions);
-        setCommentsData(comments);
-      }
-    );
-  }, [allPosts.length, currentUser?.id]);
+    if (!postIdsKey || !currentUserId) return;
+    let cancelled = false;
+    loadPostExtras(postIdsKey.split(",")).then(([reactions, comments]) => {
+      if (cancelled) return;
+      setReactionsData(reactions);
+      setCommentsData(comments);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [postIdsKey, currentUserId, loadPostExtras]);
 
   useEffect(() => {
     if (!sentinelRef.current || !hasNextPage) return;
@@ -86,13 +97,7 @@ const Index = () => {
     return () => observer.disconnect();
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  useEffect(() => {
-    checkAuth();
-    const cleanup = setupRealtimeSubscription();
-    return cleanup;
-  }, [navigate]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/landing");
@@ -106,9 +111,9 @@ const Index = () => {
       .single();
 
     if (profile) setCurrentUser(profile);
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("posts-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
@@ -119,7 +124,13 @@ const Index = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    checkAuth();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
+  }, [navigate, checkAuth, setupRealtimeSubscription]);
 
   const handleReactionToggle = async (postId: string, reactionType: string) => {
     if (!currentUser) return;

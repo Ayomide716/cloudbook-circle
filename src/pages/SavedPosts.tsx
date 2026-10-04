@@ -2,10 +2,12 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
+import type { PostComment } from "@/components/PostCard";
  import Navigation from "@/components/Navigation";
  import PostCard from "@/components/PostCard";
  import { Loader2, Bookmark } from "lucide-react";
  import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
+ import { useEffectEvent } from "@/hooks/use-effect-event";
  
  interface Post {
    id: string;
@@ -28,13 +30,9 @@ import { useSEO } from "@/hooks/useSEO";
    const [posts, setPosts] = useState<Post[]>([]);
    const [isLoading, setIsLoading] = useState(true);
    const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
-   const [commentsData, setCommentsData] = useState<Record<string, any[]>>({});
+   const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
  
-   useEffect(() => {
-     checkAuth();
-   }, []);
- 
-   const checkAuth = async () => {
+   const checkAuth = useEffectEvent(async () => {
      const { data: { session } } = await supabase.auth.getSession();
      if (!session) {
        navigate("/auth");
@@ -42,7 +40,11 @@ import { useSEO } from "@/hooks/useSEO";
      }
      setCurrentUserId(session.user.id);
      loadSavedPosts(session.user.id);
-   };
+   });
+
+   useEffect(() => {
+     checkAuth();
+   }, [checkAuth]);
  
    const loadSavedPosts = async (userId: string) => {
      setIsLoading(true);
@@ -95,7 +97,7 @@ import { useSEO } from "@/hooks/useSEO";
          reactionsMap[id] = { reactions: reactionCounts, userReaction: userReaction?.reaction_type || null };
        });
  
-       const commentsMap: Record<string, any[]> = {};
+       const commentsMap: Record<string, PostComment[]> = {};
        postIds.forEach(id => {
          commentsMap[id] = commentData?.filter(c => c.post_id === id) || [];
        });

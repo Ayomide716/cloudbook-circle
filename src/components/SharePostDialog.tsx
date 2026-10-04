@@ -17,6 +17,8 @@
  } from "@/components/ui/select";
  import { supabase } from "@/integrations/supabase/client";
  import { useToast } from "@/hooks/use-toast";
+ import type { TablesInsert } from "@/integrations/supabase/types";
+ import { useEffectEvent } from "@/hooks/use-effect-event";
  
  interface SharePostDialogProps {
    postId: string;
@@ -37,13 +39,7 @@
    const [isLoading, setIsLoading] = useState(false);
    const { toast } = useToast();
  
-   useEffect(() => {
-     if (open) {
-       loadUserGroups();
-     }
-   }, [open]);
- 
-   const loadUserGroups = async () => {
+   const loadUserGroups = useEffectEvent(async () => {
      const { data } = await supabase
        .from("group_members")
        .select("group_id, groups(id, name)")
@@ -55,12 +51,18 @@
          .map(m => m.groups as Group);
        setGroups(userGroups);
      }
-   };
+   });
+
+   useEffect(() => {
+     if (open) {
+       loadUserGroups();
+     }
+   }, [open, loadUserGroups]);
  
    const handleShare = async () => {
      setIsLoading(true);
  
-     const shareData: any = {
+     const shareData: TablesInsert<"shared_posts"> = {
        original_post_id: postId,
        user_id: currentUserId,
        content: content.trim() || null,

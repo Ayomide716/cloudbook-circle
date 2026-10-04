@@ -2,6 +2,7 @@
  import { supabase } from "@/integrations/supabase/client";
  import { cn } from "@/lib/utils";
  import { useToast } from "@/hooks/use-toast";
+ import { useEffectEvent } from "@/hooks/use-effect-event";
  
  interface PollDisplayProps {
    pollId: string;
@@ -16,11 +17,7 @@
    const [isLoading, setIsLoading] = useState(false);
    const { toast } = useToast();
  
-   useEffect(() => {
-     loadVotes();
-   }, [pollId]);
- 
-   const loadVotes = async () => {
+   const loadVotes = useEffectEvent(async () => {
      const { data } = await supabase
        .from("poll_votes")
        .select("option_index, user_id")
@@ -36,7 +33,11 @@
        });
        setVotes(voteCounts);
      }
-   };
+   });
+
+   useEffect(() => {
+     loadVotes();
+   }, [pollId, loadVotes]);
  
    const handleVote = async (optionIndex: number) => {
      if (isLoading) return;

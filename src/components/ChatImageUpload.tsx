@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Image, Video, X, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { getErrorMessage } from "@/lib/utils";
 
 interface ChatMediaUploadProps {
   onMediaUploaded: (url: string, type: "image" | "video") => void;
@@ -87,10 +88,10 @@ const ChatMediaUpload = ({
 
       const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(fileName);
       onMediaUploaded(urlData.publicUrl, type);
-    } catch (error: any) {
+    } catch (error) {
       toast({
         title: "Upload failed",
-        description: error.message,
+        description: getErrorMessage(error),
         variant: "destructive",
       });
     } finally {

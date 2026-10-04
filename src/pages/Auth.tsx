@@ -8,7 +8,7 @@ import { lovable } from "@/integrations/lovable";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import logo from "@/assets/logo-new.png";
 
 const Auth = () => {
@@ -52,8 +52,8 @@ const Auth = () => {
         if (error) throw error;
         toast({ title: "Account created!", description: "Welcome to CloudBook!" });
       }
-    } catch (error: any) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -266,8 +266,8 @@ const Auth = () => {
                     if (result?.error) {
                       toast({ title: "Google sign in failed", description: String(result.error), variant: "destructive" });
                     }
-                  } catch (error: any) {
-                    toast({ title: "Error", description: error.message, variant: "destructive" });
+                  } catch (error) {
+                    toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
                   } finally {
                     setIsGoogleLoading(false);
                   }

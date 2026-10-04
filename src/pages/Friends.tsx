@@ -22,6 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Users, UserPlus, Check, X, UserCheck, Search, UserMinus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useEffectEvent } from "@/hooks/use-effect-event";
+import { toDate } from "@/lib/utils";
 
 
 interface Profile {
@@ -46,7 +48,7 @@ interface FriendRequest {
 interface Friendship {
   id: string;
   friend: Profile;
-  created_at: string;
+  created_at: string | null;
 }
 
 const Friends = () => {
@@ -65,27 +67,20 @@ const Friends = () => {
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (currentUserId) {
-      loadData();
-      setupRealtimeSubscription();
-    }
-  }, [currentUserId]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
       return;
     }
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadData = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [navigate, checkAuth]);
+
+  const loadData = useEffectEvent(async () => {
     await Promise.all([
       loadPendingRequests(),
       loadSentRequests(),
@@ -93,7 +88,7 @@ const Friends = () => {
       loadSuggestions(),
     ]);
     setIsLoading(false);
-  };
+  });
 
   const loadPendingRequests = async () => {
     if (!currentUserId) return;
@@ -272,7 +267,7 @@ const Friends = () => {
     setSuggestions(rankedSuggestions);
   };
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("friends-page")
       .on(
@@ -291,7 +286,14 @@ const Friends = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadData();
+      return setupRealtimeSubscription();
+    }
+  }, [currentUserId, loadData, setupRealtimeSubscription]);
 
   const handleAccept = async (requestId: string) => {
     const { error } = await supabase
@@ -332,6 +334,7 @@ const Friends = () => {
   };
 
   const handleSendRequest = async (userId: string) => {
+    if (!currentUserId) return;
     // Immediately hide the suggestion
     setHiddenSuggestions((prev) => new Set(prev).add(userId));
 
@@ -684,7 +687,7 @@ const Friends = () => {
                           </p>
                         </Link>
                         <p className="text-xs text-muted-foreground">
-                          Friends since {formatDistanceToNow(new Date(friendship.created_at), {
+                          Friends since {formatDistanceToNow(toDate(friendship.created_at), {
                             addSuffix: true,
                           })}
                         </p>

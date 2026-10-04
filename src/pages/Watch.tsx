@@ -26,6 +26,7 @@ import {
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 const CATEGORIES = [
   { id: "for-you", label: "For You", icon: Sparkles },
@@ -89,26 +90,17 @@ const Watch = () => {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (currentUserId) {
-      loadVideos();
-      loadSaves();
-      loadLikes();
-      loadFriends();
-    }
-  }, [currentUserId, activeCategory, searchQuery]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadFriends = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const loadFriends = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("friendships")
@@ -116,9 +108,9 @@ const Watch = () => {
       .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`)
       .eq("status", "accepted");
     setFriendIds(data?.map(f => f.user_id === currentUserId ? f.friend_id : f.user_id) || []);
-  };
+  });
 
-  const loadVideos = async () => {
+  const loadVideos = useEffectEvent(async () => {
     setIsLoading(true);
     let query = supabase
       .from("watch_videos")
@@ -156,25 +148,34 @@ const Watch = () => {
       setVideos(data || []);
     }
     setIsLoading(false);
-  };
+  });
 
-  const loadSaves = async () => {
+  const loadSaves = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("watch_saves")
       .select("video_id")
       .eq("user_id", currentUserId);
     setSavedVideoIds(new Set(data?.map(s => s.video_id) || []));
-  };
+  });
 
-  const loadLikes = async () => {
+  const loadLikes = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("watch_likes")
       .select("video_id")
       .eq("user_id", currentUserId);
     setLikedVideoIds(new Set(data?.map(l => l.video_id) || []));
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadVideos();
+      loadSaves();
+      loadLikes();
+      loadFriends();
+    }
+  }, [currentUserId, activeCategory, searchQuery, loadFriends, loadLikes, loadSaves, loadVideos]);
 
   const toggleSave = async (videoId: string) => {
     if (!currentUserId) return;

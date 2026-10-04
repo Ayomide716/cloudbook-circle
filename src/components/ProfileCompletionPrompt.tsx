@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface ProfileCompletionPromptProps {
   userId: string;
@@ -16,11 +17,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
   const [nextStep, setNextStep] = useState("");
   const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    checkCompletion();
-  }, [userId]);
-
-  const checkCompletion = async () => {
+  const checkCompletion = useEffectEvent(async () => {
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name, avatar_url, cover_url, bio, location, work, education, website")
@@ -29,7 +26,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
 
     if (!profile) return;
 
-    const fields = [
+    const fields: { key: keyof typeof profile; label: string }[] = [
       { key: "full_name", label: "Add your name" },
       { key: "avatar_url", label: "Upload a profile photo" },
       { key: "cover_url", label: "Add a cover photo" },
@@ -39,13 +36,17 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
       { key: "education", label: "Add your education" },
     ];
 
-    const filled = fields.filter((f) => !!(profile as any)[f.key]).length;
+    const filled = fields.filter((f) => !!profile[f.key]).length;
     const pct = Math.round((filled / fields.length) * 100);
     setCompletion(pct);
 
-    const missing = fields.find((f) => !(profile as any)[f.key]);
+    const missing = fields.find((f) => !profile[f.key]);
     if (missing) setNextStep(missing.label);
-  };
+  });
+
+  useEffect(() => {
+    checkCompletion();
+  }, [userId, checkCompletion]);
 
   if (completion >= 100 || dismissed) return null;
 

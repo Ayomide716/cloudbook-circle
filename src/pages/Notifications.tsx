@@ -11,14 +11,15 @@ import { Card } from "@/components/ui/card";
 import { Bell, Heart, MessageCircle, UserPlus, Check, Users, ThumbsUp, Share2 } from "lucide-react";
 import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, toDate } from "@/lib/utils";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Notification {
   id: string;
   type: string;
   content: string;
-  read: boolean;
-  created_at: string;
+  read: boolean | null;
+  created_at: string | null;
   related_id: string | null;
   actor_id: string | null;
   actor_profile?: { full_name: string | null; avatar_url: string | null } | null;
@@ -34,27 +35,20 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (currentUserId) {
-      loadNotifications();
-      setupRealtimeSubscription();
-    }
-  }, [currentUserId]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
       return;
     }
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadNotifications = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [navigate, checkAuth]);
+
+  const loadNotifications = useEffectEvent(async () => {
     if (!currentUserId) return;
 
     const { data, error } = await supabase
@@ -74,7 +68,7 @@ const Notifications = () => {
 
     // Fetch actor profiles for notifications that have actor_id
     const notifs = data || [];
-    const actorIds = [...new Set(notifs.map(n => (n as any).actor_id).filter(Boolean))];
+    const actorIds = [...new Set(notifs.map(n => n.actor_id).filter((id): id is string => !!id))];
     let actorMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
     if (actorIds.length > 0) {
       const { data: profiles } = await supabase
@@ -88,15 +82,14 @@ const Notifications = () => {
 
     const enriched: Notification[] = notifs.map(n => ({
       ...n,
-      actor_id: (n as any).actor_id || null,
-      actor_profile: (n as any).actor_id ? actorMap[(n as any).actor_id] || null : null,
+      actor_profile: n.actor_id ? actorMap[n.actor_id] || null : null,
     }));
 
     setNotifications(enriched);
     setIsLoading(false);
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("notifications-page")
       .on(
@@ -116,7 +109,14 @@ const Notifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadNotifications();
+      return setupRealtimeSubscription();
+    }
+  }, [currentUserId, loadNotifications, setupRealtimeSubscription]);
 
   const markAsRead = async (notificationId: string) => {
     await supabase
@@ -128,6 +128,7 @@ const Notifications = () => {
   };
 
   const markAllAsRead = async () => {
+    if (!currentUserId) return;
     await supabase
       .from("notifications")
       .update({ read: true })
@@ -322,7 +323,7 @@ const Notifications = () => {
                       "text-xs mt-1",
                       !notification.read ? "text-primary font-medium" : "text-muted-foreground"
                     )}>
-                      {formatDistanceToNow(new Date(notification.created_at), {
+                      {formatDistanceToNow(toDate(notification.created_at), {
                         addSuffix: true,
                       })}
                     </p>

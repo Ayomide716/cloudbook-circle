@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface FriendRequest {
   id: string;
@@ -33,12 +34,7 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
   const [pendingCount, setPendingCount] = useState(0);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadRequests();
-    setupRealtimeSubscription();
-  }, [userId]);
-
-  const loadRequests = async () => {
+  const loadRequests = useEffectEvent(async () => {
     const { data, error } = await supabase
       .from("friendships")
       .select(`
@@ -64,9 +60,9 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
 
     setRequests(data || []);
     setPendingCount(data?.length || 0);
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("friendships-changes")
       .on(
@@ -85,7 +81,12 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    loadRequests();
+    return setupRealtimeSubscription();
+  }, [userId, loadRequests, setupRealtimeSubscription]);
 
   const handleAccept = async (requestId: string) => {
     const { error } = await supabase

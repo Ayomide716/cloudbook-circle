@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface OnlineStatusIndicatorProps {
   userId: string;
@@ -16,13 +17,7 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
   const [isFriend, setIsFriend] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    checkFriendshipAndLoadStatus();
-    const cleanup = setupRealtimeSubscription();
-    return cleanup;
-  }, [userId, currentUserId]);
-
-  const checkFriendshipAndLoadStatus = async () => {
+  const checkFriendshipAndLoadStatus = useEffectEvent(async () => {
     if (!currentUserId) {
       setIsLoading(false);
       return;
@@ -50,21 +45,21 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
     }
     
     setIsLoading(false);
-  };
+  });
 
   const loadStatus = async () => {
     const { data } = await supabase
-      .from("user_status" as any)
-      .select("*")
+      .from("user_status")
+      .select("is_online, last_seen")
       .eq("user_id", userId)
       .maybeSingle();
 
     if (data) {
-      setStatus(data as any);
+      setStatus(data);
     }
   };
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel(`user-status-${userId}`)
       .on(
@@ -86,7 +81,13 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    checkFriendshipAndLoadStatus();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
+  }, [userId, currentUserId, checkFriendshipAndLoadStatus, setupRealtimeSubscription]);
 
   // Don't show anything if not friends or still loading
   if (isLoading || !isFriend || !status) return null;

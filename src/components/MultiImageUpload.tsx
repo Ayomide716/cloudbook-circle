@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Images, Loader2, X } from "lucide-react";
+import { getErrorMessage } from "@/lib/utils";
 
 interface MultiImageUploadProps {
   bucket: string;
@@ -55,8 +56,8 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
 
       onUploadComplete([...currentImages, ...newUrls]);
       toast({ title: `${newUrls.length} image(s) uploaded` });
-    } catch (error: any) {
-      toast({ title: "Upload failed", description: error.message, variant: "destructive" });
+    } catch (error) {
+      toast({ title: "Upload failed", description: getErrorMessage(error), variant: "destructive" });
     } finally {
       setIsUploading(false);
     }

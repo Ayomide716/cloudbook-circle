@@ -26,7 +26,8 @@ export const useRingtone = (isPlaying: boolean) => {
 
   const playRingTone = useCallback(() => {
     if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContextRef.current = new (window.AudioContext ||
+        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext!)();
     }
 
     const ctx = audioContextRef.current;

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Heart, ThumbsUp, Laugh, Frown, Angry } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface MessageReactionsProps {
   messageId: string;
@@ -29,12 +30,7 @@ const MessageReactions = ({ messageId, currentUserId, isOwnMessage }: MessageRea
   const [showPicker, setShowPicker] = useState(false);
   const [userReaction, setUserReaction] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadReactions();
-    setupRealtimeSubscription();
-  }, [messageId]);
-
-  const loadReactions = async () => {
+  const loadReactions = useEffectEvent(async () => {
     const { data } = await supabase
       .from("message_reactions")
       .select("*")
@@ -45,9 +41,9 @@ const MessageReactions = ({ messageId, currentUserId, isOwnMessage }: MessageRea
       const myReaction = data.find((r) => r.user_id === currentUserId);
       setUserReaction(myReaction?.reaction_type || null);
     }
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel(`message-reactions-${messageId}`)
       .on(
@@ -65,7 +61,12 @@ const MessageReactions = ({ messageId, currentUserId, isOwnMessage }: MessageRea
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    loadReactions();
+    return setupRealtimeSubscription();
+  }, [messageId, loadReactions, setupRealtimeSubscription]);
 
   const handleReaction = async (reactionType: string) => {
     setShowPicker(false);

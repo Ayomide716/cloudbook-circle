@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { MessageCircleQuestion, Send, Loader2, Trash2, Eye, EyeOff } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface AnonymousQAProps {
   profileId: string;
@@ -31,9 +32,7 @@ const AnonymousQA = ({ profileId, isOwnProfile, currentUserId }: AnonymousQAProp
   const [submitting, setSubmitting] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => { loadQuestions(); }, [profileId]);
-
-  const loadQuestions = async () => {
+  const loadQuestions = useEffectEvent(async () => {
     setLoading(true);
     const { data } = await supabase
       .from("anonymous_questions")
@@ -42,7 +41,11 @@ const AnonymousQA = ({ profileId, isOwnProfile, currentUserId }: AnonymousQAProp
       .order("created_at", { ascending: false });
     setQuestions((data as Question[]) || []);
     setLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    loadQuestions();
+  }, [profileId, loadQuestions]);
 
   const askQuestion = async () => {
     if (!newQuestion.trim() || !currentUserId) return;

@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Report {
   id: string;
@@ -40,11 +41,7 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({ totalUsers: 0, totalPosts: 0, totalReports: 0, pendingReports: 0 });
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/landing"); return; }
     setCurrentUserId(session.user.id);
@@ -65,7 +62,11 @@ const AdminDashboard = () => {
     setIsAdmin(true);
     await Promise.all([fetchReports(), fetchUsers(), fetchStats()]);
     setLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const fetchReports = async () => {
     const { data } = await supabase
@@ -73,8 +74,7 @@ const AdminDashboard = () => {
       .select("*")
       .order("created_at", { ascending: false })
       .limit(100);
-    // Note: This only shows the current user's reports due to RLS
-    // In production, you'd use a service role or admin-specific RLS
+    // Admins can read every report via the "Admins can view all reports" RLS policy.
     setReports((data as Report[]) || []);
   };
 

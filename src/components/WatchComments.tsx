@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MessageCircle, Send, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface WatchComment {
   id: string;
@@ -31,17 +32,17 @@ const WatchComments = ({ videoId, currentUserId }: WatchCommentsProps) => {
   const [isSending, setIsSending] = useState(false);
   const [commentCount, setCommentCount] = useState(0);
 
-  useEffect(() => {
-    loadCount();
-  }, [videoId]);
-
-  const loadCount = async () => {
+  const loadCount = useEffectEvent(async () => {
     const { count } = await supabase
       .from("watch_comments")
       .select("id", { count: "exact", head: true })
       .eq("video_id", videoId);
     setCommentCount(count || 0);
-  };
+  });
+
+  useEffect(() => {
+    loadCount();
+  }, [videoId, loadCount]);
 
   const loadComments = async () => {
     setIsLoading(true);
