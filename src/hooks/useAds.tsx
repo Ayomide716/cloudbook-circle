@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AdCampaign {
   id: string;
+  user_id: string;
   title: string;
   content: string;
   image_url: string | null;
@@ -17,7 +18,7 @@ export function useAds() {
     const fetchAds = async () => {
       const { data } = await supabase
         .from("ad_campaigns")
-        .select("id, title, content, image_url, link_url, cta_text")
+        .select("id, user_id, title, content, image_url, link_url, cta_text")
         .eq("status", "active")
         .order("created_at", { ascending: false })
         .limit(5);
