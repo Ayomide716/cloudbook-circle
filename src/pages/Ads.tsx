@@ -61,7 +61,7 @@ const Ads = () => {
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) { navigate("/landing"); return; }
+    if (!session) { navigate("/auth"); return; }
     setCurrentUserId(session.user.id);
     await Promise.all([fetchCredits(session.user.id), fetchCampaigns(session.user.id)]);
     setLoading(false);

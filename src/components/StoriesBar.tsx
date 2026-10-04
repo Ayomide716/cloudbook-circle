@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { createPortal } from "react-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -362,7 +363,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       </Dialog>
 
       {/* Full-Screen Story Viewer */}
-      {viewerOpen && activeGroup && activeStory && (
+      {/* Rendered at <body> level so no transformed/filtered ancestor (pull-to-refresh, page
+          animations) can offset the full-screen viewer. */}
+      {viewerOpen && activeGroup && activeStory && createPortal(
         <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] z-[100] bg-black flex items-center justify-center">
           {/* Progress bars */}
           <div className="absolute top-0 left-0 right-0 z-20 flex gap-0.5 px-2 pt-2 sm:pt-3 sm:px-4">
@@ -473,7 +476,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               </div>
             </div>
           )}
-        </div>
+        </div>,
+        document.body
       )}
 
       <AlertDialog

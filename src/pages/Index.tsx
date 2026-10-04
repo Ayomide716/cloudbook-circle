@@ -100,7 +100,7 @@ const Index = () => {
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      navigate("/landing");
+      navigate("/auth");
       return;
     }
 
