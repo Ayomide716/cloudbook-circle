@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { usePostInteractions } from "@/hooks/use-post-interactions";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -29,8 +30,7 @@ import type { PostComment } from "@/components/PostCard";
    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
    const [posts, setPosts] = useState<Post[]>([]);
    const [isLoading, setIsLoading] = useState(true);
-   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
-   const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
+  const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
  
    const checkAuth = useEffectEvent(async () => {
      const { data: { session } } = await supabase.auth.getSession();
@@ -144,8 +144,8 @@ import type { PostComment } from "@/components/PostCard";
                  reactions={reactionsData[post.id]?.reactions || {}}
                  userReaction={reactionsData[post.id]?.userReaction || null}
                  comments={commentsData[post.id] || []}
-                 onReactionToggle={() => {}}
-                 onCommentAdded={() => loadSavedPosts(currentUserId)}
+                 onReactionToggle={(type) => toggleReaction(post.id, type)}
+                 onCommentAdded={() => reloadComments(post.id)}
                  onDelete={() => loadSavedPosts(currentUserId)}
                />
              ))}

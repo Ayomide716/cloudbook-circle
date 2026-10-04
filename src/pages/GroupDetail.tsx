@@ -372,9 +372,9 @@ const GroupDetail = () => {
               className="w-full h-48 object-cover rounded-lg mb-4"
             />
           )}
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-2">{group.name}</h1>
+          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 [overflow-wrap:anywhere]">{group.name}</h1>
               {group.description && (
                 <p className="text-muted-foreground mb-4">{group.description}</p>
               )}
@@ -383,7 +383,7 @@ const GroupDetail = () => {
                 <span>{members.length} members</span>
               </div>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 self-end sm:self-auto shrink-0">
               {isMember && (
                 <>
                   <Button variant="outline" size="icon" onClick={() => startGroupCall(true)} aria-label="Start group voice call" title="Start group voice call">

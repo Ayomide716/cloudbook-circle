@@ -1,5 +1,6 @@
 import { useEffect, useState, lazy, Suspense, useCallback, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { usePostInteractions } from "@/hooks/use-post-interactions";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
@@ -21,7 +22,6 @@ import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 import NewPostsBanner from "@/components/NewPostsBanner";
 import MoodSelector from "@/components/MoodSelector";
 import ScreenTimeWidget from "@/components/ScreenTimeWidget";
-import type { PostComment } from "@/components/PostCard";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
@@ -34,12 +34,17 @@ interface Profile {
 
 const Index = () => {
   const navigate = useNavigate();
+  // Old post links were "/?post=<id>": send them to the post's own page.
+  const [searchParams] = useSearchParams();
+  const legacyPostId = searchParams.get("post");
+  useEffect(() => {
+    if (legacyPostId) navigate(`/post/${legacyPostId}`, { replace: true });
+  }, [legacyPostId, navigate]);
   const { toast } = useToast();
   useSEO({ title: "Home", description: "Your CloudBook news feed - see updates from friends and community." });
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   const [feedFilter, setFeedFilter] = useState<"all" | "friends" | "digest">("all");
-  const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
-  const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
+  const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lastFetchTime, setLastFetchTime] = useState(new Date());
   const [currentMood, setCurrentMood] = useState<string | null>(() => {
@@ -79,7 +84,7 @@ const Index = () => {
     return () => {
       cancelled = true;
     };
-  }, [postIdsKey, currentUserId, loadPostExtras]);
+  }, [postIdsKey, currentUserId, loadPostExtras, setReactionsData, setCommentsData]);
 
   useEffect(() => {
     if (!sentinelRef.current || !hasNextPage) return;
@@ -131,41 +136,6 @@ const Index = () => {
     const cleanup = setupRealtimeSubscription();
     return cleanup;
   }, [navigate, checkAuth, setupRealtimeSubscription]);
-
-  const handleReactionToggle = async (postId: string, reactionType: string) => {
-    if (!currentUser) return;
-    const wasReaction = reactionsData[postId]?.userReaction;
-    const currentReactions = { ...(reactionsData[postId]?.reactions || {}) };
-
-    if (wasReaction) {
-      currentReactions[wasReaction] = Math.max(0, (currentReactions[wasReaction] || 1) - 1);
-    }
-    if (wasReaction !== reactionType) {
-      currentReactions[reactionType] = (currentReactions[reactionType] || 0) + 1;
-    }
-
-    setReactionsData((prev) => ({
-      ...prev,
-      [postId]: {
-        reactions: currentReactions,
-        userReaction: wasReaction === reactionType ? null : reactionType,
-      },
-    }));
-  };
-
-  const handleCommentAdded = async (postId: string) => {
-    if (!currentUser) return;
-    const { data: commentsResult } = await supabase
-      .from("comments")
-      .select(`*, profiles:user_id (id, full_name, avatar_url)`)
-      .eq("post_id", postId)
-      .order("created_at", { ascending: true });
-
-    setCommentsData((prev) => ({
-      ...prev,
-      [postId]: commentsResult || [],
-    }));
-  };
 
   const handleMoodChange = (mood: string | null) => {
     setCurrentMood(mood);
@@ -264,8 +234,8 @@ const Index = () => {
                             reactions={reactionsData[post.id]?.reactions || {}}
                             userReaction={reactionsData[post.id]?.userReaction || null}
                             comments={commentsData[post.id] || []}
-                            onReactionToggle={(type) => handleReactionToggle(post.id, type)}
-                            onCommentAdded={() => handleCommentAdded(post.id)}
+                            onReactionToggle={(type) => toggleReaction(post.id, type)}
+                            onCommentAdded={() => reloadComments(post.id)}
                             onDelete={() => refetch()}
                             compact={size === "half"}
                           />

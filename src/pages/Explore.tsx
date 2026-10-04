@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { usePostInteractions } from "@/hooks/use-post-interactions";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -35,8 +36,7 @@ const Explore = () => {
   const [searchResults, setSearchResults] = useState<{ posts: PostCardProps["post"][]; people: Tables<"profiles">[] } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [activeTab, setActiveTab] = useState("foryou");
-  const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
-  const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
+  const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -232,8 +232,8 @@ const Explore = () => {
                     reactions={reactionsData[post.id]?.reactions || {}}
                     userReaction={reactionsData[post.id]?.userReaction || null}
                     comments={commentsData[post.id] || []}
-                    onReactionToggle={() => {}}
-                    onCommentAdded={() => {}}
+                    onReactionToggle={(type) => toggleReaction(post.id, type)}
+                    onCommentAdded={() => reloadComments(post.id)}
                     onDelete={() => runSearch(trimmedQuery, currentUser.id)}
                   />
                 ))}
@@ -269,8 +269,8 @@ const Explore = () => {
                   reactions={reactionsData[post.id]?.reactions || {}}
                   userReaction={reactionsData[post.id]?.userReaction || null}
                   comments={commentsData[post.id] || []}
-                  onReactionToggle={() => {}}
-                  onCommentAdded={() => {}}
+                  onReactionToggle={(type) => toggleReaction(post.id, type)}
+                  onCommentAdded={() => reloadComments(post.id)}
                   onDelete={() => loadContent(currentUser.id)}
                 />
               </motion.div>
@@ -312,8 +312,8 @@ const Explore = () => {
                   reactions={reactionsData[post.id]?.reactions || {}}
                   userReaction={reactionsData[post.id]?.userReaction || null}
                   comments={commentsData[post.id] || []}
-                  onReactionToggle={() => {}}
-                  onCommentAdded={() => {}}
+                  onReactionToggle={(type) => toggleReaction(post.id, type)}
+                  onCommentAdded={() => reloadComments(post.id)}
                   onDelete={() => loadContent(currentUser.id)}
                 />
               </motion.div>

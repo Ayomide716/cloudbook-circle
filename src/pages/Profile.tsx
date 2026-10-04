@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef } from "react";
+import { usePostInteractions } from "@/hooks/use-post-interactions";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -101,8 +102,7 @@ const Profile = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
-  const [reactionsData, setReactionsData] = useState<Record<string, {reactions: Record<string, number>;userReaction: string | null;}>>({});
-  const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
+  const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const [friendCount, setFriendCount] = useState(0);
   const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums" | "qa">("posts");
 
@@ -725,8 +725,8 @@ const Profile = () => {
                 reactions={reactionsData[post.id]?.reactions || {}}
                 userReaction={reactionsData[post.id]?.userReaction || null}
                 comments={commentsData[post.id] || []}
-                onReactionToggle={() => loadProfile()}
-                onCommentAdded={() => loadProfile()}
+                onReactionToggle={(type) => toggleReaction(post.id, type)}
+                onCommentAdded={() => reloadComments(post.id)}
                 onDelete={() => loadProfile()} />
               
                   </motion.div>

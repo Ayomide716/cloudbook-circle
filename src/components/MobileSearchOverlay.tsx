@@ -74,7 +74,7 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
     onClose();
     switch (item.type) {
       case "user": navigate(`/profile/${item.id}`); break;
-      case "post": navigate(`/?post=${item.id}`); break;
+      case "post": navigate(`/post/${item.id}`); break;
       case "group": navigate(`/groups/${item.id}`); break;
     }
   };
