@@ -20,6 +20,7 @@ import { useSEO } from "@/hooks/useSEO";
  } from "@/components/ui/dialog";
  import { cn } from "@/lib/utils";
  import EventsSkeleton from "@/components/skeletons/EventsSkeleton";
+ import { useEffectEvent } from "@/hooks/use-effect-event";
  
  interface Event {
    id: string;
@@ -60,11 +61,7 @@ import { useSEO } from "@/hooks/useSEO";
    });
    const [isCreating, setIsCreating] = useState(false);
  
-   useEffect(() => {
-     checkAuth();
-   }, []);
- 
-   const checkAuth = async () => {
+   const checkAuth = useEffectEvent(async () => {
      const { data: { session } } = await supabase.auth.getSession();
      if (!session) {
        navigate("/auth");
@@ -72,7 +69,11 @@ import { useSEO } from "@/hooks/useSEO";
      }
      setCurrentUserId(session.user.id);
      loadEvents(session.user.id);
-   };
+   });
+
+   useEffect(() => {
+     checkAuth();
+   }, [checkAuth]);
  
    const loadEvents = async (userId: string) => {
      setIsLoading(true);

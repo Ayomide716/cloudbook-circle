@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 import { motion } from "framer-motion";
 import {
   Tooltip,
@@ -34,20 +35,15 @@ interface ProfileAchievementsProps {
 const ProfileAchievements = ({ userId, isOwnProfile }: ProfileAchievementsProps) => {
   const [earned, setEarned] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    loadAchievements();
-    if (isOwnProfile) checkAndAwardAchievements();
-  }, [userId]);
-
-  const loadAchievements = async () => {
+  const loadAchievements = useEffectEvent(async () => {
     const { data } = await supabase
       .from("user_achievements")
       .select("achievement_type")
       .eq("user_id", userId);
     if (data) setEarned(new Set(data.map((a) => a.achievement_type)));
-  };
+  });
 
-  const checkAndAwardAchievements = async () => {
+  const checkAndAwardAchievements = useEffectEvent(async () => {
     const checks: { type: string; check: () => Promise<boolean> }[] = [
       {
         type: "first_post",
@@ -114,15 +110,31 @@ const ProfileAchievements = ({ userId, isOwnProfile }: ProfileAchievementsProps)
       },
     ];
 
+    // Read what's already earned from the database; `earned` state may not have loaded yet.
+    const { data: existing } = await supabase
+      .from("user_achievements")
+      .select("achievement_type")
+      .eq("user_id", userId);
+    const alreadyEarned = new Set((existing || []).map((a) => a.achievement_type));
+
     for (const { type, check } of checks) {
-      if (earned.has(type)) continue;
+      if (alreadyEarned.has(type)) continue;
       const qualifies = await check();
       if (qualifies) {
         await supabase.from("user_achievements").insert({ user_id: userId, achievement_type: type }).select();
         setEarned((prev) => new Set(prev).add(type));
       }
     }
-  };
+  });
+
+  useEffect(() => {
+    loadAchievements();
+  }, [userId, loadAchievements]);
+
+  // isOwnProfile can flip to true after the viewer's session loads, so re-check then.
+  useEffect(() => {
+    if (isOwnProfile) checkAndAwardAchievements();
+  }, [userId, isOwnProfile, checkAndAwardAchievements]);
 
   const earnedList = ALL_ACHIEVEMENTS.filter((a) => earned.has(a.type));
   const unearnedList = ALL_ACHIEVEMENTS.filter((a) => !earned.has(a.type));

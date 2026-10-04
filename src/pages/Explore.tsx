@@ -15,6 +15,7 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import type { PostCardProps, PostComment } from "@/components/PostCard";
 import type { Tables } from "@/integrations/supabase/types";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface TrendingTopic {
   tag: string;
@@ -33,11 +34,7 @@ const Explore = () => {
   const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
   const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/landing"); return; }
     const { data: profile } = await supabase.from("profiles").select("*").eq("id", session.user.id).single();
@@ -45,7 +42,11 @@ const Explore = () => {
       setCurrentUser(profile);
       loadContent(session.user.id);
     }
-  };
+  });
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const loadContent = async (userId: string) => {
     // Load trending posts (most reacted in last 7 days)

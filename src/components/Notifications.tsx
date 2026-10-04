@@ -10,6 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Notification {
   id: string;
@@ -29,12 +30,7 @@ const Notifications = ({ userId }: NotificationsProps) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadNotifications();
-    setupRealtimeSubscription();
-  }, [userId]);
-
-  const loadNotifications = async () => {
+  const loadNotifications = useEffectEvent(async () => {
     const { data, error } = await supabase
       .from("notifications")
       .select("*")
@@ -53,9 +49,9 @@ const Notifications = ({ userId }: NotificationsProps) => {
 
     setNotifications(data || []);
     setUnreadCount(data?.filter((n) => !n.read).length || 0);
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("notifications-changes")
       .on(
@@ -75,7 +71,12 @@ const Notifications = ({ userId }: NotificationsProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    loadNotifications();
+    return setupRealtimeSubscription();
+  }, [userId, loadNotifications, setupRealtimeSubscription]);
 
   const markAsRead = async (notificationId: string) => {
     await supabase

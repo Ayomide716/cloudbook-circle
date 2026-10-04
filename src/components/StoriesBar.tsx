@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Story {
   id: string;
@@ -55,13 +56,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadStories();
-    const cleanup = setupRealtimeSubscription();
-    return cleanup;
-  }, [currentUserId]);
-
-  const loadStories = async () => {
+  const loadStories = useEffectEvent(async () => {
     try {
       const { data: friendships } = await supabase
         .from("friendships")
@@ -125,15 +120,21 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     } catch (e) {
       console.log("Error loading stories:", e);
     }
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("stories-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "stories" }, () => loadStories())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  };
+  });
+
+  useEffect(() => {
+    loadStories();
+    const cleanup = setupRealtimeSubscription();
+    return cleanup;
+  }, [currentUserId, loadStories, setupRealtimeSubscription]);
 
   const handleCreateStory = async () => {
     if (!storyImage) {
@@ -156,21 +157,6 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const activeGroup = storyGroups[activeGroupIndex];
   const activeStory = activeGroup?.stories[activeStoryIndex];
 
-  const startTimer = useCallback(() => {
-    if (timerRef.current) clearInterval(timerRef.current);
-    setProgress(0);
-    const interval = 50;
-    let elapsed = 0;
-    timerRef.current = setInterval(() => {
-      if (isPaused) return;
-      elapsed += interval;
-      setProgress(Math.min((elapsed / STORY_DURATION) * 100, 100));
-      if (elapsed >= STORY_DURATION) {
-        goNext();
-      }
-    }, interval);
-  }, [isPaused, activeGroupIndex, activeStoryIndex, storyGroups.length]);
-
   const goNext = useCallback(() => {
     if (!activeGroup) return;
     if (activeStoryIndex < activeGroup.stories.length - 1) {
@@ -182,6 +168,28 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       setViewerOpen(false);
     }
   }, [activeGroup, activeStoryIndex, activeGroupIndex, storyGroups.length]);
+
+  // Read the latest pause state inside the timer without restarting it (pausing must not reset progress).
+  const isPausedRef = useRef(isPaused);
+  useEffect(() => {
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
+  const advanceStory = useEffectEvent(() => goNext());
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    setProgress(0);
+    const interval = 50;
+    let elapsed = 0;
+    timerRef.current = setInterval(() => {
+      if (isPausedRef.current) return;
+      elapsed += interval;
+      setProgress(Math.min((elapsed / STORY_DURATION) * 100, 100));
+      if (elapsed >= STORY_DURATION) {
+        advanceStory();
+      }
+    }, interval);
+  }, [advanceStory]);
 
   const goPrev = useCallback(() => {
     if (activeStoryIndex > 0) {
@@ -200,10 +208,11 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   }, [viewerOpen, activeGroupIndex, activeStoryIndex, startTimer]);
 
   // Mark as viewed when story changes
+  const activeStoryId = activeStory?.id;
   useEffect(() => {
-    if (!viewerOpen || !activeStory) return;
-    supabase.from("story_views").insert({ story_id: activeStory.id, viewer_id: currentUserId }).then(() => {});
-  }, [viewerOpen, activeStory?.id]);
+    if (!viewerOpen || !activeStoryId) return;
+    supabase.from("story_views").insert({ story_id: activeStoryId, viewer_id: currentUserId }).then(() => {});
+  }, [viewerOpen, activeStoryId, currentUserId]);
 
   const openViewer = (groupIndex: number) => {
     setActiveGroupIndex(groupIndex);

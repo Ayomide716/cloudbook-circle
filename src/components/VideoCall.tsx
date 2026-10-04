@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -435,8 +436,39 @@ const VideoCall = ({
     }
   };
 
-  // Subscribe to signaling channel and set up call
-  useEffect(() => {
+  // Periodically re-send "ready" signal until connected, handles missed broadcasts
+  const resendReadyIfNeeded = useEffectEvent(() => {
+    if (
+      setupCompleteRef.current &&
+      channelReadyRef.current &&
+      peerConnectionRef.current &&
+      peerConnectionRef.current.connectionState !== "connected"
+    ) {
+      console.log("[WebRTC] Re-sending ready signal");
+      signalingChannelRef.current?.send({
+        type: "broadcast",
+        event: "signal",
+        payload: { type: "ready", payload: {}, from: currentUserId, to: remoteUserId },
+      });
+      // If caller and remote was already ready but offer wasn't sent, retry
+      if (!isIncoming && remoteReadyRef.current && !hasCreatedOfferRef.current) {
+        createAndSendOffer(peerConnectionRef.current);
+      }
+    }
+  });
+
+  // End call if not connected within 60 seconds
+  const endIfNotConnected = useEffectEvent(() => {
+    if (!peerConnectionRef.current || peerConnectionRef.current.connectionState !== "connected") {
+      console.log("[WebRTC] Connection timeout - ending call");
+      handleEndCall();
+    }
+  });
+
+  const leaveCall = useEffectEvent(() => cleanup());
+
+  // Subscribe to signaling channel and set up the call once on mount; tear down on unmount.
+  const startCall = useEffectEvent(() => {
     console.log("[WebRTC] Mounting VideoCall, roomId:", roomId, "isIncoming:", isIncoming);
 
     const channel = supabase
@@ -454,41 +486,17 @@ const VideoCall = ({
 
     signalingChannelRef.current = channel;
 
-    // Periodically re-send "ready" signal until connected, handles missed broadcasts
-    const readyInterval = setInterval(() => {
-      if (
-        setupCompleteRef.current &&
-        channelReadyRef.current &&
-        peerConnectionRef.current &&
-        peerConnectionRef.current.connectionState !== "connected"
-      ) {
-        console.log("[WebRTC] Re-sending ready signal");
-        signalingChannelRef.current?.send({
-          type: "broadcast",
-          event: "signal",
-          payload: { type: "ready", payload: {}, from: currentUserId, to: remoteUserId },
-        });
-        // If caller and remote was already ready but offer wasn't sent, retry
-        if (!isIncoming && remoteReadyRef.current && !hasCreatedOfferRef.current) {
-          createAndSendOffer(peerConnectionRef.current);
-        }
-      }
-    }, 2000);
-
-    // Timeout: end call if not connected within 60 seconds
-    const connectTimeout = setTimeout(() => {
-      if (!peerConnectionRef.current || peerConnectionRef.current.connectionState !== "connected") {
-        console.log("[WebRTC] Connection timeout - ending call");
-        handleEndCall();
-      }
-    }, 60000);
+    const readyInterval = setInterval(resendReadyIfNeeded, 2000);
+    const connectTimeout = setTimeout(endIfNotConnected, 60000);
 
     return () => {
       clearInterval(readyInterval);
       clearTimeout(connectTimeout);
-      cleanup();
+      leaveCall();
     };
-  }, []); // Mount once only
+  });
+
+  useEffect(() => startCall(), [startCall]);
 
   const qualityColor = signalQuality === "good" ? "bg-green-500" : signalQuality === "fair" ? "bg-yellow-500" : "bg-red-500";
 

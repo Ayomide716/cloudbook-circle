@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect, useState } from "react";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -27,15 +28,7 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
   const [friendRequestCount, setFriendRequestCount] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
 
-  useEffect(() => {
-    if (currentUserId) {
-      loadProfile();
-      loadCounts();
-      checkAdmin();
-    }
-  }, [currentUserId]);
-
-  const checkAdmin = async () => {
+  const checkAdmin = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("user_roles")
@@ -44,9 +37,9 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
       .eq("role", "admin")
       .maybeSingle();
     setIsAdmin(!!data);
-  };
+  });
 
-  const loadProfile = async () => {
+  const loadProfile = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("profiles")
@@ -54,9 +47,9 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
       .eq("id", currentUserId)
       .single();
     if (data) setProfile(data);
-  };
+  });
 
-  const loadCounts = async () => {
+  const loadCounts = useEffectEvent(async () => {
     if (!currentUserId) return;
     
     const { count: notifCount } = await supabase
@@ -73,7 +66,15 @@ const MobileMenu = ({ isOpen, onClose, currentUserId }: MobileMenuProps) => {
     
     setNotificationCount(notifCount || 0);
     setFriendRequestCount(friendCount || 0);
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadProfile();
+      loadCounts();
+      checkAdmin();
+    }
+  }, [currentUserId, checkAdmin, loadCounts, loadProfile]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();

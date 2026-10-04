@@ -28,6 +28,7 @@ import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { TablesInsert } from "@/integrations/supabase/types";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Profile {
   id: string;
@@ -88,19 +89,6 @@ const Messages = () => {
     initiateCall, acceptIncomingCall, rejectIncomingCall, endCall,
   } = useVideoCall(currentUserId);
 
-  useEffect(() => { checkAuth(); }, [navigate]);
-
-  useEffect(() => {
-    if (selectedConversation && currentUserId) {
-      loadMessages(selectedConversation.id);
-      loadChatPrefs(selectedConversation.id);
-      setupTypingChannel();
-    }
-    return () => {
-      if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current);
-    };
-  }, [selectedConversation, currentUserId]);
-
   // Scroll to highlighted message
   useEffect(() => {
     if (highlightedMessageId) {
@@ -109,16 +97,20 @@ const Messages = () => {
     }
   }, [highlightedMessageId]);
 
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
     setCurrentUserId(session.user.id);
     const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", session.user.id).single();
     if (profile?.full_name) setCurrentUserName(profile.full_name);
     // Online status is now handled globally in Navigation
-  };
+  });
 
-  const loadChatPrefs = async (otherUserId: string) => {
+  useEffect(() => {
+    checkAuth();
+  }, [navigate, checkAuth]);
+
+  const loadChatPrefs = useEffectEvent(async (otherUserId: string) => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("chat_preferences")
@@ -133,7 +125,7 @@ const Messages = () => {
       setChatTheme("default");
       setDisappearingMinutes(null);
     }
-  };
+  });
 
   const loadConversations = useCallback(async () => {
     if (!currentUserId) return;
@@ -164,7 +156,7 @@ const Messages = () => {
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
 
-  const loadMessages = async (otherUserId: string, before?: string) => {
+  const loadMessages = useEffectEvent(async (otherUserId: string, before?: string) => {
     if (!currentUserId) return;
     let query = supabase
       .from("messages")
@@ -194,14 +186,14 @@ const Messages = () => {
       await supabase.from("messages").update({ read: true }).eq("sender_id", otherUserId).eq("receiver_id", currentUserId).eq("read", false);
       loadConversations();
     }
-  };
+  });
 
   const loadOlderMessages = useCallback(async () => {
     if (!selectedConversation || isLoadingMore || !hasMoreMessages || messages.length === 0) return;
     setIsLoadingMore(true);
     await loadMessages(selectedConversation.id, messages[0].created_at);
     setIsLoadingMore(false);
-  }, [selectedConversation, isLoadingMore, hasMoreMessages, messages]);
+  }, [selectedConversation, isLoadingMore, hasMoreMessages, messages, loadMessages]);
 
   const selectedConversationRef = useRef<Profile | null>(null);
   selectedConversationRef.current = selectedConversation;
@@ -251,7 +243,7 @@ const Messages = () => {
     }
   }, [currentUserId, loadConversations, setupRealtimeSubscription]);
 
-  const setupTypingChannel = () => {
+  const setupTypingChannel = useEffectEvent(() => {
     if (!selectedConversation || !currentUserId) return;
     const roomId = [currentUserId, selectedConversation.id].sort().join("-");
     typingChannelRef.current = supabase
@@ -271,7 +263,18 @@ const Messages = () => {
           await typingChannelRef.current?.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
         }
       });
-  };
+  });
+
+  useEffect(() => {
+    if (selectedConversation && currentUserId) {
+      loadMessages(selectedConversation.id);
+      loadChatPrefs(selectedConversation.id);
+      setupTypingChannel();
+    }
+    return () => {
+      if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current);
+    };
+  }, [selectedConversation, currentUserId, loadChatPrefs, loadMessages, setupTypingChannel]);
 
   const handleTyping = useCallback(async () => {
     if (!typingChannelRef.current || !currentUserId) return;
@@ -370,10 +373,10 @@ const Messages = () => {
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
   };
 
-  const getReplyMessage = (replyToId: string | null | undefined) => {
+  const getReplyMessage = useCallback((replyToId: string | null | undefined) => {
     if (!replyToId) return null;
     return messages.find((m) => m.id === replyToId) || null;
-  };
+  }, [messages]);
 
   // Filter out expired disappearing messages
   const visibleMessages = messages.filter((m) => {
@@ -410,7 +413,7 @@ const Messages = () => {
         />
       </div>
     );
-  }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme]);
+  }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme, getReplyMessage]);
 
   if (isLoading) return <MessagesSkeleton />;
 

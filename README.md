@@ -32,6 +32,8 @@ npm run dev            # http://localhost:8080
    npx supabase db push
    ```
 
+   No CLI? Paste `supabase/full_schema.sql` (all migrations combined into one file) into the dashboard's SQL Editor and run it once instead. Use one method or the other, not both. If you add migrations later, regenerate it with `npm run schema:sql`.
+
 3. **Fill in `.env`** from *Project Settings → API*: the project URL and the anon (publishable) key.
 
 4. **Configure auth** in *Authentication → URL Configuration*:

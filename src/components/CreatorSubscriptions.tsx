@@ -8,6 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Crown, Star, Gem, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Tier {
   id: string;
@@ -37,11 +38,7 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
   const [showSetup, setShowSetup] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    loadData();
-  }, [creatorId, currentUserId]);
-
-  const loadData = async () => {
+  const loadData = useEffectEvent(async () => {
     const [{ data: tiersData }, { data: subData }] = await Promise.all([
       supabase.from("creator_tiers").select("*").eq("creator_id", creatorId).order("price_credits"),
       supabase.from("creator_subscriptions").select("tier_id").eq("subscriber_id", currentUserId).eq("creator_id", creatorId).eq("status", "active").maybeSingle(),
@@ -49,7 +46,11 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
     setTiers(tiersData || []);
     setCurrentSub(subData?.tier_id || null);
     setLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    loadData();
+  }, [creatorId, currentUserId, loadData]);
 
   const subscribe = async (tier: Tier) => {
     setSubscribing(tier.id);

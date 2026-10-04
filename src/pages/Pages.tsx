@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, Users, Globe, Flag, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 const PAGE_CATEGORIES = [
   { value: "business", label: "Business" },
@@ -57,24 +58,17 @@ const Pages = () => {
   const [createDesc, setCreateDesc] = useState("");
   const [isCreating, setIsCreating] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (currentUserId) {
-      loadPages();
-      loadFollowed();
-    }
-  }, [currentUserId, searchQuery]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadPages = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const loadPages = useEffectEvent(async () => {
     setIsLoading(true);
     let query = supabase.from("pages").select("*");
     if (searchQuery.trim()) {
@@ -86,16 +80,23 @@ const Pages = () => {
     setPages(all.filter(p => p.owner_id !== currentUserId));
     setMyPages(all.filter(p => p.owner_id === currentUserId));
     setIsLoading(false);
-  };
+  });
 
-  const loadFollowed = async () => {
+  const loadFollowed = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("page_followers")
       .select("page_id")
       .eq("user_id", currentUserId);
     setFollowedPageIds(new Set(data?.map(f => f.page_id) || []));
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadPages();
+      loadFollowed();
+    }
+  }, [currentUserId, searchQuery, loadFollowed, loadPages]);
 
   const toggleFollow = async (pageId: string) => {
     if (!currentUserId) return;

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 import { Circle } from "lucide-react";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface OnlineFriend {
   id: string;
@@ -19,22 +20,7 @@ const OnlineFriendsWidget = ({ currentUserId }: OnlineFriendsWidgetProps) => {
   const navigate = useNavigate();
   const [onlineFriends, setOnlineFriends] = useState<OnlineFriend[]>([]);
 
-  useEffect(() => {
-    loadOnlineFriends();
-    const interval = setInterval(loadOnlineFriends, 30000);
-
-    const channel = supabase
-      .channel("online-friends-widget")
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => loadOnlineFriends())
-      .subscribe();
-
-    return () => {
-      clearInterval(interval);
-      supabase.removeChannel(channel);
-    };
-  }, [currentUserId]);
-
-  const loadOnlineFriends = async () => {
+  const loadOnlineFriends = useEffectEvent(async () => {
     const { data: friendships } = await supabase
       .from("friendships")
       .select("user_id, friend_id")
@@ -65,7 +51,22 @@ const OnlineFriendsWidget = ({ currentUserId }: OnlineFriendsWidgetProps) => {
       .in("id", onlineIds);
 
     setOnlineFriends(profiles || []);
-  };
+  });
+
+  useEffect(() => {
+    loadOnlineFriends();
+    const interval = setInterval(loadOnlineFriends, 30000);
+
+    const channel = supabase
+      .channel("online-friends-widget")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => loadOnlineFriends())
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [currentUserId, loadOnlineFriends]);
 
   if (onlineFriends.length === 0) return null;
 

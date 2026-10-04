@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 import { Plus, Send, Film, ChevronUp, ChevronDown, ArrowLeft, Home, MessageCircle } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -57,17 +58,6 @@ export default function Reels() {
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { navigate("/auth"); return; }
-      setUser(session.user);
-      loadFriendIds(session.user.id);
-    };
-    init();
-    loadReels();
-  }, []);
-
   const loadFriendIds = async (userId: string) => {
     const { data } = await supabase
       .from("friendships")
@@ -108,7 +98,14 @@ export default function Reels() {
     }
   };
 
-  const loadReels = async () => {
+  const checkAuth = useEffectEvent(async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) { navigate("/auth"); return; }
+    setUser(session.user);
+    loadFriendIds(session.user.id);
+  });
+
+  const loadReels = useEffectEvent(async () => {
     setLoading(true);
     const { data, error } = await supabase
       .from("reels")
@@ -134,7 +131,16 @@ export default function Reels() {
       }
     }
     setLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  // Reload when opening a different shared reel link.
+  useEffect(() => {
+    loadReels();
+  }, [paramReelId, loadReels]);
 
   const handleLike = async (reelId: string) => {
     if (!user) return;

@@ -5,6 +5,7 @@ import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface ProfileCompletionPromptProps {
   userId: string;
@@ -16,11 +17,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
   const [nextStep, setNextStep] = useState("");
   const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    checkCompletion();
-  }, [userId]);
-
-  const checkCompletion = async () => {
+  const checkCompletion = useEffectEvent(async () => {
     const { data: profile } = await supabase
       .from("profiles")
       .select("full_name, avatar_url, cover_url, bio, location, work, education, website")
@@ -45,7 +42,11 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
 
     const missing = fields.find((f) => !profile[f.key]);
     if (missing) setNextStep(missing.label);
-  };
+  });
+
+  useEffect(() => {
+    checkCompletion();
+  }, [userId, checkCompletion]);
 
   if (completion >= 100 || dismissed) return null;
 

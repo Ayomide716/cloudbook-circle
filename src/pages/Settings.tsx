@@ -54,7 +54,7 @@ const Settings = () => {
         .from("notification_preferences")
         .select("*")
         .eq("user_id", session.user.id)
-        .single();
+        .maybeSingle();
 
       if (data) {
         setPrefs({

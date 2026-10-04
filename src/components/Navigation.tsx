@@ -25,6 +25,7 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
 import logo from "@/assets/logo-new.png";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface NavigationProps {
   currentUserId?: string;
@@ -41,34 +42,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   
   usePushNotifications(currentUserId);
 
-  useEffect(() => {
-    if (currentUserId) {
-      loadCounts();
-      loadUserProfile();
-      setupRealtimeSubscriptions();
-      checkAdmin();
-      
-      // Global online status tracking
-      updateOnlineStatus(currentUserId, true);
-      const presenceInterval = setInterval(() => updateOnlineStatus(currentUserId, true), 30000);
-      const handleUnload = () => updateOnlineStatus(currentUserId, false);
-      const handleVisibility = () => {
-        if (document.hidden) updateOnlineStatus(currentUserId, false);
-        else updateOnlineStatus(currentUserId, true);
-      };
-      window.addEventListener("beforeunload", handleUnload);
-      document.addEventListener("visibilitychange", handleVisibility);
-      
-      return () => {
-        clearInterval(presenceInterval);
-        window.removeEventListener("beforeunload", handleUnload);
-        document.removeEventListener("visibilitychange", handleVisibility);
-        updateOnlineStatus(currentUserId, false);
-      };
-    }
-  }, [currentUserId]);
-
-  const checkAdmin = async () => {
+  const checkAdmin = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("user_roles")
@@ -77,9 +51,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       .eq("role", "admin")
       .maybeSingle();
     setIsAdmin(!!data);
-  };
+  });
 
-  const loadUserProfile = async () => {
+  const loadUserProfile = useEffectEvent(async () => {
     if (!currentUserId) return;
     const { data } = await supabase
       .from("profiles")
@@ -87,9 +61,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       .eq("id", currentUserId)
       .single();
     if (data) setUserProfile(data);
-  };
+  });
 
-  const loadCounts = async () => {
+  const loadCounts = useEffectEvent(async () => {
     if (!currentUserId) return;
     const [notifResult, requestsResult] = await Promise.all([
       supabase
@@ -105,16 +79,44 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
     ]);
     setUnreadNotifications(notifResult.count || 0);
     setPendingRequests(requestsResult.count || 0);
-  };
+  });
 
-  const setupRealtimeSubscriptions = () => {
+  const setupRealtimeSubscriptions = useEffectEvent(() => {
     const channel = supabase
       .channel("nav-counts")
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => loadCounts())
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadCounts();
+      loadUserProfile();
+      const cleanupRealtime = setupRealtimeSubscriptions();
+      checkAdmin();
+      
+      // Global online status tracking
+      updateOnlineStatus(currentUserId, true);
+      const presenceInterval = setInterval(() => updateOnlineStatus(currentUserId, true), 30000);
+      const handleUnload = () => updateOnlineStatus(currentUserId, false);
+      const handleVisibility = () => {
+        if (document.hidden) updateOnlineStatus(currentUserId, false);
+        else updateOnlineStatus(currentUserId, true);
+      };
+      window.addEventListener("beforeunload", handleUnload);
+      document.addEventListener("visibilitychange", handleVisibility);
+      
+      return () => {
+        cleanupRealtime();
+        clearInterval(presenceInterval);
+        window.removeEventListener("beforeunload", handleUnload);
+        document.removeEventListener("visibilitychange", handleVisibility);
+        updateOnlineStatus(currentUserId, false);
+      };
+    }
+  }, [currentUserId, checkAdmin, loadCounts, loadUserProfile, setupRealtimeSubscriptions]);
 
   const updateOnlineStatus = async (userId: string, isOnline: boolean) => {
     const { data: existing } = await supabase.from("user_status").select("id").eq("user_id", userId).maybeSingle();

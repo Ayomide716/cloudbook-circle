@@ -12,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
 import { MessageSquarePlus, Loader2 } from "lucide-react";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Profile {
   id: string;
@@ -30,13 +31,7 @@ const NewConversation = ({ currentUserId, onSelectUser }: NewConversationProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [open, setOpen] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      loadFriends();
-    }
-  }, [open, currentUserId]);
-
-  const loadFriends = async () => {
+  const loadFriends = useEffectEvent(async () => {
     setIsLoading(true);
 
     // Get accepted friendships
@@ -70,7 +65,13 @@ const NewConversation = ({ currentUserId, onSelectUser }: NewConversationProps) 
 
     setFriends(profiles || []);
     setIsLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    if (open) {
+      loadFriends();
+    }
+  }, [open, currentUserId, loadFriends]);
 
   const filteredFriends = friends.filter(friend =>
     friend.full_name?.toLowerCase().includes(searchQuery.toLowerCase())

@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Group {
   id: string;
@@ -73,18 +74,7 @@ const GroupDetail = () => {
   const [currentUserProfile, setCurrentUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const [incomingGroupCall, setIncomingGroupCall] = useState<GroupCallAlert | null>(null);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  useEffect(() => {
-    if (currentUserId && groupId) {
-      loadGroupData();
-      setupRealtimeSubscription();
-    }
-  }, [currentUserId, groupId]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
@@ -93,9 +83,13 @@ const GroupDetail = () => {
     setCurrentUserId(session.user.id);
     const { data: profile } = await supabase.from("profiles").select("full_name, avatar_url").eq("id", session.user.id).single();
     if (profile) setCurrentUserProfile(profile);
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel(`group-${groupId}`)
       .on(
@@ -128,7 +122,7 @@ const GroupDetail = () => {
       supabase.removeChannel(channel);
       supabase.removeChannel(callChannel);
     };
-  };
+  });
 
   const broadcastCallStart = async (isVoiceOnly: boolean) => {
     if (!currentUserId || !groupId) return;
@@ -160,7 +154,7 @@ const GroupDetail = () => {
     setActiveGroupCall({ isVoiceOnly });
   };
 
-  const loadGroupData = async () => {
+  const loadGroupData = useEffectEvent(async () => {
     await Promise.all([
       loadGroup(),
       loadPosts(),
@@ -168,7 +162,14 @@ const GroupDetail = () => {
       checkMembership(),
     ]);
     setIsLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId && groupId) {
+      loadGroupData();
+      return setupRealtimeSubscription();
+    }
+  }, [currentUserId, groupId, loadGroupData, setupRealtimeSubscription]);
 
   const loadGroup = async () => {
     if (!groupId) return;

@@ -16,6 +16,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Plus, Coins, TrendingUp, Eye, MousePointerClick, Pause, Play, Trash2, BarChart3 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Campaign {
   id: string;
@@ -58,17 +59,17 @@ const Ads = () => {
   const [budget, setBudget] = useState("100");
   const [creating, setCreating] = useState(false);
 
-  useEffect(() => {
-    checkAuth();
-  }, []);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/landing"); return; }
     setCurrentUserId(session.user.id);
     await Promise.all([fetchCredits(session.user.id), fetchCampaigns(session.user.id)]);
     setLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
 
   const fetchCredits = async (userId: string) => {
     const { data } = await supabase

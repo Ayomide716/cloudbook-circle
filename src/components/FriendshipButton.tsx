@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck, UserMinus, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface FriendshipButtonProps {
   currentUserId: string;
@@ -14,11 +15,7 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  useEffect(() => {
-    checkFriendshipStatus();
-  }, [currentUserId, profileUserId]);
-
-  const checkFriendshipStatus = async () => {
+  const checkFriendshipStatus = useEffectEvent(async () => {
     const { data } = await supabase
       .from("friendships")
       .select("*")
@@ -37,7 +34,11 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
     } else {
       setFriendshipStatus('pending_received');
     }
-  };
+  });
+
+  useEffect(() => {
+    checkFriendshipStatus();
+  }, [currentUserId, profileUserId, checkFriendshipStatus]);
 
   const sendFriendRequest = useCallback(async () => {
     // Optimistic update
@@ -67,7 +68,7 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
     }
 
     toast({ title: "Friend request sent" });
-  }, [currentUserId, profileUserId, friendshipStatus]);
+  }, [currentUserId, profileUserId, friendshipStatus, toast]);
 
   const removeFriend = useCallback(async () => {
     // Optimistic update
@@ -93,7 +94,7 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
     }
 
     toast({ title: "Friend removed" });
-  }, [currentUserId, profileUserId, friendshipStatus]);
+  }, [currentUserId, profileUserId, friendshipStatus, toast]);
 
   if (friendshipStatus === null) {
     return null;

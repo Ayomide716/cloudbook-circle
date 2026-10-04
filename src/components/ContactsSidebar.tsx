@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import OnlineStatusIndicator from "./OnlineStatusIndicator";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Contact {
   id: string;
@@ -18,19 +19,7 @@ const ContactsSidebar = ({ currentUserId }: ContactsSidebarProps) => {
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchContacts();
-
-    const channel = supabase
-      .channel("contacts-status-sync")
-      .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => fetchContacts())
-      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => fetchContacts())
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [currentUserId]);
-
-  const fetchContacts = async () => {
+  const fetchContacts = useEffectEvent(async () => {
     const { data: friendships } = await supabase
       .from("friendships")
       .select("user_id, friend_id")
@@ -68,7 +57,19 @@ const ContactsSidebar = ({ currentUserId }: ContactsSidebarProps) => {
 
     setContacts(contactList);
     setLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    fetchContacts();
+
+    const channel = supabase
+      .channel("contacts-status-sync")
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => fetchContacts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => fetchContacts())
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [currentUserId, fetchContacts]);
 
   const onlineCount = contacts.filter((c) => c.is_online).length;
 

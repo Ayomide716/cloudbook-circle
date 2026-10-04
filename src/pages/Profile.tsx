@@ -42,6 +42,7 @@ import AnonymousQA from "@/components/AnonymousQA";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
 import type { PostComment } from "@/components/PostCard";
 import type { LucideIcon } from "lucide-react";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface ProfileData {
   id: string;
@@ -124,16 +125,17 @@ const Profile = () => {
   const coverScale = useTransform(scrollY, [0, 300], [1, 1.15]);
   const headerOpacity = useTransform(scrollY, [150, 250], [0, 1]);
 
-  useEffect(() => {checkAuth();}, [navigate]);
-  useEffect(() => {if (userId) loadProfile();}, [userId]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {navigate("/auth");return;}
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadProfile = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [navigate, checkAuth]);
+
+  const loadProfile = useEffectEvent(async () => {
     if (!userId) return;
     setIsLoading(true);
     const { data: profileData, error: profileError } = await supabase.
@@ -175,7 +177,11 @@ const Profile = () => {
     // Load mutual friends
     loadMutualFriends();
     setIsLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    if (userId) loadProfile();
+  }, [userId, loadProfile]);
 
   const loadMutualFriends = async () => {
     if (!currentUserId || !userId || currentUserId === userId) {

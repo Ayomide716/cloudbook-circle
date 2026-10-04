@@ -7,6 +7,7 @@ import type { PostComment } from "@/components/PostCard";
  import PostCard from "@/components/PostCard";
  import { Loader2, Bookmark } from "lucide-react";
  import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
+ import { useEffectEvent } from "@/hooks/use-effect-event";
  
  interface Post {
    id: string;
@@ -31,11 +32,7 @@ import type { PostComment } from "@/components/PostCard";
    const [reactionsData, setReactionsData] = useState<Record<string, { reactions: Record<string, number>; userReaction: string | null }>>({});
    const [commentsData, setCommentsData] = useState<Record<string, PostComment[]>>({});
  
-   useEffect(() => {
-     checkAuth();
-   }, []);
- 
-   const checkAuth = async () => {
+   const checkAuth = useEffectEvent(async () => {
      const { data: { session } } = await supabase.auth.getSession();
      if (!session) {
        navigate("/auth");
@@ -43,7 +40,11 @@ import type { PostComment } from "@/components/PostCard";
      }
      setCurrentUserId(session.user.id);
      loadSavedPosts(session.user.id);
-   };
+   });
+
+   useEffect(() => {
+     checkAuth();
+   }, [checkAuth]);
  
    const loadSavedPosts = async (userId: string) => {
      setIsLoading(true);

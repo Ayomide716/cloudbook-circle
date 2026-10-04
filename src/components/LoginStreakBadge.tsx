@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Flame } from "lucide-react";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface LoginStreakBadgeProps {
   userId: string;
@@ -13,11 +14,7 @@ const LoginStreakBadge = ({ userId, className }: LoginStreakBadgeProps) => {
   const [streak, setStreak] = useState(0);
   const [showCelebration, setShowCelebration] = useState(false);
 
-  useEffect(() => {
-    trackLogin();
-  }, [userId]);
-
-  const trackLogin = async () => {
+  const trackLogin = useEffectEvent(async () => {
     const today = new Date().toISOString().split("T")[0];
 
     const { data: existing } = await supabase
@@ -64,7 +61,11 @@ const LoginStreakBadge = ({ userId, className }: LoginStreakBadgeProps) => {
       .eq("user_id", userId);
 
     setStreak(newStreak);
-  };
+  });
+
+  useEffect(() => {
+    trackLogin();
+  }, [userId, trackLogin]);
 
   if (streak === 0) return null;
 

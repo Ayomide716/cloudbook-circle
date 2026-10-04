@@ -47,6 +47,9 @@ const VirtualizedChatList = ({
     defaultRowHeight: estimatedItemSize,
     key: itemCount,
   });
+  const { observeRowElements } = dynamicRowHeight;
+  // Only whether "load more" is enabled matters here; the callback itself is recreated by the parent on every render.
+  const canLoadMore = !!onLoadMore;
   const prevCountRef = useRef(itemCount);
   const isInitialLoad = useRef(true);
 
@@ -57,7 +60,7 @@ const VirtualizedChatList = ({
 
     if (itemCount > 0 && listRef.current) {
       // If items were prepended (loading older), maintain scroll position
-      if (!isInitialLoad.current && itemCount > prevCount && onLoadMore) {
+      if (!isInitialLoad.current && itemCount > prevCount && canLoadMore) {
         const addedCount = itemCount - prevCount;
         // Scroll to the first "new-old" message to maintain position
         requestAnimationFrame(() => {
@@ -87,7 +90,7 @@ const VirtualizedChatList = ({
         }
       });
     }
-  }, [itemCount, scrollToBottomKey]);
+  }, [itemCount, scrollToBottomKey, canLoadMore, listRef]);
 
   // Scroll to specific index (for message search highlight)
   useEffect(() => {
@@ -102,7 +105,7 @@ const VirtualizedChatList = ({
         // Ignore out-of-range indexes from stale search results.
       }
     }
-  }, [scrollToIndex]);
+  }, [scrollToIndex, listRef]);
 
   // Detect scroll to top for loading more
   useEffect(() => {
@@ -117,7 +120,7 @@ const VirtualizedChatList = ({
 
     listEl.addEventListener("scroll", handleScroll, { passive: true });
     return () => listEl.removeEventListener("scroll", handleScroll);
-  }, [onLoadMore, isLoadingMore, hasMore, itemCount]);
+  }, [onLoadMore, isLoadingMore, hasMore, itemCount, listRef]);
 
   // Observe row elements for dynamic sizing
   useEffect(() => {
@@ -126,15 +129,15 @@ const VirtualizedChatList = ({
 
     const observer = new MutationObserver(() => {
       const rows = listEl.querySelectorAll("[data-message-row]");
-      if (rows.length > 0) dynamicRowHeight.observeRowElements(rows);
+      if (rows.length > 0) observeRowElements(rows);
     });
 
     observer.observe(listEl, { childList: true, subtree: true });
     const rows = listEl.querySelectorAll("[data-message-row]");
-    if (rows.length > 0) dynamicRowHeight.observeRowElements(rows);
+    if (rows.length > 0) observeRowElements(rows);
 
     return () => observer.disconnect();
-  }, [itemCount]);
+  }, [itemCount, listRef, observeRowElements]);
 
   return (
     <div className={className} style={{ position: "relative", flex: 1, minHeight: 0, ...style }}>

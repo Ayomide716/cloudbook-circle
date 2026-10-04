@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Palette, Timer, Check } from "lucide-react";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface ChatSettingsModalProps {
   open: boolean;
@@ -35,11 +36,7 @@ const ChatSettingsModal = ({ open, onClose, currentUserId, otherUserId, onSettin
   const [selectedTheme, setSelectedTheme] = useState("default");
   const [disappearing, setDisappearing] = useState<number | null>(null);
 
-  useEffect(() => {
-    if (open) loadPrefs();
-  }, [open]);
-
-  const loadPrefs = async () => {
+  const loadPrefs = useEffectEvent(async () => {
     const { data } = await supabase
       .from("chat_preferences")
       .select("*")
@@ -51,7 +48,11 @@ const ChatSettingsModal = ({ open, onClose, currentUserId, otherUserId, onSettin
       setSelectedTheme(data.theme);
       setDisappearing(data.disappearing_minutes);
     }
-  };
+  });
+
+  useEffect(() => {
+    if (open) loadPrefs();
+  }, [open, loadPrefs]);
 
   const savePrefs = async () => {
     const { data: existing } = await supabase

@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -159,90 +160,93 @@ const GroupVideoCall = ({
     });
   }, [currentUserId, createPeerConnection]);
 
-  useEffect(() => {
-    const init = async () => {
-      // Get local stream
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: !isVoiceOnly ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } : false,
-          audio: { echoCancellation: true, noiseSuppression: true },
-        });
-        localStreamRef.current = stream;
-        if (localVideoRef.current && !isVoiceOnly) localVideoRef.current.srcObject = stream;
-      } catch {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        localStreamRef.current = stream;
-      }
+  // Join the call once when the component mounts and leave when it unmounts.
+  // Effect events always see the latest props/handlers without re-joining the call.
+  const joinCall = useEffectEvent(async () => {
+    // Get local stream
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: !isVoiceOnly ? { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } } : false,
+        audio: { echoCancellation: true, noiseSuppression: true },
+      });
+      localStreamRef.current = stream;
+      if (localVideoRef.current && !isVoiceOnly) localVideoRef.current.srcObject = stream;
+    } catch {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+    }
 
-      // Join signaling channel
-      const channel = supabase.channel(roomChannel);
+    // Join signaling channel
+    const channel = supabase.channel(roomChannel);
 
-      channel
-        .on("broadcast", { event: "participant-joined" }, async ({ payload }) => {
-          if (payload.userId === currentUserId) return;
-          setParticipants(prev => {
-            const updated = new Map(prev);
-            if (!updated.has(payload.userId)) {
-              updated.set(payload.userId, {
-                userId: payload.userId,
-                userName: payload.userName,
-                userAvatar: payload.userAvatar,
-              });
-            }
-            return updated;
-          });
-          // Send offer to new participant
-          await connectToParticipant(payload.userId);
-        })
-        .on("broadcast", { event: "participant-left" }, ({ payload }) => {
-          const pc = peerConnectionsRef.current.get(payload.userId);
-          if (pc) { pc.close(); peerConnectionsRef.current.delete(payload.userId); }
-          setParticipants(prev => {
-            const updated = new Map(prev);
-            updated.delete(payload.userId);
-            return updated;
-          });
-        })
-        .on("broadcast", { event: "offer" }, async ({ payload }) => {
-          if (payload.to !== currentUserId) return;
-          // Add participant if not exists
-          setParticipants(prev => {
-            const updated = new Map(prev);
-            if (!updated.has(payload.from)) {
-              updated.set(payload.from, { userId: payload.from, userName: "Participant", userAvatar: null });
-            }
-            return updated;
-          });
-          await handleOffer(payload.from, payload.offer);
-        })
-        .on("broadcast", { event: "answer" }, async ({ payload }) => {
-          if (payload.to !== currentUserId) return;
-          await handleAnswer(payload.from, payload.answer);
-        })
-        .on("broadcast", { event: "ice-candidate" }, async ({ payload }) => {
-          if (payload.to !== currentUserId) return;
-          await handleIceCandidate(payload.from, payload.candidate);
-        })
-        .subscribe(async (status) => {
-          if (status === "SUBSCRIBED") {
-            // Announce ourselves
-            await channel.send({
-              type: "broadcast",
-              event: "participant-joined",
-              payload: { userId: currentUserId, userName: currentUserName, userAvatar: currentUserAvatar },
+    channel
+      .on("broadcast", { event: "participant-joined" }, async ({ payload }) => {
+        if (payload.userId === currentUserId) return;
+        setParticipants(prev => {
+          const updated = new Map(prev);
+          if (!updated.has(payload.userId)) {
+            updated.set(payload.userId, {
+              userId: payload.userId,
+              userName: payload.userName,
+              userAvatar: payload.userAvatar,
             });
           }
+          return updated;
         });
+        // Send offer to new participant
+        await connectToParticipant(payload.userId);
+      })
+      .on("broadcast", { event: "participant-left" }, ({ payload }) => {
+        const pc = peerConnectionsRef.current.get(payload.userId);
+        if (pc) { pc.close(); peerConnectionsRef.current.delete(payload.userId); }
+        setParticipants(prev => {
+          const updated = new Map(prev);
+          updated.delete(payload.userId);
+          return updated;
+        });
+      })
+      .on("broadcast", { event: "offer" }, async ({ payload }) => {
+        if (payload.to !== currentUserId) return;
+        // Add participant if not exists
+        setParticipants(prev => {
+          const updated = new Map(prev);
+          if (!updated.has(payload.from)) {
+            updated.set(payload.from, { userId: payload.from, userName: "Participant", userAvatar: null });
+          }
+          return updated;
+        });
+        await handleOffer(payload.from, payload.offer);
+      })
+      .on("broadcast", { event: "answer" }, async ({ payload }) => {
+        if (payload.to !== currentUserId) return;
+        await handleAnswer(payload.from, payload.answer);
+      })
+      .on("broadcast", { event: "ice-candidate" }, async ({ payload }) => {
+        if (payload.to !== currentUserId) return;
+        await handleIceCandidate(payload.from, payload.candidate);
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          // Announce ourselves
+          await channel.send({
+            type: "broadcast",
+            event: "participant-joined",
+            payload: { userId: currentUserId, userName: currentUserName, userAvatar: currentUserAvatar },
+          });
+        }
+      });
 
-      channelRef.current = channel;
+    channelRef.current = channel;
 
-      // Start call timer
-      callTimerRef.current = setInterval(() => setCallDuration(p => p + 1), 1000);
-    };
+    // Start call timer
+    callTimerRef.current = setInterval(() => setCallDuration(p => p + 1), 1000);
+  });
+  const leaveCall = useEffectEvent(() => cleanup());
 
-    init();
-    return () => cleanup();
-  }, []);
+  useEffect(() => {
+    joinCall();
+    return () => leaveCall();
+  }, [joinCall, leaveCall]);
 
   const toggleVideo = () => {
     if (localStreamRef.current && !isVoiceOnly) {

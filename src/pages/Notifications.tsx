@@ -12,6 +12,7 @@ import { Bell, Heart, MessageCircle, UserPlus, Check, Users, ThumbsUp, Share2 } 
 import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Notification {
   id: string;
@@ -34,27 +35,20 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  useEffect(() => {
-    checkAuth();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (currentUserId) {
-      loadNotifications();
-      setupRealtimeSubscription();
-    }
-  }, [currentUserId]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
       return;
     }
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadNotifications = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [navigate, checkAuth]);
+
+  const loadNotifications = useEffectEvent(async () => {
     if (!currentUserId) return;
 
     const { data, error } = await supabase
@@ -93,9 +87,9 @@ const Notifications = () => {
 
     setNotifications(enriched);
     setIsLoading(false);
-  };
+  });
 
-  const setupRealtimeSubscription = () => {
+  const setupRealtimeSubscription = useEffectEvent(() => {
     const channel = supabase
       .channel("notifications-page")
       .on(
@@ -115,7 +109,14 @@ const Notifications = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadNotifications();
+      return setupRealtimeSubscription();
+    }
+  }, [currentUserId, loadNotifications, setupRealtimeSubscription]);
 
   const markAsRead = async (notificationId: string) => {
     await supabase

@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface BottomNavProps {
   currentUserId?: string;
@@ -16,6 +17,16 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
   const location = useLocation();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [pendingRequests, setPendingRequests] = useState(0);
+
+  const loadCounts = useEffectEvent(async () => {
+    if (!currentUserId) return;
+    const [notifResult, requestsResult] = await Promise.all([
+      supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", currentUserId).eq("read", false),
+      supabase.from("friendships").select("id", { count: "exact", head: true }).eq("friend_id", currentUserId).eq("status", "pending"),
+    ]);
+    setUnreadNotifications(notifResult.count || 0);
+    setPendingRequests(requestsResult.count || 0);
+  });
 
   useEffect(() => {
     if (currentUserId) {
@@ -29,17 +40,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
 
       return () => { supabase.removeChannel(channel); };
     }
-  }, [currentUserId]);
-
-  const loadCounts = async () => {
-    if (!currentUserId) return;
-    const [notifResult, requestsResult] = await Promise.all([
-      supabase.from("notifications").select("id", { count: "exact", head: true }).eq("user_id", currentUserId).eq("read", false),
-      supabase.from("friendships").select("id", { count: "exact", head: true }).eq("friend_id", currentUserId).eq("status", "pending"),
-    ]);
-    setUnreadNotifications(notifResult.count || 0);
-    setPendingRequests(requestsResult.count || 0);
-  };
+  }, [currentUserId, loadCounts]);
 
   const navItems = [
     { icon: Home, path: "/", label: "Home", badge: unreadNotifications, action: undefined as (() => void) | undefined },

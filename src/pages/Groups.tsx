@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, Plus, Users, Search, Globe, ImagePlus } from "lucide-react";
 import GroupsSkeleton from "@/components/skeletons/GroupsSkeleton";
+import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Group {
   id: string;
@@ -42,26 +43,20 @@ const Groups = () => {
     description: "",
   });
 
-  useEffect(() => {
-    checkAuth();
-  }, [navigate]);
-
-  useEffect(() => {
-    if (currentUserId) {
-      loadGroups();
-    }
-  }, [currentUserId]);
-
-  const checkAuth = async () => {
+  const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
       navigate("/auth");
       return;
     }
     setCurrentUserId(session.user.id);
-  };
+  });
 
-  const loadGroups = async () => {
+  useEffect(() => {
+    checkAuth();
+  }, [navigate, checkAuth]);
+
+  const loadGroups = useEffectEvent(async () => {
     if (!currentUserId) return;
     setIsLoading(true);
 
@@ -106,7 +101,13 @@ const Groups = () => {
 
     setGroups(groupsWithCounts);
     setIsLoading(false);
-  };
+  });
+
+  useEffect(() => {
+    if (currentUserId) {
+      loadGroups();
+    }
+  }, [currentUserId, loadGroups]);
 
   // Filter groups based on search query
   const filteredGroups = useMemo(() => {

@@ -9,7 +9,8 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit"
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "schema:sql": "node scripts/build-full-schema.mjs"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",
