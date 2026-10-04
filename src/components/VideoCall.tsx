@@ -8,7 +8,7 @@ import {
   SwitchCamera, Volume2, VolumeX, PictureInPicture2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { canShareScreen, formatCallDuration, getIceServers } from "@/lib/webrtc";
+import { canShareScreen, formatCallDuration, getIceServers, loadIceServers } from "@/lib/webrtc";
 import { useDraggable } from "@/hooks/use-draggable";
 import { CallButton, StreamAudio, StreamVideo } from "@/components/calls/CallControls";
 
@@ -277,6 +277,7 @@ const VideoCall = ({
     }
     try {
       console.log("[WebRTC] Setting up call, isIncoming:", isIncoming);
+      await loadIceServers();
       const pc = createPeerConnection();
       peerConnectionRef.current = pc;
       stream.getTracks().forEach((t) => pc.addTrack(t, stream));

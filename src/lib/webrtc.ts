@@ -1,10 +1,14 @@
+import { supabase } from "@/integrations/supabase/client";
+
 const STUN_SERVERS: RTCIceServer[] = [
   { urls: ["stun:stun.l.google.com:19302", "stun:stun1.l.google.com:19302"] },
 ];
 
 /**
  * A TURN server relays the call when the two devices can't reach each other directly
- * (most mobile networks and many offices). Set your own in `.env`:
+ * (most mobile networks and many offices). The normal way to set one up is the
+ * `turn-credentials` backend function, which keeps the password secret. As a fallback
+ * for local development you can also set one in `.env`:
  *
  *   VITE_TURN_URLS="turn:example.com:3478,turns:example.com:5349"
  *   VITE_TURN_USERNAME="..."
@@ -34,7 +38,32 @@ const FALLBACK_TURN: RTCIceServer[] = [
   },
 ];
 
+// Relay login from the `turn-credentials` backend function (kept out of the site's code).
+let fetched: { servers: RTCIceServer[]; at: number } | null = null;
+let inFlight: Promise<void> | null = null;
+const CACHE_MS = 60 * 60 * 1000;
+
+/**
+ * Fetches the relay login once per hour. Call it before creating peer connections;
+ * if it fails the call still goes ahead with the fallbacks below.
+ */
+export async function loadIceServers(): Promise<void> {
+  if (fetched && Date.now() - fetched.at < CACHE_MS) return;
+  inFlight ??= (async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke<{ iceServers?: RTCIceServer[] }>("turn-credentials");
+      if (!error && Array.isArray(data?.iceServers)) fetched = { servers: data.iceServers, at: Date.now() };
+    } catch {
+      // Offline or function not deployed: use the fallbacks.
+    } finally {
+      inFlight = null;
+    }
+  })();
+  await inFlight;
+}
+
 export const getIceServers = (): RTCIceServer[] => {
+  if (fetched?.servers.length) return [...STUN_SERVERS, ...fetched.servers];
   const turn = configuredTurn();
   return [...STUN_SERVERS, ...(turn.length ? turn : FALLBACK_TURN)];
 };
