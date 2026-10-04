@@ -28,13 +28,13 @@ interface Reel {
   caption: string | null;
   created_at: string;
   user_id: string;
-  views_count: number;
-  likes_count: number;
-  shares_count: number;
+  views_count: number | null;
+  likes_count: number | null;
+  shares_count: number | null;
   profiles: { full_name: string | null; avatar_url: string | null };
   reel_likes: { user_id: string }[];
   reel_comments: Array<{
-    id: string; content: string; user_id: string; created_at: string;
+    id: string; content: string; user_id: string; created_at: string | null;
     profiles: { full_name: string | null; avatar_url: string | null };
   }>;
 }

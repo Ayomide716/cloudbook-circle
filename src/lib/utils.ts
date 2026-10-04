@@ -12,3 +12,8 @@ export function getErrorMessage(error: unknown): string {
   }
   return String(error);
 }
+
+/** Parses a timestamp column that may be null (treated as "now"). */
+export function toDate(value: string | null | undefined): Date {
+  return value ? new Date(value) : new Date();
+}

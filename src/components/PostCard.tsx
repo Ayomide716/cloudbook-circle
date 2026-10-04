@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { Link } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import { cn, toDate } from "@/lib/utils";
 import SharePostDialog from "./SharePostDialog";
 import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
@@ -22,7 +22,7 @@ import type { TablesInsert } from "@/integrations/supabase/types";
 export interface PostComment {
   id: string;
   content: string;
-  created_at: string;
+  created_at: string | null;
   parent_id?: string | null;
   profiles: {
     id: string;
@@ -38,7 +38,7 @@ export interface PostCardProps {
     image_url: string | null;
     image_urls?: string[] | null;
     video_url?: string | null;
-    created_at: string;
+    created_at: string | null;
     profiles: {
       id: string;
       full_name: string | null;
@@ -290,7 +290,7 @@ const PostCard = ({
               </p>
             </Link>
             <p className="text-xs text-muted-foreground">
-              {formatDistanceToNow(new Date(post.created_at), { addSuffix: true })}
+              {formatDistanceToNow(toDate(post.created_at), { addSuffix: true })}
             </p>
           </div>
 
@@ -624,7 +624,7 @@ const PostCard = ({
                     </div>
                     <div className="flex items-center gap-3 mt-1 ml-3">
                       <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                        {formatDistanceToNow(toDate(comment.created_at), { addSuffix: true })}
                       </p>
                       <button
                         onClick={() => { setReplyingTo(comment); setCommentContent(""); }}
@@ -670,7 +670,7 @@ const PostCard = ({
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground mt-1 ml-3">
-                            {formatDistanceToNow(new Date(reply.created_at), { addSuffix: true })}
+                            {formatDistanceToNow(toDate(reply.created_at), { addSuffix: true })}
                           </p>
                         </div>
                       </div>

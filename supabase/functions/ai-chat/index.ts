@@ -1,5 +1,3 @@
-// Any OpenAI-compatible chat completions endpoint works (Google Gemini, OpenAI, Groq, OpenRouter, ...).
-const DEFAULT_AI_API_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions";
 const MAX_MESSAGES = 30;
 const MAX_MESSAGE_LENGTH = 4000;
 
@@ -26,10 +24,8 @@ Deno.serve(async (req) => {
     });
     if (!userRes.ok) return jsonResponse({ error: "Please sign in to chat." }, 401);
 
-    const AI_API_KEY = Deno.env.get("AI_API_KEY");
-    const AI_MODEL = Deno.env.get("AI_MODEL");
-    const AI_API_URL = Deno.env.get("AI_API_URL") || DEFAULT_AI_API_URL;
-    if (!AI_API_KEY || !AI_MODEL) throw new Error("AI_API_KEY and AI_MODEL must be configured");
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
     const body = await req.json();
     const mood = typeof body.mood === "string" ? body.mood.slice(0, 50) : null;
@@ -65,14 +61,14 @@ You can help with:
 
 Never: reveal you're an AI unless directly asked, be preachy, give medical/legal advice, or be boring.`;
 
-    const response = await fetch(AI_API_URL, {
+    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
-        Authorization: `Bearer ${AI_API_KEY}`,
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: AI_MODEL,
+        model: "google/gemini-3-flash-preview",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
@@ -89,13 +85,13 @@ Never: reveal you're an AI unless directly asked, be preachy, give medical/legal
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "CloudBuddy is out of AI credits right now. Please try again later." }), {
+        return new Response(JSON.stringify({ error: "AI credits depleted. Please add credits in Settings." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       const t = await response.text();
-      console.error("AI provider error:", response.status, t);
+      console.error("AI gateway error:", response.status, t);
       return new Response(JSON.stringify({ error: "Oops, something went wrong. Try again!" }), {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },

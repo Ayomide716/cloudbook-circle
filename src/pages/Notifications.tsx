@@ -11,15 +11,15 @@ import { Card } from "@/components/ui/card";
 import { Bell, Heart, MessageCircle, UserPlus, Check, Users, ThumbsUp, Share2 } from "lucide-react";
 import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, toDate } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Notification {
   id: string;
   type: string;
   content: string;
-  read: boolean;
-  created_at: string;
+  read: boolean | null;
+  created_at: string | null;
   related_id: string | null;
   actor_id: string | null;
   actor_profile?: { full_name: string | null; avatar_url: string | null } | null;
@@ -323,7 +323,7 @@ const Notifications = () => {
                       "text-xs mt-1",
                       !notification.read ? "text-primary font-medium" : "text-muted-foreground"
                     )}>
-                      {formatDistanceToNow(new Date(notification.created_at), {
+                      {formatDistanceToNow(toDate(notification.created_at), {
                         addSuffix: true,
                       })}
                     </p>

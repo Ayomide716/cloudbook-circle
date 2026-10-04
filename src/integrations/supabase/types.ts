@@ -172,21 +172,21 @@ export type Database = {
         Row: {
           album_id: string
           caption: string | null
-          created_at: string
+          created_at: string | null
           id: string
           image_url: string
         }
         Insert: {
           album_id: string
           caption?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           image_url: string
         }
         Update: {
           album_id?: string
           caption?: string | null
-          created_at?: string
+          created_at?: string | null
           id?: string
           image_url?: string
         }
@@ -202,21 +202,21 @@ export type Database = {
       }
       albums: {
         Row: {
-          created_at: string
+          created_at: string | null
           description: string | null
           id: string
           name: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           name: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -274,19 +274,19 @@ export type Database = {
         Row: {
           blocked_id: string
           blocker_id: string
-          created_at: string
+          created_at: string | null
           id: string
         }
         Insert: {
           blocked_id: string
           blocker_id: string
-          created_at?: string
+          created_at?: string | null
           id?: string
         }
         Update: {
           blocked_id?: string
           blocker_id?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
         }
         Relationships: [
@@ -354,7 +354,7 @@ export type Database = {
       comments: {
         Row: {
           content: string
-          created_at: string
+          created_at: string | null
           id: string
           parent_id: string | null
           post_id: string
@@ -362,7 +362,7 @@ export type Database = {
         }
         Insert: {
           content: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           parent_id?: string | null
           post_id: string
@@ -370,7 +370,7 @@ export type Database = {
         }
         Update: {
           content?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           parent_id?: string | null
           post_id?: string
@@ -590,27 +590,27 @@ export type Database = {
       }
       friendships: {
         Row: {
-          created_at: string
+          created_at: string | null
           friend_id: string
           id: string
           status: string
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           friend_id: string
           id?: string
           status: string
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           friend_id?: string
           id?: string
           status?: string
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: [
@@ -771,19 +771,19 @@ export type Database = {
       }
       likes: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           post_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           post_id: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           post_id?: string
           user_id?: string
@@ -935,39 +935,39 @@ export type Database = {
       messages: {
         Row: {
           content: string
-          created_at: string
+          created_at: string | null
           deleted_at: string | null
           edited: boolean
           expires_at: string | null
           id: string
           image_url: string | null
-          read: boolean
+          read: boolean | null
           receiver_id: string
           reply_to: string | null
           sender_id: string
         }
         Insert: {
           content: string
-          created_at?: string
+          created_at?: string | null
           deleted_at?: string | null
           edited?: boolean
           expires_at?: string | null
           id?: string
           image_url?: string | null
-          read?: boolean
+          read?: boolean | null
           receiver_id: string
           reply_to?: string | null
           sender_id: string
         }
         Update: {
           content?: string
-          created_at?: string
+          created_at?: string | null
           deleted_at?: string | null
           edited?: boolean
           expires_at?: string | null
           id?: string
           image_url?: string | null
-          read?: boolean
+          read?: boolean | null
           receiver_id?: string
           reply_to?: string | null
           sender_id?: string
@@ -999,7 +999,7 @@ export type Database = {
       notification_preferences: {
         Row: {
           comments: boolean
-          created_at: string
+          created_at: string | null
           friend_accepted: boolean
           friend_requests: boolean
           id: string
@@ -1007,12 +1007,12 @@ export type Database = {
           messages: boolean
           push_enabled: boolean
           shares: boolean
-          updated_at: string
+          updated_at: string | null
           user_id: string
         }
         Insert: {
           comments?: boolean
-          created_at?: string
+          created_at?: string | null
           friend_accepted?: boolean
           friend_requests?: boolean
           id?: string
@@ -1020,12 +1020,12 @@ export type Database = {
           messages?: boolean
           push_enabled?: boolean
           shares?: boolean
-          updated_at?: string
+          updated_at?: string | null
           user_id: string
         }
         Update: {
           comments?: boolean
-          created_at?: string
+          created_at?: string | null
           friend_accepted?: boolean
           friend_requests?: boolean
           id?: string
@@ -1033,7 +1033,7 @@ export type Database = {
           messages?: boolean
           push_enabled?: boolean
           shares?: boolean
-          updated_at?: string
+          updated_at?: string | null
           user_id?: string
         }
         Relationships: []
@@ -1042,9 +1042,9 @@ export type Database = {
         Row: {
           actor_id: string | null
           content: string
-          created_at: string
+          created_at: string | null
           id: string
-          read: boolean
+          read: boolean | null
           related_id: string | null
           type: string
           user_id: string
@@ -1052,9 +1052,9 @@ export type Database = {
         Insert: {
           actor_id?: string | null
           content: string
-          created_at?: string
+          created_at?: string | null
           id?: string
-          read?: boolean
+          read?: boolean | null
           related_id?: string | null
           type: string
           user_id: string
@@ -1062,9 +1062,9 @@ export type Database = {
         Update: {
           actor_id?: string | null
           content?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
-          read?: boolean
+          read?: boolean | null
           related_id?: string | null
           type?: string
           user_id?: string
@@ -1436,7 +1436,7 @@ export type Database = {
       posts: {
         Row: {
           content: string
-          created_at: string
+          created_at: string | null
           expires_at: string | null
           id: string
           image_url: string | null
@@ -1446,7 +1446,7 @@ export type Database = {
         }
         Insert: {
           content: string
-          created_at?: string
+          created_at?: string | null
           expires_at?: string | null
           id?: string
           image_url?: string | null
@@ -1456,7 +1456,7 @@ export type Database = {
         }
         Update: {
           content?: string
-          created_at?: string
+          created_at?: string | null
           expires_at?: string | null
           id?: string
           image_url?: string | null
@@ -1479,7 +1479,7 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           cover_url: string | null
-          created_at: string
+          created_at: string | null
           education: string | null
           full_name: string | null
           id: string
@@ -1492,7 +1492,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           cover_url?: string | null
-          created_at?: string
+          created_at?: string | null
           education?: string | null
           full_name?: string | null
           id: string
@@ -1505,7 +1505,7 @@ export type Database = {
           avatar_url?: string | null
           bio?: string | null
           cover_url?: string | null
-          created_at?: string
+          created_at?: string | null
           education?: string | null
           full_name?: string | null
           id?: string
@@ -1518,21 +1518,21 @@ export type Database = {
       }
       reactions: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           post_id: string
           reaction_type: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           post_id: string
           reaction_type: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           post_id?: string
           reaction_type?: string
@@ -1558,21 +1558,21 @@ export type Database = {
       reel_comments: {
         Row: {
           content: string
-          created_at: string
+          created_at: string | null
           id: string
           reel_id: string
           user_id: string
         }
         Insert: {
           content: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           reel_id: string
           user_id: string
         }
         Update: {
           content?: string
-          created_at?: string
+          created_at?: string | null
           id?: string
           reel_id?: string
           user_id?: string
@@ -1596,19 +1596,19 @@ export type Database = {
       }
       reel_likes: {
         Row: {
-          created_at: string
+          created_at: string | null
           id: string
           reel_id: string
           user_id: string
         }
         Insert: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           reel_id: string
           user_id: string
         }
         Update: {
-          created_at?: string
+          created_at?: string | null
           id?: string
           reel_id?: string
           user_id?: string
@@ -1635,34 +1635,34 @@ export type Database = {
           caption: string | null
           created_at: string
           id: string
-          likes_count: number
-          shares_count: number
+          likes_count: number | null
+          shares_count: number | null
           thumbnail_url: string | null
           user_id: string
           video_url: string
-          views_count: number
+          views_count: number | null
         }
         Insert: {
           caption?: string | null
           created_at?: string
           id?: string
-          likes_count?: number
-          shares_count?: number
+          likes_count?: number | null
+          shares_count?: number | null
           thumbnail_url?: string | null
           user_id: string
           video_url: string
-          views_count?: number
+          views_count?: number | null
         }
         Update: {
           caption?: string | null
           created_at?: string
           id?: string
-          likes_count?: number
-          shares_count?: number
+          likes_count?: number | null
+          shares_count?: number | null
           thumbnail_url?: string | null
           user_id?: string
           video_url?: string
-          views_count?: number
+          views_count?: number | null
         }
         Relationships: [
           {

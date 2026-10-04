@@ -23,6 +23,7 @@ import {
 import { Loader2, Users, UserPlus, Check, X, UserCheck, Search, UserMinus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { toDate } from "@/lib/utils";
 
 
 interface Profile {
@@ -47,7 +48,7 @@ interface FriendRequest {
 interface Friendship {
   id: string;
   friend: Profile;
-  created_at: string;
+  created_at: string | null;
 }
 
 const Friends = () => {
@@ -686,7 +687,7 @@ const Friends = () => {
                           </p>
                         </Link>
                         <p className="text-xs text-muted-foreground">
-                          Friends since {formatDistanceToNow(new Date(friendship.created_at), {
+                          Friends since {formatDistanceToNow(toDate(friendship.created_at), {
                             addSuffix: true,
                           })}
                         </p>

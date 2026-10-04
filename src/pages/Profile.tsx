@@ -35,7 +35,7 @@ import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, getErrorMessage, toDate } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import ProfileAchievements from "@/components/ProfileAchievements";
 import AnonymousQA from "@/components/AnonymousQA";
@@ -63,7 +63,7 @@ interface Post {
   content: string;
   image_url: string | null;
   video_url?: string | null;
-  created_at: string;
+  created_at: string | null;
   user_id: string;
   profiles: {
     id: string;
@@ -689,7 +689,7 @@ const Profile = () => {
                           <div className="flex-1 min-w-0">
                             <p className="text-sm truncate">{item.content}</p>
                             <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {formatDistanceToNow(new Date(item.date), { addSuffix: true })}
+                              {formatDistanceToNow(toDate(item.date), { addSuffix: true })}
                             </p>
                           </div>
                         </motion.div>

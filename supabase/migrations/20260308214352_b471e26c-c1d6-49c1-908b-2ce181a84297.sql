@@ -4,10 +4,8 @@ CREATE POLICY "Users can view own roles" ON public.user_roles FOR SELECT USING (
 CREATE POLICY "Admins can view all roles" ON public.user_roles FOR SELECT USING (has_role(auth.uid(), 'admin'));
 CREATE POLICY "Admins can manage roles" ON public.user_roles FOR ALL USING (has_role(auth.uid(), 'admin'));
 
--- Admins are not seeded here (a hard-coded user id breaks fresh databases).
--- After signing up, make yourself admin from the SQL editor:
---   INSERT INTO public.user_roles (user_id, role)
---   SELECT id, 'admin' FROM auth.users WHERE email = 'you@example.com';
+-- Assign admin to the user
+INSERT INTO public.user_roles (user_id, role) VALUES ('dffaf060-5010-475a-841e-27fe224c435c', 'admin');
 
 -- Admin access to reports
 CREATE POLICY "Admins can view all reports" ON public.reports FOR SELECT USING (has_role(auth.uid(), 'admin'));
