@@ -7,10 +7,11 @@ export interface GroupCallParticipant {
   name: string;
   avatar: string | null;
   video: boolean;
+  audio: boolean;
 }
 
 /**
- * Watches who is in a group's call (the call's Realtime presence) without joining it,
+ * Watches who is in a group's call or voice room (the call's Realtime presence) without joining it,
  * so the group page can show "call in progress · Join".
  */
 export function useGroupCallParticipants(groupId: string | undefined, enabled: boolean) {
@@ -29,11 +30,11 @@ export function useGroupCallParticipants(groupId: string | undefined, enabled: b
       }
       channel = ch;
       ch.on("presence", { event: "sync" }, () => {
-        const state = ch.presenceState<{ name: string; avatar: string | null; video: boolean }>();
+        const state = ch.presenceState<{ name: string; avatar: string | null; video: boolean; audio: boolean }>();
         setParticipants(
           Object.entries(state).map(([userId, metas]) => {
             const m = metas[metas.length - 1];
-            return { userId, name: m.name, avatar: m.avatar, video: m.video };
+            return { userId, name: m.name, avatar: m.avatar, video: m.video, audio: m.audio };
           })
         );
       }).subscribe();

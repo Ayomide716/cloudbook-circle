@@ -9,22 +9,14 @@ import { Mic, MicOff, PhoneOff, Plus, Radio, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { useCalls } from "@/hooks/use-calls";
+import { useGroupCallParticipants } from "@/hooks/use-group-call-participants";
+import { broadcast } from "@/lib/realtime-broadcast";
 
 interface VoiceRoom {
   id: string;
   title: string;
   created_by: string;
-  is_active: boolean;
-  created_at: string;
-  participants: Participant[];
-}
-
-interface Participant {
-  id: string;
-  user_id: string;
-  is_muted: boolean;
-  is_speaker: boolean;
-  profile?: { full_name: string | null; avatar_url: string | null } | null;
 }
 
 interface VoiceRoomsProps {
@@ -32,119 +24,156 @@ interface VoiceRoomsProps {
   currentUserId: string;
 }
 
+/** Each voice room is a voice-only group call with its own id. */
+const roomCallId = (roomId: string) => `room-${roomId}`;
+
+interface VoiceRoomCardProps {
+  room: VoiceRoom;
+  isInRoom: boolean;
+  isCreator: boolean;
+  onJoin: () => void;
+  onLeave: () => void;
+  onEnd: () => void;
+}
+
+const VoiceRoomCard = ({ room, isInRoom, isCreator, onJoin, onLeave, onEnd }: VoiceRoomCardProps) => {
+  // Live list from the room's presence: people who close the tab drop off by themselves.
+  // While you're in the room the call window owns the connection, so the card doesn't watch it.
+  const participants = useGroupCallParticipants(roomCallId(room.id), !isInRoom);
+
+  return (
+    <Card className={cn("p-4 rounded-2xl transition-all", isInRoom && "ring-2 ring-primary/50 bg-primary/5")}>
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <span
+            className={cn(
+              "w-2.5 h-2.5 rounded-full shrink-0",
+              isInRoom || participants.length > 0 ? "bg-green-500 animate-pulse" : "bg-muted-foreground/40"
+            )}
+          />
+          <span className="font-semibold text-sm truncate">{room.title}</span>
+        </div>
+        {!isInRoom && (
+          <span className="flex items-center gap-1 text-xs text-muted-foreground shrink-0">
+            <Users className="h-3.5 w-3.5" />
+            {participants.length}
+          </span>
+        )}
+      </div>
+
+      {isInRoom ? (
+        <p className="text-sm text-muted-foreground mb-3">
+          You're in this room. Mute, see who's talking or leave from the call window, which stays open while you browse.
+        </p>
+      ) : participants.length > 0 ? (
+        <div className="flex flex-wrap gap-3 mb-3">
+          {participants.map((p) => (
+            <div key={p.userId} className="flex flex-col items-center gap-1">
+              <div className="relative">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={p.avatar || undefined} alt="" />
+                  <AvatarFallback className="text-xs">{p.name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                </Avatar>
+                <span
+                  className={cn(
+                    "absolute -bottom-0.5 -right-0.5 rounded-full p-0.5 ring-2 ring-card",
+                    p.audio ? "bg-green-500" : "bg-destructive"
+                  )}
+                  aria-label={p.audio ? "Mic on" : "Muted"}
+                >
+                  {p.audio ? <Mic className="h-2.5 w-2.5 text-white" /> : <MicOff className="h-2.5 w-2.5 text-destructive-foreground" />}
+                </span>
+              </div>
+              <span className="text-[11px] text-muted-foreground max-w-[64px] truncate">{p.name}</span>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground mb-3">Nobody's here yet. Join and others will hear you.</p>
+      )}
+
+      <div className="flex gap-2">
+        {isInRoom ? (
+          <Button size="sm" variant="destructive" className="rounded-xl flex-1" onClick={onLeave}>
+            <PhoneOff className="h-4 w-4 mr-1" /> Leave room
+          </Button>
+        ) : (
+          <Button size="sm" className="rounded-xl flex-1 gradient-brand text-primary-foreground" onClick={onJoin}>
+            <Mic className="h-4 w-4 mr-1" /> Join room
+          </Button>
+        )}
+        {isCreator && (
+          <Button size="sm" variant="ghost" className="rounded-xl text-destructive" onClick={onEnd}>
+            End room
+          </Button>
+        )}
+      </div>
+    </Card>
+  );
+};
+
 const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
   const [rooms, setRooms] = useState<VoiceRoom[]>([]);
-  const [activeRoomId, setActiveRoomId] = useState<string | null>(null);
-  const [isMuted, setIsMuted] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [newTitle, setNewTitle] = useState("");
   const { toast } = useToast();
+  const { joinGroupCall, leaveGroupCall, activeGroupId } = useCalls();
 
   const loadRooms = useEffectEvent(async () => {
-    const { data: roomsData } = await supabase
+    const { data } = await supabase
       .from("voice_rooms")
-      .select("*")
+      .select("id, title, created_by")
       .eq("group_id", groupId)
       .eq("is_active", true)
       .order("created_at", { ascending: false });
-
-    if (!roomsData) return;
-
-    const roomIds = roomsData.map(r => r.id);
-    if (roomIds.length === 0) { setRooms([]); return; }
-
-    const { data: participants } = await supabase
-      .from("voice_room_participants")
-      .select("*")
-      .in("room_id", roomIds);
-
-    const userIds = [...new Set(participants?.map(p => p.user_id) || [])];
-    const { data: profiles } = userIds.length > 0
-      ? await supabase.from("profiles").select("id, full_name, avatar_url").in("id", userIds)
-      : { data: [] };
-
-    const profileMap = new Map((profiles || []).map(p => [p.id, p] as const));
-
-    const enriched: VoiceRoom[] = roomsData.map(room => ({
-      ...room,
-      participants: (participants || [])
-        .filter(p => p.room_id === room.id)
-        .map(p => ({ ...p, profile: profileMap.get(p.user_id) || null })),
-    }));
-
-    setRooms(enriched);
+    if (data) setRooms(data);
   });
 
   useEffect(() => {
     loadRooms();
-
     const channel = supabase
       .channel(`voice-rooms-${groupId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "voice_rooms", filter: `group_id=eq.${groupId}` }, () => loadRooms())
-      .on("postgres_changes", { event: "*", schema: "public", table: "voice_room_participants" }, () => loadRooms())
+      // Ended rooms are hidden from other members, so the database can't tell them: the creator does.
+      .on("broadcast", { event: "room-ended" }, ({ payload }) => {
+        setRooms((prev) => prev.filter((r) => r.id !== payload.roomId));
+      })
       .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [groupId, loadRooms]);
 
   const createRoom = async () => {
-    if (!newTitle.trim()) return;
-    const { error } = await supabase.from("voice_rooms").insert({
-      group_id: groupId,
-      title: newTitle.trim(),
-      created_by: currentUserId,
-    });
-
-    if (error) {
-      toast({ title: "Error creating room", variant: "destructive" });
+    const title = newTitle.trim();
+    if (!title) return;
+    const { data, error } = await supabase
+      .from("voice_rooms")
+      .insert({ group_id: groupId, title, created_by: currentUserId })
+      .select("id, title, created_by")
+      .single();
+    if (error || !data) {
+      toast({ title: "Couldn't create the room", variant: "destructive" });
       return;
     }
     setNewTitle("");
     setShowCreate(false);
-    toast({ title: "Voice room created! 🎙️" });
+    setRooms((prev) => (prev.some((r) => r.id === data.id) ? prev : [data, ...prev]));
+    joinGroupCall({ id: roomCallId(data.id), name: data.title }, true);
   };
 
-  const joinRoom = async (roomId: string) => {
-    if (activeRoomId) await leaveRoom();
-
-    const { error } = await supabase.from("voice_room_participants").insert({
-      room_id: roomId,
-      user_id: currentUserId,
-      is_speaker: true,
-    });
-
-    if (error && !error.message.includes("duplicate")) {
-      toast({ title: "Error joining room", variant: "destructive" });
+  const endRoom = async (room: VoiceRoom) => {
+    const { error } = await supabase.from("voice_rooms").update({ is_active: false }).eq("id", room.id);
+    if (error) {
+      toast({ title: "Couldn't end the room", variant: "destructive" });
       return;
     }
-    setActiveRoomId(roomId);
-    setIsMuted(false);
-    toast({ title: "Joined voice room 🎤" });
-  };
-
-  const leaveRoom = async () => {
-    if (!activeRoomId) return;
-    await supabase.from("voice_room_participants")
-      .delete()
-      .eq("room_id", activeRoomId)
-      .eq("user_id", currentUserId);
-    setActiveRoomId(null);
-    toast({ title: "Left voice room" });
-  };
-
-  const toggleMute = async () => {
-    if (!activeRoomId) return;
-    const newMuted = !isMuted;
-    setIsMuted(newMuted);
-    await supabase.from("voice_room_participants")
-      .update({ is_muted: newMuted })
-      .eq("room_id", activeRoomId)
-      .eq("user_id", currentUserId);
-  };
-
-  const endRoom = async (roomId: string) => {
-    await supabase.from("voice_rooms").update({ is_active: false }).eq("id", roomId);
-    if (activeRoomId === roomId) setActiveRoomId(null);
+    broadcast([
+      { topic: `group-call-${roomCallId(room.id)}`, event: "room-ended", payload: { roomId: room.id } },
+      { topic: `voice-rooms-${groupId}`, event: "room-ended", payload: { roomId: room.id } },
+    ]);
+    if (activeGroupId === roomCallId(room.id)) leaveGroupCall();
+    setRooms((prev) => prev.filter((r) => r.id !== room.id));
     toast({ title: "Voice room ended" });
   };
 
@@ -153,114 +182,51 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
       <div className="flex items-center justify-between">
         <h3 className="font-semibold flex items-center gap-2">
           <Radio className="h-4 w-4 text-primary" />
-          Voice Rooms
+          Voice rooms
         </h3>
         <Button size="sm" variant="outline" className="rounded-xl" onClick={() => setShowCreate(true)}>
-          <Plus className="h-4 w-4 mr-1" /> New Room
+          <Plus className="h-4 w-4 mr-1" /> New room
         </Button>
       </div>
 
       {rooms.length === 0 ? (
-        <p className="text-sm text-muted-foreground text-center py-4">No active voice rooms. Start one!</p>
+        <p className="text-sm text-muted-foreground text-center py-4">
+          No voice rooms yet. Start one for a drop-in chat anyone in the group can join.
+        </p>
       ) : (
         <div className="space-y-3">
-          {rooms.map((room) => {
-            const isInRoom = activeRoomId === room.id;
-            const isCreator = room.created_by === currentUserId;
-
-            return (
-              <Card key={room.id} className={cn(
-                "p-4 rounded-2xl transition-all",
-                isInRoom && "ring-2 ring-primary/50 bg-primary/5"
-              )}>
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <div className={cn("w-2.5 h-2.5 rounded-full", isInRoom ? "bg-green-500 animate-pulse" : "bg-primary/60")} />
-                    <span className="font-semibold text-sm">{room.title}</span>
-                  </div>
-                  <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Users className="h-3.5 w-3.5" />
-                    {room.participants.length}
-                  </div>
-                </div>
-
-                {/* Participants */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {room.participants.map((p) => (
-                    <div key={p.id} className="flex flex-col items-center gap-1">
-                      <div className="relative">
-                        <Avatar className="h-10 w-10">
-                          <AvatarImage src={p.profile?.avatar_url || undefined} />
-                          <AvatarFallback className="text-xs">{p.profile?.full_name?.[0] || "U"}</AvatarFallback>
-                        </Avatar>
-                        {p.is_muted && (
-                          <div className="absolute -bottom-0.5 -right-0.5 bg-destructive rounded-full p-0.5">
-                            <MicOff className="h-2.5 w-2.5 text-destructive-foreground" />
-                          </div>
-                        )}
-                        {!p.is_muted && p.is_speaker && (
-                          <div className="absolute -bottom-0.5 -right-0.5 bg-green-500 rounded-full p-0.5">
-                            <Mic className="h-2.5 w-2.5 text-white" />
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[10px] text-muted-foreground max-w-[60px] truncate">
-                        {p.user_id === currentUserId ? "You" : p.profile?.full_name || "User"}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2">
-                  {isInRoom ? (
-                    <>
-                      <Button
-                        size="sm"
-                        variant={isMuted ? "destructive" : "outline"}
-                        className="rounded-xl flex-1"
-                        onClick={toggleMute}
-                      >
-                        {isMuted ? <MicOff className="h-4 w-4 mr-1" /> : <Mic className="h-4 w-4 mr-1" />}
-                        {isMuted ? "Unmute" : "Mute"}
-                      </Button>
-                      <Button size="sm" variant="destructive" className="rounded-xl" onClick={leaveRoom}>
-                        <PhoneOff className="h-4 w-4 mr-1" /> Leave
-                      </Button>
-                    </>
-                  ) : (
-                    <Button size="sm" className="rounded-xl flex-1 gradient-brand text-primary-foreground" onClick={() => joinRoom(room.id)}>
-                      <Mic className="h-4 w-4 mr-1" /> Join Room
-                    </Button>
-                  )}
-                  {isCreator && (
-                    <Button size="sm" variant="ghost" className="rounded-xl text-destructive" onClick={() => endRoom(room.id)}>
-                      End
-                    </Button>
-                  )}
-                </div>
-              </Card>
-            );
-          })}
+          {rooms.map((room) => (
+            <VoiceRoomCard
+              key={room.id}
+              room={room}
+              isInRoom={activeGroupId === roomCallId(room.id)}
+              isCreator={room.created_by === currentUserId}
+              onJoin={() => joinGroupCall({ id: roomCallId(room.id), name: room.title }, true)}
+              onLeave={leaveGroupCall}
+              onEnd={() => endRoom(room)}
+            />
+          ))}
         </div>
       )}
 
       <Dialog open={showCreate} onOpenChange={setShowCreate}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Create Voice Room</DialogTitle>
+            <DialogTitle>Create a voice room</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <Input
-              placeholder="Room title (e.g. Chill Vibes 🎵)"
+              placeholder="Room name (e.g. Friday hangout)"
+              aria-label="Room name"
               value={newTitle}
+              maxLength={60}
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && createRoom()}
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
               <Button onClick={createRoom} disabled={!newTitle.trim()} className="gradient-brand text-primary-foreground">
-                Create Room
+                Create and join
               </Button>
             </div>
           </div>
