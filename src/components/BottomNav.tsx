@@ -1,12 +1,9 @@
 import { Home, Film, MessageCircle, Compass } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import MobileProfileMenu from "./MobileProfileMenu";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
-import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface BottomNavProps {
   currentUserId?: string;
@@ -15,31 +12,6 @@ interface BottomNavProps {
 const BottomNav = ({ currentUserId }: BottomNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [pendingRequests, setPendingRequests] = useState(0);
-
-  const loadCounts = useEffectEvent(async () => {
-    if (!currentUserId) return;
-    const { count } = await supabase
-      .from("friendships")
-      .select("id", { count: "exact", head: true })
-      .eq("friend_id", currentUserId)
-      .eq("status", "pending");
-    setPendingRequests(count || 0);
-  });
-
-  useEffect(() => {
-    if (currentUserId) {
-      loadCounts();
-      
-      const channel = supabase
-        .channel("bottom-nav-counts")
-        .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
-        .subscribe();
-
-      return () => { supabase.removeChannel(channel); };
-    }
-  }, [currentUserId, loadCounts]);
-
   const navItems = [
     { icon: Home, path: "/", label: "Home", badge: 0, action: undefined as (() => void) | undefined },
     { icon: Compass, path: "/explore", label: "Explore", badge: 0, action: undefined as (() => void) | undefined },
@@ -89,7 +61,7 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
         
         {currentUserId && (
           <div className="flex flex-col items-center justify-center px-2">
-            <MobileProfileMenu currentUserId={currentUserId} pendingRequests={pendingRequests} />
+            <MobileProfileMenu currentUserId={currentUserId} />
             <span className="text-[9px] mt-0.5 font-medium text-muted-foreground">Menu</span>
           </div>
         )}
