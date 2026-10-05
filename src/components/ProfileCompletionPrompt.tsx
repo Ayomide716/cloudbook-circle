@@ -57,7 +57,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -6 }}
-        className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-3 py-2.5 sm:px-4"
+        className="feed-section flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-3 py-2.5 sm:px-4"
       >
         <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
         <div className="min-w-0 flex-1">

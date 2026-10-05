@@ -163,13 +163,13 @@ const Index = () => {
       <NewPostsBanner onRefresh={handleRefresh} lastFetchTime={lastFetchTime} />
 
       <PullToRefresh onRefresh={handleRefresh} className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 mb-20 md:mb-24 lg:mb-6">
+        <div className="max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-6 pt-2 pb-4 sm:py-6 mb-20 md:mb-24 lg:mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px] gap-6">
             <FeedSidebar currentUser={currentUser} />
 
             {/* Main Feed - Bento Grid */}
             {/* Posts read best at about Facebook's width; wider just stretches photos and lines of text. */}
-            <main className="space-y-5 min-w-0 w-full max-w-[680px] mx-auto">
+            <main className="feed-flush space-y-5 max-sm:space-y-2 min-w-0 w-full max-w-[680px] mx-auto">
               <CreatePost
                 currentUser={currentUser}
                 onPostCreated={() => refetch()}
@@ -195,7 +195,7 @@ const Index = () => {
               ) : (
                 <>
                   {/* Bento Grid Layout */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
                     {allPosts.map((post, index) => {
                       const size = getBentoSize(index);
                       const ad = getAdForPosition(index);
@@ -213,7 +213,7 @@ const Index = () => {
                           className={size === "full" ? "md:col-span-2" : "md:col-span-1"}
                         >
                           {ad && currentUser && (
-                            <div className="mb-4">
+                            <div className="mb-2 sm:mb-4">
                               <SponsoredPost campaign={ad} currentUserId={currentUser.id} />
                             </div>
                           )}

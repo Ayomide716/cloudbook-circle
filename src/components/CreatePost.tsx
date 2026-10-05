@@ -116,7 +116,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   return (
     <>
       {/* Compact Create Post Card */}
-      <Card className="p-3 sm:p-4 shadow-sm">
+      <Card className="feed-section p-3 sm:p-4 shadow-sm">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 flex-shrink-0">
             <AvatarImage src={currentUser.avatar_url || undefined} />

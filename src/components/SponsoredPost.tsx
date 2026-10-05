@@ -56,7 +56,7 @@ const SponsoredPost = ({ campaign, currentUserId, preview = false }: SponsoredPo
   if (dismissed) return null;
 
   return (
-    <Card ref={ref} className="shadow-sm overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5">
+    <Card ref={ref} className="feed-section shadow-sm overflow-hidden border-primary/20 bg-gradient-to-br from-card to-primary/5">
       <div className="p-3 sm:p-4">
         <div className="flex items-center justify-between mb-2">
           <Badge variant="secondary" className="text-xs font-normal">

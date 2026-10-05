@@ -15,7 +15,7 @@ const FeedFilter = ({ filter, onFilterChange }: FeedFilterProps) => {
   ];
 
   return (
-    <div className="flex gap-1.5 mb-4 overflow-x-auto scrollbar-hide">
+    <div className="flex gap-1.5 mb-4 max-sm:mb-0 max-sm:px-3 overflow-x-auto scrollbar-hide">
       {filters.map(f => (
         <Button
           key={f.key}
