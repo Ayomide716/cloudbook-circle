@@ -92,7 +92,8 @@ const PostCard = ({
   defaultShowComments = false,
 }: PostCardProps) => {
   // Labels stay available to screen readers even when visually hidden.
-  const actionLabelClass = compact ? "sr-only" : "sr-only sm:not-sr-only";
+  // Labels show from phone width up; only very narrow screens and compact cards use icons alone.
+  const actionLabelClass = compact ? "sr-only" : "text-[13px] sm:text-sm max-[359px]:sr-only";
   const [showComments, setShowComments] = useState(defaultShowComments);
   const myProfile = useMyProfile();
   const [confirmDelete, setConfirmDelete] = useState(false);

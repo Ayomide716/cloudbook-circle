@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image, Video, X } from "lucide-react";
+import { Loader2, Image, X } from "lucide-react";
 import PostExpirySelector from "./PostExpirySelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -125,26 +125,14 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           >
             What's on your mind, {currentUser.full_name?.split(' ')[0] || 'there'}?
           </button>
-        </div>
-
-        <div className="flex items-center justify-around mt-3 pt-3 border-t">
           <Button
             variant="ghost"
-            size="sm"
-            className="flex-1 text-muted-foreground hover:bg-accent gap-2"
+            size="icon"
+            className="h-10 w-10 flex-shrink-0 rounded-full text-primary hover:bg-primary/10"
             onClick={() => setShowDialog(true)}
+            aria-label="Add photos or video"
           >
-            <Image className="h-5 w-5 text-green-500" />
-            <span className="hidden sm:inline">Photo</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            className="flex-1 text-muted-foreground hover:bg-accent gap-2"
-            onClick={() => setShowDialog(true)}
-          >
-            <Video className="h-5 w-5 text-red-500" />
-            <span className="hidden sm:inline">Video</span>
+            <Image className="h-5 w-5" />
           </Button>
         </div>
       </Card>

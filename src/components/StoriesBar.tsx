@@ -12,6 +12,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
+import LiveRoomStories from "./LiveRoomStories";
+import { useMyProfile } from "@/hooks/use-my-profile";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -44,6 +46,7 @@ interface StoriesBarProps {
 const STORY_DURATION = 5000; // 5 seconds per story
 
 const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
+  const myProfile = useMyProfile();
   const [storyGroups, setStoryGroups] = useState<UserStoryGroup[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [storyImage, setStoryImage] = useState("");
@@ -290,10 +293,14 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           {/* Create Story */}
           <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)}>
             <div className="relative w-[88px] h-[140px] sm:w-[100px] sm:h-[160px] rounded-2xl overflow-hidden border-2 border-border/60 bg-card shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
-              <div className="h-[60%] bg-secondary/60 flex items-center justify-center">
-                <div className="w-10 h-10 rounded-full bg-muted/80 flex items-center justify-center">
-                  <Plus className="h-5 w-5 text-muted-foreground" />
-                </div>
+              <div className="h-[60%] bg-secondary/60 flex items-center justify-center overflow-hidden">
+                {myProfile?.avatar_url ? (
+                  <img src={myProfile.avatar_url} alt="" className="h-full w-full object-cover" />
+                ) : (
+                  <span className="font-display text-3xl font-bold text-primary">
+                    {myProfile?.full_name?.[0]?.toUpperCase() || <Plus className="h-5 w-5 text-muted-foreground" />}
+                  </span>
+                )}
               </div>
               <div className="absolute bottom-0 inset-x-0 h-[40%] bg-card flex flex-col items-center justify-center border-t border-border/50">
                 <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center -mt-4 mb-1 border-[3px] border-card shadow-md">
@@ -304,6 +311,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             </div>
           </button>
 
+          {/* Live voice rooms in your groups */}
+          <LiveRoomStories currentUserId={currentUserId} />
+
           {/* Story Groups */}
           {storyGroups.map((group, index) => (
             <button
@@ -311,12 +321,12 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               className="flex-shrink-0 group"
               onClick={() => openViewer(index)}
             >
+              {/* New stories get a ring in the brand gradient; seen ones a quiet grey one. */}
               <div className={cn(
-                "relative w-[88px] h-[140px] sm:w-[100px] sm:h-[160px] rounded-2xl overflow-hidden shadow-sm transition-transform duration-200 group-hover:scale-[1.03]",
-                group.hasUnviewed
-                  ? "ring-[2.5px] ring-primary ring-offset-2 ring-offset-background"
-                  : "ring-[2px] ring-muted-foreground/20 ring-offset-1 ring-offset-background"
+                "rounded-[18px] p-[2.5px] transition-transform duration-200 group-hover:scale-[1.03]",
+                group.hasUnviewed ? "gradient-brand" : "bg-muted-foreground/25"
               )}>
+              <div className="relative w-[83px] h-[135px] sm:w-[95px] sm:h-[155px] rounded-2xl overflow-hidden shadow-sm border-2 border-background">
                 <img
                   src={group.stories[group.stories.length - 1].media_url}
                   alt="Story"
@@ -341,6 +351,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                     {group.userId === currentUserId ? "Your Story" : group.profile.full_name || "User"}
                   </p>
                 </div>
+              </div>
               </div>
             </button>
           ))}
