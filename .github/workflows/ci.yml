@@ -49,14 +49,14 @@ jobs:
 
       # A throwaway local Supabase built from supabase/migrations. The live project is never touched.
       - name: Start Supabase
-        run: supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor,postgres-meta
+        run: supabase start -x studio,imgproxy,edge-runtime,logflare,vector,supavisor,postgres-meta
 
       # These are the CLI's fixed local-development keys, not the live project's.
       - name: Export local Supabase keys
         run: |
           supabase status -o env \
-            | sed -nE 's/^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)="(.*)"$/\1=\2/p' \
-            | sed -e 's/^API_URL=/E2E_SUPABASE_URL=/' -e 's/^ANON_KEY=/E2E_SUPABASE_ANON_KEY=/' -e 's/^SERVICE_ROLE_KEY=/E2E_SUPABASE_SERVICE_KEY=/' \
+            | sed -nE 's/^(API_URL|ANON_KEY|SERVICE_ROLE_KEY|MAILPIT_URL)="(.*)"$/\1=\2/p' \
+            | sed -e 's/^API_URL=/E2E_SUPABASE_URL=/' -e 's/^ANON_KEY=/E2E_SUPABASE_ANON_KEY=/' -e 's/^SERVICE_ROLE_KEY=/E2E_SUPABASE_SERVICE_KEY=/' -e 's/^MAILPIT_URL=/E2E_MAILPIT_URL=/' \
             >> "$GITHUB_ENV"
 
       - name: Install Chromium

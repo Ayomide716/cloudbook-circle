@@ -4,11 +4,13 @@
   "description": "Connect with friends, share moments, and build your community.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0f",
-  "theme_color": "#3b82f6",
+  "background_color": "#F6F8F8",
+  "theme_color": "#0D877A",
   "orientation": "portrait-primary",
   "scope": "/",
-  "categories": ["social"],
+  "categories": [
+    "social"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",
