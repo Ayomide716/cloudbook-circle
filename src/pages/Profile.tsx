@@ -33,7 +33,8 @@ import {
   FolderOpen,
   Trash2,
   X,
-  Loader2 } from
+  Loader2,
+  Images } from
 "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -129,7 +130,6 @@ const Profile = () => {
   const { scrollY } = useScroll();
   const coverY = useTransform(scrollY, [0, 300], [0, 100]);
   const coverScale = useTransform(scrollY, [0, 300], [1, 1.15]);
-  const headerOpacity = useTransform(scrollY, [150, 250], [0, 1]);
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -364,166 +364,128 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
 
-      {/* Sticky mini-header on scroll */}
-      <motion.div
-        style={{ opacity: headerOpacity }}
-        aria-hidden
-        // Purely visual and invisible until you scroll: it must never block taps underneath.
-        className="pointer-events-none fixed top-[var(--nav-height)] inset-x-0 z-40 glass border-b border-border px-6 py-2 flex items-center gap-3">
-        
-        <Avatar className="h-8 w-8">
-          <AvatarImage src={profile.avatar_url || undefined} />
-          <AvatarFallback className="text-xs">{profile.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-        </Avatar>
-        <span className="font-display font-semibold text-sm truncate">
-          {profile.full_name || "Anonymous"}
-        </span>
-        {profile.is_verified && <VerifiedBadge size="sm" />}
-      </motion.div>
-
-      {/* ─── Parallax Cover ─── */}
-      <div ref={coverRef} className="relative h-56 sm:h-72 overflow-hidden">
-        <motion.div
-          style={{ y: coverY, scale: coverScale }}
-          className="absolute inset-0">
-          
-          {profile.cover_url ?
-          <img src={profile.cover_url} alt="Cover" className="w-full h-full object-cover" /> :
-
-          <div className="w-full h-full gradient-brand opacity-80" />
+      {/* ─── Cover ─── */}
+      <div className="max-w-5xl mx-auto sm:px-6">
+        <div ref={coverRef} className="relative h-44 sm:h-72 overflow-hidden bg-muted sm:rounded-b-2xl">
+          <motion.div style={{ y: coverY, scale: coverScale }} className="absolute inset-0">
+            {profile.cover_url ?
+            <img src={profile.cover_url} alt="" className="w-full h-full object-cover" /> :
+            <div className="w-full h-full gradient-brand opacity-80" />
+            }
+          </motion.div>
+          {isOwnProfile &&
+          <div className="absolute right-3 bottom-3 z-10">
+              <ImageUpload
+              bucket="avatars"
+              userId={currentUserId!}
+              onUploadComplete={handleCoverUpload}
+              label="Edit cover"
+              variant="pill" />
+            </div>
           }
-          <div className="absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-transparent" />
-        </motion.div>
-        {isOwnProfile &&
-        <div className="absolute inset-x-0 top-3 z-10 max-w-5xl mx-auto px-3 sm:px-6 flex justify-end">
-            <ImageUpload
-            bucket="avatars"
-            userId={currentUserId!}
-            onUploadComplete={handleCoverUpload}
-            label="Edit cover"
-            variant="pill" />
-          
-          </div>
-        }
+        </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-12 sm:-mt-20 relative z-10 pb-28 md:pb-10">
-        {/* ─── Profile header card ─── */}
-        <motion.div
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={spring}
-          className="bento-card overflow-hidden mb-5">
-          
-          {/* Top section with avatar and actions */}
-          <div className="relative px-5 sm:px-8 pt-4 pb-5">
-            <div className="flex items-end gap-4 sm:gap-6">
-              {/* Avatar */}
-              <div className="relative -mt-14 sm:-mt-18 flex-shrink-0">
-                <motion.div whileHover={{ scale: 1.04 }} transition={spring}>
-                  <Avatar className="h-24 w-24 sm:h-36 sm:w-36 border-4 sm:border-[5px] border-card shadow-lg">
-                    <AvatarImage src={profile.avatar_url || undefined} />
-                    <AvatarFallback className="text-3xl sm:text-4xl font-display gradient-brand text-primary-foreground">
-                      {profile.full_name?.[0]?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </motion.div>
-                {/* Own profile: camera button to change the photo. Others: online dot. Never both in one corner. */}
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-28 md:pb-10">
+        {/* ─── Header: photo over the cover, name, friends, actions ─── */}
+        <header className="mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-6">
+            <div className="relative -mt-16 sm:-mt-20 w-fit flex-shrink-0 sm:ml-2">
+              <Avatar className="h-32 w-32 sm:h-40 sm:w-40 border-4 border-background shadow-lg">
+                <AvatarImage src={profile.avatar_url || undefined} alt="" />
+                <AvatarFallback className="text-4xl sm:text-5xl font-display gradient-brand text-primary-foreground">
+                  {profile.full_name?.[0]?.toUpperCase() || "U"}
+                </AvatarFallback>
+              </Avatar>
+              {/* Own profile: camera button to change the photo. Others: online dot. Never both in one corner. */}
+              {isOwnProfile ?
+              <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2">
+                  <ImageUpload
+                  bucket="avatars"
+                  userId={currentUserId!}
+                  onUploadComplete={handleAvatarUpload}
+                  label="Change profile photo"
+                  variant="avatar" />
+                </div> :
+              <div className="absolute bottom-3 right-3">
+                  <OnlineStatusIndicator userId={userId || ""} />
+                </div>
+              }
+            </div>
+
+            <div className="flex-1 min-w-0 sm:pb-3">
+              <h1 className="text-2xl sm:text-3xl font-display font-bold leading-tight flex items-center gap-2 [overflow-wrap:anywhere]">
+                {profile.full_name || "Anonymous User"}
+                {profile.is_verified && <VerifiedBadge size="lg" />}
+              </h1>
+              <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[15px] text-muted-foreground">
                 {isOwnProfile ?
-                <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2">
-                    <ImageUpload
-                    bucket="avatars"
-                    userId={currentUserId!}
-                    onUploadComplete={handleAvatarUpload}
-                    label="Change profile photo"
-                    variant="avatar" />
-                  </div> :
-                <div className="absolute bottom-2 right-2">
-                    <OnlineStatusIndicator userId={userId || ""} />
-                  </div>
+                <button onClick={() => navigate("/friends")} className="hover:underline">
+                    <strong className="text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}
+                  </button> :
+                <span><strong className="text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}</span>
+                }
+                {!isOwnProfile && mutualFriends.length > 0 &&
+                <span>· {mutualFriends.length} mutual</span>
                 }
               </div>
-
-              {/* Name + actions inline */}
-              <div className="flex-1 min-w-0 pb-1">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-                  <div className="min-w-0">
-                    <h1 className="text-xl sm:text-2xl font-display font-bold truncate inline-flex items-center gap-2">
-                      {profile.full_name || "Anonymous User"}
-                      {profile.is_verified && <VerifiedBadge size="lg" />}
-                    </h1>
-                    <div className="flex items-center gap-1 mt-0.5">
-                      <OnlineStatusIndicator userId={userId || ""} showText />
-                    </div>
-                  </div>
-
-                  <div className="flex-shrink-0">
-                    {isOwnProfile ?
-                    <Button variant="outline" size="sm" onClick={() => setIsEditingProfile(true)} className="rounded-xl">
-                        <Edit className="h-4 w-4 mr-2" /> Edit Profile
-                      </Button> :
-
-                    <div className="flex flex-wrap gap-2">
-                        <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} />
-                        <Button variant="outline" size="sm" onClick={startMessage} className="rounded-xl" aria-label="Message">
-                          <MessageCircle className="h-4 w-4 sm:mr-2" />
-                          <span className="hidden sm:inline">Message</span>
-                        </Button>
-                      </div>
-                    }
-                  </div>
+              {!isOwnProfile && mutualFriends.length > 0 &&
+              <div className="flex -space-x-2 mt-2" aria-hidden="true">
+                  {mutualFriends.slice(0, 6).map((f) =>
+                <Avatar key={f.id} className="h-7 w-7 ring-2 ring-background">
+                      <AvatarImage src={f.avatar_url || undefined} alt="" />
+                      <AvatarFallback className="text-[10px]">{f.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                )}
                 </div>
+              }
+              <div className="mt-1.5">
+                <OnlineStatusIndicator userId={userId || ""} showText />
               </div>
             </div>
 
-            {/* Bio */}
-            {profile.bio &&
-            <p className="text-muted-foreground mt-4 max-w-2xl text-sm leading-relaxed">{profile.bio}</p>
-            }
-          </div>
-
-          {/* Stats bar */}
-          <div className="border-t border-border">
-            <div className="grid grid-cols-3">
-              {[
-              { value: posts.length, label: "Posts" },
-              { value: friendCount ?? "–", label: "Friends" },
-              { value: photoPosts.length, label: "Photos" }].
-              map((s) =>
-              <motion.button
-                key={s.label}
-                whileHover={{ scale: 1.03 }}
-                whileTap={{ scale: 0.97 }}
-                transition={{ type: "spring", stiffness: 400, damping: 20 }}
-                // "Friends" opens your own friends list; on someone else's profile there's nothing to open.
-                disabled={s.label === "Friends" && !isOwnProfile}
-                onClick={() => s.label === "Photos" ? setActiveTab("photos") : s.label === "Friends" ? navigate("/friends") : setActiveTab("posts")}
-                className="flex flex-col items-center justify-center gap-0.5 py-4 cursor-pointer hover:bg-accent/60 transition-colors first:rounded-bl-2xl last:rounded-br-2xl disabled:cursor-default disabled:hover:bg-transparent">
-                  <span className="font-display font-bold text-xl">{s.value}</span>
-                  <span className="text-xs text-muted-foreground">{s.label}</span>
-                </motion.button>
-              )}
+            <div className="flex gap-2 w-full sm:w-auto sm:pb-3">
+              {isOwnProfile ?
+              <Button onClick={() => setIsEditingProfile(true)} className="flex-1 sm:flex-none rounded-xl">
+                  <Edit className="h-4 w-4 mr-2" /> Edit profile
+                </Button> :
+              <>
+                  <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} className="flex-1 sm:flex-none rounded-xl" />
+                  <Button onClick={startMessage} variant="outline" className="flex-1 sm:flex-none rounded-xl">
+                    <MessageCircle className="h-4 w-4 mr-2" /> Message
+                  </Button>
+                </>
+              }
             </div>
           </div>
-        </motion.div>
 
-        {/* ─── Tab bar ─── */}
-        <div className="flex gap-1 p-1 rounded-xl bg-muted/50 mb-6">
-          {(["posts", "about", "photos", "albums", "qa"] as const).map((tab) =>
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={cn(
-              "flex-1 py-2.5 rounded-lg text-sm font-medium transition-all capitalize",
-              activeTab === tab ?
-              "bg-card text-foreground shadow-sm" :
-              "text-muted-foreground hover:text-foreground"
-            )}>
-            
-              {tab === "qa" ? "Q&A" : tab}
-            </button>
-          )}
-        </div>
+          {profile.bio &&
+          <p className="mt-3 max-w-2xl text-[15px] leading-relaxed whitespace-pre-wrap break-words">{profile.bio}</p>
+          }
+        </header>
+
+        {/* ─── Tabs: underlined, scroll sideways on narrow phones, stay under the top bar ─── */}
+        <nav aria-label="Profile sections" className="sticky top-[var(--nav-height)] z-30 -mx-4 sm:mx-0 mb-5 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
+          <div className="flex overflow-x-auto scrollbar-hide px-2 sm:px-0">
+            {(["posts", "about", "photos", "albums", "qa"] as const).map((tab) => {
+              const count = tab === "posts" ? posts.length : tab === "photos" ? photoPosts.length : null;
+              return (
+                <button
+                  key={tab}
+                  onClick={() => setActiveTab(tab)}
+                  aria-current={activeTab === tab ? "page" : undefined}
+                  className={cn(
+                    "relative shrink-0 px-3 sm:px-4 py-3 text-sm font-semibold transition-colors",
+                    activeTab === tab ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                  )}>
+                  {{ posts: "Posts", about: "About", photos: "Photos", albums: "Albums", qa: "Q&A" }[tab]}
+                  {count !== null && count > 0 && <span className="ml-1 font-normal opacity-70">{count}</span>}
+                  {activeTab === tab && <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-full bg-primary" />}
+                </button>
+              );
+            })}
+          </div>
+        </nav>
 
         {/* ─── Bento grid content ─── */}
         {activeTab === "posts" &&
@@ -777,22 +739,20 @@ const Profile = () => {
                 <p className="text-sm text-muted-foreground">Photos from posts will appear here.</p>
               </div> :
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
-                {photoPosts.map((p, i) =>
-            <motion.div
-              key={p.id}
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ ...spring, delay: Math.min(i * 0.04, 0.3) }}
-              whileHover={{ scale: 1.03, y: -2 }}
-              onClick={() => navigate(`/post/${p.id}`)}
-              role="link"
-              aria-label="Open photo post"
-              className="aspect-square rounded-2xl overflow-hidden cursor-pointer bento-card">
-              
-                    <img src={postImages(p)[0]} alt="" loading="lazy" className="w-full h-full object-cover" />
-                  </motion.div>
-            )}
+          // Instagram-style grid: square tiles edge to edge; a stack icon marks posts with several photos.
+          <div className="grid grid-cols-3 gap-0.5 -mx-4 sm:mx-0 sm:gap-1 sm:rounded-xl overflow-hidden">
+                {photoPosts.map((p) => {
+              const count = postImages(p).length;
+              return (
+                <button
+                  key={p.id}
+                  onClick={() => navigate(`/post/${p.id}`)}
+                  aria-label={count > 1 ? `Open post with ${count} photos` : "Open photo post"}
+                  className="group relative aspect-square overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                    <img src={postImages(p)[0]} alt="" loading="lazy" className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                    {count > 1 && <Images className="absolute top-1.5 right-1.5 h-5 w-5 text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.6)]" aria-hidden="true" />}
+                  </button>);
+            })}
               </div>
           }
           </motion.div>
