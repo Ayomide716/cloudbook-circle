@@ -12,6 +12,25 @@ test.describe("profiles and friends", () => {
     await expect(page.getByRole("button", { name: "Message", exact: true })).toBeVisible();
   });
 
+  test("your own profile has Facebook's header: stats, Add to story, Edit profile and chips", async ({ page }) => {
+    await signIn(page, "alice");
+    const bar = page.getByRole("navigation", { name: "Main" }).last();
+    await bar.getByRole("button", { name: "Profile" }).click();
+    await expect(page).toHaveURL(new RegExp(`/profile/${ids().alice}$`));
+    await expect(bar.getByRole("button", { name: "Profile" })).toHaveAttribute("aria-current", "page");
+    await expect(page.getByRole("heading", { level: 1, name: "Alice Johnson" })).toBeVisible();
+    await expect(page.getByText(/1\s+friend\s+·\s+\d+\s+posts?/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Add to story" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Edit profile" })).toBeVisible();
+    const chips = page.getByRole("navigation", { name: "Profile sections" });
+    await chips.getByRole("button", { name: "Videos" }).click();
+    await expect(page.getByText("No videos")).toBeVisible();
+
+    await page.getByRole("button", { name: "Add to story" }).click();
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.getByRole("dialog")).toBeVisible();
+  });
+
   test("an incoming request can be accepted from the profile", async ({ page }) => {
     await signIn(page, "alice");
     await page.goto(`/profile/${ids().dave}`);

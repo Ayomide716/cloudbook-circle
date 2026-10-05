@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useSearchParams } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,6 +52,15 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const [isCreating, setIsCreating] = useState(false);
   const [storyImage, setStoryImage] = useState("");
   const [storyCaption, setStoryCaption] = useState("");
+  // "Add to story" on your profile opens this dialog (via /?story=1).
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("story") !== "1") return;
+    setIsCreating(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("story");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Viewer state
   const [viewerOpen, setViewerOpen] = useState(false);
@@ -292,8 +302,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         <div className="flex gap-3 overflow-x-auto py-2 px-1.5 -mx-1.5 scrollbar-hide">
           {/* Create Story */}
           <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)}>
-            <div className="relative w-[104px] h-[172px] rounded-2xl overflow-hidden border-2 border-border/60 bg-card shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
-              <div className="h-[60%] bg-secondary/60 flex items-center justify-center overflow-hidden">
+            <div className="relative w-[104px] h-[172px] rounded-xl overflow-hidden border border-border bg-card shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
+              <div className="h-[66%] bg-secondary/60 flex items-center justify-center overflow-hidden">
                 {myProfile?.avatar_url ? (
                   <img src={myProfile.avatar_url} alt="" className="h-full w-full object-cover" />
                 ) : (
@@ -302,11 +312,11 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                   </span>
                 )}
               </div>
-              <div className="absolute bottom-0 inset-x-0 h-[40%] bg-card flex flex-col items-center justify-center border-t border-border/50">
-                <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center -mt-4 mb-1 border-[3px] border-card shadow-md">
-                  <Plus className="h-3.5 w-3.5 text-primary-foreground" />
+              <div className="absolute bottom-0 inset-x-0 h-[34%] bg-card flex flex-col items-center justify-end pb-2">
+                <div className="absolute -top-[18px] w-9 h-9 rounded-full bg-primary flex items-center justify-center border-[3px] border-card">
+                  <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.6} />
                 </div>
-                <p className="text-xs font-semibold text-foreground">Create story</p>
+                <p className="text-xs font-semibold leading-tight text-foreground text-center px-1">Create a<br />story</p>
               </div>
             </div>
           </button>
@@ -321,20 +331,17 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               className="flex-shrink-0 group"
               onClick={() => openViewer(index)}
             >
-              {/* New stories get a ring in the brand gradient; seen ones a quiet grey one. */}
-              <div className={cn(
-                "rounded-[18px] p-[2.5px] transition-transform duration-200 group-hover:scale-[1.03]",
-                group.hasUnviewed ? "gradient-brand" : "bg-muted-foreground/25"
-              )}>
-              <div className="relative w-[99px] h-[167px] rounded-2xl overflow-hidden shadow-sm border-2 border-background">
+              <div className="transition-transform duration-200 group-hover:scale-[1.03]">
+              <div className="relative w-[104px] h-[172px] rounded-xl overflow-hidden shadow-sm">
                 <img
                   src={group.stories[group.stories.length - 1].media_url}
                   alt="Story"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
                 />
                 <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
-                <div className="absolute top-2 left-2">
-                  <Avatar className={cn("h-8 w-8 border-2", group.hasUnviewed ? "border-primary" : "border-muted-foreground/40")}>
+                {/* As in Facebook: the ring is on the person's avatar, in the brand gradient while unseen. */}
+                <div className={cn("absolute top-2 left-2 rounded-full p-[2.5px]", group.hasUnviewed ? "gradient-brand" : "bg-white/60")}>
+                  <Avatar className="h-9 w-9 border-2 border-black/20">
                     <AvatarImage src={group.profile.avatar_url || undefined} />
                     <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
                       {group.profile.full_name?.[0]?.toUpperCase() || "U"}
@@ -347,7 +354,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                   </div>
                 )}
                 <div className="absolute bottom-2 left-2 right-2">
-                  <p className="text-white text-xs font-semibold leading-tight line-clamp-2 drop-shadow-lg">
+                  <p className="text-white text-[13px] font-semibold leading-tight line-clamp-2 drop-shadow-lg">
                     {group.userId === currentUserId ? "Your Story" : group.profile.full_name || "User"}
                   </p>
                 </div>

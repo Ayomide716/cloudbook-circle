@@ -30,7 +30,7 @@ const LiveRoomCard = ({ room }: { room: LiveRoom }) => {
       onClick={() => joinGroupCall({ id: callId, name: room.title }, true)}
       aria-label={`Join live voice room ${room.title} in ${room.groupName}, ${people.length} listening`}
     >
-      <div className="relative w-[104px] h-[172px] rounded-2xl overflow-hidden bg-primary text-primary-foreground p-2.5 flex flex-col justify-between text-left shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
+      <div className="relative w-[104px] h-[172px] rounded-xl overflow-hidden bg-primary text-primary-foreground p-2.5 flex flex-col justify-between text-left shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
         <span className="self-start whitespace-nowrap rounded-md bg-gold px-1.5 py-0.5 text-[10px] font-extrabold tracking-wider text-foreground">
           LIVE ROOM
         </span>

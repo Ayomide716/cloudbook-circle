@@ -10,6 +10,7 @@ interface FeedPost {
   image_url: string | null;
   image_urls: string[] | null;
   video_url: string | null;
+  location?: string | null;
   created_at: string;
   user_id: string;
   profiles: {
@@ -64,12 +65,12 @@ async function fetchFeedPage(
     poll: null,
   }));
 
-  // Fetch image_urls for posts
+  // Photos and place for these posts (the ranking function returns the basics only)
   if (posts.length > 0) {
     const postIds = posts.map((p) => p.id);
     const { data: postsData } = await supabase
       .from("posts")
-      .select("id, image_urls")
+      .select("id, image_urls, location")
       .in("id", postIds);
 
     if (postsData) {
@@ -78,6 +79,7 @@ async function fetchFeedPage(
         if (pd && pd.image_urls && (pd.image_urls as string[]).length > 0) {
           post.image_urls = pd.image_urls as string[];
         }
+        if (pd?.location) post.location = pd.location;
       });
     }
   }

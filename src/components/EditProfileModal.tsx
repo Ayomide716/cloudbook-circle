@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { RELATIONSHIP_OPTIONS } from "@/lib/profile-details";
 
 interface Profile {
   id: string;
@@ -16,6 +17,9 @@ interface Profile {
   website: string | null;
   work: string | null;
   education: string | null;
+  hometown?: string | null;
+  birthday?: string | null;
+  relationship_status?: string | null;
 }
 
 interface EditProfileModalProps {
@@ -33,6 +37,9 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
     website: profile.website || "",
     work: profile.work || "",
     education: profile.education || "",
+    hometown: profile.hometown || "",
+    birthday: profile.birthday || "",
+    relationship_status: profile.relationship_status || "",
   });
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
@@ -43,7 +50,8 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
 
     const { error } = await supabase
       .from("profiles")
-      .update(formData)
+      // Empty date and choice fields are saved as "not set".
+      .update({ ...formData, birthday: formData.birthday || null, relationship_status: formData.relationship_status || null })
       .eq("id", profile.id);
 
     setIsLoading(false);
@@ -137,6 +145,46 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
               placeholder="School / University"
               disabled={isLoading}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hometown">Hometown</Label>
+            <Input
+              id="hometown"
+              value={formData.hometown}
+              onChange={(e) => setFormData({ ...formData, hometown: e.target.value })}
+              placeholder="Where you're from"
+              disabled={isLoading}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="birthday">Birthday</Label>
+              <Input
+                id="birthday"
+                type="date"
+                value={formData.birthday}
+                max={new Date().toISOString().slice(0, 10)}
+                onChange={(e) => setFormData({ ...formData, birthday: e.target.value })}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="relationship">Relationship</Label>
+              <select
+                id="relationship"
+                value={formData.relationship_status}
+                onChange={(e) => setFormData({ ...formData, relationship_status: e.target.value })}
+                disabled={isLoading}
+                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base md:text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                <option value="">Don't show</option>
+                {RELATIONSHIP_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
           </div>
 
           <div className="flex justify-end gap-2">

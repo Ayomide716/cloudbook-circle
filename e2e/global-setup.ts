@@ -38,6 +38,7 @@ export default async function globalSetup() {
   check("post", (await db.from("posts").insert({
     user_id: ids.bob,
     content: "Saturday at Lekki Conservation Centre",
+    location: "Lekki, Lagos",
     created_at: new Date(Date.now() - 2 * 3600_000).toISOString(),
   })).error);
 

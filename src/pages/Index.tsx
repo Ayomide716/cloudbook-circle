@@ -1,4 +1,4 @@
-import { useEffect, useState, lazy, Suspense, useCallback, useRef } from "react";
+import { useEffect, useState, lazy, Suspense, useCallback, useMemo, useRef } from "react";
 import { usePostInteractions } from "@/hooks/use-post-interactions";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +18,7 @@ import SponsoredPost from "@/components/SponsoredPost";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLoginStreak } from "@/hooks/use-login-streak";
+import { isFilteredOut } from "@/lib/hidden-posts";
 import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 import NewPostsBanner from "@/components/NewPostsBanner";
 import ScreenTimeWidget from "@/components/ScreenTimeWidget";
@@ -61,7 +62,9 @@ const Index = () => {
   const { fetchReactions, fetchComments } = useFeedReactions(currentUser?.id ?? null);
   const { getAdForPosition } = useAds();
 
-  const allPosts = data?.pages.flatMap((page) => page.posts) ?? [];
+  // Posts you hid or people you snoozed are left out when the feed loads. A post hidden
+  // just now stays in place showing its "Why aren't you interested?" panel until the next load.
+  const allPosts = useMemo(() => (data?.pages.flatMap((page) => page.posts) ?? []).filter((p) => !isFilteredOut(p)), [data]);
 
   // Reload reactions/comments whenever the set of visible posts changes (not just their count,
   // which stays the same when switching feed filters).

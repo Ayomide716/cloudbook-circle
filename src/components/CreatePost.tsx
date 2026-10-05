@@ -3,7 +3,8 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image, X } from "lucide-react";
+import { Loader2, Image, X, MapPin } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import PostExpirySelector from "./PostExpirySelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -36,6 +37,9 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [showDialog, setShowDialog] = useState(false);
   const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
   const [postExpiry, setPostExpiry] = useState<string | null>(null);
+  // "Lekki, Lagos": shown on the post as "Lekki, Lagos · 2h", as on Facebook.
+  const [location, setLocation] = useState("");
+  const [showLocation, setShowLocation] = useState(false);
   const { toast } = useToast();
   // The top bar's "+" opens the composer from anywhere (via /?compose=1).
   const [searchParams, setSearchParams] = useSearchParams();
@@ -81,6 +85,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
         image_url: imageUrls[0] ?? null,
         image_urls: imageUrls,
         video_url: videoUrl || null,
+        location: location.trim() || null,
         expires_at: expiresAt,
        })
        .select()
@@ -113,6 +118,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     setVideoUrl("");
     setPollData(null);
     setPostExpiry(null);
+    setLocation("");
+    setShowLocation(false);
     setShowDialog(false);
     toast({ title: "Post created!" });
     onPostCreated();
@@ -137,7 +144,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           
           <button
             onClick={() => setShowDialog(true)}
-            className="flex-1 min-w-0 h-10 text-left px-4 bg-secondary hover:bg-secondary/80 rounded-full text-muted-foreground transition-colors text-[15px] sm:text-base truncate"
+            className="flex-1 min-w-0 h-10 text-left px-1 sm:px-4 sm:bg-secondary sm:hover:bg-secondary/80 rounded-full text-muted-foreground transition-colors text-base truncate"
           >
             {/* Long names don't fit on a phone; the shorter prompt reads better than a cut-off name. */}
             <span className="sm:hidden">What's on your mind?</span>
@@ -146,7 +153,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 flex-shrink-0 rounded-full text-primary hover:bg-primary/10"
+            className="h-10 w-10 flex-shrink-0 rounded-full text-muted-foreground sm:text-primary hover:bg-primary/10"
             onClick={() => setShowDialog(true)}
             aria-label="Add photos or video"
           >
@@ -200,8 +207,44 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   showPreview={false}
                 />
                 <PollCreator onCreatePoll={handleCreatePoll} />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-9 w-9 rounded-full text-red-500 hover:bg-red-500/10", (showLocation || location) && "bg-red-500/10")}
+                  onClick={() => setShowLocation((v) => !v)}
+                  aria-label="Add location"
+                  aria-expanded={showLocation}
+                >
+                  <MapPin className="h-5 w-5" />
+                </Button>
               </div>
             </div>
+
+            {(showLocation || location) && (
+              <div className="relative">
+                <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-red-500" />
+                <Input
+                  aria-label="Location"
+                  placeholder="Where are you? e.g. Lekki, Lagos"
+                  value={location}
+                  maxLength={80}
+                  onChange={(e) => setLocation(e.target.value)}
+                  className="pl-9 pr-9 rounded-full"
+                  autoFocus={showLocation && !location}
+                />
+                {location && (
+                  <button
+                    type="button"
+                    onClick={() => { setLocation(""); setShowLocation(false); }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full p-1 text-muted-foreground hover:bg-secondary"
+                    aria-label="Remove location"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+            )}
 
              {pollData && (
                <div className="relative bg-secondary/50 rounded-lg p-3">

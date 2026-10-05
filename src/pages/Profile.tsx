@@ -23,8 +23,6 @@ import {
   Briefcase,
   GraduationCap,
   Link as LinkIcon,
-  Camera,
-  CalendarDays,
   Heart,
   MessageSquare,
   Image as ImageIcon,
@@ -34,8 +32,16 @@ import {
   Trash2,
   X,
   Loader2,
-  Images } from
+  Images,
+  ChevronLeft,
+  MoreHorizontal,
+  Search,
+  Home,
+  Cake,
+  Clock,
+  Play } from
 "lucide-react";
+import { birthdayLabel, relationshipLabel } from "@/lib/profile-details";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import LoginStreakBadge from "@/components/LoginStreakBadge";
@@ -60,6 +66,9 @@ interface ProfileData {
   website: string | null;
   work: string | null;
   education: string | null;
+  hometown?: string | null;
+  birthday?: string | null;
+  relationship_status?: string | null;
   is_verified?: boolean;
   created_at?: string | null;
 }
@@ -111,7 +120,7 @@ const Profile = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const [friendCount, setFriendCount] = useState<number | null>(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums" | "qa">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "photos" | "videos" | "albums" | "qa">("posts");
 
   // Albums state
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -139,6 +148,8 @@ const Profile = () => {
 
   // Mutual friends state
   const [mutualFriends, setMutualFriends] = useState<{id: string;full_name: string | null;avatar_url: string | null;}[]>([]);
+  // Someone else's profile: groups you're both in, and the same town or school.
+  const [thingsInCommon, setThingsInCommon] = useState<string[]>([]);
 
   const coverRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
@@ -176,6 +187,7 @@ const Profile = () => {
     setSeoName(profileData.full_name);
 
     loadFriendStats();
+    loadThingsInCommon(profileData);
 
     const { data: postsData, error: postsError } = await supabase.
     from("posts").
@@ -223,6 +235,33 @@ const Profile = () => {
     if (!mutualIds.length) { setMutualFriends([]); return; }
     const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", mutualIds.slice(0, 20));
     setMutualFriends(profiles || []);
+  };
+
+  const loadThingsInCommon = async (other: ProfileData) => {
+    if (!currentUserId || other.id === currentUserId) { setThingsInCommon([]); return; }
+    const [{ data: me }, { data: mine }] = await Promise.all([
+      supabase.from("profiles").select("location, education, hometown").eq("id", currentUserId).maybeSingle(),
+      supabase.from("group_members").select("group_id").eq("user_id", currentUserId),
+    ]);
+    const myGroups = (mine ?? []).map((g) => g.group_id);
+    const { data: shared } = myGroups.length
+      ? await supabase.from("group_members").select("groups(name)").eq("user_id", other.id).in("group_id", myGroups).limit(3)
+      : { data: [] };
+    const same = (a?: string | null, b?: string | null) => !!a && !!b && a.trim().toLowerCase() === b.trim().toLowerCase();
+    const items = (shared ?? []).map((row) => (row as { groups: { name: string } | null }).groups?.name).filter(Boolean) as string[];
+    if (same(me?.location, other.location)) items.push(other.location!);
+    if (same(me?.hometown, other.hometown) && !items.includes(other.hometown!)) items.push(other.hometown!);
+    if (same(me?.education, other.education)) items.push(other.education!);
+    setThingsInCommon(items.slice(0, 4));
+  };
+
+  const shareProfile = async () => {
+    const url = `${window.location.origin}/profile/${userId}`;
+    try {
+      if (navigator.share) { await navigator.share({ title: profile?.full_name || "CloudBook profile", url }); return; }
+      await navigator.clipboard.writeText(url);
+      toast({ title: "Profile link copied" });
+    } catch { /* share sheet closed */ }
   };
 
   const loadAlbums = async () => {
@@ -356,6 +395,16 @@ const Profile = () => {
 
   const isOwnProfile = currentUserId === userId;
   const photoPosts = posts.filter((p) => postImages(p).length > 0);
+  const videoPosts = posts.filter((p) => p.video_url);
+  const relationship = relationshipLabel(profile.relationship_status);
+  const birthday = birthdayLabel(profile.birthday);
+
+  // The short line under the bio, as on Facebook: "📍 Lagos · 🎓 UNILAG · ❤ Single".
+  const summaryItems = [
+  profile.location && { icon: MapPin, label: profile.location },
+  (profile.education || profile.work) && { icon: profile.education ? GraduationCap : Briefcase, label: (profile.education || profile.work)! },
+  relationship && { icon: Heart, label: relationship }].
+  filter(Boolean) as {icon: LucideIcon;label: string;}[];
 
   // Build activity timeline
   const timelineItems = posts.slice(0, 8).map((p) => ({
@@ -367,28 +416,48 @@ const Profile = () => {
   }));
 
   const infoItems = [
-  profile.work && { icon: Briefcase, label: profile.work },
-  profile.education && { icon: GraduationCap, label: profile.education },
-  profile.location && { icon: MapPin, label: profile.location },
+  profile.location && { icon: Home, label: profile.location, prefix: "Lives in" },
+  profile.hometown && { icon: MapPin, label: profile.hometown, prefix: "From" },
+  profile.work && { icon: Briefcase, label: profile.work, prefix: "Works at" },
+  profile.education && { icon: GraduationCap, label: profile.education, prefix: "Studied at" },
+  birthday && { icon: Cake, label: birthday, prefix: "Birthday" },
+  relationship && { icon: Heart, label: relationship },
+  profile.created_at && { icon: Clock, label: new Date(profile.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }), prefix: "Joined" },
   // Only http(s) links, so a "javascript:" website can't run code when clicked.
   profile.website && { icon: LinkIcon, label: profile.website, href: safeWebsiteUrl(profile.website) }].
-  filter(Boolean) as {icon: LucideIcon;label: string;href?: string | null;}[];
+  filter(Boolean) as {icon: LucideIcon;label: string;prefix?: string;href?: string | null;}[];
 
   return (
     <div className="min-h-screen bg-background">
-      <Navigation currentUserId={currentUserId || undefined} />
+      <Navigation currentUserId={currentUserId || undefined} hideMobileTopBar />
 
-      {/* ─── Cover ─── */}
+      {/* ─── Cover: runs to the top of the screen on phones, with back / more / search over it ─── */}
       <div className="max-w-5xl mx-auto sm:px-6">
-        <div ref={coverRef} className="relative h-44 sm:h-72 overflow-hidden bg-muted sm:rounded-b-2xl">
+        <div ref={coverRef} className="relative h-48 sm:h-72 overflow-hidden bg-muted sm:rounded-b-2xl">
           <motion.div style={{ y: coverY, scale: coverScale }} className="absolute inset-0">
             {profile.cover_url ?
             <img src={profile.cover_url} alt="" className="w-full h-full object-cover" /> :
             <div className="w-full h-full gradient-brand opacity-80" />
             }
           </motion.div>
+          <div className="md:hidden absolute inset-x-0 top-0 z-10 flex items-center justify-between px-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
+            <button type="button" onClick={() => (window.history.length > 1 ? navigate(-1) : navigate("/"))} aria-label="Back"
+            className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm">
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={shareProfile} aria-label="Share profile"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm">
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+              <button type="button" onClick={() => navigate("/explore")} aria-label="Search"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm">
+                <Search className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
           {isOwnProfile &&
-          <div className="absolute right-3 bottom-3 z-10">
+          <div className="absolute right-3 bottom-8 sm:bottom-3 z-10">
               <ImageUpload
               bucket="avatars"
               userId={currentUserId!}
@@ -400,12 +469,12 @@ const Profile = () => {
         </div>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 pb-28 md:pb-10">
-        {/* ─── Header: photo over the cover, name, friends, actions ─── */}
-        <header className="mb-4">
-          <div className="flex flex-col sm:flex-row sm:items-end gap-3 sm:gap-6">
-            <div className="relative -mt-16 sm:-mt-20 w-fit flex-shrink-0 sm:ml-2">
-              <Avatar className="h-32 w-32 sm:h-40 sm:w-40 border-4 border-background shadow-lg">
+      <div className="page-flush max-w-5xl mx-auto px-0 sm:px-6 pb-28 md:pb-10">
+        {/* ─── Header, as in Facebook: a white sheet over the cover with the photo, name and stats ─── */}
+        <header className="relative -mt-5 sm:mt-0 rounded-t-3xl sm:rounded-none bg-card sm:bg-transparent px-4 sm:px-0 pt-3 pb-4 mb-2 sm:mb-4">
+          <div className="flex items-end gap-4">
+            <div className="relative -mt-14 sm:-mt-20 w-fit flex-shrink-0">
+              <Avatar className="h-28 w-28 sm:h-40 sm:w-40 border-4 border-card sm:border-background shadow-lg">
                 <AvatarImage src={profile.avatar_url || undefined} alt="" />
                 <AvatarFallback className="text-4xl sm:text-5xl font-display gradient-brand text-primary-foreground">
                   {profile.full_name?.[0]?.toUpperCase() || "U"}
@@ -427,80 +496,127 @@ const Profile = () => {
               }
             </div>
 
-            <div className="flex-1 min-w-0 sm:pb-3">
-              <h1 className="text-2xl sm:text-3xl font-display font-bold leading-tight flex items-center gap-2 [overflow-wrap:anywhere]">
+            <div className="min-w-0 flex-1 pb-1 sm:pb-3">
+              <h1 className="text-[22px] sm:text-3xl font-bold leading-tight flex items-center gap-1.5 [overflow-wrap:anywhere]">
                 {profile.full_name || "Anonymous User"}
                 {profile.is_verified && <VerifiedBadge size="lg" />}
               </h1>
-              <div className="mt-1 flex flex-wrap items-center gap-x-1.5 text-[15px] text-muted-foreground">
+              {/* "245 friends · 10 mutual · 153 posts" */}
+              <p className="mt-0.5 text-[15px] text-muted-foreground">
                 {isOwnProfile ?
-                <button onClick={() => navigate("/friends")} className="hover:underline">
-                    <strong className="text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}
-                  </button> :
-                <span><strong className="text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}</span>
+                <button onClick={() => navigate("/friends")} className="hover:underline"><strong className="font-semibold text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}</button> :
+                <span><strong className="font-semibold text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}</span>
                 }
-                {!isOwnProfile && mutualFriends.length > 0 &&
-                <span>· {mutualFriends.length} mutual</span>
-                }
-              </div>
-              {!isOwnProfile && mutualFriends.length > 0 &&
-              <div className="flex -space-x-2 mt-2" aria-hidden="true">
-                  {mutualFriends.slice(0, 6).map((f) =>
-                <Avatar key={f.id} className="h-7 w-7 ring-2 ring-background">
-                      <AvatarImage src={f.avatar_url || undefined} alt="" />
-                      <AvatarFallback className="text-[10px]">{f.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                    </Avatar>
-                )}
-                </div>
-              }
-              <div className="mt-1.5">
-                <OnlineStatusIndicator userId={userId || ""} showText />
-              </div>
-              {isOwnProfile && currentUserId &&
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <LoginStreakBadge userId={currentUserId} />
-                  <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
-                </div>
-              }
-            </div>
-
-            <div className="flex gap-2 w-full sm:w-auto sm:pb-3">
-              {isOwnProfile ?
-              <Button onClick={() => setIsEditingProfile(true)} className="flex-1 sm:flex-none rounded-xl">
-                  <Edit className="h-4 w-4 mr-2" /> Edit profile
-                </Button> :
-              <>
-                  <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} className="flex-1 sm:flex-none rounded-xl" />
-                  <Button onClick={startMessage} variant="outline" className="flex-1 sm:flex-none rounded-xl">
-                    <MessageCircle className="h-4 w-4 mr-2" /> Message
-                  </Button>
-                </>
-              }
+                {!isOwnProfile && mutualFriends.length > 0 && <> · <strong className="font-semibold text-foreground">{mutualFriends.length}</strong> mutual</>}
+                {" · "}<strong className="font-semibold text-foreground">{posts.length}</strong> {posts.length === 1 ? "post" : "posts"}
+              </p>
             </div>
           </div>
 
           {profile.bio &&
           <p className="mt-3 max-w-2xl text-[15px] leading-relaxed whitespace-pre-wrap break-words">{profile.bio}</p>
           }
+
+          {/* Short details line: 📍 Lagos · 🎓 UNILAG · ❤ Single */}
+          {summaryItems.length > 0 &&
+          <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px]">
+              {summaryItems.map((item, i) =>
+            <span key={item.label} className="inline-flex items-center gap-1">
+                  {i > 0 && <span className="text-muted-foreground" aria-hidden="true">·</span>}
+                  <item.icon className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {item.label}
+                </span>
+            )}
+            </p>
+          }
+
+          {/* Mutual friends: faces and names */}
+          {!isOwnProfile && mutualFriends.length > 0 &&
+          <div className="mt-3 flex items-center gap-2.5">
+              <div className="flex -space-x-2 shrink-0" aria-hidden="true">
+                {mutualFriends.slice(0, 3).map((f) =>
+              <Avatar key={f.id} className="h-8 w-8 ring-2 ring-card">
+                    <AvatarImage src={f.avatar_url || undefined} alt="" />
+                    <AvatarFallback className="text-[10px]">{f.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                  </Avatar>
+              )}
+              </div>
+              <p className="text-sm text-muted-foreground leading-snug">
+                Friends with {mutualFriends.slice(0, 3).map((f, i, arr) =>
+              <span key={f.id}>
+                    <strong className="font-semibold text-foreground">{f.full_name || "someone"}</strong>
+                    {i < arr.length - 2 ? ", " : i === arr.length - 2 ? (mutualFriends.length > 3 ? ", " : " and ") : ""}
+                  </span>
+              )}
+                {mutualFriends.length > 3 && <> and {mutualFriends.length - 3} {mutualFriends.length - 3 === 1 ? "other" : "others"}</>}
+              </p>
+            </div>
+          }
+
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:max-w-md">
+            {isOwnProfile ?
+            <>
+                <Button onClick={() => navigate("/?story=1")} className="sm:flex-1 rounded-lg">
+                  <Plus className="h-4 w-4 mr-1.5" /> Add to story
+                </Button>
+                <Button variant="secondary" onClick={() => setIsEditingProfile(true)} className="sm:flex-1 rounded-lg">
+                  <Edit className="h-4 w-4 mr-1.5" /> Edit profile
+                </Button>
+              </> :
+            <>
+                <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} className="w-full sm:flex-1 rounded-lg" />
+                <Button onClick={startMessage} className="sm:flex-1 rounded-lg">
+                  <MessageCircle className="h-4 w-4 mr-1.5" /> Message
+                </Button>
+              </>
+            }
+          </div>
+
+          {/* Things in common (someone else's profile) */}
+          {!isOwnProfile && thingsInCommon.length > 0 &&
+          <section className="mt-4 rounded-xl border border-border p-3 sm:max-w-md" aria-label="Things in common">
+              <h2 className="flex items-center gap-2 text-[15px] font-semibold mb-1">
+                <Users className="h-5 w-5" /> Things in common
+              </h2>
+              <p className="text-sm text-muted-foreground leading-snug">
+                {thingsInCommon.map((t, i) =>
+              <span key={t}>
+                    {i > 0 && (i === thingsInCommon.length - 1 ? " and " : ", ")}
+                    <strong className="font-semibold text-foreground">{t}</strong>
+                  </span>
+              )}
+                {thingsInCommon.length === 1 ? " is" : " are"} something you share.
+              </p>
+            </section>
+          }
+
+          <div className="mt-3">
+            <OnlineStatusIndicator userId={userId || ""} showText />
+          </div>
+          {isOwnProfile && currentUserId &&
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+              <LoginStreakBadge userId={currentUserId} />
+              <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
+            </div>
+          }
         </header>
 
-        {/* ─── Tabs: underlined, scroll sideways on narrow phones, stay under the top bar ─── */}
-        <nav aria-label="Profile sections" className="sticky top-[var(--nav-height)] z-30 -mx-4 sm:mx-0 mb-5 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-          <div className="flex overflow-x-auto scrollbar-hide px-2 sm:px-0">
-            {(["posts", "about", "photos", "albums", "qa"] as const).map((tab) => {
-              const count = tab === "posts" ? posts.length : tab === "photos" ? photoPosts.length : null;
+        {/* ─── Tabs: Facebook's pill chips (All, Photos, Videos …), sticky under the top bar ─── */}
+        <nav aria-label="Profile sections" className="sticky top-0 md:top-[var(--nav-height)] z-30 mb-2 sm:mb-5 border-b border-border bg-card/95 sm:bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:supports-[backdrop-filter]:bg-background/80">
+          <div className="flex gap-1.5 overflow-x-auto scrollbar-hide px-3 sm:px-0 py-2">
+            {(["posts", "photos", "videos", "albums", "qa"] as const).map((tab) => {
+              const count = tab === "photos" ? photoPosts.length : tab === "videos" ? videoPosts.length : null;
               return (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab)}
                   aria-current={activeTab === tab ? "page" : undefined}
                   className={cn(
-                    "relative shrink-0 px-3 sm:px-4 py-3 text-sm font-semibold transition-colors",
-                    activeTab === tab ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                    "shrink-0 rounded-full px-4 py-2 text-[15px] font-semibold transition-colors",
+                    activeTab === tab ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary"
                   )}>
-                  {{ posts: "Posts", about: "About", photos: "Photos", albums: "Albums", qa: "Q&A" }[tab]}
-                  {count !== null && count > 0 && <span className="ml-1 font-normal opacity-70">{count}</span>}
-                  {activeTab === tab && <span className="absolute inset-x-3 bottom-0 h-[3px] rounded-full bg-primary" />}
+                  {{ posts: "All", photos: "Photos", videos: "Videos", albums: "Albums", qa: "Q&A" }[tab]}
+                  {count !== null && count > 0 && <span className="ml-1 font-normal opacity-60">{count}</span>}
                 </button>
               );
             })}
@@ -509,35 +625,35 @@ const Profile = () => {
 
         {/* ─── Bento grid content ─── */}
         {activeTab === "posts" &&
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-2 sm:gap-5">
             {/* Left column — Info + Timeline */}
-            <div className="lg:col-span-1 space-y-5">
-              {/* About card */}
+            <div className="lg:col-span-1 space-y-2 sm:space-y-5">
+              {/* Personal details, as on Facebook: "Lives in Lagos", "From Ibadan", … */}
               {infoItems.length > 0 &&
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...spring, delay: 0.1 }}
-              className="bento-card p-5">
-              
-                  <h3 className="font-display font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wider">About</h3>
-                  <div className="space-y-3">
-                    {infoItems.map((item, i) =>
-                <div key={i} className="flex items-center gap-3 text-sm">
-                        <div className="w-8 h-8 rounded-lg gradient-brand-soft flex items-center justify-center flex-shrink-0">
-                          <item.icon className="h-4 w-4 text-primary" />
-                        </div>
+            <section className="feed-section bento-card p-4 sm:p-5" aria-labelledby="personal-details">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 id="personal-details" className="text-[17px] font-bold">Personal details</h2>
+                    {isOwnProfile &&
+                <button type="button" onClick={() => setIsEditingProfile(true)} className="text-[15px] text-primary font-medium hover:underline">Edit</button>
+                }
+                  </div>
+                  <ul className="space-y-3.5">
+                    {infoItems.map((item) =>
+                <li key={`${item.prefix ?? ""}${item.label}`} className="flex items-center gap-3 text-[15px]">
+                        <item.icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
                         {item.href ?
                   <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
                             {displayUrl(item.href)}
                           </a> :
-
-                  <span className="truncate">{item.label}</span>
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                            {item.prefix && <>{item.prefix} </>}
+                            {item.prefix ? <strong className="font-semibold">{item.label}</strong> : item.label}
+                          </span>
                   }
-                      </div>
+                      </li>
                 )}
-                  </div>
-                </motion.div>
+                  </ul>
+                </section>
             }
 
               {/* Photos grid card */}
@@ -546,10 +662,10 @@ const Profile = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...spring, delay: 0.15 }}
-              className="bento-card p-5">
+              className="feed-section bento-card p-4 sm:p-5">
               
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-display font-semibold text-sm text-muted-foreground uppercase tracking-wider">Photos</h3>
+                    <h3 className="text-[17px] font-bold">Photos</h3>
                     <button onClick={() => setActiveTab("photos")} className="text-xs text-primary font-medium hover:underline">
                       See All
                     </button>
@@ -569,7 +685,7 @@ const Profile = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...spring, delay: 0.12 }}
-              className="bento-card p-5">
+              className="feed-section bento-card p-4 sm:p-5">
               
                 <ProfileAchievements userId={userId || ""} isOwnProfile={isOwnProfile} />
               </motion.div>
@@ -580,9 +696,9 @@ const Profile = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...spring, delay: 0.18 }}
-              className="bento-card p-5">
+              className="feed-section bento-card p-4 sm:p-5">
               
-                  <h3 className="font-display font-semibold mb-3 text-sm text-muted-foreground uppercase tracking-wider">
+                  <h3 className="text-[17px] font-bold mb-3">
                     Mutual Friends · {mutualFriends.length}
                   </h3>
                   <div className="space-y-2.5">
@@ -616,9 +732,9 @@ const Profile = () => {
               initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ ...spring, delay: 0.2 }}
-              className="bento-card p-5">
+              className="feed-section bento-card p-4 sm:p-5">
               
-                  <h3 className="font-display font-semibold mb-4 text-sm text-muted-foreground uppercase tracking-wider">Activity</h3>
+                  <h3 className="text-[17px] font-bold mb-3">Activity</h3>
                   <div className="relative">
                     {/* Timeline line */}
                     <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-border" />
@@ -660,7 +776,7 @@ const Profile = () => {
             </div>
 
             {/* Right column — Posts feed */}
-            <div className="lg:col-span-2 space-y-5">
+            <div className="lg:col-span-2 space-y-2 sm:space-y-5">
               {posts.length === 0 ?
             <div className="bento-card p-12 text-center">
                   <div className="w-16 h-16 rounded-2xl gradient-brand-soft flex items-center justify-center mx-auto mb-4">
@@ -696,52 +812,26 @@ const Profile = () => {
           </div>
         }
 
-        {activeTab === "about" &&
-        <motion.div
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={spring}
-          className="max-w-2xl mx-auto">
-          
-            <div className="bento-card p-6 space-y-5">
-              <h2 className="font-display font-bold text-xl">About {profile.full_name?.split(" ")[0] || "this user"}</h2>
-              {profile.bio && <p className="text-muted-foreground leading-relaxed">{profile.bio}</p>}
-
-              {infoItems.length > 0 &&
-            <div className="space-y-4 pt-2">
-                  {infoItems.map((item, i) =>
-              <div key={i} className="flex items-center gap-4">
-                      <div className="w-10 h-10 rounded-xl gradient-brand-soft flex items-center justify-center">
-                        <item.icon className="h-5 w-5 text-primary" />
-                      </div>
-                      {item.href ?
-                <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline break-all">
-                          {displayUrl(item.href)}
-                        </a> :
-
-                <span>{item.label}</span>
-                }
-                    </div>
-              )}
-                </div>
-            }
-
-              {profile.created_at &&
-            <div className="flex items-center gap-4 pt-2 border-t border-border">
-                  <div className="w-10 h-10 rounded-xl gradient-brand-soft flex items-center justify-center">
-                    <CalendarDays className="h-5 w-5 text-primary" />
-                  </div>
-                  <span className="text-sm text-muted-foreground">
-                    Joined {formatDistanceToNow(new Date(profile.created_at), { addSuffix: true })}
-                  </span>
-                </div>
-            }
-
-              {infoItems.length === 0 && !profile.bio &&
-            <p className="text-muted-foreground text-center py-8">No info to display yet.</p>
-            }
-            </div>
-          </motion.div>
+        {activeTab === "videos" && (
+        videoPosts.length === 0 ?
+        <div className="bento-card p-12 text-center">
+              <Play className="h-8 w-8 text-muted-foreground mx-auto mb-3" aria-hidden="true" />
+              <p className="font-semibold text-lg mb-1">No videos</p>
+              <p className="text-sm text-muted-foreground">Videos from posts will appear here.</p>
+            </div> :
+        // Portrait tiles, three across, like Facebook's Videos tab.
+        <div className="grid grid-cols-3 gap-0.5 sm:gap-1 sm:rounded-xl overflow-hidden">
+              {videoPosts.map((p) =>
+          <button
+            key={p.id}
+            onClick={() => navigate(`/post/${p.id}`)}
+            aria-label="Open video post"
+            className="relative aspect-[9/16] overflow-hidden bg-black focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring">
+                  <video src={`${p.video_url}#t=0.1`} preload="metadata" muted playsInline className="w-full h-full object-cover" />
+                  <Play className="absolute bottom-2 left-2 h-5 w-5 fill-white text-white drop-shadow" aria-hidden="true" />
+                </button>
+          )}
+            </div>)
         }
 
         {activeTab === "photos" &&
@@ -760,7 +850,7 @@ const Profile = () => {
               </div> :
 
           // Instagram-style grid: square tiles edge to edge; a stack icon marks posts with several photos.
-          <div className="grid grid-cols-3 gap-0.5 -mx-4 sm:mx-0 sm:gap-1 sm:rounded-xl overflow-hidden">
+          <div className="grid grid-cols-3 gap-0.5 sm:gap-1 sm:rounded-xl overflow-hidden">
                 {photoPosts.map((p) => {
               const count = postImages(p).length;
               return (

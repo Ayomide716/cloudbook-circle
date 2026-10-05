@@ -1,4 +1,4 @@
-import { Bell, Home, Film, Users, Menu as MenuIcon } from "lucide-react";
+import { Bell, Home, Film, Users } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/lib/prefetch";
@@ -21,28 +21,31 @@ interface BottomNavProps {
   friendRequests?: number;
   /** Unread notifications, shown on the Notifications tab. */
   unreadNotifications?: number;
-  /** Your photo for the Menu tab, as Facebook shows it. */
+  /** Your photo for the Profile tab, as Facebook shows it. */
   avatarUrl?: string | null;
   name?: string | null;
 }
 
 /**
- * The tab bar, laid out like Facebook's app: Home, Reels, Friends, Groups, Notifications
- * and Menu along the bottom, the current tab in teal with a line on top.
+ * The tab bar, laid out like Facebook's app: Home, Friends, Reels, Groups, Notifications
+ * and your Profile along the bottom, the current tab in teal with a line on top.
+ * (Facebook's fourth tab is Marketplace; CloudBook keeps Groups there. The Menu is the
+ * ☰ button in the top bar.)
  */
-const BottomNav = ({ friendRequests = 0, unreadNotifications = 0, avatarUrl, name }: BottomNavProps) => {
+const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0, avatarUrl, name }: BottomNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const tabs = [
     { icon: Home, path: "/", label: "Home", badge: 0 },
-    { icon: Film, path: "/reels", label: "Reels", badge: 0 },
     { icon: Users, path: "/friends", label: "Friends", badge: friendRequests },
+    { icon: Film, path: "/reels", label: "Reels", badge: 0 },
     { icon: GroupsIcon, path: "/groups", label: "Groups", badge: 0 },
     { icon: Bell, path: "/notifications", label: "Notifications", badge: unreadNotifications },
   ];
   // A group's own page still counts as the Groups tab.
   const isActive = (path: string) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path));
-  const menuActive = isActive("/menu");
+  const profilePath = `/profile/${currentUserId ?? ""}`;
+  const profileActive = !!currentUserId && location.pathname === profilePath;
 
   const tabClass = (active: boolean) =>
     cn("relative flex min-w-0 flex-col items-center justify-center gap-0.5 transition-colors", active ? "text-primary" : "text-muted-foreground");
@@ -85,25 +88,20 @@ const BottomNav = ({ friendRequests = 0, unreadNotifications = 0, avatarUrl, nam
           );
         })}
 
-        {/* Menu: your photo with a small menu badge, like Facebook's last tab. Opens the full Menu page. */}
+        {/* Profile: your photo, as Facebook's last tab. */}
         <motion.button
-          onClick={() => navigate("/menu")}
+          onClick={() => currentUserId && navigate(profilePath)}
           whileTap={{ scale: 0.9 }}
-          aria-current={menuActive ? "page" : undefined}
-          aria-label="Menu"
-          className={tabClass(menuActive)}
+          aria-current={profileActive ? "page" : undefined}
+          aria-label="Profile"
+          className={tabClass(profileActive)}
         >
-          {menuActive && <span className="absolute top-0 inset-x-0 h-[3px] bg-primary" />}
-          <span className="relative">
-            <Avatar className={cn("h-6 w-6", menuActive && "ring-2 ring-primary")}>
-              <AvatarImage src={avatarUrl || undefined} alt="" />
-              <AvatarFallback className="text-[10px] font-bold">{name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-            </Avatar>
-            <span className="absolute -bottom-1 -right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-card ring-1 ring-border">
-              <MenuIcon className="h-2.5 w-2.5" strokeWidth={3} />
-            </span>
-          </span>
-          {label("Menu", menuActive)}
+          {profileActive && <span className="absolute top-0 inset-x-0 h-[3px] bg-primary" />}
+          <Avatar className={cn("h-7 w-7", profileActive ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : "ring-1 ring-border")}>
+            <AvatarImage src={avatarUrl || undefined} alt="" />
+            <AvatarFallback className="text-[10px] font-bold">{name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+          </Avatar>
+          {label("Profile", profileActive)}
         </motion.button>
       </div>
     </motion.nav>

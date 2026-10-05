@@ -149,7 +149,7 @@ const ProfileAchievements = ({ userId, isOwnProfile }: ProfileAchievementsProps)
 
   return (
     <div className="space-y-3">
-      <h3 className="text-sm font-semibold font-display text-muted-foreground uppercase tracking-wider">
+      <h3 className="text-[17px] font-bold">
         Achievements {earnedList.length > 0 && `(${earnedList.length}/${ALL_ACHIEVEMENTS.length})`}
       </h3>
       <div className="flex flex-wrap gap-2">

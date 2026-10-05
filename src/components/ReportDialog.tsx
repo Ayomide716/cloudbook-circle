@@ -18,6 +18,9 @@ interface ReportDialogProps {
   reportedType: "post" | "reel" | "comment" | "profile";
   reportedId: string;
   currentUserId: string;
+  /** Open it from elsewhere (e.g. the hidden-post panel) instead of its own menu item. */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
 const REASONS = [
@@ -30,8 +33,11 @@ const REASONS = [
   "Other",
 ];
 
-const ReportDialog = ({ reportedType, reportedId, currentUserId }: ReportDialogProps) => {
-  const [open, setOpen] = useState(false);
+const ReportDialog = ({ reportedType, reportedId, currentUserId, open: openProp, onOpenChange }: ReportDialogProps) => {
+  const [openState, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? openProp : openState;
+  const setOpen = (next: boolean) => (controlled ? onOpenChange?.(next) : setOpenState(next));
   const [reason, setReason] = useState("");
   const [description, setDescription] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -60,12 +66,14 @@ const ReportDialog = ({ reportedType, reportedId, currentUserId }: ReportDialogP
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-          <Flag className="h-4 w-4 mr-2" />
-          Report
-        </DropdownMenuItem>
-      </DialogTrigger>
+      {!controlled && (
+        <DialogTrigger asChild>
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+            <Flag className="h-4 w-4 mr-2" />
+            Report
+          </DropdownMenuItem>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Report this {reportedType}</DialogTitle>
@@ -77,6 +85,8 @@ const ReportDialog = ({ reportedType, reportedId, currentUserId }: ReportDialogP
               {REASONS.map((r) => (
                 <button
                   key={r}
+                  type="button"
+                  aria-pressed={reason === r}
                   onClick={() => setReason(r)}
                   className={`text-left px-3 py-2 rounded-xl text-sm border transition-colors ${
                     reason === r
