@@ -19,14 +19,16 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
     { icon: MessageCircle, path: "/messages", label: "Chats", badge: 0, action: undefined as (() => void) | undefined },
   ];
 
+  // A flat bar across the bottom, as in Facebook's app: the current tab is teal with a line on top.
   return (
     <motion.nav
       initial={{ y: 100 }}
       animate={{ y: 0 }}
       transition={{ type: "spring", stiffness: 300, damping: 28 }}
-      className="app-dock fixed bottom-4 left-4 right-4 glass-strong dock-nav rounded-2xl z-50 md:hidden"
+      aria-label="Main"
+      className="app-dock fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
-      <div className="flex items-center justify-around h-[3.5rem] px-1">
+      <div className="grid grid-cols-5 h-14">
         {navItems.map((item) => {
           const isActive = item.path ? location.pathname === item.path : false;
           return (
@@ -34,35 +36,31 @@ const BottomNav = ({ currentUserId }: BottomNavProps) => {
               key={item.label}
               onClick={() => item.action ? item.action() : navigate(item.path)}
               onTouchStart={() => item.path && prefetchRoute(item.path)}
-              whileTap={{ scale: 0.85 }}
+              whileTap={{ scale: 0.9 }}
+              aria-current={isActive ? "page" : undefined}
               className={cn(
-                "flex flex-col items-center justify-center flex-1 h-full py-1 relative transition-colors duration-200",
-                isActive ? "text-primary-foreground" : "text-muted-foreground"
+                "relative flex flex-col items-center justify-center gap-0.5 transition-colors",
+                isActive ? "text-primary" : "text-muted-foreground"
               )}
             >
-              <div className={cn(
-                "relative flex items-center justify-center h-9 w-9 rounded-xl transition-all duration-200",
-                isActive && "gradient-brand shadow-md"
-              )}>
-                <item.icon className="h-5 w-5" />
+              {isActive && <span className="absolute top-0 inset-x-3 h-[3px] rounded-b-full bg-primary" />}
+              <span className="relative">
+                <item.icon className="h-6 w-6" strokeWidth={isActive ? 2.4 : 2} />
                 {item.badge > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 gradient-brand text-primary-foreground text-[9px] font-bold rounded-full h-4 min-w-4 px-0.5 flex items-center justify-center badge-pulse">
+                  <span className="absolute -top-1.5 -right-2 gradient-brand text-primary-foreground text-[9px] font-bold rounded-full h-4 min-w-4 px-0.5 flex items-center justify-center">
                     {item.badge > 9 ? "9+" : item.badge}
                   </span>
                 )}
-              </div>
-              <span className={cn(
-                "text-[9px] mt-0.5 font-medium transition-all duration-200",
-                isActive ? "text-primary font-semibold" : "text-muted-foreground"
-              )}>{item.label}</span>
+              </span>
+              <span className={cn("text-[11px] leading-none", isActive ? "font-semibold" : "font-medium")}>{item.label}</span>
             </motion.button>
           );
         })}
-        
+
         {currentUserId && (
-          <div className="flex flex-col items-center justify-center px-2">
+          <div className="flex flex-col items-center justify-center gap-0.5">
             <MobileProfileMenu currentUserId={currentUserId} />
-            <span className="text-[9px] mt-0.5 font-medium text-muted-foreground">Menu</span>
+            <span className="text-[11px] leading-none font-medium text-muted-foreground">Menu</span>
           </div>
         )}
       </div>

@@ -131,10 +131,10 @@ const MobileProfileMenu = ({ currentUserId }: MobileProfileMenuProps) => {
         <Button
           variant="ghost"
           size="icon"
-          className="relative h-9 w-9 rounded-full p-0 ring-2 ring-border"
+          className="relative h-7 w-7 rounded-full p-0 ring-2 ring-border"
           aria-label={requestCount > 0 ? `Menu, ${requestCount} friend request${requestCount === 1 ? "" : "s"}` : "Menu"}
         >
-          <Avatar className="h-9 w-9">
+          <Avatar className="h-7 w-7">
             <AvatarImage src={profile?.avatar_url || undefined} alt="" />
             <AvatarFallback className="text-sm">{initial}</AvatarFallback>
           </Avatar>
