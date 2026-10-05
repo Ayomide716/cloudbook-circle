@@ -4,7 +4,7 @@
   "description": "Connect with friends, share moments, and build your community.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F6F8F8",
+  "background_color": "#FFFFFF",
   "theme_color": "#FFFFFF",
   "orientation": "portrait-primary",
   "scope": "/",

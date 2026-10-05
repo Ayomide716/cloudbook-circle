@@ -44,9 +44,11 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   );
 
   return (
+    // Solid, and its colour runs on below the screen edge, so no strip of page shows under it
+    // while the installed app settles into the space above the phone's gesture bar.
     <nav
       aria-label="Main"
-      className="app-dock fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="app-dock fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card pb-[env(safe-area-inset-bottom)] after:absolute after:inset-x-0 after:top-full after:h-24 after:bg-card after:content-[''] md:hidden"
     >
       <div className="grid grid-cols-6 h-14">
         {tabs.map((tab) => {
