@@ -175,12 +175,12 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden -ml-2 h-10 w-10 rounded-full hover:bg-secondary"
+                className="md:hidden -ml-2 h-11 w-11 rounded-full [&_svg]:size-[30px] hover:bg-secondary"
                 onClick={() => navigate("/menu")}
                 aria-label="Menu"
                 aria-current={location.pathname === "/menu" ? "page" : undefined}
               >
-                <List className="h-[26px] w-[26px]" weight="bold" aria-hidden="true" />
+                <List className="h-[30px] w-[30px]" weight="bold" aria-hidden="true" />
               </Button>
             )}
             {/* Just the name, in one solid colour, as Facebook's app shows "facebook". */}
@@ -237,29 +237,29 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full hover:bg-secondary"
+                    className="h-11 w-11 rounded-full hover:bg-secondary [&_svg]:size-[30px]"
                     onClick={() => navigate("/?compose=1")}
                     aria-label="Create post"
                   >
-                    <PlusCircle className="h-[26px] w-[26px]" weight="bold" aria-hidden="true" />
+                    <PlusCircle className="h-[30px] w-[30px]" weight="bold" aria-hidden="true" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full hover:bg-secondary"
+                    className="h-11 w-11 rounded-full hover:bg-secondary [&_svg]:size-[30px]"
                     onClick={() => setMobileSearchOpen(true)}
                     aria-label="Search"
                   >
-                    <MagnifyingGlass className="h-[26px] w-[26px]" weight="bold" aria-hidden="true" />
+                    <MagnifyingGlass className="h-[30px] w-[30px]" weight="bold" aria-hidden="true" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full relative hover:bg-secondary"
+                    className="h-11 w-11 rounded-full relative hover:bg-secondary [&_svg]:size-[30px]"
                     onClick={() => navigate("/messages")}
                     aria-label={unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages"}
                   >
-                    <MessengerLogo className="h-[26px] w-[26px]" weight="bold" aria-hidden="true" />
+                    <MessengerLogo className="h-[30px] w-[30px]" weight="bold" aria-hidden="true" />
                     {unreadMessages > 0 && (
                       <span className="absolute top-0.5 right-0 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center">
                         {unreadMessages > 9 ? "9+" : unreadMessages}
