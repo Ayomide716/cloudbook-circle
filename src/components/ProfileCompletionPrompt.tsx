@@ -50,41 +50,38 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
 
   if (completion >= 100 || dismissed) return null;
 
+  // One slim row: it's a nudge, not the first thing on the feed.
   return (
     <AnimatePresence>
       <motion.div
-        initial={{ opacity: 0, y: -10 }}
+        initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -10 }}
-        className="relative p-4 rounded-2xl bg-gradient-to-r from-primary/10 via-accent/10 to-primary/5 border border-border/50"
+        exit={{ opacity: 0, y: -6 }}
+        className="flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-3 py-2.5 sm:px-4"
       >
+        <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-sm font-semibold">
+            Your profile is {completion}% done
+          </p>
+          <Progress value={completion} className="mt-1.5 h-1.5" aria-label={`Profile ${completion}% complete. Next: ${nextStep}`} />
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 shrink-0 rounded-full text-xs"
+          onClick={() => navigate(`/profile/${userId}`)}
+          title={`Next: ${nextStep}`}
+        >
+          Finish
+        </Button>
         <button
           onClick={() => setDismissed(true)}
-          className="absolute top-1 right-1 p-2 rounded-full text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+          className="-mr-1 shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label="Dismiss"
         >
           <X className="h-4 w-4" />
         </button>
-
-        <div className="flex items-center gap-2 mb-2">
-          <Sparkles className="h-4 w-4 text-primary" />
-          <span className="text-sm font-semibold font-display">Complete your profile</span>
-          <span className="text-xs text-muted-foreground ml-auto mr-6">{completion}%</span>
-        </div>
-
-        <Progress value={completion} className="h-2 mb-3" />
-
-        <div className="flex items-center justify-between">
-          <p className="text-xs text-muted-foreground">Next: {nextStep}</p>
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 text-xs rounded-full"
-            onClick={() => navigate(`/profile/${userId}`)}
-          >
-            Complete now
-          </Button>
-        </div>
       </motion.div>
     </AnimatePresence>
   );

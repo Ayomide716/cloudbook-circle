@@ -38,6 +38,8 @@ import {
 "lucide-react";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
+import LoginStreakBadge from "@/components/LoginStreakBadge";
+import MoodSelector from "@/components/MoodSelector";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { cn, getErrorMessage, toDate } from "@/lib/utils";
@@ -122,6 +124,18 @@ const Profile = () => {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [confirm, setConfirm] = useState<{ kind: "album"; id: string } | { kind: "photo"; id: string } | null>(null);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+
+  // Your mood is a personal note kept on this device.
+  const [mood, setMood] = useState<string | null>(() => {
+    try { return localStorage.getItem("cloudbook_mood"); } catch { return null; }
+  });
+  const handleMoodChange = (next: string | null) => {
+    setMood(next);
+    try {
+      if (next) localStorage.setItem("cloudbook_mood", next);
+      else localStorage.removeItem("cloudbook_mood");
+    } catch { /* storage blocked: keep it for this visit only */ }
+  };
 
   // Mutual friends state
   const [mutualFriends, setMutualFriends] = useState<{id: string;full_name: string | null;avatar_url: string | null;}[]>([]);
@@ -442,6 +456,12 @@ const Profile = () => {
               <div className="mt-1.5">
                 <OnlineStatusIndicator userId={userId || ""} showText />
               </div>
+              {isOwnProfile && currentUserId &&
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <LoginStreakBadge userId={currentUserId} />
+                  <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
+                </div>
+              }
             </div>
 
             <div className="flex gap-2 w-full sm:w-auto sm:pb-3">

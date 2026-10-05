@@ -17,10 +17,9 @@ import ContactsSidebar from "@/components/ContactsSidebar";
 import SponsoredPost from "@/components/SponsoredPost";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
-import LoginStreakBadge from "@/components/LoginStreakBadge";
+import { useLoginStreak } from "@/hooks/use-login-streak";
 import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 import NewPostsBanner from "@/components/NewPostsBanner";
-import MoodSelector from "@/components/MoodSelector";
 import ScreenTimeWidget from "@/components/ScreenTimeWidget";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
@@ -43,13 +42,12 @@ const Index = () => {
   const { toast } = useToast();
   useSEO({ title: "Home", description: "Your CloudBook news feed - see updates from friends and community." });
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
+  // Opening the feed counts as today's visit; the streak itself shows on your profile.
+  useLoginStreak(currentUser?.id);
   const [feedFilter, setFeedFilter] = useState<"all" | "friends" | "digest">("all");
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lastFetchTime, setLastFetchTime] = useState(new Date());
-  const [currentMood, setCurrentMood] = useState<string | null>(() => {
-    return localStorage.getItem("cloudbook_mood") || null;
-  });
 
   const {
     data,
@@ -137,11 +135,6 @@ const Index = () => {
     return cleanup;
   }, [navigate, checkAuth, setupRealtimeSubscription]);
 
-  const handleMoodChange = (mood: string | null) => {
-    setCurrentMood(mood);
-    if (mood) localStorage.setItem("cloudbook_mood", mood);
-    else localStorage.removeItem("cloudbook_mood");
-  };
 
   const handleRefresh = useCallback(async () => {
     await refetch();
@@ -170,27 +163,23 @@ const Index = () => {
       <NewPostsBanner onRefresh={handleRefresh} lastFetchTime={lastFetchTime} />
 
       <PullToRefresh onRefresh={handleRefresh} className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 mb-20 md:mb-24">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 mb-20 md:mb-24 lg:mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px] gap-6">
             <FeedSidebar currentUser={currentUser} />
 
             {/* Main Feed - Bento Grid */}
-            <main className="space-y-5 min-w-0">
-              <div className="flex items-center justify-between flex-wrap gap-2">
-                <LoginStreakBadge userId={currentUser.id} />
-                <MoodSelector currentMood={currentMood} onMoodChange={handleMoodChange} />
-              </div>
-
-              <ProfileCompletionPrompt userId={currentUser.id} />
+            {/* Posts read best at about Facebook's width; wider just stretches photos and lines of text. */}
+            <main className="space-y-5 min-w-0 w-full max-w-[680px] mx-auto">
+              <CreatePost
+                currentUser={currentUser}
+                onPostCreated={() => refetch()}
+              />
 
               <Suspense fallback={<div className="h-24" />}>
                 <StoriesBar currentUserId={currentUser.id} />
               </Suspense>
 
-              <CreatePost
-                currentUser={currentUser}
-                onPostCreated={() => refetch()}
-              />
+              <ProfileCompletionPrompt userId={currentUser.id} />
 
               <FeedFilter filter={feedFilter} onFilterChange={setFeedFilter} />
 

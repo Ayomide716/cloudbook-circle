@@ -159,7 +159,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
         <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-[var(--nav-height)]">
             {/* Left - Logo */}
-            <Link to="/" className="flex items-center gap-2.5 group">
+            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
               <motion.div
                 whileHover={{ scale: 1.05, rotate: -3 }}
                 whileTap={{ scale: 0.95 }}
@@ -174,12 +174,44 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
               <span className="text-lg font-display font-bold gradient-text">CloudBook</span>
             </Link>
 
-            {/* Center - Search (desktop) */}
-            <div className="hidden md:flex flex-1 justify-center mx-8">
+            {/* Search: centred on tablets; on wide screens it sits by the logo so the main tabs can take the centre. */}
+            <div className="hidden md:flex flex-1 justify-center mx-8 lg:flex-none lg:justify-start lg:mx-0 lg:ml-4 lg:w-52 xl:w-72">
               <div className="w-full max-w-lg">
                 <GlobalSearch />
               </div>
             </div>
+
+            {/* Wide screens: the main destinations as tabs in the top bar (the floating dock is for tablets) */}
+            {currentUserId && (
+              <nav aria-label="Main" className="hidden lg:flex flex-1 justify-center self-stretch gap-1 mx-2 xl:mx-4">
+                {dockItems.map((item) => {
+                  const active = isActive(item.path);
+                  return (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      onMouseEnter={() => prefetchRoute(item.path)}
+                      onFocus={() => prefetchRoute(item.path)}
+                      aria-label={item.label}
+                      aria-current={active ? "page" : undefined}
+                      title={item.label}
+                      className={cn(
+                        "group relative flex items-center px-1 xl:px-2",
+                        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <span className={cn(
+                        "flex h-11 w-14 xl:w-24 items-center justify-center rounded-xl transition-colors",
+                        !active && "group-hover:bg-secondary"
+                      )}>
+                        <item.icon className="h-6 w-6" />
+                      </span>
+                      {active && <span className="absolute inset-x-1 xl:inset-x-2 bottom-0 h-[3px] rounded-t-full bg-primary" />}
+                    </Link>
+                  );
+                })}
+              </nav>
+            )}
 
             {/* Right - Action Icons */}
             <div className="flex items-center gap-1.5">
@@ -334,9 +366,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
         </div>
       </header>
 
-      {/* Desktop Floating Dock - centered bottom (hidden on Reels) */}
+      {/* Tablet Floating Dock - centered bottom (hidden on Reels; wide screens use the top-bar tabs) */}
       {currentUserId && location.pathname !== "/reels" && location.pathname !== "/messages" && (
-        <div className="app-dock hidden md:flex fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+        <div className="app-dock hidden md:flex lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <motion.nav
             initial={{ y: 100, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
