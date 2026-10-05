@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import { explainError } from "@/lib/blocking";
 
 interface FriendshipButtonProps {
   currentUserId: string;
@@ -64,8 +65,8 @@ const FriendshipButton = ({ currentUserId, profileUserId, className }: Friendshi
       // Revert on failure
       setFriendshipStatus(previousStatus);
       toast({
-        title: "Error sending friend request",
-        description: error.message,
+        title: "Couldn't send friend request",
+        description: await explainError(error, profileUserId),
         variant: "destructive",
       });
       return;

@@ -7,6 +7,7 @@ export const USERS = {
   alice: { email: "alice.e2e@example.com", name: "Alice Johnson" },
   bob: { email: "bob.e2e@example.com", name: "Bob Martins" },
   dave: { email: "dave.e2e@example.com", name: "Dave Okafor" },
+  erin: { email: "erin.e2e@example.com", name: "Erin Adeyemi" },
 } as const;
 export type UserKey = keyof typeof USERS;
 

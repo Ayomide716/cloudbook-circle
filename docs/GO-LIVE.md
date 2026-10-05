@@ -28,6 +28,7 @@ In Lovable → your project → Cloud → Database → SQL editor (or Supabase �
 5. `20261007090000_user_delete_set_null.sql`: lets accounts be deleted
 6. `20261008090000_delete_my_account.sql`: the **Delete my account** button in Settings
 7. `20261009090000_profile_details_post_location.sql`: hometown, birthday and relationship on profiles, and a place on posts
+8. `20261010090000_block_users.sql`: blocking (required by the App Store and Google Play)
 
 Each one is safe to run on the live database: it only adds or replaces functions, rules and links.
 

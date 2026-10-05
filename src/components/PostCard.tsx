@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2 } from "lucide-react";
+import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2, Ban } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -19,6 +19,8 @@ import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
 import ReportDialog from "./ReportDialog";
 import ConfirmDialog from "./ConfirmDialog";
+import BlockDialog from "./BlockDialog";
+import { explainError } from "@/lib/blocking";
 import PhotoCollage from "./PhotoCollage";
 import PhotoViewer from "./PhotoViewer";
 import { postImages } from "@/lib/post-images";
@@ -101,6 +103,8 @@ const PostCard = ({
   const [heartBurst, setHeartBurst] = useState(0);
   // Hidden with ✕: the card turns into Facebook's "Why aren't you interested?" panel.
   const [hidden, setHidden] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
+  const [blocked, setBlocked] = useState(false);
   const [hideReason, setHideReason] = useState<string | null>(null);
   const [reportOpen, setReportOpen] = useState(false);
   const photos = postImages(post);
@@ -269,8 +273,8 @@ const PostCard = ({
 
     if (error) {
       toast({
-        title: "Error",
-        description: error.message,
+        title: "Couldn't post comment",
+        description: await explainError(error, post.user_id),
         variant: "destructive",
       });
     }
@@ -289,6 +293,8 @@ const PostCard = ({
     .slice(0, 3);
 
   const authorFirstName = post.profiles.full_name?.split(" ")[0] || "them";
+
+  if (blocked) return null;
 
   if (hidden) {
     const reasons = ["This post", `Too much from ${authorFirstName}`, "Seen it before", "Not relevant to me"];
@@ -420,6 +426,10 @@ const PostCard = ({
                       reportedId={post.id}
                       currentUserId={currentUserId}
                     />
+                    <DropdownMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
+                      <Ban className="h-4 w-4 mr-2" />
+                      Block {post.profiles.full_name || "this person"}
+                    </DropdownMenuItem>
                   </>
                 )}
               </DropdownMenuContent>
@@ -788,6 +798,15 @@ const PostCard = ({
             );
           })}
         </div>
+      )}
+      {currentUserId !== post.user_id && (
+        <BlockDialog
+          open={blockOpen}
+          onOpenChange={setBlockOpen}
+          userId={post.user_id}
+          name={post.profiles.full_name}
+          onBlocked={() => setBlocked(true)}
+        />
       )}
       <ConfirmDialog
         open={confirmDelete}

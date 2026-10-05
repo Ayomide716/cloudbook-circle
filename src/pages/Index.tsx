@@ -9,7 +9,6 @@ import { useAds } from "@/hooks/useAds";
 import Navigation from "@/components/Navigation";
 import CreatePost from "@/components/CreatePost";
 import PostCard from "@/components/PostCard";
-import FeedFilter from "@/components/FeedFilter";
 import PullToRefresh from "@/components/PullToRefresh";
 import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import FeedSidebar from "@/components/FeedSidebar";
@@ -45,7 +44,6 @@ const Index = () => {
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   // Opening the feed counts as today's visit; the streak itself shows on your profile.
   useLoginStreak(currentUser?.id);
-  const [feedFilter, setFeedFilter] = useState<"all" | "friends" | "digest">("all");
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lastFetchTime, setLastFetchTime] = useState(new Date());
@@ -57,7 +55,7 @@ const Index = () => {
     isFetchingNextPage,
     isLoading,
     refetch,
-  } = useFeedQuery(currentUser?.id ?? null, feedFilter);
+  } = useFeedQuery(currentUser?.id ?? null, "all");
 
   const { fetchReactions, fetchComments } = useFeedReactions(currentUser?.id ?? null);
   const { getAdForPosition } = useAds();
@@ -183,8 +181,6 @@ const Index = () => {
               </Suspense>
 
               <ProfileCompletionPrompt userId={currentUser.id} />
-
-              <FeedFilter filter={feedFilter} onFilterChange={setFeedFilter} />
 
               {allPosts.length === 0 ? (
                 <motion.div

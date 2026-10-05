@@ -39,8 +39,15 @@ import {
   Home,
   Cake,
   Clock,
-  Play } from
+  Play,
+  Ban,
+  Flag,
+  Share2 } from
 "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import ReportDialog from "@/components/ReportDialog";
+import BlockDialog from "@/components/BlockDialog";
+import { isBlockedWith, unblockUser } from "@/lib/blocking";
 import { birthdayLabel, relationshipLabel } from "@/lib/profile-details";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
@@ -150,6 +157,10 @@ const Profile = () => {
   const [mutualFriends, setMutualFriends] = useState<{id: string;full_name: string | null;avatar_url: string | null;}[]>([]);
   // Someone else's profile: groups you're both in, and the same town or school.
   const [thingsInCommon, setThingsInCommon] = useState<string[]>([]);
+  // Blocking: "by_me" shows an Unblock button; "by_them" shows that the profile isn't available.
+  const [blockState, setBlockState] = useState<"none" | "by_me" | "by_them">("none");
+  const [reportOpen, setReportOpen] = useState(false);
+  const [blockOpen, setBlockOpen] = useState(false);
 
   const coverRef = useRef<HTMLDivElement>(null);
   const { scrollY } = useScroll();
@@ -185,6 +196,15 @@ const Profile = () => {
     }
     setProfile(profileData);
     setSeoName(profileData.full_name);
+
+    if (userId !== currentUserId && await isBlockedWith(userId)) {
+      const { data: mine } = await supabase.from("blocks").select("id").eq("blocker_id", currentUserId).eq("blocked_id", userId).maybeSingle();
+      setBlockState(mine ? "by_me" : "by_them");
+      setPosts([]);
+      setIsLoading(false);
+      return;
+    }
+    setBlockState("none");
 
     loadFriendStats();
     loadThingsInCommon(profileData);
@@ -394,6 +414,68 @@ const Profile = () => {
   }
 
   const isOwnProfile = currentUserId === userId;
+
+  if (blockState !== "none") {
+    const name = profile.full_name || "this person";
+    return (
+      <div className="min-h-screen bg-background">
+        <Navigation currentUserId={currentUserId || undefined} />
+        <main className="max-w-md mx-auto px-6 py-16 text-center">
+          {blockState === "by_me" ?
+          <>
+              <Avatar className="h-24 w-24 mx-auto mb-4">
+                <AvatarImage src={profile.avatar_url || undefined} alt="" />
+                <AvatarFallback className="text-3xl">{profile.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+              </Avatar>
+              <h1 className="text-xl font-bold mb-1">You blocked {name}</h1>
+              <p className="text-muted-foreground mb-6">You won't see each other's posts, and you can't message or add each other as friends.</p>
+              <Button
+              variant="secondary"
+              onClick={async () => {
+                try {
+                  await unblockUser(currentUserId!, profile.id);
+                  toast({ title: `You unblocked ${name}` });
+                  loadProfile();
+                } catch (error) {
+                  toast({ title: "Couldn't unblock", description: getErrorMessage(error), variant: "destructive" });
+                }
+              }}>
+                Unblock
+              </Button>
+            </> :
+          <>
+              <Ban className="h-12 w-12 text-muted-foreground mx-auto mb-4" aria-hidden="true" />
+              <h1 className="text-xl font-bold mb-1">This profile isn't available</h1>
+              <p className="text-muted-foreground mb-6">The link may be broken, or the profile may have been removed.</p>
+              <Button variant="secondary" onClick={() => navigate("/")}>Go to feed</Button>
+            </>
+          }
+        </main>
+      </div>);
+  }
+
+  // ··· on the cover (phones) and beside Message: share, and for others report or block.
+  const profileMenu = (trigger: React.ReactNode) =>
+  <DropdownMenu>
+      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onSelect={shareProfile}>
+          <Share2 className="h-4 w-4 mr-2" /> Share profile
+        </DropdownMenuItem>
+        {!isOwnProfile &&
+      <>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={() => setReportOpen(true)}>
+              <Flag className="h-4 w-4 mr-2" /> Report profile
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
+              <Ban className="h-4 w-4 mr-2" /> Block
+            </DropdownMenuItem>
+          </>
+      }
+      </DropdownMenuContent>
+    </DropdownMenu>;
+
   const photoPosts = posts.filter((p) => postImages(p).length > 0);
   const videoPosts = posts.filter((p) => p.video_url);
   const relationship = relationshipLabel(profile.relationship_status);
@@ -446,10 +528,12 @@ const Profile = () => {
               <ChevronLeft className="h-6 w-6" />
             </button>
             <div className="flex gap-2">
-              <button type="button" onClick={shareProfile} aria-label="Share profile"
+              {profileMenu(
+              <button type="button" aria-label="Profile options"
               className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm">
-                <MoreHorizontal className="h-5 w-5" />
-              </button>
+                  <MoreHorizontal className="h-5 w-5" />
+                </button>
+              )}
               <button type="button" onClick={() => navigate("/explore")} aria-label="Search"
               className="flex h-10 w-10 items-center justify-center rounded-full bg-black/30 text-white backdrop-blur-sm">
                 <Search className="h-5 w-5" />
@@ -553,7 +637,7 @@ const Profile = () => {
             </div>
           }
 
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:max-w-md">
+          <div className={cn("mt-4 grid gap-2 sm:flex sm:max-w-md", isOwnProfile ? "grid-cols-2" : "grid-cols-[1fr_1fr_auto]")}>
             {isOwnProfile ?
             <>
                 <Button onClick={() => navigate("/?story=1")} className="sm:flex-1 rounded-lg">
@@ -568,6 +652,11 @@ const Profile = () => {
                 <Button onClick={startMessage} className="sm:flex-1 rounded-lg">
                   <MessageCircle className="h-4 w-4 mr-1.5" /> Message
                 </Button>
+                {profileMenu(
+                <Button variant="secondary" size="icon" className="rounded-lg" aria-label="More options">
+                    <MoreHorizontal className="h-5 w-5" />
+                  </Button>
+                )}
               </>
             }
           </div>
@@ -1092,6 +1181,13 @@ const Profile = () => {
           {viewPhoto && <img src={viewPhoto} alt="" className="w-full max-h-[80dvh] object-contain rounded-md" />}
         </DialogContent>
       </Dialog>
+
+      {!isOwnProfile && currentUserId &&
+      <>
+          <ReportDialog reportedType="profile" reportedId={profile.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />
+          <BlockDialog open={blockOpen} onOpenChange={setBlockOpen} userId={profile.id} name={profile.full_name} onBlocked={() => loadProfile()} />
+        </>
+      }
 
       {profile &&
       <EditProfileModal
