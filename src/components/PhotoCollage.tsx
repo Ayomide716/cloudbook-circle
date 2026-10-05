@@ -1,9 +1,12 @@
+import { useEffect, useRef } from "react";
 import { cn } from "@/lib/utils";
 
 interface PhotoCollageProps {
   images: string[];
   /** Opens the full-screen viewer at this photo. */
   onOpen: (index: number) => void;
+  /** Double-tap on a photo, as in Facebook and Instagram (used to like the post). */
+  onDoubleTap?: () => void;
   className?: string;
 }
 
@@ -14,7 +17,29 @@ const MAX_TILES = 5;
  * Facebook-style photo layouts: 2 side by side, 3 as one large and two small,
  * 4 as one wide over three, 5 or more as two over three with a "+N" tile.
  */
-const PhotoCollage = ({ images, onOpen, className }: PhotoCollageProps) => {
+/** How long to wait for a second tap before treating a tap as "open the photo". */
+const DOUBLE_TAP_MS = 260;
+
+const PhotoCollage = ({ images, onOpen, onDoubleTap, className }: PhotoCollageProps) => {
+  const pending = useRef<number | null>(null);
+  useEffect(() => () => { if (pending.current) window.clearTimeout(pending.current); }, []);
+
+  // Without a double-tap action a tap opens the photo at once; with one, a second tap
+  // within DOUBLE_TAP_MS likes instead of opening.
+  const tap = (index: number) => {
+    if (!onDoubleTap) return onOpen(index);
+    if (pending.current) {
+      window.clearTimeout(pending.current);
+      pending.current = null;
+      onDoubleTap();
+      return;
+    }
+    pending.current = window.setTimeout(() => {
+      pending.current = null;
+      onOpen(index);
+    }, DOUBLE_TAP_MS);
+  };
+
   const count = images.length;
   if (count === 0) return null;
 
@@ -24,7 +49,7 @@ const PhotoCollage = ({ images, onOpen, className }: PhotoCollageProps) => {
       <button
         key={index}
         type="button"
-        onClick={() => onOpen(index)}
+        onClick={() => tap(index)}
         className={cn("relative block overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", extraClass)}
         aria-label={hidden > 0 ? `Open photo ${index + 1} of ${count}, ${hidden} more` : `Open photo ${index + 1} of ${count}`}
       >
@@ -42,7 +67,7 @@ const PhotoCollage = ({ images, onOpen, className }: PhotoCollageProps) => {
     return (
       <button
         type="button"
-        onClick={() => onOpen(0)}
+        onClick={() => tap(0)}
         className={cn("flex w-full justify-center bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", className)}
         aria-label="Open photo"
       >

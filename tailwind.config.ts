@@ -78,6 +78,13 @@ export default {
           "0%, 100%": { height: "30%" },
           "50%": { height: "100%" },
         },
+        "heart-pop": {
+          "0%": { transform: "scale(0.2)", opacity: "0" },
+          "15%": { transform: "scale(1.2)", opacity: "0.95" },
+          "30%": { transform: "scale(1)", opacity: "0.95" },
+          "70%": { transform: "scale(1)", opacity: "0.95" },
+          "100%": { transform: "scale(1.1)", opacity: "0" },
+        },
         "accordion-down": {
           from: { height: "0", opacity: "0" },
           to: { height: "var(--radix-accordion-content-height)", opacity: "1" },
@@ -125,6 +132,7 @@ export default {
       },
       animation: {
         "sound-bar": "sound-bar 0.9s ease-in-out infinite",
+        "heart-pop": "heart-pop 0.9s ease-out forwards",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",

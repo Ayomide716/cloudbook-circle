@@ -1,5 +1,5 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PhotoCollage from "./PhotoCollage";
 
@@ -35,5 +35,35 @@ describe("PhotoCollage", () => {
     render(<PhotoCollage images={photos(4)} onOpen={onOpen} />);
     await userEvent.click(screen.getByRole("button", { name: "Open photo 3 of 4" }));
     expect(onOpen).toHaveBeenCalledWith(2);
+  });
+
+  describe("with double-tap to like", () => {
+    afterEach(() => vi.useRealTimers());
+
+    it("opens the photo after a single tap", () => {
+      vi.useFakeTimers();
+      const onOpen = vi.fn();
+      const onDoubleTap = vi.fn();
+      render(<PhotoCollage images={photos(2)} onOpen={onOpen} onDoubleTap={onDoubleTap} />);
+      fireEvent.click(screen.getByRole("button", { name: "Open photo 2 of 2" }));
+      expect(onOpen).not.toHaveBeenCalled();
+      vi.advanceTimersByTime(300);
+      expect(onOpen).toHaveBeenCalledWith(1);
+      expect(onDoubleTap).not.toHaveBeenCalled();
+    });
+
+    it("likes instead of opening on a double tap", () => {
+      vi.useFakeTimers();
+      const onOpen = vi.fn();
+      const onDoubleTap = vi.fn();
+      render(<PhotoCollage images={photos(1)} onOpen={onOpen} onDoubleTap={onDoubleTap} />);
+      const photo = screen.getByRole("button", { name: "Open photo" });
+      fireEvent.click(photo);
+      vi.advanceTimersByTime(100);
+      fireEvent.click(photo);
+      vi.advanceTimersByTime(500);
+      expect(onDoubleTap).toHaveBeenCalledOnce();
+      expect(onOpen).not.toHaveBeenCalled();
+    });
   });
 });
