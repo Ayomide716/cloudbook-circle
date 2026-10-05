@@ -163,7 +163,7 @@ const Index = () => {
       <NewPostsBanner onRefresh={handleRefresh} lastFetchTime={lastFetchTime} />
 
       <PullToRefresh onRefresh={handleRefresh} className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-6 pt-2 pb-4 sm:py-6 mb-20 md:mb-24 lg:mb-6">
+        <div className="max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-6 pt-0 pb-4 sm:py-6 mb-20 md:mb-24 lg:mb-6">
           <div className="grid grid-cols-1 lg:grid-cols-[240px_minmax(0,1fr)] xl:grid-cols-[280px_minmax(0,1fr)_280px] gap-6">
             <FeedSidebar currentUser={currentUser} />
 
