@@ -166,7 +166,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   return (
     <>
       {/* Top bar - minimal brand + search + actions */}
-      <header className={cn("sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50", hideMobileTopBar && "max-md:hidden")}>
+      <header className={cn("sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50 max-md:bg-card max-md:border-x-0 max-md:border-t-0", hideMobileTopBar && "max-md:hidden")}>
         <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-[var(--nav-height)]">
             {/* Left - Logo (phones: the Menu button sits before it, as in Facebook's app) */}

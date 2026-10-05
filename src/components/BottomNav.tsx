@@ -46,7 +46,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   return (
     <nav
       aria-label="Main"
-      className="app-dock bottom-bar fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="app-dock fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <div className="grid grid-cols-6 h-14">
         {tabs.map((tab) => {
