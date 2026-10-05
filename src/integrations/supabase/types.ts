@@ -2243,6 +2243,14 @@ export type Database = {
         Args: { _group_id: string; _user_id: string }
         Returns: boolean
       }
+      profile_friend_stats: {
+        Args: { _user_id: string }
+        Returns: { friend_count: number; mutual_ids: string[] }[]
+      }
+      group_member_counts: {
+        Args: { _group_ids: string[] }
+        Returns: { group_id: string; member_count: number }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
