@@ -23,11 +23,17 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
 
   const handleFilesChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
+    // Clear the input so picking the same photo again still fires a change.
+    e.target.value = "";
     if (files.length === 0) return;
 
     const remaining = maxImages - currentImages.length;
     if (files.length > remaining) {
-      toast({ title: `Max ${maxImages} images allowed`, variant: "destructive" });
+      toast({
+        title: `Up to ${maxImages} photos per post`,
+        description: remaining > 0 ? `You can add ${remaining} more.` : undefined,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -43,22 +49,20 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
     }
 
     setIsUploading(true);
-    const newUrls: string[] = [];
 
     try {
-      for (const file of files) {
-        const fileExt = file.name.split(".").pop();
-        const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-
-        const { error } = await supabase.storage.from(bucket).upload(fileName, file);
-        if (error) throw error;
-
-        const { data: { publicUrl } } = supabase.storage.from(bucket).getPublicUrl(fileName);
-        newUrls.push(publicUrl);
-      }
+      // Upload together, keeping the order the photos were picked in.
+      const newUrls = await Promise.all(
+        files.map(async (file) => {
+          const fileExt = file.name.split(".").pop();
+          const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
+          const { error } = await supabase.storage.from(bucket).upload(fileName, file);
+          if (error) throw error;
+          return supabase.storage.from(bucket).getPublicUrl(fileName).data.publicUrl;
+        })
+      );
 
       onUploadComplete([...currentImages, ...newUrls]);
-      toast({ title: `${newUrls.length} image(s) uploaded` });
     } catch (error) {
       toast({ title: "Upload failed", description: getErrorMessage(error), variant: "destructive" });
     } finally {
@@ -108,7 +112,7 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
               type="button"
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-full text-blue-500 hover:bg-blue-500/10"
+              className="h-9 w-9 rounded-full text-primary hover:bg-primary/10"
               disabled={isUploading}
               asChild
             >
