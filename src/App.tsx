@@ -38,6 +38,7 @@ const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Explore = lazy(() => import("./pages/Explore"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
+const Menu = lazy(() => import("./pages/Menu"));
 
 // Lazy-loaded skeletons
 const FeedSkeleton = lazy(() => import("./components/skeletons/FeedSkeleton"));
@@ -123,6 +124,7 @@ const AppRoutes = () => {
         <Route path="/events" element={<Protected><Events /></Protected>} />
         <Route path="/saved" element={<Protected><SavedPosts /></Protected>} />
         <Route path="/settings" element={<Protected><Settings /></Protected>} />
+        <Route path="/menu" element={<Protected><Menu /></Protected>} />
         <Route path="/marketplace" element={<Protected><Marketplace /></Protected>} />
         <Route path="/watch" element={<Protected><Watch /></Protected>} />
         <Route path="/pages" element={<Protected><Pages /></Protected>} />

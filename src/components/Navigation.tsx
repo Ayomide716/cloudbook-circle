@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield, Plus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -223,9 +223,19 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
             {/* Right - Action Icons */}
             <div className="flex items-center gap-1.5">
-              {/* Mobile: search + notifications (everything else lives in the bottom bar) */}
+              {/* Mobile top bar, as in Facebook's app: create, search and Messenger.
+                  Notifications and everything else live in the bottom tab bar. */}
               {currentUserId && (
-                <div className="flex md:hidden items-center gap-1">
+                <div className="flex md:hidden items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/70"
+                    onClick={() => navigate("/?compose=1")}
+                    aria-label="Create post"
+                  >
+                    <Plus className="h-5 w-5" />
+                  </Button>
                   <Button
                     variant="ghost"
                     size="icon"
@@ -234,20 +244,6 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                     aria-label="Search"
                   >
                     <Search className="h-5 w-5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-10 w-10 rounded-full relative bg-secondary hover:bg-secondary/70"
-                    onClick={() => navigate("/notifications")}
-                    aria-label={unreadNotifications > 0 ? `Notifications, ${unreadNotifications} unread` : "Notifications"}
-                  >
-                    <Bell className="h-5 w-5" />
-                    {unreadNotifications > 0 && (
-                      <span className="absolute top-0.5 right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
-                        {unreadNotifications > 9 ? "9+" : unreadNotifications}
-                      </span>
-                    )}
                   </Button>
                   {/* Chats live here on phones (the bottom bar has Friends and Groups), as in Facebook's app. */}
                   <Button
@@ -433,7 +429,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       <MobileSearchOverlay open={mobileSearchOpen} onClose={() => setMobileSearchOpen(false)} />
 
       {/* Mobile Bottom Navigation */}
-      {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} />}
+      {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} unreadNotifications={unreadNotifications} avatarUrl={userProfile?.avatar_url} name={userProfile?.full_name} />}
     </>
   );
 };

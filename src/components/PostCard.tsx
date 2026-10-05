@@ -98,6 +98,7 @@ const PostCard = ({
   const myProfile = useMyProfile();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const [heartBurst, setHeartBurst] = useState(0);
   const photos = postImages(post);
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -411,7 +412,22 @@ const PostCard = ({
       )}
       {!post.video_url && photos.length > 0 && (
         <>
-          <PhotoCollage images={photos} onOpen={setViewerIndex} />
+          <div className="relative">
+            <PhotoCollage
+              images={photos}
+              onOpen={setViewerIndex}
+              // Double-tap likes (never un-likes), with a heart that pops over the photo.
+              onDoubleTap={() => {
+                if (!userReaction) handleReaction("like");
+                setHeartBurst((n) => n + 1);
+              }}
+            />
+            {heartBurst > 0 && (
+              <span key={heartBurst} className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                <Heart className="h-24 w-24 fill-white text-white drop-shadow-lg animate-heart-pop" />
+              </span>
+            )}
+          </div>
           <PhotoViewer
             images={photos}
             index={viewerIndex}

@@ -1,4 +1,5 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -36,6 +37,15 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
   const [postExpiry, setPostExpiry] = useState<string | null>(null);
   const { toast } = useToast();
+  // The top bar's "+" opens the composer from anywhere (via /?compose=1).
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("compose") !== "1") return;
+    setShowDialog(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("compose");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // A second tap can land before React disables the button; the ref blocks it at once.
   const submittingRef = useRef(false);
