@@ -221,7 +221,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full hover:bg-secondary"
+                    className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/70"
                     onClick={() => setMobileSearchOpen(true)}
                     aria-label="Search"
                   >
@@ -230,7 +230,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full relative hover:bg-secondary"
+                    className="h-10 w-10 rounded-full relative bg-secondary hover:bg-secondary/70"
                     onClick={() => navigate("/notifications")}
                     aria-label={unreadNotifications > 0 ? `Notifications, ${unreadNotifications} unread` : "Notifications"}
                   >

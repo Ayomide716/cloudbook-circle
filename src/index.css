@@ -273,7 +273,8 @@
   /* Room for the floating dock (mobile bottom bar / desktop dock) so it never covers content.
      Navigation adds this class to <body> whenever a dock is shown. */
   .has-dock {
-    padding-bottom: calc(6rem + env(safe-area-inset-bottom, 0px));
+    /* Phones: the flat bottom bar (3.5rem) plus a little air. */
+    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
   }
 
   @screen md {
