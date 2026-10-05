@@ -6,9 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import BottomNav from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Bell, Heart, MessageCircle, UserPlus, Check, Users, ThumbsUp, Share2 } from "lucide-react";
+import { Bell, Heart, MessageCircle, UserPlus, CheckCheck, Users, ThumbsUp, Share2 } from "lucide-react";
+import { PageHeader, HeaderAction, Chips } from "@/components/layout/PageHeader";
 import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn, toDate } from "@/lib/utils";
@@ -52,6 +52,7 @@ const Notifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -243,6 +244,7 @@ const Notifications = () => {
   };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
+  const shown = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
   if (isLoading) {
     return (
@@ -257,55 +259,47 @@ const Notifications = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="max-w-[800px] mx-auto px-4 py-4 sm:py-6">
-        {/* Header - Facebook Style */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <h1 className="text-2xl sm:text-3xl font-bold">Notifications</h1>
-          </div>
-          {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={markAllAsRead}
-              className="text-primary hover:text-primary/80 font-medium"
-            >
-              <Check className="h-4 w-4 mr-1" />
-              Mark all as read
-            </Button>
-          )}
-        </div>
+      <div className="page-flush max-w-[800px] mx-auto px-0 sm:px-4 pb-6 sm:py-6">
+        <PageHeader
+          title="Notifications"
+          subtitle={unreadCount > 0 ? `${unreadCount} unread` : undefined}
+          actions={unreadCount > 0 ? <HeaderAction icon={CheckCheck} label="Mark all as read" onClick={markAllAsRead} /> : undefined}
+          className="sm:mb-4"
+        >
+          <Chips
+            label="Show"
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: "all", label: "All" },
+              { value: "unread", label: unreadCount > 0 ? `Unread · ${unreadCount}` : "Unread" },
+            ]}
+          />
+        </PageHeader>
 
-        {/* Unread Section */}
-        {unreadCount > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-lg font-semibold">New</h2>
-              <span className="text-sm text-muted-foreground">{unreadCount} unread</span>
-            </div>
-          </div>
-        )}
-
-        <Card className="overflow-hidden">
-          {notifications.length === 0 ? (
+        <Card className="feed-section overflow-hidden mt-2 sm:mt-0">
+          {shown.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
                 <Bell className="h-10 w-10 text-muted-foreground/50" />
               </div>
               <p className="text-lg font-medium text-foreground mb-1">
-                No notifications yet
+                {filter === "unread" && notifications.length > 0 ? "You're all caught up" : "No notifications yet"}
               </p>
               <p className="text-sm text-muted-foreground max-w-[280px]">
-                When someone interacts with your posts or sends you a friend request, you'll see it here
+                {filter === "unread" && notifications.length > 0
+                  ? "Nothing new since you last looked."
+                  : "When someone interacts with your posts or sends you a friend request, you'll see it here"}
               </p>
             </div>
           ) : (
             <div className="divide-y divide-border">
-              {notifications.map((notification) => (
-                <div
+              {shown.map((notification) => (
+                <button
+                  type="button"
                   key={notification.id}
                   className={cn(
-                    "flex items-start gap-3 p-4 transition-all cursor-pointer hover:bg-accent/50 active:bg-accent",
+                    "flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-accent/50 active:bg-accent focus-visible:outline-none focus-visible:bg-accent",
                     !notification.read && "bg-primary/5"
                   )}
                   onClick={() => handleNotificationClick(notification)}
@@ -350,10 +344,10 @@ const Notifications = () => {
                   {/* Unread Indicator */}
                   {!notification.read && (
                     <div className="flex-shrink-0 mt-2">
-                      <div className="h-3 w-3 rounded-full bg-primary" />
+                      <div className="h-3 w-3 rounded-full bg-primary" aria-label="Unread" />
                     </div>
                   )}
-                </div>
+                </button>
               ))}
             </div>
           )}

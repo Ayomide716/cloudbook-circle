@@ -11,7 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { TrendingUp, Hash, Users, Compass, Search, Flame, Star, Zap, Check, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
@@ -197,22 +197,20 @@ const Explore = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
-      <div className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 pb-28 md:pb-10">
-        {/* Search */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input type="search" placeholder="Search topics, people, content..." value={searchQuery} onChange={e => updateSearch(e.target.value)} className="pl-10 rounded-full bg-secondary border-0 h-10" aria-label="Search posts and people" />
-        </div>
+      <div className="page-flush flex-1 max-w-3xl mx-auto w-full px-0 sm:px-4 pb-6 sm:py-6">
+        <PageHeader title="Explore" className="sm:mb-4">
+          <PageSearch value={searchQuery} onChange={updateSearch} placeholder="Search topics, people, content" label="Search posts and people" />
+        </PageHeader>
 
         {trimmedQuery ? (
-          <div className="space-y-6">
+          <div className="space-y-6 pt-3 sm:pt-0">
             {isSearching && (
               <p className="text-sm text-muted-foreground text-center py-2 flex items-center justify-center gap-2" role="status">
                 <Loader2 className="h-4 w-4 animate-spin" /> Searching…
               </p>
             )}
             {searchResults && searchResults.people.length > 0 && (
-              <section>
+              <section className="px-3 sm:px-0">
                 <h3 className="font-semibold text-sm flex items-center gap-2 mb-3">
                   <Users className="h-4 w-4 text-primary" /> People
                 </h3>
@@ -232,8 +230,8 @@ const Explore = () => {
               </section>
             )}
             {searchResults && searchResults.posts.length > 0 && (
-              <section className="space-y-4">
-                <h3 className="font-semibold text-sm flex items-center gap-2">
+              <section className="space-y-2 sm:space-y-4">
+                <h3 className="font-semibold text-sm flex items-center gap-2 px-3 sm:px-0">
                   <Hash className="h-4 w-4 text-primary" /> Posts
                 </h3>
                 {searchResults.posts.map((post) => (
@@ -260,7 +258,7 @@ const Explore = () => {
           </div>
         ) : (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full grid grid-cols-3 mb-4">
+          <TabsList className="feed-section w-full grid grid-cols-3 bg-card sm:bg-transparent mb-2 sm:mb-4">
             <TabsTrigger value="foryou" className="gap-1.5 text-xs sm:text-sm">
               <Zap className="h-3.5 w-3.5" /> For You
             </TabsTrigger>
@@ -272,7 +270,7 @@ const Explore = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="foryou" className="space-y-4">
+          <TabsContent value="foryou" className="space-y-2 sm:space-y-4">
             {trendingPosts.map((post, i) => (
               <motion.div key={post.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 5) * 0.05 }}>
                 <PostCard
@@ -295,9 +293,9 @@ const Explore = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="trending" className="space-y-4">
+          <TabsContent value="trending" className="space-y-2 sm:space-y-4">
             {trendingTopics.length > 0 && (
-              <Card className="p-4">
+              <Card className="feed-section p-4">
                 <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 text-primary" /> Trending Topics
                 </h3>
@@ -340,7 +338,7 @@ const Explore = () => {
             )}
           </TabsContent>
 
-          <TabsContent value="people" className="space-y-3">
+          <TabsContent value="people" className="space-y-3 px-3 sm:px-0">
             <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
               <Star className="h-4 w-4 text-gold" /> People you might know
             </h3>

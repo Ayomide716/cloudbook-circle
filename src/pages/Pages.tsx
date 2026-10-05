@@ -9,7 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PageHeader, HeaderAction, PageSearch } from "@/components/layout/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, Users, Globe, Flag, Loader2 } from "lucide-react";
@@ -138,19 +139,8 @@ const Pages = () => {
       <Navigation currentUserId={currentUserId || undefined} />
 
       <div className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-28 md:pb-8">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <Flag className="h-7 w-7 text-primary" />
-              <h1 className="text-2xl sm:text-3xl font-bold font-display">Pages</h1>
-            </div>
+        <div className="page-flush max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-6 pb-6 sm:py-6">
             <Dialog open={showCreate} onOpenChange={setShowCreate}>
-              <DialogTrigger asChild>
-                <Button className="gap-2">
-                  <Plus className="h-4 w-4" /> Create Page
-                </Button>
-              </DialogTrigger>
               <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Create a Page</DialogTitle>
@@ -181,16 +171,17 @@ const Pages = () => {
                 </div>
               </DialogContent>
             </Dialog>
-          </div>
 
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input aria-label="Search pages" placeholder="Search pages..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
-          </div>
+          <PageHeader
+            title="Pages"
+            actions={<HeaderAction icon={Plus} label="Create page" primary onClick={() => setShowCreate(true)} />}
+            className="sm:mb-4"
+          >
+            <PageSearch value={searchQuery} onChange={setSearchQuery} placeholder="Search pages" />
+          </PageHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="mb-4">
+            <TabsList className="feed-section w-full bg-card sm:bg-transparent px-2 sm:px-0 mb-2 sm:mb-4">
               <TabsTrigger value="discover">Discover</TabsTrigger>
               <TabsTrigger value="following">Following</TabsTrigger>
               <TabsTrigger value="my-pages">My Pages</TabsTrigger>
@@ -268,7 +259,7 @@ const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNav
 
   return (
     <motion.div
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4"
       initial="hidden"
       animate="visible"
       variants={{ visible: { transition: { staggerChildren: 0.05 } } }}
@@ -279,7 +270,7 @@ const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNav
           variants={{ hidden: { opacity: 0, y: 20 }, visible: { opacity: 1, y: 0 } }}
         >
           <Card
-            className="overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="feed-section overflow-hidden cursor-pointer hover:shadow-lg transition-shadow group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             role="link"
             tabIndex={0}
             aria-label={page.name}

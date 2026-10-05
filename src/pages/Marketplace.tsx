@@ -10,14 +10,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, Search, MapPin, Tag, X, ImagePlus, DollarSign, MessageCircle, CheckCircle2, RotateCcw, Trash2, Loader2 } from "lucide-react";
+import { Plus, MapPin, Tag, X, ImagePlus, DollarSign, MessageCircle, CheckCircle2, RotateCcw, Trash2, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -214,16 +215,8 @@ const Marketplace = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId} />
 
-      <div className="max-w-[1200px] mx-auto px-4 py-6 pb-28 md:pb-8">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <h1 className="text-2xl md:text-3xl font-bold font-display">Marketplace</h1>
+      <div className="page-flush max-w-[1200px] mx-auto px-0 sm:px-4 pb-6 sm:py-6">
           <Dialog open={createOpen} onOpenChange={(open) => !submitting && setCreateOpen(open)}>
-            <DialogTrigger asChild>
-              <Button className="rounded-xl gap-2">
-                <Plus className="h-4 w-4" /> Sell item
-              </Button>
-            </DialogTrigger>
             <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-display">Create listing</DialogTitle>
@@ -310,50 +303,36 @@ const Marketplace = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
 
-        {/* Search & view */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              aria-label="Search marketplace"
-              placeholder="Search marketplace..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 rounded-xl"
-            />
-          </div>
-          <div className="flex rounded-xl bg-secondary/70 p-1 self-start" role="tablist" aria-label="Listings">
-            {(["browse", "mine"] as const).map((v) => (
-              <button
-                key={v}
-                role="tab"
-                aria-selected={view === v}
-                onClick={() => setView(v)}
-                className={cn(
-                  "rounded-lg px-3.5 py-1.5 text-sm font-medium transition-colors",
-                  view === v ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {v === "browse" ? "Browse" : "Your listings"}
-              </button>
-            ))}
-          </div>
-        </div>
+        <PageHeader
+          title="Marketplace"
+          actions={<HeaderAction icon={Plus} label="Sell item" primary onClick={() => setCreateOpen(true)} />}
+          className="sm:mb-4"
+        >
+          <PageSearch value={searchQuery} onChange={setSearchQuery} placeholder="Search marketplace" />
+          <Chips
+            label="Listings"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "browse", label: "Browse" },
+              { value: "mine", label: "Your listings" },
+            ]}
+          />
+        </PageHeader>
 
         {/* Category pills */}
-        <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
+        <div className="flex gap-2 overflow-x-auto py-3 sm:pt-0 sm:mb-2 scrollbar-hide px-3 sm:px-0" role="group" aria-label="Category">
           {CATEGORIES.map((cat) => (
             <button
               key={cat}
               onClick={() => setSelectedCategory(cat)}
               aria-pressed={selectedCategory === cat}
               className={cn(
-                "px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200 border",
+                "h-8 px-3.5 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors",
                 selectedCategory === cat
-                  ? "bg-primary text-primary-foreground border-primary shadow-md"
-                  : "bg-secondary/60 text-foreground border-border hover:bg-secondary"
+                  ? "bg-foreground text-background"
+                  : "bg-secondary text-foreground hover:bg-secondary/70"
               )}
             >
               {cat}
@@ -363,7 +342,7 @@ const Marketplace = () => {
 
         {/* Listings Grid */}
         {loading && listings.length === 0 ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 px-2 sm:px-0 sm:gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-3">
                 <Skeleton className="aspect-square rounded-xl" />
@@ -381,7 +360,7 @@ const Marketplace = () => {
             <p className="text-sm mt-1">{view === "mine" ? "Tap “Sell item” to list something." : "Be the first to sell something!"}</p>
           </div>
         ) : (
-          <motion.div layout className={cn("grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 transition-opacity", loading && "opacity-60")}>
+          <motion.div layout className={cn("grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 px-2 sm:px-0 sm:gap-4 transition-opacity", loading && "opacity-60")}>
             <AnimatePresence>
               {listings.map((listing) => (
                 <motion.div

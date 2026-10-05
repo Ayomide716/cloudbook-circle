@@ -15,7 +15,8 @@ import {
   Calendar, CalendarPlus, MapPin, Clock, Users, Plus, Loader2, Check, Star, MoreHorizontal, Trash2, ImagePlus, X,
 } from "lucide-react";
 import { format, isSameDay } from "date-fns";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PageHeader, HeaderAction, Chips } from "@/components/layout/PageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -264,16 +265,8 @@ const Events = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
 
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-28 md:pb-8">
-        <div className="flex items-center justify-between gap-3 mb-5">
-          <h1 className="text-2xl md:text-3xl font-bold font-display">Events</h1>
+      <div className="page-flush max-w-4xl mx-auto px-0 sm:px-4 pb-6 sm:py-6">
           <Dialog open={showCreateDialog} onOpenChange={(open) => !isCreating && setShowCreateDialog(open)}>
-            <DialogTrigger asChild>
-              <Button className="gap-2 rounded-xl">
-                <Plus className="h-4 w-4" />
-                Create event
-              </Button>
-            </DialogTrigger>
             <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create event</DialogTitle>
@@ -342,32 +335,26 @@ const Events = () => {
               </div>
             </DialogContent>
           </Dialog>
-        </div>
 
-        {/* Filters */}
-        <div className="flex rounded-xl bg-secondary/70 p-1 mb-6 w-fit" role="tablist" aria-label="Show events">
-          {([
-            ["upcoming", "Upcoming"],
-            ["going", "Your events"],
-            ["hosting", "Hosting"],
-          ] as const).map(([value, label]) => (
-            <button
-              key={value}
-              role="tab"
-              aria-selected={filter === value}
-              onClick={() => setFilter(value)}
-              className={cn(
-                "rounded-lg px-3 sm:px-4 py-1.5 text-sm font-medium transition-colors",
-                filter === value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <PageHeader
+          title="Events"
+          actions={<HeaderAction icon={Plus} label="Create event" primary onClick={() => setShowCreateDialog(true)} />}
+          className="sm:mb-5"
+        >
+          <Chips
+            label="Show events"
+            value={filter}
+            onChange={setFilter}
+            options={[
+              { value: "upcoming", label: "Upcoming" },
+              { value: "going", label: "Your events" },
+              { value: "hosting", label: "Hosting" },
+            ]}
+          />
+        </PageHeader>
 
         {visible.length === 0 ? (
-          <div className="text-center py-12">
+          <div className="text-center py-12 px-4">
             <Calendar className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
             <p className="font-medium">
               {filter === "going" ? "You haven't RSVP'd to anything yet" : filter === "hosting" ? "You aren't hosting any events" : "No upcoming events"}
@@ -377,7 +364,7 @@ const Events = () => {
             </p>
           </div>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2">
+          <div className="grid gap-2 sm:gap-4 md:grid-cols-2 mt-2 sm:mt-0">
             {visible.map((event) => {
               const startDate = new Date(event.start_date);
               const endDate = event.end_date ? new Date(event.end_date) : null;
@@ -385,7 +372,7 @@ const Events = () => {
               const mine = event.created_by === currentUserId;
               const status = rsvps[event.id];
               return (
-                <Card key={event.id} className="overflow-hidden hover:shadow-md transition-shadow flex flex-col">
+                <Card key={event.id} className="feed-section overflow-hidden hover:shadow-md transition-shadow flex flex-col">
                   {event.cover_image && (
                     <img src={event.cover_image} alt="" loading="lazy" className="w-full h-40 object-cover" />
                   )}

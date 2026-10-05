@@ -10,7 +10,8 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -343,16 +344,8 @@ const Watch = () => {
       <Navigation currentUserId={currentUserId || undefined} />
 
       <div className="flex-1">
-        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6 py-4 sm:py-6 pb-28 md:pb-8">
-          {/* Header */}
-          <div className="flex items-center justify-between gap-3 mb-4">
-            <h1 className="text-2xl sm:text-3xl font-bold font-display">Watch</h1>
+        <div className="page-flush max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-6 pb-6 sm:py-6">
             <Dialog open={showUpload} onOpenChange={(open) => !isUploading && setShowUpload(open)}>
-              <DialogTrigger asChild>
-                <Button className="gap-2 rounded-xl">
-                  <Plus className="h-4 w-4" /> Upload <span className="hidden sm:inline">video</span>
-                </Button>
-              </DialogTrigger>
               <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle>Upload a video</DialogTitle>
@@ -414,43 +407,24 @@ const Watch = () => {
                 </div>
               </DialogContent>
             </Dialog>
-          </div>
 
-          {/* Search */}
-          <div className="relative mb-4">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search videos..."
-              aria-label="Search videos"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 rounded-xl"
+          <PageHeader
+            title="Watch"
+            actions={<HeaderAction icon={Plus} label="Upload video" primary onClick={() => setShowUpload(true)} />}
+            className="sm:mb-4"
+          >
+            <PageSearch value={searchQuery} onChange={setSearchQuery} placeholder="Search videos" />
+            <Chips
+              label="Category"
+              value={activeCategory}
+              onChange={setActiveCategory}
+              options={CATEGORIES.map((c) => ({ value: c.id, label: c.label, icon: c.icon }))}
             />
-          </div>
-
-          {/* Category Tabs */}
-          <div className="flex gap-2 overflow-x-auto pb-3 mb-4 scrollbar-hide -mx-3 px-3 sm:mx-0 sm:px-0">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                aria-pressed={activeCategory === cat.id}
-                className={cn(
-                  "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-all duration-200",
-                  activeCategory === cat.id
-                    ? "bg-primary text-primary-foreground shadow-md"
-                    : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
-                )}
-              >
-                <cat.icon className="h-4 w-4" />
-                {cat.label}
-              </button>
-            ))}
-          </div>
+          </PageHeader>
 
           {/* Video Grid */}
           {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4 mt-2 sm:mt-0">
               {Array.from({ length: 6 }).map((_, i) => (
                 <Card key={i} className="overflow-hidden">
                   <Skeleton className="aspect-video w-full" />
@@ -574,7 +548,7 @@ const VideoCard = ({
         visible: { opacity: 1, y: 0, transition: { duration: 0.3 } },
       }}
     >
-      <Card className={cn("overflow-hidden group hover:shadow-lg transition-shadow duration-300", isHighlighted && "ring-2 ring-primary")}>
+      <Card className={cn("feed-section overflow-hidden group hover:shadow-lg transition-shadow duration-300", isHighlighted && "ring-2 ring-primary")}>
         {/* Video / Thumbnail */}
         <div className="relative aspect-video bg-black">
           {isPlaying ? (

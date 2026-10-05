@@ -7,7 +7,6 @@ import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToastAction } from "@/components/ui/toast";
 import {
@@ -22,6 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Loader2, Users, UserPlus, Check, X, UserCheck, Search, UserMinus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { toDate } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -396,29 +396,14 @@ const Friends = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="max-w-[1000px] mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8">
-        <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
-          <div className="flex items-center gap-3">
-            <Users className="h-6 w-6 text-primary" />
-            <h1 className="text-xl sm:text-2xl font-bold">Friends</h1>
-          </div>
-        </div>
-
-        {/* Search Bar */}
-        <div className="relative mb-4">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search people..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            aria-label="Search people"
-            className="pl-10"
-          />
-        </div>
+      <div className="page-flush max-w-[1000px] mx-auto px-0 sm:px-4 pb-6 sm:py-6">
+        <PageHeader title="Friends" className="sm:mb-4">
+          <PageSearch value={searchQuery} onChange={setSearchQuery} placeholder="Search people" />
+        </PageHeader>
 
         {/* Search Results */}
         {searchQuery.trim().length >= 2 && (
-          <Card className="mb-4">
+          <Card className="feed-section mb-2 sm:mb-4">
             {isSearching ? (
               <div className="flex items-center justify-center py-8">
                 <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
@@ -468,11 +453,11 @@ const Friends = () => {
         )}
 
         <Tabs value={activeTab ?? "friends"} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="w-full grid grid-cols-4 mb-4 [&>button]:text-xs sm:[&>button]:text-sm [&>button]:px-1.5 sm:[&>button]:px-3">
-            <TabsTrigger value="requests" className="relative">
+          <TabsList className="feed-section w-full bg-card sm:bg-transparent px-2 sm:px-0 mb-2 sm:mb-4">
+            <TabsTrigger value="requests">
               Requests
               {pendingRequests.length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs rounded-full h-5 min-w-5 px-1 flex items-center justify-center">
+                <span className="bg-destructive text-destructive-foreground text-[11px] rounded-full h-5 min-w-5 px-1.5 inline-flex items-center justify-center">
                   {pendingRequests.length}
                 </span>
               )}
@@ -486,7 +471,7 @@ const Friends = () => {
           </TabsList>
 
           <TabsContent value="requests">
-            <Card>
+            <Card className="feed-section">
               {pendingRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -547,7 +532,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="sent">
-            <Card>
+            <Card className="feed-section">
               {sentRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -597,7 +582,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="friends">
-            <Card>
+            <Card className="feed-section">
               {friends.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserCheck className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -652,7 +637,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="suggestions">
-            <Card>
+            <Card className="feed-section">
               {suggestions.filter(s => !hiddenSuggestions.has(s.id)).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
