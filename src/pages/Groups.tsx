@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Loader2, Plus, Users, Search, Globe, ImagePlus } from "lucide-react";
+import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import GroupsSkeleton from "@/components/skeletons/GroupsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
@@ -34,6 +35,7 @@ const Groups = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [view, setView] = useState<"all" | "mine" | "discover">("all");
   const [groupImage, setGroupImage] = useState<File | null>(null);
   const [groupImagePreview, setGroupImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -108,14 +110,16 @@ const Groups = () => {
 
   // Filter groups based on search query
   const filteredGroups = useMemo(() => {
-    if (!searchQuery.trim()) return groups;
-    
+    const byView = groups.filter((g) => view === "all" || (view === "mine" ? g.is_member : !g.is_member));
+    if (!searchQuery.trim()) return byView;
+
     const query = searchQuery.toLowerCase();
-    return groups.filter(group => 
+    return byView.filter(group =>
       group.name.toLowerCase().includes(query) ||
       group.description?.toLowerCase().includes(query)
     );
-  }, [groups, searchQuery]);
+  }, [groups, searchQuery, view]);
+  const myCount = groups.filter((g) => g.is_member).length;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -274,54 +278,42 @@ const Groups = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="max-w-[1200px] mx-auto px-4 lg:px-6 py-4 sm:py-6 pb-28 md:pb-8">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-              <Users className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold">Groups</h1>
-              <p className="text-sm text-muted-foreground">{groups.length} {groups.length === 1 ? "group" : "groups"} available</p>
-            </div>
-          </div>
-          <Button onClick={() => setIsCreating(true)} className="sm:w-auto">
-            <Plus className="h-4 w-4 mr-2" />
-            Create Group
-          </Button>
-        </div>
-
-        {/* Search Bar - Facebook Style */}
-        <Card className="p-4 mb-6">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
-            <Input
-              placeholder="Search groups..."
-              aria-label="Search groups"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10 h-12 text-base bg-secondary border-0 focus-visible:ring-1"
-            />
-          </div>
+      <div className="page-flush max-w-[1200px] mx-auto px-0 sm:px-4 lg:px-6 pb-6 sm:py-6 space-y-2 sm:space-y-0">
+        <PageHeader
+          title="Groups"
+          actions={<HeaderAction icon={Plus} label="Create group" primary onClick={() => setIsCreating(true)} />}
+        >
+          <PageSearch value={searchQuery} onChange={setSearchQuery} placeholder="Search groups" />
+          <Chips
+            label="Show"
+            value={view}
+            onChange={setView}
+            options={[
+              { value: "all", label: "All" },
+              { value: "mine", label: `Your groups${myCount ? ` · ${myCount}` : ""}` },
+              { value: "discover", label: "Discover" },
+            ]}
+          />
           {searchQuery && (
-            <p className="text-sm text-muted-foreground mt-2">
-              {filteredGroups.length} {filteredGroups.length === 1 ? 'group' : 'groups'} found for "{searchQuery}"
+            <p className="text-sm text-muted-foreground">
+              {filteredGroups.length} {filteredGroups.length === 1 ? "group" : "groups"} found for "{searchQuery}"
             </p>
           )}
-        </Card>
+        </PageHeader>
 
         {filteredGroups.length === 0 ? (
-          <Card className="p-12 text-center">
-            {searchQuery ? (
+          <Card className="feed-section p-12 text-center">
+            {searchQuery || view !== "all" ? (
               <>
                 <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-                <h2 className="text-xl font-semibold mb-2">No groups found</h2>
+                <h2 className="text-xl font-semibold mb-2">
+                  {searchQuery ? "No groups found" : view === "mine" ? "You haven't joined any groups yet" : "You've joined every group"}
+                </h2>
                 <p className="text-muted-foreground mb-4">
-                  Try a different search term or create a new group
+                  {searchQuery ? "Try a different search term or create a new group" : "Create one, or look through all groups."}
                 </p>
-                <Button onClick={() => setSearchQuery("")} variant="outline">
-                  Clear search
+                <Button onClick={() => { setSearchQuery(""); setView("all"); }} variant="outline">
+                  {searchQuery ? "Clear search" : "Show all groups"}
                 </Button>
               </>
             ) : (
@@ -339,14 +331,14 @@ const Groups = () => {
             )}
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
             {filteredGroups.map((group) => (
               <Card
                 key={group.id}
                 role="link"
                 tabIndex={0}
                 aria-label={group.name}
-                className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="feed-section overflow-hidden hover:shadow-lg transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => navigate(`/groups/${group.id}`)}
                 onKeyDown={(e) => {
                   if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {

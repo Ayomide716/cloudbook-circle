@@ -14,7 +14,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio, LogOut, Trash2 } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio, Trash2, Check, Globe } from "lucide-react";
+import { HeaderAction } from "@/components/layout/PageHeader";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -371,20 +372,80 @@ const GroupDetail = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-4 py-6 pb-28 md:pb-10 max-w-4xl">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/groups")}
-          className="mb-4"
-        >
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Groups
-        </Button>
+      <div className="page-flush mx-auto max-w-4xl px-0 sm:px-4 pb-6 sm:py-6">
+        {/* Group header, Facebook style: cover, name, members, actions */}
+        <section className="feed-section mb-2 sm:mb-5 overflow-hidden rounded-2xl border border-border bg-card">
+          <div className="relative">
+            {group.image_url ? (
+              <img src={group.image_url} alt="" className="h-40 w-full object-cover sm:h-56" />
+            ) : (
+              <div className="h-24 w-full gradient-brand opacity-80 sm:h-32" />
+            )}
+            <button
+              type="button"
+              onClick={() => navigate("/groups")}
+              className="absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+              aria-label="Back to groups"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </button>
+          </div>
+
+          <div className="space-y-3 p-4 sm:p-5">
+            <div>
+              <h1 className="font-display text-2xl font-bold leading-tight sm:text-3xl [overflow-wrap:anywhere]">{group.name}</h1>
+              <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
+                <Globe className="h-4 w-4" />
+                Public group
+                {(() => {
+                  const n = isMember ? members.length : memberCount;
+                  return n === null ? null : <> · <strong className="font-semibold text-foreground">{n}</strong> {n === 1 ? "member" : "members"}</>;
+                })()}
+              </p>
+            </div>
+
+            {isMember && members.length > 0 && (
+              <div className="flex -space-x-2" aria-hidden="true">
+                {members.slice(0, 8).map((m) => (
+                  <Avatar key={m.id} className="h-8 w-8 ring-2 ring-card">
+                    <AvatarImage src={m.profiles.avatar_url || undefined} alt="" />
+                    <AvatarFallback className="text-[10px]">{m.profiles.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                  </Avatar>
+                ))}
+              </div>
+            )}
+
+            {group.description && (
+              <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{group.description}</p>
+            )}
+
+            <div className="flex items-center gap-2">
+              {isMember ? (
+                <Button variant="secondary" className="flex-1 sm:flex-none rounded-xl" onClick={() => setConfirm({ kind: "leave" })} aria-label="Joined. Leave group?">
+                  <Check className="mr-2 h-4 w-4" /> Joined
+                </Button>
+              ) : (
+                <Button className="flex-1 sm:flex-none rounded-xl" onClick={handleJoinGroup} disabled={isJoining}>
+                  {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  Join group
+                </Button>
+              )}
+              {isMember && (
+                <>
+                  <HeaderAction icon={Phone} label="Start group voice call" onClick={() => startGroupCall(true)} />
+                  <HeaderAction icon={Video} label="Start group video call" onClick={() => startGroupCall(false)} />
+                </>
+              )}
+              {(userRole === "admin" || group.created_by === currentUserId) && (
+                <HeaderAction icon={Settings} label="Group settings" onClick={() => setShowEditModal(true)} />
+              )}
+            </div>
+          </div>
+        </section>
 
         {/* A call is running in this group: offer to join it */}
         {callParticipants.length > 0 && group && (
-          <Card className="p-3 sm:p-4 mb-4 border-primary/40 bg-primary/5">
+          <Card className="feed-section p-3 sm:p-4 mb-2 sm:mb-4 border-primary/40 bg-primary/5">
             <div className="flex items-center gap-3">
               <div className="flex -space-x-2 shrink-0">
                 {callParticipants.slice(0, 3).map((p) => (
@@ -414,61 +475,6 @@ const GroupDetail = () => {
           </Card>
         )}
 
-        <Card className="p-6 mb-6">
-          {group.image_url && (
-            <img
-              src={group.image_url}
-              alt={group.name}
-              className="w-full h-48 object-cover rounded-lg mb-4"
-            />
-          )}
-          <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div className="min-w-0">
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2 [overflow-wrap:anywhere]">{group.name}</h1>
-              {group.description && (
-                <p className="text-muted-foreground mb-4 whitespace-pre-wrap break-words">{group.description}</p>
-              )}
-              <div className="flex items-center gap-2 text-muted-foreground">
-                <Users className="h-5 w-5" />
-                <span>
-                  {(() => {
-                    const n = isMember ? members.length : memberCount;
-                    return n === null ? "Public group" : `${n} ${n === 1 ? "member" : "members"}`;
-                  })()}
-                </span>
-              </div>
-            </div>
-            <div className="flex gap-2 self-end sm:self-auto shrink-0">
-              {isMember && (
-                <>
-                  <Button variant="outline" size="icon" onClick={() => startGroupCall(true)} aria-label="Start group voice call" title="Start group voice call">
-                    <Phone className="h-4 w-4" />
-                  </Button>
-                  <Button variant="outline" size="icon" onClick={() => startGroupCall(false)} aria-label="Start group video call" title="Start group video call">
-                    <Video className="h-4 w-4" />
-                  </Button>
-                </>
-              )}
-              {(userRole === "admin" || group.created_by === currentUserId) && (
-                <Button variant="outline" size="icon" onClick={() => setShowEditModal(true)} aria-label="Group settings" title="Group settings">
-                  <Settings className="h-4 w-4" />
-                </Button>
-              )}
-              {isMember && (
-                <Button variant="outline" size="icon" onClick={() => setConfirm({ kind: "leave" })} aria-label="Leave group" title="Leave group">
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              )}
-              {!isMember && (
-                <Button onClick={handleJoinGroup} disabled={isJoining}>
-                  {isJoining ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
-                  Join Group
-                </Button>
-              )}
-            </div>
-          </div>
-        </Card>
-
         {/* Edit Group Modal */}
         {group && (
           <EditGroupModal
@@ -479,8 +485,8 @@ const GroupDetail = () => {
           />
         )}
 
-        <Tabs defaultValue="chat" className="space-y-4">
-          <TabsList className="grid w-full grid-cols-4">
+        <Tabs defaultValue="chat" className="space-y-2 sm:space-y-4">
+          <TabsList className="feed-section grid w-full grid-cols-4 bg-card sm:bg-transparent">
             <TabsTrigger value="chat" className="flex items-center gap-1">
               <MessageCircle className="h-4 w-4" />
               Chat
@@ -497,7 +503,7 @@ const GroupDetail = () => {
             {isMember ? (
               <GroupChat groupId={groupId!} currentUserId={currentUserId!} />
             ) : (
-              <Card className="p-12 text-center">
+              <Card className="feed-section p-12 text-center">
                 <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">
                   Join the group to participate in the chat
@@ -514,7 +520,7 @@ const GroupDetail = () => {
             {isMember && currentUserId ? (
               <VoiceRooms groupId={groupId!} currentUserId={currentUserId} />
             ) : (
-              <Card className="p-12 text-center">
+              <Card className="feed-section p-12 text-center">
                 <Radio className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">Join the group to access voice rooms</p>
               </Card>
@@ -523,7 +529,7 @@ const GroupDetail = () => {
 
           <TabsContent value="posts" className="space-y-4">
             {isMember && (
-              <Card className="p-4">
+              <Card className="feed-section p-4">
                 <form onSubmit={handleCreatePost} className="space-y-4">
                   <Textarea
                     placeholder="Share something with the group..."
@@ -561,11 +567,11 @@ const GroupDetail = () => {
             )}
 
             {!isMember ? (
-              <Card className="p-12 text-center">
+              <Card className="feed-section p-12 text-center">
                 <p className="text-muted-foreground">Join the group to see and share posts</p>
               </Card>
             ) : posts.length === 0 ? (
-              <Card className="p-12 text-center">
+              <Card className="feed-section p-12 text-center">
                 <p className="text-muted-foreground">No posts yet</p>
                 {isMember && (
                   <p className="text-sm text-muted-foreground mt-2">
@@ -575,7 +581,7 @@ const GroupDetail = () => {
               </Card>
             ) : (
               posts.map((post) => (
-                <Card key={post.id} className="p-4">
+                <Card key={post.id} className="feed-section p-4">
                   <div className="flex items-start gap-3 mb-3">
                     <Avatar className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
                       <AvatarImage src={post.profiles.avatar_url || undefined} alt="" />
@@ -627,13 +633,13 @@ const GroupDetail = () => {
 
           <TabsContent value="members" className="space-y-4">
             {!isMember && (
-              <Card className="p-12 text-center">
+              <Card className="feed-section p-12 text-center">
                 <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                 <p className="text-muted-foreground">Join the group to see who's in it</p>
               </Card>
             )}
             {members.map((member) => (
-              <Card key={member.id} className="p-0 overflow-hidden">
+              <Card key={member.id} className="feed-section p-0 overflow-hidden">
                 <button
                   type="button"
                   onClick={() => navigate(`/profile/${member.profiles.id}`)}

@@ -6,6 +6,7 @@ import { useSEO } from "@/hooks/useSEO";
 import type { PostComment } from "@/components/PostCard";
  import Navigation from "@/components/Navigation";
  import PostCard from "@/components/PostCard";
+import { PageHeader } from "@/components/layout/PageHeader";
  import { Loader2, Bookmark } from "lucide-react";
  import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
  import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -122,20 +123,17 @@ import type { PostComment } from "@/components/PostCard";
      <div className="min-h-screen bg-background">
        <Navigation currentUserId={currentUserId} />
  
-       <div className="max-w-2xl mx-auto px-4 py-6">
-         <div className="flex items-center gap-2 mb-6">
-           <Bookmark className="h-6 w-6 text-primary" />
-           <h1 className="text-2xl font-bold">Saved Posts</h1>
-         </div>
+       <div className="page-flush max-w-2xl mx-auto px-0 sm:px-4 pb-6 sm:py-6">
+         <PageHeader title="Saved" subtitle={posts.length > 0 ? `${posts.length} saved ${posts.length === 1 ? "post" : "posts"}` : undefined} className="sm:mb-4" />
  
          {posts.length === 0 ? (
-           <div className="text-center py-12">
+           <div className="text-center py-12 px-4">
              <Bookmark className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
              <p className="text-muted-foreground">No saved posts yet</p>
              <p className="text-sm text-muted-foreground">Posts you save will appear here</p>
            </div>
          ) : (
-           <div className="space-y-4">
+           <div className="space-y-2 sm:space-y-4 mt-2 sm:mt-0">
              {posts.map((post) => (
                <PostCard
                  key={post.id}

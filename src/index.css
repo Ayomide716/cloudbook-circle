@@ -249,17 +249,18 @@
     @apply transition-all duration-200 hover:bg-accent/10 rounded-xl;
   }
 
-  /* Phones: feed sections run edge to edge with square corners and a thin gap between them,
-     like Facebook's app. Scoped to the feed (.feed-flush), so the same cards stay rounded elsewhere. */
+  /* Phones: feed and page sections run edge to edge with square corners and a thin gap between
+     them, like Facebook's app. Scoped to .feed-flush / .page-flush containers, so the same cards
+     stay rounded elsewhere (dialogs, sidebars) and on bigger screens. */
   @media (max-width: 639px) {
-    .feed-flush .feed-section {
+    :is(.feed-flush, .page-flush) .feed-section {
       border-radius: 0;
       border-left-width: 0;
       border-right-width: 0;
       box-shadow: none;
     }
     /* The composer sits right under the top bar, as one piece with it. */
-    .feed-flush > .feed-section:first-child {
+    :is(.feed-flush, .page-flush) > .feed-section:first-child {
       border-top-width: 0;
     }
     .feed-flush .feed-stories {
