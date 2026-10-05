@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Bell, Heart, MessageCircle, UserPlus, CheckCheck, Users, ThumbsUp, Share2 } from "lucide-react";
@@ -354,7 +353,6 @@ const Notifications = () => {
         </Card>
       </div>
       
-      <BottomNav currentUserId={currentUserId || undefined} />
     </div>
   );
 };

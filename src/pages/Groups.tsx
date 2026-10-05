@@ -4,7 +4,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -416,7 +415,6 @@ const Groups = () => {
         )}
       </div>
 
-      <BottomNav currentUserId={currentUserId || undefined} />
 
       {/* Create Group Dialog */}
       <Dialog open={isCreating} onOpenChange={(open) => {

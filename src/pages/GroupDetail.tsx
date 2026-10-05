@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
 import GroupChat from "@/components/GroupChat";
 import VoiceRooms from "@/components/VoiceRooms";
 import EditGroupModal from "@/components/EditGroupModal";
@@ -667,7 +666,6 @@ const GroupDetail = () => {
         </Tabs>
       </div>
 
-      <BottomNav currentUserId={currentUserId || undefined} />
 
       <ConfirmDialog
         open={!!confirm}
