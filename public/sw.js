@@ -1,4 +1,4 @@
-const CACHE_VERSION = "cloudbook-v2";
+const CACHE_VERSION = "cloudbook-v3";
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `images-${CACHE_VERSION}`;
@@ -82,6 +82,13 @@ self.addEventListener("fetch", (event) => {
         return res;
       })()
     );
+    return;
+  }
+
+  // The app's own icons and logo: show the cached one, and fetch the latest for next time
+  // (so a new logo appears without reinstalling).
+  if (url.origin === self.location.origin && url.pathname.match(/\.(png|svg|ico)$/i)) {
+    event.respondWith(staleWhileRevalidate(request, STATIC_CACHE));
     return;
   }
 

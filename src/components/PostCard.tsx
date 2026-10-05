@@ -4,7 +4,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2, Ban } from "lucide-react";
+import { Heart, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, ThumbsUp, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2, Ban } from "lucide-react";
+import { ChatCircle, ShareFat, ThumbsUp as PhThumbsUp } from "@phosphor-icons/react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -579,10 +580,11 @@ const PostCard = ({
             aria-pressed={!!userReaction}
             aria-label={`${currentReaction?.label ?? "Like"}${totalReactions ? `, ${totalReactions} ${totalReactions === 1 ? "reaction" : "reactions"}` : ""}`}
           >
-            {currentReaction ? (
+            {/* Facebook-style bold icons; a filled thumb once you've liked. */}
+            {currentReaction && currentReaction.type !== "like" ? (
               <currentReaction.icon className={cn("h-[22px] w-[22px]", currentReaction.color)} />
             ) : (
-              <ThumbsUp className="h-[22px] w-[22px]" />
+              <PhThumbsUp className="h-[22px] w-[22px]" weight={currentReaction ? "fill" : "bold"} aria-hidden="true" />
             )}
             {totalReactions > 0 && <span className="text-[15px] font-medium">{compactCount(totalReactions)}</span>}
           </Button>
@@ -595,7 +597,7 @@ const PostCard = ({
           aria-expanded={showComments}
           aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
         >
-          <MessageCircle className="h-[22px] w-[22px]" />
+          <ChatCircle className="h-[22px] w-[22px]" weight="bold" aria-hidden="true" />
           {comments.length > 0 && <span className="text-[15px] font-medium">{compactCount(comments.length)}</span>}
         </Button>
 
@@ -605,7 +607,7 @@ const PostCard = ({
           onClick={() => setShowShareDialog(true)}
           aria-label="Share"
         >
-          <Share2 className="h-[22px] w-[22px]" />
+          <ShareFat className="h-[22px] w-[22px]" weight="bold" aria-hidden="true" />
         </Button>
 
         <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact />
