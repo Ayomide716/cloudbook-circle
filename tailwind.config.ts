@@ -74,6 +74,10 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        "sound-bar": {
+          "0%, 100%": { height: "30%" },
+          "50%": { height: "100%" },
+        },
         "accordion-down": {
           from: { height: "0", opacity: "0" },
           to: { height: "var(--radix-accordion-content-height)", opacity: "1" },
@@ -120,6 +124,7 @@ export default {
         },
       },
       animation: {
+        "sound-bar": "sound-bar 0.9s ease-in-out infinite",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",

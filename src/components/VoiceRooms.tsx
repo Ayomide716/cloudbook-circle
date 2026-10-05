@@ -12,6 +12,7 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useCalls } from "@/hooks/use-calls";
 import { useGroupCallParticipants } from "@/hooks/use-group-call-participants";
 import { broadcast } from "@/lib/realtime-broadcast";
+import { roomCallId } from "@/lib/voice-rooms";
 
 interface VoiceRoom {
   id: string;
@@ -24,8 +25,6 @@ interface VoiceRoomsProps {
   currentUserId: string;
 }
 
-/** Each voice room is a voice-only group call with its own id. */
-const roomCallId = (roomId: string) => `room-${roomId}`;
 
 interface VoiceRoomCardProps {
   room: VoiceRoom;
