@@ -114,21 +114,23 @@ async function fetchFeedPage(
   return { posts, nextCursor };
 }
 
+/** A post never shows twice, even if a page boundary shifts while you scroll. */
+export function dedupeFeedPages<D extends { pages: { posts: { id: string }[] }[] }>(data: D): D {
+  const seen = new Set<string>();
+  return {
+    ...data,
+    pages: data.pages.map((page) => ({
+      ...page,
+      posts: page.posts.filter((p) => !seen.has(p.id) && !!seen.add(p.id)),
+    })),
+  };
+}
+
 export function useFeedQuery(userId: string | null, feedFilter: "all" | "friends" | "digest") {
   return useInfiniteQuery({
     queryKey: ["feed", userId, feedFilter],
     queryFn: ({ pageParam }) => fetchFeedPage(userId!, feedFilter, pageParam),
-    // A post never shows twice, even if a page boundary shifts while you scroll.
-    select: (data) => {
-      const seen = new Set<string>();
-      return {
-        ...data,
-        pages: data.pages.map((page) => ({
-          ...page,
-          posts: page.posts.filter((p) => !seen.has(p.id) && !!seen.add(p.id)),
-        })),
-      };
-    },
+    select: dedupeFeedPages,
     initialPageParam: null as { score: number; id: string } | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!userId,

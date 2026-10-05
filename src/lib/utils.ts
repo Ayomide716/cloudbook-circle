@@ -18,7 +18,10 @@ export function toDate(value: string | null | undefined): Date {
   return value ? new Date(value) : new Date();
 }
 
-/** Only allow same-site paths as post-login destinations (blocks open redirects). */
+/**
+ * Only allow same-site paths as post-login destinations (blocks open redirects).
+ * Browsers read "//host" and "/\host" alike as another site, so both are refused.
+ */
 export function safeRedirectPath(value: string | null): string {
-  return value && value.startsWith("/") && !value.startsWith("//") ? value : "/";
+  return value && value.startsWith("/") && !value.startsWith("//") && !value.startsWith("/\\") ? value : "/";
 }
