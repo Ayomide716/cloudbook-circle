@@ -17,7 +17,9 @@ import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
 import ReportDialog from "./ReportDialog";
 import ConfirmDialog from "./ConfirmDialog";
-import ImageCarousel from "./ImageCarousel";
+import PhotoCollage from "./PhotoCollage";
+import PhotoViewer from "./PhotoViewer";
+import { postImages } from "@/lib/post-images";
 import TipButton from "./TipButton";
 import { isPostSaved } from "@/lib/saved-posts";
 import type { TablesInsert } from "@/integrations/supabase/types";
@@ -94,6 +96,8 @@ const PostCard = ({
   const [showComments, setShowComments] = useState(defaultShowComments);
   const myProfile = useMyProfile();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+  const photos = postImages(post);
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -403,18 +407,21 @@ const PostCard = ({
           />
         </div>
       )}
-      {!post.video_url && post.image_urls && post.image_urls.length > 1 && (
-        <ImageCarousel images={post.image_urls} />
-      )}
-      {!post.video_url && (!post.image_urls || post.image_urls.length <= 1) && post.image_url && (
-        <div className="w-full flex justify-center bg-muted/30">
-          <img
-            src={post.image_url}
-            alt="Post content"
-            className="w-full max-h-[600px] object-contain"
-            loading="lazy"
+      {!post.video_url && photos.length > 0 && (
+        <>
+          <PhotoCollage images={photos} onOpen={setViewerIndex} />
+          <PhotoViewer
+            images={photos}
+            index={viewerIndex}
+            onIndexChange={setViewerIndex}
+            caption={
+              <>
+                <span className="font-semibold text-white">{post.profiles.full_name || "Anonymous"}</span>
+                {post.content && <span className="line-clamp-2"> {post.content}</span>}
+              </>
+            }
           />
-        </div>
+        </>
       )}
  
        {/* Poll */}

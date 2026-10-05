@@ -1,3 +1,4 @@
+import { postImages } from "@/lib/post-images";
 import { useEffect, useState, useRef } from "react";
 import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";
 import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
@@ -64,6 +65,7 @@ interface Post {
   id: string;
   content: string;
   image_url: string | null;
+  image_urls?: string[] | null;
   video_url?: string | null;
   created_at: string | null;
   user_id: string;
@@ -339,15 +341,15 @@ const Profile = () => {
   }
 
   const isOwnProfile = currentUserId === userId;
-  const photoPosts = posts.filter((p) => p.image_url);
+  const photoPosts = posts.filter((p) => postImages(p).length > 0);
 
   // Build activity timeline
   const timelineItems = posts.slice(0, 8).map((p) => ({
     id: p.id,
-    type: p.image_url ? "photo" : p.video_url ? "video" : "post",
+    type: postImages(p).length ? "photo" : p.video_url ? "video" : "post",
     content: p.content.substring(0, 80) + (p.content.length > 80 ? "…" : ""),
     date: p.created_at,
-    image: p.image_url
+    image: postImages(p)[0] ?? null
   }));
 
   const infoItems = [
@@ -573,7 +575,7 @@ const Profile = () => {
                   <div className="grid grid-cols-3 gap-1.5 rounded-xl overflow-hidden">
                     {photoPosts.slice(0, 9).map((p) =>
                 <motion.button key={p.id} whileHover={{ scale: 1.05 }} onClick={() => navigate(`/post/${p.id}`)} className="aspect-square overflow-hidden rounded-lg" aria-label="Open photo post">
-                        <img src={p.image_url!} alt="" loading="lazy" className="w-full h-full object-cover" />
+                        <img src={postImages(p)[0]} alt="" loading="lazy" className="w-full h-full object-cover" />
                       </motion.button>
                 )}
                   </div>
@@ -788,7 +790,7 @@ const Profile = () => {
               aria-label="Open photo post"
               className="aspect-square rounded-2xl overflow-hidden cursor-pointer bento-card">
               
-                    <img src={p.image_url!} alt="" loading="lazy" className="w-full h-full object-cover" />
+                    <img src={postImages(p)[0]} alt="" loading="lazy" className="w-full h-full object-cover" />
                   </motion.div>
             )}
               </div>
