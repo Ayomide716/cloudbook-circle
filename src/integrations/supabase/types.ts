@@ -2247,6 +2247,10 @@ export type Database = {
         Args: { _user_id: string }
         Returns: { friend_count: number; mutual_ids: string[] }[]
       }
+      friend_suggestions: {
+        Args: { _limit?: number }
+        Returns: { user_id: string; mutual_count: number }[]
+      }
       group_member_counts: {
         Args: { _group_ids: string[] }
         Returns: { group_id: string; member_count: number }[]
