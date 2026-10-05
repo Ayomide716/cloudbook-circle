@@ -1,9 +1,11 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield, SquarePlus, Menu as MenuIcon } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield } from "lucide-react";
+import { List, MagnifyingGlass, MessengerLogo, PlusCircle } from "@phosphor-icons/react";
 import { supabase } from "@/integrations/supabase/client";
+import { NavShellContext } from "@/lib/nav-shell";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext, useLayoutEffect } from "react";
 import BottomNav from "./BottomNav";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
@@ -25,7 +27,6 @@ import {
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
-import logo from "@/assets/logo-new.webp";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface NavigationProps {
@@ -34,7 +35,7 @@ interface NavigationProps {
   hideMobileTopBar?: boolean;
 }
 
-const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps) => {
+export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -179,22 +180,12 @@ const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps
                 aria-label="Menu"
                 aria-current={location.pathname === "/menu" ? "page" : undefined}
               >
-                <MenuIcon className="h-6 w-6" />
+                <List className="h-[26px] w-[26px]" weight="bold" aria-hidden="true" />
               </Button>
             )}
-            <Link to="/" className="flex items-center gap-2.5 group shrink-0">
-              <motion.div
-                whileHover={{ scale: 1.05, rotate: -3 }}
-                whileTap={{ scale: 0.95 }}
-                transition={{ type: "spring", stiffness: 400, damping: 17 }}
-              >
-                <img 
-                  src={logo} 
-                  alt="CloudBook" 
-                  className="h-9 w-9 rounded-xl" 
-                />
-              </motion.div>
-              <span className="text-[22px] md:text-lg font-display font-extrabold md:font-bold tracking-tight gradient-text">CloudBook</span>
+            {/* Just the name, in one solid colour, as Facebook's app shows "facebook". */}
+            <Link to="/" className="shrink-0" aria-label="CloudBook home">
+              <span className="text-[26px] md:text-2xl font-display font-extrabold tracking-[-0.03em] text-primary leading-none">CloudBook</span>
             </Link>
             </div>
 
@@ -250,7 +241,7 @@ const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps
                     onClick={() => navigate("/?compose=1")}
                     aria-label="Create post"
                   >
-                    <SquarePlus className="h-6 w-6" />
+                    <PlusCircle className="h-[26px] w-[26px]" weight="bold" aria-hidden="true" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -259,7 +250,7 @@ const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps
                     onClick={() => setMobileSearchOpen(true)}
                     aria-label="Search"
                   >
-                    <Search className="h-6 w-6" />
+                    <MagnifyingGlass className="h-[26px] w-[26px]" weight="bold" aria-hidden="true" />
                   </Button>
                   <Button
                     variant="ghost"
@@ -268,7 +259,7 @@ const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps
                     onClick={() => navigate("/messages")}
                     aria-label={unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages"}
                   >
-                    <MessageCircle className="h-6 w-6" />
+                    <MessengerLogo className="h-[26px] w-[26px]" weight="bold" aria-hidden="true" />
                     {unreadMessages > 0 && (
                       <span className="absolute top-0.5 right-0 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center">
                         {unreadMessages > 9 ? "9+" : unreadMessages}
@@ -447,6 +438,23 @@ const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps
       {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} unreadNotifications={unreadNotifications} avatarUrl={userProfile?.avatar_url} name={userProfile?.full_name} />}
     </>
   );
+};
+
+/**
+ * What pages render. Inside the app shell it draws nothing and only passes its settings on
+ * (the shell draws the one header and bottom bar); elsewhere it draws the bars itself.
+ */
+const Navigation = (props: NavigationProps) => {
+  const shell = useContext(NavShellContext);
+  const hideTop = !!props.hideMobileTopBar;
+  // Before paint, so the profile's cover never flashes under a top bar.
+  useLayoutEffect(() => {
+    if (!shell) return;
+    shell.setHideMobileTopBar(hideTop);
+    return () => shell.setHideMobileTopBar(false);
+  }, [shell, hideTop]);
+  if (shell) return null;
+  return <AppNavigation {...props} />;
 };
 
 export default Navigation;

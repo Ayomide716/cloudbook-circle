@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image, X, MapPin } from "lucide-react";
+import { Loader2, Image, X, MapPin, Globe } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PostExpirySelector from "./PostExpirySelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,6 +15,7 @@ import MentionInput from "./MentionInput";
 import { cn } from "@/lib/utils";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogHeader,
   DialogTitle,
@@ -164,9 +165,17 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
       {/* Full Create Post Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Create post</DialogTitle>
+        {/* Phones: a full page, like Facebook's "New post" (✕ on the left, title in the middle);
+            bigger screens: a centred window. */}
+        <DialogContent className="sm:max-w-lg max-sm:top-0 max-sm:h-[calc(100dvh-var(--keyboard-inset,0px))] max-sm:max-h-none max-sm:content-start max-sm:rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)] max-sm:[&>button:last-child]:hidden">
+          <DialogHeader className="max-sm:-mx-4 max-sm:h-14 max-sm:flex-row max-sm:items-center max-sm:space-y-0 max-sm:border-b max-sm:border-border max-sm:px-2">
+            <DialogClose asChild>
+              <button type="button" className="sm:hidden flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary" aria-label="Close">
+                <X className="h-6 w-6" />
+              </button>
+            </DialogClose>
+            <DialogTitle className="max-sm:flex-1 max-sm:text-center max-sm:text-[17px]">Create post</DialogTitle>
+            <span className="sm:hidden w-10" aria-hidden="true" />
           </DialogHeader>
           
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -177,14 +186,20 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   {currentUser.full_name?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
-              <p className="font-semibold">{currentUser.full_name || "Anonymous"}</p>
+              <div>
+                <p className="font-semibold leading-tight">{currentUser.full_name || "Anonymous"}</p>
+                {/* Posts on CloudBook are public; shown as Facebook shows the audience. */}
+                <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
+                  <Globe className="h-3 w-3" /> Public
+                </span>
+              </div>
             </div>
 
             <MentionInput
               placeholder={`What's on your mind, ${currentUser.full_name?.split(' ')[0] || 'there'}? Use @ to mention friends`}
               value={content}
               onChange={setContent}
-              className="min-h-[120px] resize-none border-0 focus-visible:ring-0 text-lg placeholder:text-muted-foreground/60 p-0"
+              className="min-h-[120px] max-sm:min-h-[38dvh] resize-none border-0 focus-visible:ring-0 text-lg placeholder:text-muted-foreground/60 p-0"
               disabled={isLoading}
             />
 

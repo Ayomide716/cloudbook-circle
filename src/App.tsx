@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +10,9 @@ import RequireAuth from "@/components/RequireAuth";
 import ScrollToTop from "@/components/ScrollToTop";
 import CallProvider from "@/components/calls/CallProvider";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
+import { useSession } from "@/hooks/use-session";
+import { NavShellContext } from "@/lib/nav-shell";
+import { AppNavigation } from "@/components/Navigation";
 
 // Shown after a delay, so it shouldn't weigh down the first load.
 const InstallPrompt = lazy(() => import("@/components/InstallPrompt"));
@@ -71,11 +74,8 @@ const Protected = ({ children, redirectTo }: { children: React.ReactNode; redire
   </RequireAuth>
 );
 
-const MiniFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-background">
-    <div className="w-8 h-8 rounded-lg gradient-brand animate-spin" />
-  </div>
-);
+// While a page's code loads: an empty page under the bars (no spinner), as in Facebook's app.
+const MiniFallback = () => <div className="min-h-screen bg-background" aria-busy="true" />;
 
 const PageFallback = () => {
   const location = useLocation();
@@ -101,6 +101,28 @@ const PageFallback = () => {
     <Suspense fallback={<MiniFallback />}>
       {skeleton}
     </Suspense>
+  );
+};
+
+// Pages that never show the app's bars: sign-in screens and full-screen Reels.
+const withoutBars = (path: string) => path === "/auth" || path === "/reset-password" || path.startsWith("/reels");
+
+/**
+ * One header and bottom bar for every signed-in page, kept on screen across page changes
+ * (they used to be drawn by each page, so they vanished and slid back in every time).
+ */
+const AppShell = ({ children }: { children: ReactNode }) => {
+  const session = useSession();
+  const { pathname } = useLocation();
+  const [hideMobileTopBar, setHideMobileTopBar] = useState(false);
+  const shell = useMemo(() => ({ setHideMobileTopBar }), []);
+  const active = !!session && !withoutBars(pathname);
+
+  return (
+    <NavShellContext.Provider value={active ? shell : null}>
+      {active && <AppNavigation currentUserId={session.user.id} hideMobileTopBar={hideMobileTopBar} />}
+      {children}
+    </NavShellContext.Provider>
   );
 };
 
@@ -156,7 +178,9 @@ const App = () => {
         <BrowserRouter>
           <ScrollToTop />
           <CallProvider>
-            <AppRoutes />
+            <AppShell>
+              <AppRoutes />
+            </AppShell>
           </CallProvider>
           <Suspense fallback={null}>
             <InstallPrompt />

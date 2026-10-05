@@ -1,19 +1,9 @@
-import { Bell, Home, Film, Users } from "lucide-react";
+import { Bell, FilmStrip, House, UsersFour, UsersThree } from "@phosphor-icons/react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-
-/** Groups icon: three heads, so it reads differently from Friends. */
-const GroupsIcon = ({ className, strokeWidth = 2 }: { className?: string; strokeWidth?: number }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
-    <circle cx="12" cy="7" r="3" />
-    <circle cx="5" cy="13" r="2.5" />
-    <circle cx="19" cy="13" r="2.5" />
-    <path d="M7 21a5 5 0 0 1 10 0" />
-  </svg>
-);
 
 interface BottomNavProps {
   currentUserId?: string;
@@ -36,10 +26,10 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   const navigate = useNavigate();
   const location = useLocation();
   const tabs = [
-    { icon: Home, path: "/", label: "Home", badge: 0 },
-    { icon: Users, path: "/friends", label: "Friends", badge: friendRequests },
-    { icon: Film, path: "/reels", label: "Reels", badge: 0 },
-    { icon: GroupsIcon, path: "/groups", label: "Groups", badge: 0 },
+    { icon: House, path: "/", label: "Home", badge: 0 },
+    { icon: UsersThree, path: "/friends", label: "Friends", badge: friendRequests },
+    { icon: FilmStrip, path: "/reels", label: "Reels", badge: 0 },
+    { icon: UsersFour, path: "/groups", label: "Groups", badge: 0 },
     { icon: Bell, path: "/notifications", label: "Notifications", badge: unreadNotifications },
   ];
   // A group's own page still counts as the Groups tab.
@@ -54,12 +44,9 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   );
 
   return (
-    <motion.nav
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 28 }}
+    <nav
       aria-label="Main"
-      className="app-dock fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="app-dock bottom-bar fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
       <div className="grid grid-cols-6 h-14">
         {tabs.map((tab) => {
@@ -76,7 +63,8 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
             >
               {active && <span className="absolute top-0 inset-x-0 h-[3px] bg-primary" />}
               <span className="relative">
-                <tab.icon className="h-6 w-6" strokeWidth={active ? 2.4 : 2} />
+                {/* As in Facebook's app: bold outlines, filled when selected. */}
+                <tab.icon className="h-[26px] w-[26px]" weight={active ? "fill" : "bold"} aria-hidden="true" />
                 {tab.badge > 0 && (
                   <span className="absolute -top-1.5 -right-2.5 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground text-center">
                     {tab.badge > 9 ? "9+" : tab.badge}
@@ -104,7 +92,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
           {label("Profile", profileActive)}
         </motion.button>
       </div>
-    </motion.nav>
+    </nav>
   );
 };
 

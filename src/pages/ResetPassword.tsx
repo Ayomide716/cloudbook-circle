@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import logo from "@/assets/logo-new.webp";
+import logo from "@/assets/logo-mark.png";
 
 /**
  * Where the "reset your password" email link lands. Supabase signs the visitor in

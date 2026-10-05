@@ -18,7 +18,7 @@
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.png" type="image/png" />
-    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
 
     <!-- Open Graph -->
@@ -35,6 +35,14 @@
     <meta name="twitter:title" content="CloudBook - Connect with Friends" />
     <meta name="twitter:description" content="Your social world, reimagined. Connect, share, and discover on CloudBook." />
     <meta name="twitter:image" content="https://cloudbook-circle.lovable.app/logo.png" />
+
+    <!-- The app's background from the very first frame (no white flash before the code loads). -->
+    <style>
+      html { background: #F6F8F8; }
+      @media (prefers-color-scheme: dark) { html { background: #0F1216; } }
+      html.light { background: #F6F8F8; }
+      html.dark { background: #0F1216; }
+    </style>
 
     <!-- Theme Color -->
     <meta name="theme-color" content="#F6F8F8" media="(prefers-color-scheme: light)" />

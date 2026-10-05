@@ -7,6 +7,7 @@ import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import FriendsSkeleton from "@/components/skeletons/FriendsSkeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToastAction } from "@/components/ui/toast";
 import {
@@ -385,9 +386,7 @@ const Friends = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
+        <FriendsSkeleton />
       </div>
     );
   }
