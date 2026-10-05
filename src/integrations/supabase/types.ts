@@ -1435,6 +1435,7 @@ export type Database = {
       }
       posts: {
         Row: {
+          location: string | null
           content: string
           created_at: string | null
           expires_at: string | null
@@ -1445,6 +1446,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          location?: string | null
           content: string
           created_at?: string | null
           expires_at?: string | null
@@ -1455,6 +1457,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          location?: string | null
           content?: string
           created_at?: string | null
           expires_at?: string | null
@@ -1476,6 +1479,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          hometown: string | null
+          birthday: string | null
+          relationship_status: string | null
           avatar_url: string | null
           bio: string | null
           cover_url: string | null
@@ -1489,6 +1495,9 @@ export type Database = {
           work: string | null
         }
         Insert: {
+          hometown?: string | null
+          birthday?: string | null
+          relationship_status?: string | null
           avatar_url?: string | null
           bio?: string | null
           cover_url?: string | null
@@ -1502,6 +1511,9 @@ export type Database = {
           work?: string | null
         }
         Update: {
+          hometown?: string | null
+          birthday?: string | null
+          relationship_status?: string | null
           avatar_url?: string | null
           bio?: string | null
           cover_url?: string | null

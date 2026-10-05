@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield, Plus } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield, SquarePlus, Menu as MenuIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect } from "react";
@@ -30,9 +30,11 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface NavigationProps {
   currentUserId?: string;
+  /** Phones only: leave out the top bar (the profile draws its own over the cover photo). */
+  hideMobileTopBar?: boolean;
 }
 
-const Navigation = ({ currentUserId }: NavigationProps) => {
+const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -163,10 +165,23 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   return (
     <>
       {/* Top bar - minimal brand + search + actions */}
-      <header className="sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50">
+      <header className={cn("sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50", hideMobileTopBar && "max-md:hidden")}>
         <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
           <div className="flex items-center justify-between h-[var(--nav-height)]">
-            {/* Left - Logo */}
+            {/* Left - Logo (phones: the Menu button sits before it, as in Facebook's app) */}
+            <div className="flex items-center gap-1 shrink-0">
+            {currentUserId && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="md:hidden -ml-2 h-10 w-10 rounded-full hover:bg-secondary"
+                onClick={() => navigate("/menu")}
+                aria-label="Menu"
+                aria-current={location.pathname === "/menu" ? "page" : undefined}
+              >
+                <MenuIcon className="h-6 w-6" />
+              </Button>
+            )}
             <Link to="/" className="flex items-center gap-2.5 group shrink-0">
               <motion.div
                 whileHover={{ scale: 1.05, rotate: -3 }}
@@ -179,8 +194,9 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                   className="h-9 w-9 rounded-xl" 
                 />
               </motion.div>
-              <span className="text-lg font-display font-bold gradient-text">CloudBook</span>
+              <span className="text-[22px] md:text-lg font-display font-extrabold md:font-bold tracking-tight gradient-text">CloudBook</span>
             </Link>
+            </div>
 
             {/* Search: centred on tablets; on wide screens it sits by the logo so the main tabs can take the centre. */}
             <div className="hidden md:flex flex-1 justify-center mx-8 lg:flex-none lg:justify-start lg:mx-0 lg:ml-4 lg:w-52 xl:w-72">
@@ -223,39 +239,38 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
             {/* Right - Action Icons */}
             <div className="flex items-center gap-1.5">
-              {/* Mobile top bar, as in Facebook's app: create, search and Messenger.
+              {/* Mobile top bar, as in Facebook's app: plain create, search and Messenger icons.
                   Notifications and everything else live in the bottom tab bar. */}
               {currentUserId && (
-                <div className="flex md:hidden items-center gap-2">
+                <div className="flex md:hidden items-center">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/70"
+                    className="h-10 w-10 rounded-full hover:bg-secondary"
                     onClick={() => navigate("/?compose=1")}
                     aria-label="Create post"
                   >
-                    <Plus className="h-5 w-5" />
+                    <SquarePlus className="h-6 w-6" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full bg-secondary hover:bg-secondary/70"
+                    className="h-10 w-10 rounded-full hover:bg-secondary"
                     onClick={() => setMobileSearchOpen(true)}
                     aria-label="Search"
                   >
-                    <Search className="h-5 w-5" />
+                    <Search className="h-6 w-6" />
                   </Button>
-                  {/* Chats live here on phones (the bottom bar has Friends and Groups), as in Facebook's app. */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-10 w-10 rounded-full relative bg-secondary hover:bg-secondary/70"
+                    className="h-10 w-10 rounded-full relative hover:bg-secondary"
                     onClick={() => navigate("/messages")}
                     aria-label={unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages"}
                   >
-                    <MessageCircle className="h-5 w-5" />
+                    <MessageCircle className="h-6 w-6" />
                     {unreadMessages > 0 && (
-                      <span className="absolute top-0.5 right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+                      <span className="absolute top-0.5 right-0 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center">
                         {unreadMessages > 9 ? "9+" : unreadMessages}
                       </span>
                     )}

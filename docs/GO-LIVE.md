@@ -15,7 +15,7 @@ Pick one as the real site and share only that address. Vercel is the simpler cho
 
 **Custom domain (optional):** Vercel → `ayo-chat` → Settings → Domains → add e.g. `cloudbook.app`, then add the DNS records it shows.
 
-**Check:** open the live address on your phone, fully close and reopen the installed app, and confirm you see the new bottom tabs (Home · Reels · Friends · Groups · Notifications · Menu).
+**Check:** open the live address on your phone, fully close and reopen the installed app, and confirm you see the new bottom tabs (Home · Friends · Reels · Groups · Notifications · your photo), with ☰ Menu at the top left.
 
 ## 2. Bring the database up to date
 
@@ -27,6 +27,7 @@ In Lovable → your project → Cloud → Database → SQL editor (or Supabase �
 4. `20261006120000_feed_newest_first.sql`: newest posts first, no repeats, expired posts hidden
 5. `20261007090000_user_delete_set_null.sql`: lets accounts be deleted
 6. `20261008090000_delete_my_account.sql`: the **Delete my account** button in Settings
+7. `20261009090000_profile_details_post_location.sql`: hometown, birthday and relationship on profiles, and a place on posts
 
 Each one is safe to run on the live database: it only adds or replaces functions, rules and links.
 

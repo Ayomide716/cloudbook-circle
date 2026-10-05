@@ -4,11 +4,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck, Pencil } from "lucide-react";
+import { Heart, MessageCircle, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, Share2, ThumbsUp, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
+import { compactCount, shortTime } from "@/lib/time";
+import { hidePost, snoozePerson, unhidePost, SNOOZE_DAYS } from "@/lib/hidden-posts";
 import { Link } from "react-router-dom";
 import { cn, toDate } from "@/lib/utils";
 import SharePostDialog from "./SharePostDialog";
@@ -51,6 +53,8 @@ export interface PostCardProps {
       is_verified?: boolean;
     };
     user_id: string;
+    /** Where it was posted, shown as "Lekki, Lagos · 2h". */
+    location?: string | null;
      poll?: {
        id: string;
        question: string;
@@ -64,7 +68,7 @@ export interface PostCardProps {
   onReactionToggle: (reactionType: string) => void;
   onCommentAdded: () => void;
   onDelete?: () => void;
-  /** Narrow card (e.g. half-width in the feed grid): action buttons show icons only. */
+  /** Narrow card (e.g. half-width in the feed grid). The action row is icons and counts either way. */
   compact?: boolean;
   /** Open the comments straight away (the single post page). */
   defaultShowComments?: boolean;
@@ -88,17 +92,17 @@ const PostCard = ({
   onReactionToggle,
   onCommentAdded,
   onDelete,
-  compact = false,
   defaultShowComments = false,
 }: PostCardProps) => {
-  // Labels stay available to screen readers even when visually hidden.
-  // Labels show from phone width up; only very narrow screens and compact cards use icons alone.
-  const actionLabelClass = compact ? "sr-only" : "text-[13px] sm:text-sm max-[359px]:sr-only";
   const [showComments, setShowComments] = useState(defaultShowComments);
   const myProfile = useMyProfile();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [heartBurst, setHeartBurst] = useState(0);
+  // Hidden with ✕: the card turns into Facebook's "Why aren't you interested?" panel.
+  const [hidden, setHidden] = useState(false);
+  const [hideReason, setHideReason] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
   const photos = postImages(post);
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -284,6 +288,66 @@ const PostCard = ({
     .sort((a, b) => b[1] - a[1])
     .slice(0, 3);
 
+  const authorFirstName = post.profiles.full_name?.split(" ")[0] || "them";
+
+  if (hidden) {
+    const reasons = ["This post", `Too much from ${authorFirstName}`, "Seen it before", "Not relevant to me"];
+    return (
+      <Card className="feed-section shadow-sm overflow-hidden rounded-2xl border-border/60">
+        <section aria-label="Post hidden" className="p-3 sm:p-4">
+          <div className="rounded-2xl bg-secondary/70 p-3">
+            <p className="font-semibold text-[15px] mb-2.5">
+              {hideReason ? "Thanks. You'll see fewer posts like this." : "Why aren't you interested?"}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {reasons.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  aria-pressed={hideReason === r}
+                  onClick={() => setHideReason(r)}
+                  className={cn(
+                    "h-9 rounded-full px-3.5 text-sm font-medium transition-colors",
+                    hideReason === r ? "bg-primary text-primary-foreground" : "bg-muted-foreground/15 hover:bg-muted-foreground/25"
+                  )}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="mt-2 divide-y divide-border/0">
+            <button
+              type="button"
+              onClick={() => {
+                snoozePerson(post.user_id);
+                toast({ title: `Snoozed ${post.profiles.full_name || "this person"}`, description: `You won't see their posts for ${SNOOZE_DAYS} days.` });
+              }}
+              className="flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left text-[15px] hover:bg-accent/60"
+            >
+              <Clock className="h-5 w-5" /> Snooze {post.profiles.full_name || "this person"} for {SNOOZE_DAYS} days
+            </button>
+            <button
+              type="button"
+              onClick={() => setReportOpen(true)}
+              className="flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left text-[15px] hover:bg-accent/60"
+            >
+              <Flag className="h-5 w-5" /> Report post
+            </button>
+            <button
+              type="button"
+              onClick={() => { unhidePost(post.id); setHidden(false); }}
+              className="flex w-full items-center gap-3 rounded-lg px-1 py-2.5 text-left text-[15px] hover:bg-accent/60"
+            >
+              <Undo2 className="h-5 w-5" /> Unhide post
+            </button>
+          </div>
+        </section>
+        <ReportDialog reportedType="post" reportedId={post.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />
+      </Card>
+    );
+  }
+
   return (
     <Card className="feed-section shadow-sm overflow-hidden rounded-2xl border-border/60">
       {/* Header */}
@@ -305,8 +369,14 @@ const PostCard = ({
                 {post.profiles.is_verified && <VerifiedBadge size="sm" />}
               </p>
             </Link>
-            <p className="text-xs text-muted-foreground">
-              {formatDistanceToNow(toDate(post.created_at), { addSuffix: true })}
+            {/* As in Facebook: "Lekki, Lagos · 2h · 🌐" (CloudBook posts are public). */}
+            <p className="flex items-center gap-1 text-[13px] text-muted-foreground min-w-0">
+              {post.location && <><span className="truncate">{post.location}</span><span aria-hidden="true">·</span></>}
+              <time dateTime={toDate(post.created_at).toISOString()} title={formatDistanceToNow(toDate(post.created_at), { addSuffix: true })} className="shrink-0">
+                {shortTime(post.created_at)}
+              </time>
+              <span aria-hidden="true">·</span>
+              <Globe className="h-3 w-3 shrink-0" aria-label="Public" />
             </p>
           </div>
 
@@ -354,6 +424,17 @@ const PostCard = ({
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
+            {currentUserId !== post.user_id && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8 rounded-full"
+                aria-label="Hide post"
+                onClick={() => { hidePost(post.id); setHidden(true); setHideReason(null); }}
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            )}
         </div>
 
         {/* Content */}
@@ -454,44 +535,10 @@ const PostCard = ({
          </div>
        )}
 
-      {/* Reactions Summary & Comments Count */}
-      <div className="px-3 sm:px-4 py-2 flex items-center justify-between text-sm text-muted-foreground border-b">
-        <div className="flex items-center gap-1">
-          {topReactions.length > 0 && (
-            <>
-              <div className="flex -space-x-1">
-                {topReactions.map(([type]) => {
-                  const reaction = REACTION_TYPES.find(r => r.type === type);
-                  if (!reaction) return null;
-                  const Icon = reaction.icon;
-                  return (
-                    <div
-                      key={type}
-                      className={cn("h-5 w-5 rounded-full flex items-center justify-center", reaction.bgColor)}
-                    >
-                      <Icon className="h-3 w-3 text-white" />
-                    </div>
-                  );
-                })}
-              </div>
-              <span className="ml-1">{totalReactions}</span>
-            </>
-          )}
-        </div>
-        {comments.length > 0 && (
-          <button
-            onClick={() => setShowComments(!showComments)}
-            className="hover:underline"
-          >
-            {comments.length} {comments.length === 1 ? "comment" : "comments"}
-          </button>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="px-2 py-1 flex items-center border-b relative">
-        <div 
-          className="flex-1 relative"
+      {/* Actions, as in Facebook: 👍 99 · 💬 12 · ↪ on the left, the reactions people used on the right. */}
+      <div className="px-1.5 sm:px-2 py-1 flex items-center relative">
+        <div
+          className="relative"
           onMouseEnter={() => setShowReactions(true)}
           onMouseLeave={() => setShowReactions(false)}
         >
@@ -513,49 +560,62 @@ const PostCard = ({
               </div>
             </div>
           )}
-          
+
           <Button
             variant="ghost"
-            className="w-full gap-2 text-muted-foreground hover:bg-accent"
+            className={cn("h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent", currentReaction?.color)}
             // Tapping removes your reaction, whichever it is; with none it's a like.
             onClick={() => handleReaction(userReaction ?? 'like')}
             aria-pressed={!!userReaction}
+            aria-label={`${currentReaction?.label ?? "Like"}${totalReactions ? `, ${totalReactions} ${totalReactions === 1 ? "reaction" : "reactions"}` : ""}`}
           >
             {currentReaction ? (
-              <>
-                <currentReaction.icon className={cn("h-5 w-5", currentReaction.color)} />
-                <span className={cn(actionLabelClass, currentReaction.color)}>{currentReaction.label}</span>
-              </>
+              <currentReaction.icon className={cn("h-[22px] w-[22px]", currentReaction.color)} />
             ) : (
-              <>
-                <ThumbsUp className="h-5 w-5" />
-                <span className={actionLabelClass}>Like</span>
-              </>
+              <ThumbsUp className="h-[22px] w-[22px]" />
             )}
+            {totalReactions > 0 && <span className="text-[15px] font-medium">{compactCount(totalReactions)}</span>}
           </Button>
         </div>
-        
+
         <Button
           variant="ghost"
-          className="flex-1 gap-2 text-muted-foreground hover:bg-accent"
+          className="h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent"
           onClick={() => setShowComments(!showComments)}
+          aria-expanded={showComments}
+          aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
         >
-          <MessageCircle className="h-5 w-5" />
-          <span className={actionLabelClass}>Comment</span>
+          <MessageCircle className="h-[22px] w-[22px]" />
+          {comments.length > 0 && <span className="text-[15px] font-medium">{compactCount(comments.length)}</span>}
         </Button>
 
         <Button
           variant="ghost"
-          className="flex-1 gap-2 text-muted-foreground hover:bg-accent"
-           onClick={() => setShowShareDialog(true)}
+          className="h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent"
+          onClick={() => setShowShareDialog(true)}
+          aria-label="Share"
         >
-          <Share2 className="h-5 w-5" />
-          <span className={actionLabelClass}>Share</span>
+          <Share2 className="h-[22px] w-[22px]" />
         </Button>
 
-        <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact={compact} />
+        <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact />
+
+        {topReactions.length > 0 && (
+          <div className="ml-auto flex -space-x-1 pr-2" aria-hidden="true">
+            {topReactions.map(([type]) => {
+              const reaction = REACTION_TYPES.find(r => r.type === type);
+              if (!reaction) return null;
+              const Icon = reaction.icon;
+              return (
+                <div key={type} className={cn("h-[18px] w-[18px] rounded-full flex items-center justify-center ring-2 ring-card", reaction.bgColor)}>
+                  <Icon className="h-2.5 w-2.5 text-white" />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
- 
+
        {/* Share Dialog */}
        <SharePostDialog
          postId={post.id}

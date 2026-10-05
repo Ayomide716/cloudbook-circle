@@ -20,7 +20,7 @@ describe("BottomNav", () => {
   it("has Facebook's six tabs in order", () => {
     renderAt("/");
     const names = screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(names).toEqual(["Home", "Reels", "Friends", "Groups", "Notifications", "Menu"]);
+    expect(names).toEqual(["Home", "Friends", "Reels", "Groups", "Notifications", "Profile"]);
   });
 
   it("marks only the current tab", () => {
@@ -40,11 +40,16 @@ describe("BottomNav", () => {
     expect(screen.getByRole("button", { name: "Notifications, 12 new" })).toHaveTextContent("9+");
   });
 
-  it("opens the full Menu page and marks it current there", async () => {
+  it("opens your own profile from the Profile tab and marks it current there", async () => {
     renderAt("/");
-    await userEvent.click(screen.getByRole("button", { name: "Menu" }));
-    expect(screen.getByTestId("path")).toHaveTextContent("/menu");
-    expect(screen.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-current", "page");
+    await userEvent.click(screen.getByRole("button", { name: "Profile" }));
+    expect(screen.getByTestId("path")).toHaveTextContent("/profile/me");
+    expect(screen.getByRole("button", { name: "Profile" })).toHaveAttribute("aria-current", "page");
+  });
+
+  it("doesn't mark Profile on someone else's profile", () => {
+    renderAt("/profile/someone-else");
+    expect(screen.getByRole("button", { name: "Profile" })).not.toHaveAttribute("aria-current");
   });
 
   it("navigates when a tab is tapped", async () => {

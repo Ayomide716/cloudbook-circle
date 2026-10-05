@@ -9,7 +9,7 @@ test.describe("feed", () => {
     const bar = page.getByRole("navigation", { name: "Main" }).last();
     const tabs = bar.getByRole("button");
     await expect(tabs).toHaveCount(6);
-    for (const [i, name] of [/^Home$/, /^Reels$/, /^Friends/, /^Groups$/, /^Notifications/, /^Menu$/].entries()) {
+    for (const [i, name] of [/^Home$/, /^Friends/, /^Reels$/, /^Groups$/, /^Notifications/, /^Profile$/].entries()) {
       await expect(tabs.nth(i)).toHaveAccessibleName(name);
     }
     await expect(bar.getByRole("button", { name: "Home" })).toHaveAttribute("aria-current", "page");
@@ -23,7 +23,8 @@ test.describe("feed", () => {
     }).toBe(true);
     expect(Math.round((await bar.boundingBox())!.width)).toBe(viewport.width);
 
-    // Top bar, as in Facebook's app: create, search and Messenger.
+    // Top bar, as in Facebook's app: menu, create, search and Messenger.
+    await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create post" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Messages/ })).toBeVisible();
@@ -42,7 +43,7 @@ test.describe("feed", () => {
     await dialog.getByRole("button", { name: "Post", exact: true }).evaluate((b: HTMLButtonElement) => { b.click(); b.click(); });
     await expect(dialog).toBeHidden();
 
-    const firstPost = page.locator("main .feed-section").filter({ hasText: /ago/ }).first();
+    const firstPost = page.locator("main .feed-section").filter({ has: page.getByRole("button", { name: /^Like/ }) }).first();
     await expect(firstPost).toContainText(text);
     await expect(page.getByText(text)).toHaveCount(1);
   });
@@ -74,10 +75,9 @@ test.describe("feed", () => {
     await expect(viewer).toBeHidden();
   });
 
-  test("the Menu tab is a full page with shortcuts, and + opens the composer", async ({ page }) => {
+  test("the ☰ menu is a full page with shortcuts, and + opens the composer", async ({ page }) => {
     await signIn(page, "alice");
-    const bar = page.getByRole("navigation", { name: "Main" }).last();
-    await bar.getByRole("button", { name: "Menu" }).click();
+    await page.getByRole("button", { name: "Menu", exact: true }).click();
     await expect(page).toHaveURL(/\/menu$/);
     await expect(page.getByRole("heading", { level: 1, name: "Menu" })).toBeVisible();
     await expect(page.getByText("Alice Johnson")).toBeVisible();
@@ -86,6 +86,30 @@ test.describe("feed", () => {
 
     await page.getByRole("button", { name: "Create post" }).click();
     await expect(page.getByRole("dialog").getByText("Create post")).toBeVisible();
+  });
+
+  test("✕ hides a friend's post and asks why, as on Facebook", async ({ page }) => {
+    await signIn(page, "alice");
+    const post = page.locator(".feed-section")
+      .filter({ hasText: "Saturday at Lekki Conservation Centre" })
+      .filter({ has: page.getByRole("button", { name: "Hide post" }) })
+      .last();
+    await expect(post.getByText("Lekki, Lagos")).toBeVisible();
+    await post.getByRole("button", { name: "Hide post" }).click();
+
+    const panel = page.getByRole("region", { name: "Post hidden" });
+    await expect(panel.getByText("Why aren't you interested?")).toBeVisible();
+    await panel.getByRole("button", { name: "Seen it before" }).click();
+    await expect(panel.getByText(/Thanks\. You'll see fewer posts like this/)).toBeVisible();
+    await expect(panel.getByRole("button", { name: /Snooze Bob Martins for 30 days/ })).toBeVisible();
+    await expect(page.getByText("Saturday at Lekki Conservation Centre")).toBeHidden();
+
+    // Still hidden after a reload; Unhide brings it back.
+    await page.reload();
+    await expect(page.getByText("Saturday at Lekki Conservation Centre")).toBeHidden();
+    await page.evaluate(() => localStorage.removeItem("cloudbook_hidden_posts"));
+    await page.reload();
+    await expect(page.getByText("Saturday at Lekki Conservation Centre")).toBeVisible();
   });
 
   test("double-tapping a photo likes the post", async ({ page }) => {
