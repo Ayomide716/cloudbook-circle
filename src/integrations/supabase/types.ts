@@ -2235,6 +2235,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      delete_my_account: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
       increment_watch_views: {
         Args: { _user_id: string; _video_id: string }
         Returns: undefined

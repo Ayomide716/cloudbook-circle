@@ -9,7 +9,11 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, Sun, Moon, Monitor, LogOut, KeyRound, Mail } from "lucide-react";
+import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, Sun, Moon, Monitor, LogOut, KeyRound, Mail, Trash2 } from "lucide-react";
+import {
+  AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
+  AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +52,25 @@ const Settings = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [savingPassword, setSavingPassword] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  // Permanently deletes the account and everything in it (see delete_my_account in the migrations).
+  const deleteAccount = async () => {
+    if (deleteConfirm !== "DELETE") return;
+    setDeleting(true);
+    const { error } = await supabase.rpc("delete_my_account");
+    if (error) {
+      setDeleting(false);
+      toast({ title: "Couldn't delete your account", description: error.message, variant: "destructive" });
+      return;
+    }
+    // The account is gone; just clear this device's session.
+    await supabase.auth.signOut({ scope: "local" });
+    toast({ title: "Your account has been deleted" });
+    navigate("/auth", { replace: true });
+  };
   const passwordError =
     newPassword && newPassword.length < 8 ? "At least 8 characters"
     : confirmPassword && confirmPassword !== newPassword ? "The passwords don't match"
@@ -291,6 +314,37 @@ const Settings = () => {
             <Loader2 className="h-3 w-3 animate-spin" /> Saving...
           </p>
         )}
+
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">Delete account</h2>
+        <Card className="p-4 border-destructive/30">
+          <p className="text-sm text-muted-foreground mb-3">
+            Permanently delete your account, profile, posts, photos, messages and friendships. This can't be undone.
+          </p>
+          <Button variant="outline" className="rounded-xl text-destructive border-destructive/40 hover:bg-destructive/10 hover:text-destructive" onClick={() => { setDeleteConfirm(""); setDeleteOpen(true); }}>
+            <Trash2 className="h-4 w-4 mr-2" /> Delete my account
+          </Button>
+        </Card>
+
+        <AlertDialog open={deleteOpen} onOpenChange={(open) => !deleting && setDeleteOpen(open)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete your account?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Everything you've shared on CloudBook will be removed for good. Type <strong>DELETE</strong> to confirm.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div>
+              <Label htmlFor="delete-confirm" className="sr-only">Type DELETE to confirm</Label>
+              <Input id="delete-confirm" value={deleteConfirm} onChange={(e) => setDeleteConfirm(e.target.value)} placeholder="DELETE" autoComplete="off" autoCapitalize="characters" />
+            </div>
+            <AlertDialogFooter>
+              <AlertDialogCancel disabled={deleting}>Cancel</AlertDialogCancel>
+              <Button variant="destructive" onClick={deleteAccount} disabled={deleting || deleteConfirm !== "DELETE"}>
+                {deleting && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Delete account
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
   );

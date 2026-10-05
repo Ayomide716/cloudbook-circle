@@ -39,6 +39,7 @@ const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const Explore = lazy(() => import("./pages/Explore"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const Menu = lazy(() => import("./pages/Menu"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 
 // Lazy-loaded skeletons
 const FeedSkeleton = lazy(() => import("./components/skeletons/FeedSkeleton"));
@@ -113,6 +114,7 @@ const AppRoutes = () => {
         {/* The marketing landing page was removed; keep old links working. */}
         <Route path="/landing" element={<Navigate to="/auth" replace />} />
         <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
+        <Route path="/reset-password" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
         <Route path="/profile/:userId" element={<Protected><Profile /></Protected>} />
         <Route path="/messages" element={<Protected><Messages /></Protected>} />
         <Route path="/groups" element={<Protected><Groups /></Protected>} />

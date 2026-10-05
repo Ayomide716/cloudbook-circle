@@ -35,6 +35,25 @@ const Auth = () => {
     return () => subscription.unsubscribe();
   }, [navigate, redirectPath]);
 
+  const handleForgotPassword = async () => {
+    if (!email.trim()) {
+      toast({ title: "Enter your email first", description: "We'll send a password reset link to it." });
+      document.getElementById("email")?.focus();
+      return;
+    }
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setIsLoading(false);
+    if (error) {
+      toast({ title: "Couldn't send the reset email", description: error.message, variant: "destructive" });
+      return;
+    }
+    // The same message whether or not the address has an account, so it can't be used to find accounts.
+    toast({ title: "Check your email", description: `If ${email.trim()} has an account, a password reset link is on its way.` });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -53,7 +72,12 @@ const Auth = () => {
           },
         });
         if (error) throw error;
-        toast({ title: "Account created!", description: "Welcome to CloudBook!" });
+        // With email confirmation on (as it should be when live), there's no session until the link is opened.
+        if (data.session) {
+          toast({ title: "Account created!", description: "Welcome to CloudBook!" });
+        } else {
+          toast({ title: "Check your email", description: `We sent a confirmation link to ${email}. Open it to finish signing up.` });
+        }
       }
     } catch (error) {
       toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
@@ -227,6 +251,7 @@ const Auth = () => {
                     <Input
                       id="email"
                       type="email"
+                      autoComplete="email"
                       placeholder="you@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -241,9 +266,21 @@ const Auth = () => {
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="password" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
-                  Password
-                </Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password" className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                    Password
+                  </Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={handleForgotPassword}
+                      disabled={isLoading}
+                      className="text-xs font-semibold text-primary hover:underline disabled:opacity-50"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <div className={cn(
                   "auth-input-wrapper rounded-xl transition-all duration-300",
                   focusedField === "password" && "auth-input-focused"
@@ -260,7 +297,9 @@ const Auth = () => {
                       onBlur={() => setFocusedField(null)}
                       required
                       disabled={isLoading}
-                      minLength={6}
+                      // New passwords need 8+ characters (as in Settings); old ones still sign in.
+                      minLength={isLogin ? undefined : 8}
+                      autoComplete={isLogin ? "current-password" : "new-password"}
                       className="auth-input pl-10"
                     />
                   </div>
