@@ -75,6 +75,21 @@ test.describe("feed", () => {
     await expect(viewer).toBeHidden();
   });
 
+  test("the header and bottom bar stay put when changing tabs, as in Facebook's app", async ({ page }) => {
+    await signIn(page, "alice");
+    const bar = page.getByRole("navigation", { name: "Main" }).last();
+    // Tag the bars; if a page change rebuilt them, the tags would be gone.
+    await page.locator("header").first().evaluate((el) => el.setAttribute("data-kept", "1"));
+    await bar.evaluate((el) => el.setAttribute("data-kept", "1"));
+
+    for (const tab of ["Friends", "Groups", "Notifications", "Home"]) {
+      await bar.getByRole("button", { name: new RegExp(`^${tab}`) }).click();
+      await expect(bar.getByRole("button", { name: new RegExp(`^${tab}`) })).toHaveAttribute("aria-current", "page");
+      await expect(page.locator("header[data-kept]")).toHaveCount(1);
+      await expect(page.locator("nav[data-kept]")).toHaveCount(1);
+    }
+  });
+
   test("the ☰ menu is a full page with shortcuts, and + opens the composer", async ({ page }) => {
     await signIn(page, "alice");
     await page.getByRole("button", { name: "Menu", exact: true }).click();

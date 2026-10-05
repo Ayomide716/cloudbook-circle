@@ -1,30 +1,33 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { StaticAction, StaticChips, StaticSearch } from "./parts";
 
-const GroupsSkeleton = () => (
-  <div className="max-w-[1100px] mx-auto px-4 py-4 sm:py-6">
-    <div className="flex items-center justify-between mb-6">
-      <Skeleton className="h-8 w-32 skeleton-shimmer" />
-      <Skeleton className="h-10 w-36 rounded-lg skeleton-shimmer" />
+/** One group, as on the Groups page: icon, name, members and privacy, description. */
+const GroupCardSkeleton = () => (
+  <div className="feed-section bg-card border border-border/60 rounded-2xl p-4 space-y-3">
+    <div className="flex items-center gap-3">
+      <Skeleton className="h-14 w-14 rounded-full shrink-0" />
+      <div className="flex-1 space-y-2">
+        <Skeleton className="h-5 w-1/2" />
+        <Skeleton className="h-3.5 w-2/5" />
+      </div>
     </div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i} className="overflow-hidden opacity-0 animate-fade-in" style={{ animationDelay: `${i * 80}ms`, animationFillMode: "forwards" }}>
-          <Skeleton className="h-32 w-full skeleton-shimmer" />
-          <div className="p-4 space-y-2">
-            <Skeleton className="h-5 w-40 skeleton-shimmer" />
-            <Skeleton className="h-3 w-24 skeleton-shimmer" />
-            <div className="flex items-center gap-2 pt-2">
-              <div className="flex -space-x-2">
-                {Array.from({ length: 3 }).map((_, j) => (
-                  <Skeleton key={j} className="h-7 w-7 rounded-full skeleton-shimmer ring-2 ring-background" />
-                ))}
-              </div>
-              <Skeleton className="h-3 w-20 skeleton-shimmer" />
-            </div>
-          </div>
-        </Card>
-      ))}
+    <Skeleton className="h-3.5 w-11/12" />
+    <div className="flex justify-end">
+      <Skeleton className="h-9 w-16 rounded-full" />
+    </div>
+  </div>
+);
+
+/** Same layout as the Groups page: title with +, search, chips, then the groups. */
+const GroupsSkeleton = () => (
+  <div className="page-flush max-w-[1200px] mx-auto px-0 sm:px-4 lg:px-6 pb-6 sm:py-6 space-y-2 sm:space-y-0" aria-busy="true" aria-label="Loading groups">
+    <PageHeader title="Groups" actions={<StaticAction />}>
+      <StaticSearch placeholder="Search groups" />
+      <StaticChips labels={["All", "Your groups", "Discover"]} />
+    </PageHeader>
+    <div className="grid gap-2 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 4 }).map((_, i) => <GroupCardSkeleton key={i} />)}
     </div>
   </div>
 );

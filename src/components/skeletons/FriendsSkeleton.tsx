@@ -1,29 +1,23 @@
 import { Skeleton } from "@/components/ui/skeleton";
-import { Card } from "@/components/ui/card";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { RowSkeleton, StaticSearch } from "./parts";
 
+const TABS = ["Requests", "Sent", "Friends", "Suggested"];
+
+/** Same layout as the Friends page: title, search, the tab row, then people. */
 const FriendsSkeleton = () => (
-  <div className="max-w-[1000px] mx-auto px-4 py-4 sm:py-6">
-    <Skeleton className="h-8 w-28 mb-6 skeleton-shimmer" />
-    <div className="flex gap-2 mb-6">
-      <Skeleton className="h-9 w-28 rounded-full skeleton-shimmer" />
-      <Skeleton className="h-9 w-28 rounded-full skeleton-shimmer" />
-      <Skeleton className="h-9 w-36 rounded-full skeleton-shimmer" />
+  <div className="page-flush max-w-[1000px] mx-auto px-0 sm:px-4 pb-6 sm:py-6" aria-busy="true" aria-label="Loading friends">
+    <PageHeader title="Friends" className="sm:mb-4">
+      <StaticSearch placeholder="Search people" />
+    </PageHeader>
+    <div className="feed-section flex h-11 items-stretch gap-1 border-b border-border bg-card sm:bg-transparent px-2 sm:px-0 mb-2 sm:mb-4" aria-hidden="true">
+      {TABS.map((t) => (
+        <span key={t} className="flex items-center px-3 text-[15px] font-semibold text-muted-foreground">{t}</span>
+      ))}
     </div>
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {Array.from({ length: 6 }).map((_, i) => (
-        <Card key={i} className="p-4 opacity-0 animate-fade-in" style={{ animationDelay: `${i * 80}ms`, animationFillMode: "forwards" }}>
-          <div className="flex items-center gap-3">
-            <Skeleton className="h-16 w-16 rounded-full skeleton-shimmer" />
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-32 skeleton-shimmer" />
-              <Skeleton className="h-3 w-20 skeleton-shimmer" />
-              <div className="flex gap-2">
-                <Skeleton className="h-8 w-24 rounded-lg skeleton-shimmer" />
-                <Skeleton className="h-8 w-24 rounded-lg skeleton-shimmer" />
-              </div>
-            </div>
-          </div>
-        </Card>
+    <div className="feed-section bg-card divide-y divide-border sm:rounded-xl sm:border">
+      {[[45, 30], [38, 25], [52, 28], [40, 32], [48, 26], [36, 30]].map((lines, i) => (
+        <RowSkeleton key={i} lines={lines} avatar="h-14 w-14" right={<Skeleton className="h-9 w-20 rounded-lg" />} />
       ))}
     </div>
   </div>

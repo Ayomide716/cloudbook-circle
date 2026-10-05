@@ -2,8 +2,9 @@ import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield, SquarePlus, Menu as MenuIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { NavShellContext } from "@/lib/nav-shell";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext, useLayoutEffect } from "react";
 import BottomNav from "./BottomNav";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
@@ -34,7 +35,7 @@ interface NavigationProps {
   hideMobileTopBar?: boolean;
 }
 
-const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps) => {
+export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { toast } = useToast();
@@ -447,6 +448,23 @@ const Navigation = ({ currentUserId, hideMobileTopBar = false }: NavigationProps
       {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} unreadNotifications={unreadNotifications} avatarUrl={userProfile?.avatar_url} name={userProfile?.full_name} />}
     </>
   );
+};
+
+/**
+ * What pages render. Inside the app shell it draws nothing and only passes its settings on
+ * (the shell draws the one header and bottom bar); elsewhere it draws the bars itself.
+ */
+const Navigation = (props: NavigationProps) => {
+  const shell = useContext(NavShellContext);
+  const hideTop = !!props.hideMobileTopBar;
+  // Before paint, so the profile's cover never flashes under a top bar.
+  useLayoutEffect(() => {
+    if (!shell) return;
+    shell.setHideMobileTopBar(hideTop);
+    return () => shell.setHideMobileTopBar(false);
+  }, [shell, hideTop]);
+  if (shell) return null;
+  return <AppNavigation {...props} />;
 };
 
 export default Navigation;

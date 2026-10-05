@@ -1,27 +1,22 @@
-import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { RowSkeleton, StaticChips } from "./parts";
 
-const NotificationItemSkeleton = () => (
-  <div className="flex items-start gap-3 p-4">
-    <Skeleton className="h-12 w-12 rounded-full flex-shrink-0" />
-    <div className="flex-1 space-y-2">
-      <Skeleton className="h-4 w-full max-w-[280px]" />
-      <Skeleton className="h-3 w-20" />
-    </div>
-    <Skeleton className="h-3 w-3 rounded-full flex-shrink-0 mt-2" />
-  </div>
-);
+const LINES = [[80, 25], [65, 30], [90, 22], [70, 28], [85, 25], [60, 30], [75, 22], [68, 26]];
 
+/** Same layout as the Notifications page: title and chips, then the list. */
 const NotificationsSkeleton = () => (
-  <div className="max-w-[800px] mx-auto px-4 py-4 sm:py-6">
-    <div className="flex items-center justify-between mb-6">
-      <Skeleton className="h-8 w-40" />
-      <Skeleton className="h-8 w-32 rounded-md" />
-    </div>
-    <Card className="overflow-hidden divide-y divide-border">
-      {Array.from({ length: 8 }).map((_, i) => (
-        <NotificationItemSkeleton key={i} />
-      ))}
+  <div className="page-flush max-w-[800px] mx-auto px-0 sm:px-4 pb-6 sm:py-6" aria-busy="true" aria-label="Loading notifications">
+    <PageHeader title="Notifications" className="sm:mb-4">
+      <StaticChips labels={["All", "Unread"]} />
+    </PageHeader>
+    <Card className="feed-section overflow-hidden mt-2 sm:mt-0">
+      <div className="divide-y divide-border">
+        {LINES.map((lines, i) => (
+          <RowSkeleton key={i} lines={lines} right={<Skeleton className="h-2.5 w-2.5 rounded-full" />} />
+        ))}
+      </div>
     </Card>
   </div>
 );

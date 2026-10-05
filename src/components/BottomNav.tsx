@@ -54,10 +54,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   );
 
   return (
-    <motion.nav
-      initial={{ y: 100 }}
-      animate={{ y: 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 28 }}
+    <nav
       aria-label="Main"
       className="app-dock fixed bottom-0 inset-x-0 z-50 border-t border-border bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 pb-[env(safe-area-inset-bottom)] md:hidden"
     >
@@ -104,7 +101,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
           {label("Profile", profileActive)}
         </motion.button>
       </div>
-    </motion.nav>
+    </nav>
   );
 };
 
