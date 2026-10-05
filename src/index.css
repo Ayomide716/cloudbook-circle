@@ -261,6 +261,13 @@
     }
   }
 
+  /* Wide screens have no dock (the main links are in the top bar). */
+  @screen lg {
+    .has-dock {
+      padding-bottom: 0;
+    }
+  }
+
   /* While typing on a phone the dock would float right above the keyboard, over the input. */
   body.keyboard-open .app-dock {
     display: none !important;
