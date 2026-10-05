@@ -1,8 +1,8 @@
 import { admin, PASSWORD, USERS } from "./fixtures";
 
 /**
- * Fresh test data for every run: three users, Alice and Bob are friends,
- * Dave has sent Alice a friend request, Bob has one post.
+ * Fresh test data for every run: four users, Alice and Bob are friends,
+ * Dave has sent Alice a friend request, Bob and Erin have one post each.
  */
 export default async function globalSetup() {
   const db = admin();
@@ -40,6 +40,12 @@ export default async function globalSetup() {
     content: "Saturday at Lekki Conservation Centre",
     location: "Lekki, Lagos",
     created_at: new Date(Date.now() - 2 * 3600_000).toISOString(),
+  })).error);
+
+  check("erin's post", (await db.from("posts").insert({
+    user_id: ids.erin,
+    content: "Erin's first post on CloudBook",
+    created_at: new Date(Date.now() - 3 * 3600_000).toISOString(),
   })).error);
 
   process.env.E2E_IDS = JSON.stringify(ids);

@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
+import BlockedPeople from "@/components/BlockedPeople";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -313,6 +314,13 @@ const Settings = () => {
           <p className="text-xs text-muted-foreground text-center mt-3 flex items-center justify-center gap-1">
             <Loader2 className="h-3 w-3 animate-spin" /> Saving...
           </p>
+        )}
+
+        {currentUserId && (
+          <>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">Blocked people</h2>
+            <BlockedPeople userId={currentUserId} />
+          </>
         )}
 
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">Delete account</h2>

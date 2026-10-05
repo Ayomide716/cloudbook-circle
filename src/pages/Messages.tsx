@@ -28,6 +28,7 @@ import { format, isThisWeek, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { explainError } from "@/lib/blocking";
 
 interface Profile {
   id: string;
@@ -381,7 +382,7 @@ const Messages = () => {
 
     if (error) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      toast({ title: "Error sending message", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't send message", description: await explainError(error, selectedConversation.id), variant: "destructive" });
       return;
     }
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
@@ -409,7 +410,11 @@ const Messages = () => {
     const tempId = `temp-voice-${Date.now()}`;
     setMessages((prev) => [...prev, { id: tempId, sender_id: currentUserId, receiver_id: selectedConversation.id, content, image_url: audioUrl, created_at: new Date().toISOString(), read: false }]);
     const { data, error } = await supabase.from("messages").insert({ sender_id: currentUserId, receiver_id: selectedConversation.id, content, image_url: audioUrl }).select().single();
-    if (error) { setMessages((prev) => prev.filter((m) => m.id !== tempId)); return; }
+    if (error) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      toast({ title: "Couldn't send voice message", description: await explainError(error, selectedConversation.id), variant: "destructive" });
+      return;
+    }
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
   };
 

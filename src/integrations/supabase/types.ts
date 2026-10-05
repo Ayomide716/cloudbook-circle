@@ -2247,9 +2247,17 @@ export type Database = {
         }
         Returns: boolean
       }
+      block_user: {
+        Args: { _target: string }
+        Returns: undefined
+      }
       delete_my_account: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      is_blocked_with: {
+        Args: { _other: string }
+        Returns: boolean
       }
       increment_watch_views: {
         Args: { _user_id: string; _video_id: string }
