@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,8 +37,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [postExpiry, setPostExpiry] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // A second tap can land before React disables the button; the ref blocks it at once.
+  const submittingRef = useRef(false);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submittingRef.current) return;
     
      if (!content.trim() && !pollData) {
       toast({
@@ -49,6 +53,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       return;
     }
 
+    submittingRef.current = true;
     setIsLoading(true);
 
     // Calculate expires_at from post expiry setting
@@ -82,6 +87,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
      }
  
     setIsLoading(false);
+    submittingRef.current = false;
 
     if (error) {
       toast({
@@ -121,9 +127,11 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           
           <button
             onClick={() => setShowDialog(true)}
-            className="flex-1 text-left px-4 py-2.5 bg-secondary hover:bg-secondary/80 rounded-full text-muted-foreground transition-colors text-sm sm:text-base"
+            className="flex-1 min-w-0 h-10 text-left px-4 bg-secondary hover:bg-secondary/80 rounded-full text-muted-foreground transition-colors text-[15px] sm:text-base truncate"
           >
-            What's on your mind, {currentUser.full_name?.split(' ')[0] || 'there'}?
+            {/* Long names don't fit on a phone; the shorter prompt reads better than a cut-off name. */}
+            <span className="sm:hidden">What's on your mind?</span>
+            <span className="hidden sm:inline">What's on your mind, {currentUser.full_name?.split(' ')[0] || 'there'}?</span>
           </button>
           <Button
             variant="ghost"
