@@ -8,6 +8,7 @@ import { ThemeProvider } from "next-themes";
 import SessionProvider from "@/components/SessionProvider";
 import RequireAuth from "@/components/RequireAuth";
 import ScrollToTop from "@/components/ScrollToTop";
+import StatusBarColor from "@/components/StatusBarColor";
 import CallProvider from "@/components/calls/CallProvider";
 import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useSession } from "@/hooks/use-session";
@@ -173,6 +174,7 @@ const App = () => {
     <SessionProvider>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
+        <StatusBarColor />
         <Toaster />
         <Sonner />
         <BrowserRouter>

@@ -299,16 +299,6 @@
     padding-bottom: 0;
   }
 
-  /* Installed app on a phone: the tab bar's bottom corners follow the screen's rounded corners
-     (in the browser, the browser's own toolbar does this). */
-  @media (display-mode: standalone) and (max-width: 767px) {
-    .bottom-bar {
-      border-bottom-left-radius: 2.75rem;
-      border-bottom-right-radius: 2.75rem;
-      overflow: hidden;
-    }
-  }
-
   /* Loading placeholders: a light band sweeps across, as in Facebook's app. */
   .skeleton-shimmer {
     position: relative;

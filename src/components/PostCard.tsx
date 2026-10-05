@@ -574,7 +574,7 @@ const PostCard = ({
 
           <Button
             variant="ghost"
-            className={cn("h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent", currentReaction?.color)}
+            className={cn("h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent [&_svg]:size-[22px]", currentReaction?.color)}
             // Tapping removes your reaction, whichever it is; with none it's a like.
             onClick={() => handleReaction(userReaction ?? 'like')}
             aria-pressed={!!userReaction}
@@ -592,7 +592,7 @@ const PostCard = ({
 
         <Button
           variant="ghost"
-          className="h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent"
+          className="h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent [&_svg]:size-[22px]"
           onClick={() => setShowComments(!showComments)}
           aria-expanded={showComments}
           aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
@@ -603,7 +603,7 @@ const PostCard = ({
 
         <Button
           variant="ghost"
-          className="h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent"
+          className="h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent [&_svg]:size-[22px]"
           onClick={() => setShowShareDialog(true)}
           aria-label="Share"
         >
