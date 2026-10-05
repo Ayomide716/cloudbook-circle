@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import {
   Bookmark,
+  Compass,
+  Menu as MenuIcon,
   CalendarDays,
   ChevronRight,
   FileText,
@@ -40,7 +42,7 @@ interface Shortcut {
 
 // Places that aren't in the bottom bar (Home, Explore, Reels, Chats).
 const SHORTCUTS: Shortcut[] = [
-  { icon: Users, label: "Communities", path: "/groups" },
+  { icon: Compass, label: "Explore", path: "/explore" },
   { icon: MonitorPlay, label: "Watch", path: "/watch" },
   { icon: CalendarDays, label: "Events", path: "/events" },
   { icon: ShoppingBag, label: "Marketplace", path: "/marketplace" },
@@ -128,20 +130,15 @@ const MobileProfileMenu = ({ currentUserId }: MobileProfileMenuProps) => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-7 w-7 rounded-full p-0 ring-2 ring-border"
-          aria-label={requestCount > 0 ? `Menu, ${requestCount} friend request${requestCount === 1 ? "" : "s"}` : "Menu"}
+        {/* The last tab of the bottom bar, as in the mockup: a menu icon over its label. */}
+        <button
+          type="button"
+          className="relative flex flex-col items-center justify-center gap-0.5 text-muted-foreground transition-colors data-[state=open]:text-primary"
+          aria-label="Menu"
         >
-          <Avatar className="h-7 w-7">
-            <AvatarImage src={profile?.avatar_url || undefined} alt="" />
-            <AvatarFallback className="text-sm">{initial}</AvatarFallback>
-          </Avatar>
-          {requestCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 h-3 w-3 rounded-full gradient-brand ring-2 ring-background" />
-          )}
-        </Button>
+          <MenuIcon className="h-6 w-6" />
+          <span className="text-[11px] leading-none font-medium">Menu</span>
+        </button>
       </SheetTrigger>
 
       <SheetContent

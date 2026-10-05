@@ -37,6 +37,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
   const location = useLocation();
   const { toast } = useToast();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(0);
   const [userProfile, setUserProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
@@ -67,7 +68,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
 
   const loadCounts = useEffectEvent(async () => {
     if (!currentUserId) return;
-    const [notifResult, requestsResult] = await Promise.all([
+    const [notifResult, requestsResult, messagesResult] = await Promise.all([
       supabase
         .from("notifications")
         .select("id", { count: "exact", head: true })
@@ -78,8 +79,14 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
         .select("id", { count: "exact", head: true })
         .eq("friend_id", currentUserId)
         .eq("status", "pending"),
+      supabase
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .eq("receiver_id", currentUserId)
+        .eq("read", false),
     ]);
     setUnreadNotifications(notifResult.count || 0);
+    setUnreadMessages(messagesResult.count || 0);
     setPendingRequests(requestsResult.count || 0);
   });
 
@@ -88,6 +95,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       .channel("nav-counts")
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => loadCounts())
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${currentUserId}` }, () => loadCounts())
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   });
@@ -238,6 +246,21 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
                     {unreadNotifications > 0 && (
                       <span className="absolute top-0.5 right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
                         {unreadNotifications > 9 ? "9+" : unreadNotifications}
+                      </span>
+                    )}
+                  </Button>
+                  {/* Chats live here on phones (the bottom bar has Friends and Groups), as in Facebook's app. */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-10 w-10 rounded-full relative bg-secondary hover:bg-secondary/70"
+                    onClick={() => navigate("/messages")}
+                    aria-label={unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages"}
+                  >
+                    <MessageCircle className="h-5 w-5" />
+                    {unreadMessages > 0 && (
+                      <span className="absolute top-0.5 right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+                        {unreadMessages > 9 ? "9+" : unreadMessages}
                       </span>
                     )}
                   </Button>
@@ -410,7 +433,7 @@ const Navigation = ({ currentUserId }: NavigationProps) => {
       <MobileSearchOverlay open={mobileSearchOpen} onClose={() => setMobileSearchOpen(false)} />
 
       {/* Mobile Bottom Navigation */}
-      {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} />}
+      {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} />}
     </>
   );
 };

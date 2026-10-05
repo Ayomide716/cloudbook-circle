@@ -30,9 +30,9 @@ const LiveRoomCard = ({ room }: { room: LiveRoom }) => {
       onClick={() => joinGroupCall({ id: callId, name: room.title }, true)}
       aria-label={`Join live voice room ${room.title} in ${room.groupName}, ${people.length} listening`}
     >
-      <div className="relative w-[88px] h-[140px] sm:w-[100px] sm:h-[160px] rounded-2xl overflow-hidden bg-primary text-primary-foreground p-2.5 flex flex-col justify-between text-left shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
+      <div className="relative w-[104px] h-[172px] rounded-2xl overflow-hidden bg-primary text-primary-foreground p-2.5 flex flex-col justify-between text-left shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
         <span className="self-start whitespace-nowrap rounded-md bg-gold px-1.5 py-0.5 text-[10px] font-extrabold tracking-wider text-foreground">
-          LIVE
+          LIVE ROOM
         </span>
         <div className="flex h-7 items-end gap-[3px]" aria-hidden="true">
           {[0, 1, 2, 3, 4].map((i) => (
@@ -52,7 +52,7 @@ const LiveRoomCard = ({ room }: { room: LiveRoom }) => {
               </Avatar>
             ))}
           </div>
-          <p className="text-[11px] font-bold leading-tight line-clamp-2">{room.groupName}</p>
+          <p className="text-xs font-bold leading-tight line-clamp-2">{room.groupName}</p>
           <p className="text-[10px] opacity-90">{people.length} listening</p>
         </div>
       </div>

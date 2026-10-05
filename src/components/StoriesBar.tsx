@@ -292,7 +292,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         <div className="flex gap-3 overflow-x-auto py-2 px-1.5 -mx-1.5 scrollbar-hide">
           {/* Create Story */}
           <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)}>
-            <div className="relative w-[88px] h-[140px] sm:w-[100px] sm:h-[160px] rounded-2xl overflow-hidden border-2 border-border/60 bg-card shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
+            <div className="relative w-[104px] h-[172px] rounded-2xl overflow-hidden border-2 border-border/60 bg-card shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
               <div className="h-[60%] bg-secondary/60 flex items-center justify-center overflow-hidden">
                 {myProfile?.avatar_url ? (
                   <img src={myProfile.avatar_url} alt="" className="h-full w-full object-cover" />
@@ -306,7 +306,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                 <div className="w-7 h-7 rounded-full bg-primary flex items-center justify-center -mt-4 mb-1 border-[3px] border-card shadow-md">
                   <Plus className="h-3.5 w-3.5 text-primary-foreground" />
                 </div>
-                <p className="text-[10px] font-semibold text-foreground">Create</p>
+                <p className="text-xs font-semibold text-foreground">Create story</p>
               </div>
             </div>
           </button>
@@ -326,7 +326,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                 "rounded-[18px] p-[2.5px] transition-transform duration-200 group-hover:scale-[1.03]",
                 group.hasUnviewed ? "gradient-brand" : "bg-muted-foreground/25"
               )}>
-              <div className="relative w-[83px] h-[135px] sm:w-[95px] sm:h-[155px] rounded-2xl overflow-hidden shadow-sm border-2 border-background">
+              <div className="relative w-[99px] h-[167px] rounded-2xl overflow-hidden shadow-sm border-2 border-background">
                 <img
                   src={group.stories[group.stories.length - 1].media_url}
                   alt="Story"
@@ -347,7 +347,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                   </div>
                 )}
                 <div className="absolute bottom-2 left-2 right-2">
-                  <p className="text-white text-[10px] font-semibold leading-tight line-clamp-2 drop-shadow-lg">
+                  <p className="text-white text-xs font-semibold leading-tight line-clamp-2 drop-shadow-lg">
                     {group.userId === currentUserId ? "Your Story" : group.profile.full_name || "User"}
                   </p>
                 </div>

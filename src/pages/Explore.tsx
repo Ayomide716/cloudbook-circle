@@ -4,7 +4,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import Navigation from "@/components/Navigation";
-import BottomNav from "@/components/BottomNav";
 import { useToast } from "@/hooks/use-toast";
 import PostCard from "@/components/PostCard";
 import { Card } from "@/components/ui/card";
@@ -386,7 +385,6 @@ const Explore = () => {
         </Tabs>
         )}
       </div>
-      <BottomNav currentUserId={currentUser.id} />
     </div>
   );
 };
