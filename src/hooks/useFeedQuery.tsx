@@ -38,7 +38,7 @@ async function fetchFeedPage(
   const isDigest = feedFilter === "digest";
   const { data: rankedData, error } = await supabase.rpc("get_ranked_posts", {
     _user_id: userId,
-    _feed_filter: isDigest ? "all" : feedFilter,
+    _feed_filter: feedFilter,
     _cursor_score: isDigest ? undefined : cursor?.score,
     _cursor_id: isDigest ? undefined : cursor?.id,
     _page_size: isDigest ? 15 : PAGE_SIZE,
@@ -118,6 +118,17 @@ export function useFeedQuery(userId: string | null, feedFilter: "all" | "friends
   return useInfiniteQuery({
     queryKey: ["feed", userId, feedFilter],
     queryFn: ({ pageParam }) => fetchFeedPage(userId!, feedFilter, pageParam),
+    // A post never shows twice, even if a page boundary shifts while you scroll.
+    select: (data) => {
+      const seen = new Set<string>();
+      return {
+        ...data,
+        pages: data.pages.map((page) => ({
+          ...page,
+          posts: page.posts.filter((p) => !seen.has(p.id) && !!seen.add(p.id)),
+        })),
+      };
+    },
     initialPageParam: null as { score: number; id: string } | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!userId,

@@ -397,7 +397,8 @@ const PostCard = ({
       {post.video_url && (
         <div className="relative w-full bg-black">
           <video
-            src={post.video_url}
+            // "#t=0.1" makes phones (iOS especially) show the first frame instead of a black box.
+            src={post.video_url.includes("#") ? post.video_url : `${post.video_url}#t=0.1`}
             controls
             playsInline
             preload="metadata"

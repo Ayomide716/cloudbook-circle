@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
-import { UserPlus, UserCheck, UserMinus, Loader2 } from "lucide-react";
+import { UserPlus, UserCheck, Loader2, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -9,9 +10,10 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 interface FriendshipButtonProps {
   currentUserId: string;
   profileUserId: string;
+  className?: string;
 }
 
-const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProps) => {
+const FriendshipButton = ({ currentUserId, profileUserId, className }: FriendshipButtonProps) => {
   const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'friends' | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmUnfriend, setConfirmUnfriend] = useState(false);
@@ -95,16 +97,47 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
       return;
     }
 
-    toast({ title: "Friend removed" });
+    toast({ title: previousStatus === "pending_sent" ? "Request cancelled" : previousStatus === "pending_received" ? "Request declined" : "Friend removed" });
   }, [currentUserId, profileUserId, friendshipStatus, toast]);
+
+  const acceptRequest = async () => {
+    setIsLoading(true);
+    const { error } = await supabase
+      .from("friendships")
+      .update({ status: "accepted" })
+      .eq("user_id", profileUserId)
+      .eq("friend_id", currentUserId);
+    setIsLoading(false);
+    if (error) {
+      toast({ title: "Couldn't accept the request", description: error.message, variant: "destructive" });
+      return;
+    }
+    setFriendshipStatus("friends");
+    toast({ title: "You're now friends" });
+  };
 
   if (friendshipStatus === null) {
     return null;
   }
 
+  // They asked you: answer right here instead of hunting for it on the Friends page.
+  if (friendshipStatus === 'pending_received') {
+    return (
+      <div className={cn("flex gap-2", className)}>
+        <Button className="flex-1" onClick={acceptRequest} disabled={isLoading}>
+          {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserCheck className="h-4 w-4 mr-2" />}
+          Accept
+        </Button>
+        <Button variant="secondary" size="icon" onClick={removeFriend} disabled={isLoading} aria-label="Decline friend request">
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
+    );
+  }
+
   if (friendshipStatus === 'none') {
     return (
-      <Button onClick={sendFriendRequest} disabled={isLoading}>
+      <Button onClick={sendFriendRequest} disabled={isLoading} className={className}>
         {isLoading ? (
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
         ) : (
@@ -117,9 +150,9 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
 
   if (friendshipStatus === 'pending_sent') {
     return (
-      <Button variant="secondary" disabled>
-        <UserCheck className="h-4 w-4 mr-2" />
-        Request Sent
+      <Button variant="secondary" onClick={removeFriend} disabled={isLoading} className={className} aria-label="Cancel friend request">
+        <X className="h-4 w-4 mr-2" />
+        Cancel request
       </Button>
     );
   }
@@ -127,13 +160,14 @@ const FriendshipButton = ({ currentUserId, profileUserId }: FriendshipButtonProp
   if (friendshipStatus === 'friends') {
     return (
       <>
-        <Button variant="secondary" onClick={() => setConfirmUnfriend(true)} disabled={isLoading}>
+        {/* Shows the relationship, like Facebook's "Friends" button; tapping offers to unfriend. */}
+        <Button variant="secondary" onClick={() => setConfirmUnfriend(true)} disabled={isLoading} className={className} aria-label="Friends. Unfriend?">
           {isLoading ? (
             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
           ) : (
-            <UserMinus className="h-4 w-4 mr-2" />
+            <UserCheck className="h-4 w-4 mr-2" />
           )}
-          Unfriend
+          Friends
         </Button>
         <ConfirmDialog
           open={confirmUnfriend}
