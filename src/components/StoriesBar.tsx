@@ -288,7 +288,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   return (
     <>
-      <div className="mb-4">
+      <div className="feed-section feed-stories sm:mb-4">
         <div className="flex gap-3 overflow-x-auto py-2 px-1.5 -mx-1.5 scrollbar-hide">
           {/* Create Story */}
           <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)}>

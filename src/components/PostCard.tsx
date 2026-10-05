@@ -284,7 +284,7 @@ const PostCard = ({
     .slice(0, 3);
 
   return (
-    <Card className="shadow-sm overflow-hidden rounded-2xl border-border/60">
+    <Card className="feed-section shadow-sm overflow-hidden rounded-2xl border-border/60">
       {/* Header */}
       <div className="p-3 sm:p-4">
         <div className="flex items-start gap-2 sm:gap-3">
