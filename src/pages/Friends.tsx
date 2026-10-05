@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -24,6 +24,7 @@ import { Loader2, Users, UserPlus, Check, X, UserCheck, Search, UserMinus } from
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { toDate } from "@/lib/utils";
+import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 
 interface Profile {
@@ -33,6 +34,7 @@ interface Profile {
 }
 
 interface SuggestedProfile extends Profile {
+  /** 0 for "new on CloudBook" suggestions. */
   mutualCount: number;
 }
 
@@ -66,6 +68,9 @@ const Friends = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [activeTab, setActiveTab] = useState<string | null>(null);
+  const debouncedSearch = useDebouncedValue(searchQuery.trim());
+  const searchSeq = useRef(0);
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -81,17 +86,19 @@ const Friends = () => {
   }, [navigate, checkAuth]);
 
   const loadData = useEffectEvent(async () => {
-    await Promise.all([
+    const [pending] = await Promise.all([
       loadPendingRequests(),
       loadSentRequests(),
       loadFriends(),
       loadSuggestions(),
     ]);
+    // Open on requests only when there are some; otherwise show your friends.
+    setActiveTab((tab) => tab ?? (pending.length ? "requests" : "friends"));
     setIsLoading(false);
   });
 
-  const loadPendingRequests = async () => {
-    if (!currentUserId) return;
+  const loadPendingRequests = async (): Promise<FriendRequest[]> => {
+    if (!currentUserId) return [];
 
     const { data } = await supabase
       .from("friendships")
@@ -107,7 +114,9 @@ const Friends = () => {
       .eq("status", "pending")
       .order("created_at", { ascending: false });
 
-    setPendingRequests(data as unknown as FriendRequest[] || []);
+    const list = (data as unknown as FriendRequest[]) || [];
+    setPendingRequests(list);
+    return list;
   };
 
   const loadSentRequests = async () => {
@@ -139,132 +148,52 @@ const Friends = () => {
       .eq("status", "accepted")
       .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
 
-    const friendsList: Friendship[] = [];
-
-    for (const friendship of friendships || []) {
-      const friendId = friendship.user_id === currentUserId
-        ? friendship.friend_id
-        : friendship.user_id;
-
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("id, full_name, avatar_url")
-        .eq("id", friendId)
-        .single();
-
-      if (profile) {
-        friendsList.push({
-          id: friendship.id,
-          friend: profile,
-          created_at: friendship.created_at,
-        });
-      }
-    }
-
-    setFriends(friendsList);
+    // All friends' profiles in one query rather than one per friend.
+    const otherId = (f: { user_id: string; friend_id: string }) => (f.user_id === currentUserId ? f.friend_id : f.user_id);
+    const ids = (friendships ?? []).map(otherId);
+    const { data: profiles } = ids.length
+      ? await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids)
+      : { data: [] as Profile[] };
+    const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+    setFriends(
+      (friendships ?? [])
+        .filter((f) => byId.has(otherId(f)))
+        .map((f) => ({ id: f.id, friend: byId.get(otherId(f))!, created_at: f.created_at }))
+        .sort((a, b) => (a.friend.full_name ?? "").localeCompare(b.friend.full_name ?? ""))
+    );
   };
 
+  /**
+   * Friends of your friends, from a database function (other people's friendships are
+   * private, so they can't be read directly). Until it's installed, or when it finds no
+   * one, suggest people who joined recently instead.
+   */
   const loadSuggestions = async () => {
     if (!currentUserId) return;
+    const { data: ranked, error } = await supabase.rpc("friend_suggestions", { _limit: 10 });
+    if (!error && ranked?.length) {
+      const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ranked.map((r) => r.user_id));
+      const mutual = new Map(ranked.map((r) => [r.user_id, Number(r.mutual_count)]));
+      setSuggestions(
+        (profiles ?? [])
+          .map((p) => ({ ...p, mutualCount: mutual.get(p.id) ?? 0 }))
+          .sort((a, b) => b.mutualCount - a.mutualCount)
+      );
+      return;
+    }
 
-    const { data: existingFriendships, error: existingError } = await supabase
+    const { data: mine } = await supabase
       .from("friendships")
-      .select("user_id, friend_id, status")
+      .select("user_id, friend_id")
       .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
-
-    if (existingError) {
-      setSuggestions([]);
-      return;
-    }
-
-    const connectedUserIds = new Set<string>([currentUserId]);
-    const myAcceptedFriendIds: string[] = [];
-
-    existingFriendships?.forEach((f) => {
-      connectedUserIds.add(f.user_id);
-      connectedUserIds.add(f.friend_id);
-
-      if (f.status === "accepted") {
-        myAcceptedFriendIds.push(
-          f.user_id === currentUserId ? f.friend_id : f.user_id
-        );
-      }
-    });
-
-    if (myAcceptedFriendIds.length === 0) {
-      setSuggestions([]);
-      return;
-    }
-
-    const [friendshipsByUserResult, friendshipsByFriendResult] = await Promise.all([
-      supabase
-        .from("friendships")
-        .select("user_id, friend_id")
-        .eq("status", "accepted")
-        .in("user_id", myAcceptedFriendIds),
-      supabase
-        .from("friendships")
-        .select("user_id, friend_id")
-        .eq("status", "accepted")
-        .in("friend_id", myAcceptedFriendIds),
-    ]);
-
-    const networkFriendships = [
-      ...(friendshipsByUserResult.data || []),
-      ...(friendshipsByFriendResult.data || []),
-    ];
-    const myAcceptedSet = new Set(myAcceptedFriendIds);
-    const candidateMutualMap = new Map<string, Set<string>>();
-
-    for (const friendship of networkFriendships) {
-      if (
-        myAcceptedSet.has(friendship.user_id) &&
-        !connectedUserIds.has(friendship.friend_id) &&
-        friendship.friend_id !== currentUserId
-      ) {
-        const mutualSet = candidateMutualMap.get(friendship.friend_id) || new Set<string>();
-        mutualSet.add(friendship.user_id);
-        candidateMutualMap.set(friendship.friend_id, mutualSet);
-      }
-
-      if (
-        myAcceptedSet.has(friendship.friend_id) &&
-        !connectedUserIds.has(friendship.user_id) &&
-        friendship.user_id !== currentUserId
-      ) {
-        const mutualSet = candidateMutualMap.get(friendship.user_id) || new Set<string>();
-        mutualSet.add(friendship.friend_id);
-        candidateMutualMap.set(friendship.user_id, mutualSet);
-      }
-    }
-
-    const candidateIds = [...candidateMutualMap.keys()];
-
-    if (candidateIds.length === 0) {
-      setSuggestions([]);
-      return;
-    }
-
-    const { data: profiles, error: profilesError } = await supabase
+    const connected = new Set<string>([currentUserId]);
+    for (const f of mine ?? []) { connected.add(f.user_id); connected.add(f.friend_id); }
+    const { data: recent } = await supabase
       .from("profiles")
       .select("id, full_name, avatar_url")
-      .in("id", candidateIds.slice(0, 40));
-
-    if (profilesError || !profiles) {
-      setSuggestions([]);
-      return;
-    }
-
-    const rankedSuggestions: SuggestedProfile[] = profiles
-      .map((profile) => ({
-        ...profile,
-        mutualCount: candidateMutualMap.get(profile.id)?.size || 0,
-      }))
-      .filter((profile) => profile.mutualCount > 0)
-      .sort((a, b) => b.mutualCount - a.mutualCount)
-      .slice(0, 10);
-
-    setSuggestions(rankedSuggestions);
+      .order("created_at", { ascending: false })
+      .limit(30);
+    setSuggestions((recent ?? []).filter((p) => !connected.has(p.id)).slice(0, 10).map((p) => ({ ...p, mutualCount: 0 })));
   };
 
   const setupRealtimeSubscription = useEffectEvent(() => {
@@ -424,28 +353,33 @@ const Friends = () => {
     setUnfriendTarget(null);
   };
 
-  const handleSearch = async (query: string) => {
-    setSearchQuery(query);
-    
-    if (query.trim().length < 2) {
+  // Search waits for typing to pause, ignores replies to older searches, and leaves you out.
+  useEffect(() => {
+    if (debouncedSearch.length < 2) {
       setSearchResults([]);
+      setIsSearching(false);
       return;
     }
-
+    const seq = ++searchSeq.current;
     setIsSearching(true);
-
-    const { data, error } = await supabase
+    supabase
       .from("profiles")
       .select("id, full_name, avatar_url")
-      .ilike("full_name", `%${query}%`)
-      .limit(10);
+      .ilike("full_name", `%${debouncedSearch}%`)
+      .neq("id", currentUserId ?? "")
+      .limit(10)
+      .then(({ data, error }) => {
+        if (seq !== searchSeq.current) return;
+        setIsSearching(false);
+        if (!error) setSearchResults(data ?? []);
+      });
+  }, [debouncedSearch, currentUserId]);
 
-    setIsSearching(false);
-
-    if (!error && data) {
-      setSearchResults(data);
-    }
-  };
+  const relationTo = (id: string) =>
+    friends.some((f) => f.friend.id === id) ? "Friends"
+    : sentRequests.some((r) => r.friend_id === id) ? "Requested"
+    : pendingRequests.some((r) => r.user_id === id) ? "Wants to connect"
+    : null;
 
   if (isLoading) {
     return (
@@ -462,7 +396,7 @@ const Friends = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="max-w-[1000px] mx-auto px-4 py-4 sm:py-6">
+      <div className="max-w-[1000px] mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8">
         <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
           <div className="flex items-center gap-3">
             <Users className="h-6 w-6 text-primary" />
@@ -476,13 +410,14 @@ const Friends = () => {
           <Input
             placeholder="Search people..."
             value={searchQuery}
-            onChange={(e) => handleSearch(e.target.value)}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            aria-label="Search people"
             className="pl-10"
           />
         </div>
 
         {/* Search Results */}
-        {searchQuery.length >= 2 && (
+        {searchQuery.trim().length >= 2 && (
           <Card className="mb-4">
             {isSearching ? (
               <div className="flex items-center justify-center py-8">
@@ -511,16 +446,20 @@ const Friends = () => {
                         {profile.full_name || "Anonymous"}
                       </p>
                     </div>
-                    <Button
-                      size="sm"
-                      variant="secondary"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigate(`/profile/${profile.id}`);
-                      }}
-                    >
-                      View Profile
-                    </Button>
+                    {relationTo(profile.id) ? (
+                      <span className="text-xs font-medium text-muted-foreground shrink-0">{relationTo(profile.id)}</span>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="gap-1 shrink-0"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleSendRequest(profile.id);
+                        }}
+                      >
+                        <UserPlus className="h-4 w-4" /> Add
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -528,7 +467,7 @@ const Friends = () => {
           </Card>
         )}
 
-        <Tabs defaultValue="requests" className="w-full">
+        <Tabs value={activeTab ?? "friends"} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full grid grid-cols-4 mb-4 [&>button]:text-xs sm:[&>button]:text-sm [&>button]:px-1.5 sm:[&>button]:px-3">
             <TabsTrigger value="requests" className="relative">
               Requests
@@ -701,6 +640,7 @@ const Friends = () => {
                         variant="ghost"
                         className="text-muted-foreground hover:text-destructive"
                         onClick={() => setUnfriendTarget(friendship)}
+                        aria-label={`Unfriend ${friendship.friend.full_name || "this person"}`}
                       >
                         <UserMinus className="h-4 w-4" />
                       </Button>
@@ -717,10 +657,10 @@ const Friends = () => {
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
                   <p className="text-lg font-medium text-muted-foreground">
-                    No people to suggest yet
+                    No one to suggest right now
                   </p>
                   <p className="text-sm text-muted-foreground/70 mt-1">
-                    Add more friends to unlock mutual-based suggestions
+                    Try searching for people you know above
                   </p>
                 </div>
               ) : (
@@ -742,7 +682,9 @@ const Friends = () => {
                           </p>
                         </Link>
                         <p className="text-xs text-muted-foreground">
-                          {profile.mutualCount} mutual {profile.mutualCount === 1 ? "friend" : "friends"}
+                          {profile.mutualCount > 0
+                            ? `${profile.mutualCount} mutual ${profile.mutualCount === 1 ? "friend" : "friends"}`
+                            : "New on CloudBook"}
                         </p>
                       </div>
                       <Button

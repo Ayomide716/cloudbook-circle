@@ -14,10 +14,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio, LogOut, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import ConfirmDialog from "@/components/ConfirmDialog";
 
 interface Group {
   id: string;
@@ -65,6 +66,10 @@ const GroupDetail = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  // Non-members can't see the member list, so the count comes from the server.
+  const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [isJoining, setIsJoining] = useState(false);
+  const [confirm, setConfirm] = useState<{ kind: "leave" } | { kind: "post"; id: string } | null>(null);
   const { startGroupCall: startCall, joinGroupCall, activeGroupId } = useCalls();
   const inThisCall = !!groupId && activeGroupId === groupId;
   // Who's in this group's call right now (only watched while you're a member and not in it).
@@ -94,7 +99,7 @@ const GroupDetail = () => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${groupId}` },
-        () => { loadMembers(); }
+        () => { loadMembers(); checkMembership(); }
       )
       .subscribe();
 
@@ -114,6 +119,7 @@ const GroupDetail = () => {
       loadPosts(),
       loadMembers(),
       checkMembership(),
+      loadMemberCount(),
     ]);
     setIsLoading(false);
   });
@@ -145,6 +151,22 @@ const GroupDetail = () => {
     setGroup(data);
   };
 
+  // One query for every author or member instead of one each.
+  const fetchProfiles = async (ids: string[]) => {
+    const unique = [...new Set(ids)];
+    const map = new Map<string, Member["profiles"]>();
+    if (!unique.length) return map;
+    const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", unique);
+    for (const p of data || []) map.set(p.id, p);
+    return map;
+  };
+
+  const loadMemberCount = async () => {
+    if (!groupId) return;
+    const { data, error } = await supabase.rpc("group_member_counts", { _group_ids: [groupId] });
+    if (!error) setMemberCount(Number(data?.[0]?.member_count ?? 0));
+  };
+
   const loadPosts = async () => {
     if (!groupId) return;
     const { data: postsData, error } = await supabase
@@ -163,21 +185,11 @@ const GroupDetail = () => {
       return;
     }
 
-    // Fetch profiles for each post
-    const postsWithProfiles = await Promise.all(
-      postsData.map(async (post) => {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("id, full_name, avatar_url")
-          .eq("id", post.user_id)
-          .single();
-
-        return {
-          ...post,
-          profiles: profile || { id: post.user_id, full_name: null, avatar_url: null },
-        };
-      })
-    );
+    const profiles = await fetchProfiles(postsData.map((p) => p.user_id));
+    const postsWithProfiles = postsData.map((post) => ({
+      ...post,
+      profiles: profiles.get(post.user_id) || { id: post.user_id, full_name: null, avatar_url: null },
+    }));
 
     setPosts(postsWithProfiles);
   };
@@ -199,24 +211,21 @@ const GroupDetail = () => {
       return;
     }
 
-    // Fetch profiles for each member
-    const membersWithProfiles = await Promise.all(
-      membersData.map(async (member) => {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("id, full_name, avatar_url")
-          .eq("id", member.user_id)
-          .single();
-
-        return {
-          id: member.id,
-          role: member.role,
-          profiles: profile || { id: member.user_id, full_name: null, avatar_url: null },
-        };
-      })
-    );
+    const profiles = await fetchProfiles(membersData.map((m) => m.user_id));
+    const membersWithProfiles = membersData
+      .map((member) => ({
+        id: member.id,
+        role: member.role,
+        profiles: profiles.get(member.user_id) || { id: member.user_id, full_name: null, avatar_url: null },
+      }))
+      // Admins first, then by name.
+      .sort((a, b) =>
+        (a.role === "admin" ? 0 : 1) - (b.role === "admin" ? 0 : 1) ||
+        (a.profiles.full_name || "").localeCompare(b.profiles.full_name || "")
+      );
 
     setMembers(membersWithProfiles);
+    loadMemberCount();
   };
 
   const checkMembership = async () => {
@@ -234,7 +243,8 @@ const GroupDetail = () => {
   };
 
   const handleJoinGroup = async () => {
-    if (!currentUserId || !groupId) return;
+    if (!currentUserId || !groupId || isJoining) return;
+    setIsJoining(true);
 
     const { error } = await supabase
       .from("group_members")
@@ -244,6 +254,7 @@ const GroupDetail = () => {
         role: "member",
       });
 
+    setIsJoining(false);
     if (error) {
       toast({
         title: "Error joining group",
@@ -256,8 +267,39 @@ const GroupDetail = () => {
     toast({
       title: "Joined group successfully",
     });
-    setIsMember(true);
+    await checkMembership();
     loadMembers();
+    loadPosts();
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!currentUserId || !groupId) return;
+    const { error } = await supabase
+      .from("group_members")
+      .delete()
+      .eq("group_id", groupId)
+      .eq("user_id", currentUserId);
+
+    if (error) {
+      toast({ title: "Couldn't leave the group", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: `You left ${group?.name ?? "the group"}` });
+    setIsMember(false);
+    setUserRole(null);
+    // Members-only content is no longer visible.
+    setMembers([]);
+    setPosts([]);
+    loadMemberCount();
+  };
+
+  const handleDeletePost = async (postId: string) => {
+    const { error } = await supabase.from("group_posts").delete().eq("id", postId);
+    if (error) {
+      toast({ title: "Couldn't delete post", description: error.message, variant: "destructive" });
+      return;
+    }
+    setPosts((prev) => prev.filter((p) => p.id !== postId));
   };
 
   const handleCreatePost = async (e: React.FormEvent) => {
@@ -293,6 +335,8 @@ const GroupDetail = () => {
     toast({
       title: "Post created successfully",
     });
+    // Don't wait on realtime to show your own post.
+    loadPosts();
   };
 
   if (isLoading) {
@@ -310,8 +354,14 @@ const GroupDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
-        <div className="container mx-auto px-4 py-6 text-center">
-          <p className="text-muted-foreground">Group not found</p>
+        <div className="container mx-auto px-4 py-12 text-center">
+          <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
+          <p className="text-lg font-semibold mb-1">Group not found</p>
+          <p className="text-muted-foreground mb-4">It may have been deleted, or the link is wrong.</p>
+          <Button variant="outline" onClick={() => navigate("/groups")}>
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Groups
+          </Button>
         </div>
       </div>
     );
@@ -321,7 +371,7 @@ const GroupDetail = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="container mx-auto px-4 py-6 max-w-4xl">
+      <div className="container mx-auto px-4 py-6 pb-28 md:pb-10 max-w-4xl">
         <Button
           variant="ghost"
           size="sm"
@@ -376,11 +426,16 @@ const GroupDetail = () => {
             <div className="min-w-0">
               <h1 className="text-2xl sm:text-3xl font-bold mb-2 [overflow-wrap:anywhere]">{group.name}</h1>
               {group.description && (
-                <p className="text-muted-foreground mb-4">{group.description}</p>
+                <p className="text-muted-foreground mb-4 whitespace-pre-wrap break-words">{group.description}</p>
               )}
               <div className="flex items-center gap-2 text-muted-foreground">
                 <Users className="h-5 w-5" />
-                <span>{members.length} members</span>
+                <span>
+                  {(() => {
+                    const n = isMember ? members.length : memberCount;
+                    return n === null ? "Public group" : `${n} ${n === 1 ? "member" : "members"}`;
+                  })()}
+                </span>
               </div>
             </div>
             <div className="flex gap-2 self-end sm:self-auto shrink-0">
@@ -395,13 +450,18 @@ const GroupDetail = () => {
                 </>
               )}
               {(userRole === "admin" || group.created_by === currentUserId) && (
-                <Button variant="outline" size="icon" onClick={() => setShowEditModal(true)}>
+                <Button variant="outline" size="icon" onClick={() => setShowEditModal(true)} aria-label="Group settings" title="Group settings">
                   <Settings className="h-4 w-4" />
                 </Button>
               )}
+              {isMember && (
+                <Button variant="outline" size="icon" onClick={() => setConfirm({ kind: "leave" })} aria-label="Leave group" title="Leave group">
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              )}
               {!isMember && (
-                <Button onClick={handleJoinGroup}>
-                  <UserPlus className="h-4 w-4 mr-2" />
+                <Button onClick={handleJoinGroup} disabled={isJoining}>
+                  {isJoining ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserPlus className="h-4 w-4 mr-2" />}
                   Join Group
                 </Button>
               )}
@@ -442,7 +502,7 @@ const GroupDetail = () => {
                 <p className="text-muted-foreground">
                   Join the group to participate in the chat
                 </p>
-                <Button onClick={handleJoinGroup} className="mt-4">
+                <Button onClick={handleJoinGroup} className="mt-4" disabled={isJoining}>
                   <UserPlus className="h-4 w-4 mr-2" />
                   Join Group
                 </Button>
@@ -500,7 +560,11 @@ const GroupDetail = () => {
               </Card>
             )}
 
-            {posts.length === 0 ? (
+            {!isMember ? (
+              <Card className="p-12 text-center">
+                <p className="text-muted-foreground">Join the group to see and share posts</p>
+              </Card>
+            ) : posts.length === 0 ? (
               <Card className="p-12 text-center">
                 <p className="text-muted-foreground">No posts yet</p>
                 {isMember && (
@@ -513,30 +577,46 @@ const GroupDetail = () => {
               posts.map((post) => (
                 <Card key={post.id} className="p-4">
                   <div className="flex items-start gap-3 mb-3">
-                    <Avatar>
-                      <AvatarImage src={post.profiles.avatar_url || undefined} />
+                    <Avatar className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
+                      <AvatarImage src={post.profiles.avatar_url || undefined} alt="" />
                       <AvatarFallback>
                         {post.profiles.full_name?.[0]?.toUpperCase() || "U"}
                       </AvatarFallback>
                     </Avatar>
-                    <div>
-                      <p className="font-semibold">
+                    <div className="flex-1 min-w-0">
+                      <button
+                        type="button"
+                        className="font-semibold hover:underline text-left truncate max-w-full"
+                        onClick={() => navigate(`/profile/${post.user_id}`)}
+                      >
                         {post.profiles.full_name || "Anonymous"}
-                      </p>
+                      </button>
                       <p className="text-sm text-muted-foreground">
                         {formatDistanceToNow(new Date(post.created_at), {
                           addSuffix: true,
                         })}
                       </p>
                     </div>
+                    {post.user_id === currentUserId && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 shrink-0 text-muted-foreground"
+                        onClick={() => setConfirm({ kind: "post", id: post.id })}
+                        aria-label="Delete post"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
                   </div>
 
-                  <p className="mb-3 whitespace-pre-wrap">{post.content}</p>
+                  {post.content && <p className="mb-3 whitespace-pre-wrap break-words">{post.content}</p>}
 
                   {post.image_url && (
                     <img
                       src={post.image_url}
-                      alt="Post content"
+                      alt=""
+                      loading="lazy"
                       className="w-full rounded-lg max-h-96 object-cover"
                     />
                   )}
@@ -546,24 +626,35 @@ const GroupDetail = () => {
           </TabsContent>
 
           <TabsContent value="members" className="space-y-4">
+            {!isMember && (
+              <Card className="p-12 text-center">
+                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                <p className="text-muted-foreground">Join the group to see who's in it</p>
+              </Card>
+            )}
             {members.map((member) => (
-              <Card key={member.id} className="p-4">
-                <div className="flex items-center gap-3">
+              <Card key={member.id} className="p-0 overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/profile/${member.profiles.id}`)}
+                  className="w-full p-4 flex items-center gap-3 text-left hover:bg-secondary/50 transition-colors"
+                >
                   <Avatar>
-                    <AvatarImage src={member.profiles.avatar_url || undefined} />
+                    <AvatarImage src={member.profiles.avatar_url || undefined} alt="" />
                     <AvatarFallback>
                       {member.profiles.full_name?.[0]?.toUpperCase() || "U"}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="flex-1">
-                    <p className="font-semibold">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold truncate">
                       {member.profiles.full_name || "Anonymous"}
+                      {member.profiles.id === currentUserId && <span className="text-muted-foreground font-normal"> (you)</span>}
                     </p>
                     <p className="text-sm text-muted-foreground capitalize">
                       {member.role}
                     </p>
                   </div>
-                </div>
+                </button>
               </Card>
             ))}
           </TabsContent>
@@ -572,6 +663,24 @@ const GroupDetail = () => {
 
       <BottomNav currentUserId={currentUserId || undefined} />
 
+      <ConfirmDialog
+        open={!!confirm}
+        onOpenChange={(open) => !open && setConfirm(null)}
+        title={confirm?.kind === "leave" ? `Leave ${group.name}?` : "Delete this post?"}
+        description={
+          confirm?.kind === "leave"
+            ? group.created_by === currentUserId
+              ? "You created this group. You can join again later, and you'll still be able to edit it."
+              : "You'll lose access to the chat, voice rooms and posts until you join again."
+            : "This can't be undone."
+        }
+        confirmLabel={confirm?.kind === "leave" ? "Leave" : "Delete"}
+        onConfirm={() => {
+          if (confirm?.kind === "leave") handleLeaveGroup();
+          else if (confirm?.kind === "post") handleDeletePost(confirm.id);
+          setConfirm(null);
+        }}
+      />
     </div>
   );
 };

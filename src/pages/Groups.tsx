@@ -37,6 +37,7 @@ const Groups = () => {
   const [groupImage, setGroupImage] = useState<File | null>(null);
   const [groupImagePreview, setGroupImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [joiningId, setJoiningId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
@@ -75,29 +76,25 @@ const Groups = () => {
       return;
     }
 
-    // Load member counts and membership status for each group
-    const groupsWithCounts = await Promise.all(
-      (groupsData || []).map(async (group) => {
-        const [countResult, membershipResult] = await Promise.all([
-          supabase
-            .from("group_members")
-            .select("*", { count: "exact", head: true })
-            .eq("group_id", group.id),
-          supabase
-            .from("group_members")
-            .select("id")
-            .eq("group_id", group.id)
-            .eq("user_id", currentUserId)
-            .maybeSingle()
-        ]);
+    const list = groupsData || [];
+    const ids = list.map((g) => g.id);
+    // Two queries for the whole list instead of two per group. Only members can
+    // see a group's member rows, so counts come from a server function when it's installed.
+    const [countsResult, mineResult] = await Promise.all([
+      ids.length ? supabase.rpc("group_member_counts", { _group_ids: ids }) : Promise.resolve({ data: [], error: null }),
+      supabase.from("group_members").select("group_id").eq("user_id", currentUserId),
+    ]);
+    const myGroups = new Set((mineResult.data || []).map((m) => m.group_id));
+    const counts = new Map<string, number>();
+    if (!countsResult.error) {
+      for (const row of countsResult.data || []) counts.set(row.group_id, Number(row.member_count));
+    }
 
-        return { 
-          ...group, 
-          member_count: countResult.count || 0,
-          is_member: !!membershipResult.data
-        };
-      })
-    );
+    const groupsWithCounts = list.map((group) => ({
+      ...group,
+      member_count: countsResult.error ? undefined : counts.get(group.id) ?? 0,
+      is_member: myGroups.has(group.id),
+    }));
 
     setGroups(groupsWithCounts);
     setIsLoading(false);
@@ -122,6 +119,15 @@ const Groups = () => {
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file && !file.type.startsWith("image/")) {
+      toast({ title: "Please choose an image", variant: "destructive" });
+      return;
+    }
+    if (file && file.size > 5 * 1024 * 1024) {
+      toast({ title: "Image too large", description: "Logos can be up to 5 MB.", variant: "destructive" });
+      return;
+    }
     if (file) {
       setGroupImage(file);
       const reader = new FileReader();
@@ -161,13 +167,18 @@ const Groups = () => {
     e.preventDefault();
 
     if (!currentUserId) return;
+    const name = formData.name.trim();
+    if (!name) {
+      toast({ title: "Give your group a name", variant: "destructive" });
+      return;
+    }
     setIsUploading(true);
 
     const { data, error } = await supabase
       .from("groups")
       .insert({
-        name: formData.name,
-        description: formData.description,
+        name,
+        description: formData.description.trim() || null,
         created_by: currentUserId,
       })
       .select()
@@ -197,7 +208,7 @@ const Groups = () => {
     }
 
     // Add creator as admin member
-    await supabase
+    const { error: memberError } = await supabase
       .from("group_members")
       .insert({
         group_id: groupId,
@@ -205,21 +216,28 @@ const Groups = () => {
         role: "admin",
       });
 
-    toast({
-      title: "Group created successfully",
-    });
+    if (memberError) {
+      toast({
+        title: "Group created, but you couldn't be added to it",
+        description: memberError.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({ title: "Group created successfully" });
+    }
     setIsCreating(false);
     setFormData({ name: "", description: "" });
     setGroupImage(null);
     setGroupImagePreview(null);
     setIsUploading(false);
-    loadGroups();
+    navigate(`/groups/${groupId}`);
   };
 
   const handleJoinGroup = async (e: React.MouseEvent, groupId: string) => {
     e.stopPropagation();
-    
-    if (!currentUserId) return;
+
+    if (!currentUserId || joiningId) return;
+    setJoiningId(groupId);
 
     const { error } = await supabase
       .from("group_members")
@@ -229,6 +247,7 @@ const Groups = () => {
         role: "member",
       });
 
+    setJoiningId(null);
     if (error) {
       toast({
         title: "Error joining group",
@@ -238,25 +257,8 @@ const Groups = () => {
       return;
     }
 
-    // Verify membership before navigating
-    const { data: memberCheck } = await supabase
-      .from("group_members")
-      .select("id")
-      .eq("group_id", groupId)
-      .eq("user_id", currentUserId)
-      .maybeSingle();
-
-    if (memberCheck) {
-      toast({
-        title: "Joined group successfully!",
-      });
-      navigate(`/groups/${groupId}`);
-    } else {
-      toast({
-        title: "Joined group successfully!",
-      });
-      loadGroups();
-    }
+    toast({ title: "Joined group successfully!" });
+    navigate(`/groups/${groupId}`);
   };
 
   if (isLoading) {
@@ -272,7 +274,7 @@ const Groups = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
-      <div className="max-w-[1200px] mx-auto px-4 lg:px-6 py-4 sm:py-6">
+      <div className="max-w-[1200px] mx-auto px-4 lg:px-6 py-4 sm:py-6 pb-28 md:pb-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
@@ -281,7 +283,7 @@ const Groups = () => {
             </div>
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold">Groups</h1>
-              <p className="text-sm text-muted-foreground">{groups.length} groups available</p>
+              <p className="text-sm text-muted-foreground">{groups.length} {groups.length === 1 ? "group" : "groups"} available</p>
             </div>
           </div>
           <Button onClick={() => setIsCreating(true)} className="sm:w-auto">
@@ -296,6 +298,7 @@ const Groups = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
               placeholder="Search groups..."
+              aria-label="Search groups"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-10 h-12 text-base bg-secondary border-0 focus-visible:ring-1"
@@ -340,8 +343,17 @@ const Groups = () => {
             {filteredGroups.map((group) => (
               <Card
                 key={group.id}
-                className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group"
+                role="link"
+                tabIndex={0}
+                aria-label={group.name}
+                className="overflow-hidden hover:shadow-lg transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => navigate(`/groups/${group.id}`)}
+                onKeyDown={(e) => {
+                  if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
+                    e.preventDefault();
+                    navigate(`/groups/${group.id}`);
+                  }
+                }}
               >
                 {/* Group Card with Avatar */}
                 <div className="p-4">
@@ -351,7 +363,8 @@ const Groups = () => {
                       {group.image_url ? (
                         <img
                           src={group.image_url}
-                          alt={group.name}
+                          alt=""
+                          loading="lazy"
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                         />
                       ) : (
@@ -365,8 +378,8 @@ const Groups = () => {
                         {group.name}
                       </h3>
                       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {/* Only members can see who's in a group, so others can't count them. */}
-                        {(group.is_member || !!group.member_count) && (
+                        {/* Without the count function, only members can count a group, so hide it. */}
+                        {group.member_count !== undefined && (
                           <>
                             <Users className="h-3.5 w-3.5" />
                             <span>{group.member_count} {group.member_count === 1 ? "member" : "members"}</span>
@@ -390,7 +403,11 @@ const Groups = () => {
                       <Button
                         size="sm"
                         onClick={(e) => handleJoinGroup(e, group.id)}
+                        onKeyDown={(e) => e.stopPropagation()}
+                        disabled={joiningId === group.id}
+                        aria-label={`Join ${group.name}`}
                       >
+                        {joiningId === group.id && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
                         Join
                       </Button>
                     )}
@@ -432,9 +449,13 @@ const Groups = () => {
                 accept="image/*"
                 onChange={handleImageSelect}
                 className="hidden"
+                aria-hidden="true"
+                tabIndex={-1}
               />
-              <div 
+              <button
+                type="button"
                 onClick={() => fileInputRef.current?.click()}
+                aria-label={groupImagePreview ? "Change group logo" : "Add group logo"}
                 className="relative h-32 w-32 mx-auto rounded-xl border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors cursor-pointer overflow-hidden bg-secondary/50 flex items-center justify-center"
               >
                 {groupImagePreview ? (
@@ -445,7 +466,7 @@ const Groups = () => {
                     <span className="text-xs text-muted-foreground mt-1 block">Add logo</span>
                   </div>
                 )}
-              </div>
+              </button>
             </div>
 
             <div className="space-y-2">
@@ -455,6 +476,7 @@ const Groups = () => {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 placeholder="Enter group name"
+                maxLength={100}
                 required
               />
             </div>

@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";
-import { usePostInteractions } from "@/hooks/use-post-interactions";
+import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
+import ConfirmDialog from "@/components/ConfirmDialog";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -42,7 +43,6 @@ import { formatDistanceToNow } from "date-fns";
 import ProfileAchievements from "@/components/ProfileAchievements";
 import AnonymousQA from "@/components/AnonymousQA";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
-import type { PostComment } from "@/components/PostCard";
 import type { LucideIcon } from "lucide-react";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
@@ -96,7 +96,8 @@ const spring = { type: "spring" as const, stiffness: 260, damping: 28 };
 const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  useSEO({ title: "Profile", description: "View user profile on CloudBook." });
+  const [seoName, setSeoName] = useState<string | null>(null);
+  useSEO({ title: seoName ?? "Profile", description: seoName ? `${seoName} on CloudBook.` : "View user profile on CloudBook." });
   const { toast } = useToast();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -104,7 +105,7 @@ const Profile = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
-  const [friendCount, setFriendCount] = useState(0);
+  const [friendCount, setFriendCount] = useState<number | null>(0);
   const [activeTab, setActiveTab] = useState<"posts" | "about" | "photos" | "albums" | "qa">("posts");
 
   // Albums state
@@ -116,6 +117,8 @@ const Profile = () => {
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
   const [createAlbumOpen, setCreateAlbumOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
+  const [confirm, setConfirm] = useState<{ kind: "album"; id: string } | { kind: "photo"; id: string } | null>(null);
+  const [viewPhoto, setViewPhoto] = useState<string | null>(null);
 
   // Mutual friends state
   const [mutualFriends, setMutualFriends] = useState<{id: string;full_name: string | null;avatar_url: string | null;}[]>([]);
@@ -136,8 +139,10 @@ const Profile = () => {
     checkAuth();
   }, [navigate, checkAuth]);
 
+  // Runs once both the profile id and who you are are known: reactions, comments and
+  // mutual friends depend on the signed-in user (they silently loaded nothing before).
   const loadProfile = useEffectEvent(async () => {
-    if (!userId) return;
+    if (!userId || !currentUserId) return;
     setIsLoading(true);
     const { data: profileData, error: profileError } = await supabase.
     from("profiles").select("*").eq("id", userId).maybeSingle();
@@ -152,14 +157,9 @@ const Profile = () => {
       return;
     }
     setProfile(profileData);
+    setSeoName(profileData.full_name);
 
-    // Load friend count
-    const { count } = await supabase.
-    from("friendships").
-    select("*", { count: "exact", head: true }).
-    eq("status", "accepted").
-    or(`user_id.eq.${userId},friend_id.eq.${userId}`);
-    setFriendCount(count || 0);
+    loadFriendStats();
 
     const { data: postsData, error: postsError } = await supabase.
     from("posts").
@@ -175,51 +175,37 @@ const Profile = () => {
     }
     // Load albums
     loadAlbums();
-    // Load mutual friends
-    loadMutualFriends();
     setIsLoading(false);
   });
 
   useEffect(() => {
-    if (userId) loadProfile();
-  }, [userId, loadProfile]);
+    if (userId && currentUserId) loadProfile();
+  }, [userId, currentUserId, loadProfile]);
 
-  const loadMutualFriends = async () => {
-    if (!currentUserId || !userId || currentUserId === userId) {
+  /**
+   * Friend count and mutual friends. Other people's friendships are private, so this uses a
+   * database function that returns only the counts; until it's installed, someone else's
+   * count is hidden rather than shown as 0.
+   */
+  const loadFriendStats = async () => {
+    if (!userId || !currentUserId) return;
+    const { data, error } = await supabase.rpc("profile_friend_stats", { _user_id: userId });
+    const stats = data?.[0];
+    if (error || !stats) {
       setMutualFriends([]);
+      if (currentUserId !== userId) { setFriendCount(null); return; }
+      const { count } = await supabase
+        .from("friendships")
+        .select("id", { count: "exact", head: true })
+        .eq("status", "accepted")
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+      setFriendCount(count ?? 0);
       return;
     }
-    // Get my friends
-    const { data: myFriends } = await supabase.
-    from("friendships").
-    select("user_id, friend_id").
-    eq("status", "accepted").
-    or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
-
-    const myFriendIds = new Set(
-      (myFriends || []).map((f) => f.user_id === currentUserId ? f.friend_id : f.user_id)
-    );
-
-    // Get their friends
-    const { data: theirFriends } = await supabase.
-    from("friendships").
-    select("user_id, friend_id").
-    eq("status", "accepted").
-    or(`user_id.eq.${userId},friend_id.eq.${userId}`);
-
-    const theirFriendIds = new Set(
-      (theirFriends || []).map((f) => f.user_id === userId ? f.friend_id : f.user_id)
-    );
-
-    // Intersection
-    const mutualIds = [...myFriendIds].filter((id) => theirFriendIds.has(id));
-    if (mutualIds.length === 0) {setMutualFriends([]);return;}
-
-    const { data: profiles } = await supabase.
-    from("profiles").
-    select("id, full_name, avatar_url").
-    in("id", mutualIds.slice(0, 20));
-
+    setFriendCount(Number(stats.friend_count));
+    const mutualIds = stats.mutual_ids ?? [];
+    if (!mutualIds.length) { setMutualFriends([]); return; }
+    const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", mutualIds.slice(0, 20));
     setMutualFriends(profiles || []);
   };
 
@@ -232,16 +218,11 @@ const Profile = () => {
     order("created_at", { ascending: false });
 
     if (albumsData) {
-      const albumsWithPhotos: Album[] = [];
-      for (const album of albumsData) {
-        const { data: photos } = await supabase.
-        from("album_photos").
-        select("*").
-        eq("album_id", album.id).
-        order("created_at", { ascending: false });
-        albumsWithPhotos.push({ ...album, photos: photos || [] });
-      }
-      setAlbums(albumsWithPhotos);
+      // All albums' photos in one query rather than one per album.
+      const { data: photos } = albumsData.length
+        ? await supabase.from("album_photos").select("*").in("album_id", albumsData.map((a) => a.id)).order("created_at", { ascending: false })
+        : { data: [] as AlbumPhoto[] };
+      setAlbums(albumsData.map((album) => ({ ...album, photos: (photos ?? []).filter((ph) => ph.album_id === album.id) })));
     }
   };
 
@@ -311,24 +292,9 @@ const Profile = () => {
 
   const loadPostsData = async (postsData: Post[]) => {
     if (!currentUserId || postsData.length === 0) return;
-    const postIds = postsData.map((p) => p.id);
-
-    const [{ data: rData }, { data: cData }] = await Promise.all([
-    supabase.from("reactions").select("post_id, user_id, reaction_type").in("post_id", postIds),
-    supabase.from("comments").select(`*, profiles:user_id (id, full_name, avatar_url)`).in("post_id", postIds).order("created_at", { ascending: true })]
-    );
-
-    const reactionsMap: Record<string, {reactions: Record<string, number>;userReaction: string | null;}> = {};
-    const commentsMap: Record<string, PostComment[]> = {};
-    postIds.forEach((id) => {
-      const pr = rData?.filter((r) => r.post_id === id) || [];
-      const rc: Record<string, number> = {};
-      pr.forEach((r) => {rc[r.reaction_type] = (rc[r.reaction_type] || 0) + 1;});
-      reactionsMap[id] = { reactions: rc, userReaction: pr.find((r) => r.user_id === currentUserId)?.reaction_type || null };
-      commentsMap[id] = cData?.filter((c) => c.post_id === id) || [];
-    });
-    setReactionsData(reactionsMap);
-    setCommentsData(commentsMap);
+    const { reactions, comments } = await fetchPostInteractions(postsData.map((p) => p.id), currentUserId);
+    setReactionsData(reactions);
+    setCommentsData(comments);
   };
 
   const handleAvatarUpload = async (url: string) => {
@@ -399,7 +365,9 @@ const Profile = () => {
       {/* Sticky mini-header on scroll */}
       <motion.div
         style={{ opacity: headerOpacity }}
-        className="fixed top-[var(--nav-height)] inset-x-0 z-40 glass border-b border-border px-6 py-2 flex items-center gap-3">
+        aria-hidden
+        // Purely visual and invisible until you scroll: it must never block taps underneath.
+        className="pointer-events-none fixed top-[var(--nav-height)] inset-x-0 z-40 glass border-b border-border px-6 py-2 flex items-center gap-3">
         
         <Avatar className="h-8 w-8">
           <AvatarImage src={profile.avatar_url || undefined} />
@@ -437,7 +405,7 @@ const Profile = () => {
         }
       </div>
 
-      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-12 sm:-mt-20 relative z-10">
+      <div className="max-w-5xl mx-auto px-3 sm:px-6 -mt-12 sm:-mt-20 relative z-10 pb-28 md:pb-10">
         {/* ─── Profile header card ─── */}
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -517,7 +485,7 @@ const Profile = () => {
             <div className="grid grid-cols-3">
               {[
               { value: posts.length, label: "Posts" },
-              { value: friendCount, label: "Friends" },
+              { value: friendCount ?? "–", label: "Friends" },
               { value: photoPosts.length, label: "Photos" }].
               map((s) =>
               <motion.button
@@ -525,8 +493,10 @@ const Profile = () => {
                 whileHover={{ scale: 1.03 }}
                 whileTap={{ scale: 0.97 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                // "Friends" opens your own friends list; on someone else's profile there's nothing to open.
+                disabled={s.label === "Friends" && !isOwnProfile}
                 onClick={() => s.label === "Photos" ? setActiveTab("photos") : s.label === "Friends" ? navigate("/friends") : setActiveTab("posts")}
-                className="flex flex-col items-center justify-center gap-0.5 py-4 cursor-pointer hover:bg-accent/60 transition-colors first:rounded-bl-2xl last:rounded-br-2xl">
+                className="flex flex-col items-center justify-center gap-0.5 py-4 cursor-pointer hover:bg-accent/60 transition-colors first:rounded-bl-2xl last:rounded-br-2xl disabled:cursor-default disabled:hover:bg-transparent">
                   <span className="font-display font-bold text-xl">{s.value}</span>
                   <span className="text-xs text-muted-foreground">{s.label}</span>
                 </motion.button>
@@ -602,9 +572,9 @@ const Profile = () => {
                   </div>
                   <div className="grid grid-cols-3 gap-1.5 rounded-xl overflow-hidden">
                     {photoPosts.slice(0, 9).map((p) =>
-                <motion.div key={p.id} whileHover={{ scale: 1.05 }} className="aspect-square overflow-hidden rounded-lg">
-                        <img src={p.image_url!} alt="" className="w-full h-full object-cover" />
-                      </motion.div>
+                <motion.button key={p.id} whileHover={{ scale: 1.05 }} onClick={() => navigate(`/post/${p.id}`)} className="aspect-square overflow-hidden rounded-lg" aria-label="Open photo post">
+                        <img src={p.image_url!} alt="" loading="lazy" className="w-full h-full object-cover" />
+                      </motion.button>
                 )}
                   </div>
                 </motion.div>
@@ -675,7 +645,11 @@ const Profile = () => {
                     initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ ...spring, delay: 0.05 * i }}
-                    className="flex gap-3 relative">
+                    className="flex gap-3 relative cursor-pointer rounded-lg hover:bg-accent/40 -mx-1 px-1"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => navigate(`/post/${item.id}`)}
+                    onKeyDown={(e) => { if (e.key === "Enter") navigate(`/post/${item.id}`); }}>
                     
                           <div className={cn(
                       "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 relative z-10",
@@ -809,9 +783,12 @@ const Profile = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ ...spring, delay: Math.min(i * 0.04, 0.3) }}
               whileHover={{ scale: 1.03, y: -2 }}
+              onClick={() => navigate(`/post/${p.id}`)}
+              role="link"
+              aria-label="Open photo post"
               className="aspect-square rounded-2xl overflow-hidden cursor-pointer bento-card">
               
-                    <img src={p.image_url!} alt="" className="w-full h-full object-cover" />
+                    <img src={p.image_url!} alt="" loading="lazy" className="w-full h-full object-cover" />
                   </motion.div>
             )}
               </div>
@@ -844,6 +821,7 @@ const Profile = () => {
               <div className="flex gap-2">
                       <input
                   type="file"
+                  aria-label="Add photo to album"
                   ref={photoInputRef}
                   accept="image/*"
                   className="hidden"
@@ -867,7 +845,8 @@ const Profile = () => {
                   size="sm"
                   variant="destructive"
                   className="rounded-xl"
-                  onClick={() => deleteAlbum(selectedAlbum.id)}>
+                  onClick={() => setConfirm({ kind: "album", id: selectedAlbum.id })}
+                  aria-label="Delete album">
                   
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -897,11 +876,15 @@ const Profile = () => {
                   transition={{ ...spring, delay: Math.min(i * 0.04, 0.3) }}
                   className="aspect-square rounded-2xl overflow-hidden bento-card relative group">
                   
-                          <img src={photo.image_url} alt={photo.caption || ""} className="w-full h-full object-cover" />
+                          <button className="w-full h-full" onClick={() => setViewPhoto(photo.image_url)} aria-label="View photo">
+                            <img src={photo.image_url} alt={photo.caption || ""} loading="lazy" className="w-full h-full object-cover" />
+                          </button>
                           {isOwnProfile &&
                   <button
-                    onClick={() => deletePhoto(photo.id)}
-                    className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    onClick={() => setConfirm({ kind: "photo", id: photo.id })}
+                    aria-label="Remove photo"
+                    // Always visible on touch screens; on hover elsewhere.
+                    className="absolute top-2 right-2 bg-destructive text-destructive-foreground rounded-full p-1.5 transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100">
                     
                               <X className="h-3 w-3" />
                             </button>
@@ -1002,7 +985,7 @@ const Profile = () => {
           </motion.div>
         }
       {activeTab === "qa" && (
-        <div className="max-w-2xl space-y-6">
+        <div className="max-w-2xl mx-auto space-y-6">
           {currentUserId && userId && (
             <CreatorSubscriptions
               creatorId={userId}
@@ -1018,6 +1001,25 @@ const Profile = () => {
         </div>
       )}
       </div>
+
+      <ConfirmDialog
+        open={!!confirm}
+        onOpenChange={(open) => !open && setConfirm(null)}
+        title={confirm?.kind === "album" ? "Delete this album?" : "Remove this photo?"}
+        description={confirm?.kind === "album" ? "The album and all its photos will be removed." : "It will be removed from the album."}
+        onConfirm={() => {
+          if (confirm?.kind === "album") deleteAlbum(confirm.id);
+          else if (confirm?.kind === "photo") deletePhoto(confirm.id);
+          setConfirm(null);
+        }}
+      />
+
+      <Dialog open={!!viewPhoto} onOpenChange={(open) => !open && setViewPhoto(null)}>
+        <DialogContent className="max-w-3xl p-2 bg-black border-0">
+          <DialogHeader className="sr-only"><DialogTitle>Photo</DialogTitle></DialogHeader>
+          {viewPhoto && <img src={viewPhoto} alt="" className="w-full max-h-[80dvh] object-contain rounded-md" />}
+        </DialogContent>
+      </Dialog>
 
       {profile &&
       <EditProfileModal

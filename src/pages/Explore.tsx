@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
-import { usePostInteractions } from "@/hooks/use-post-interactions";
+import { useEffect, useRef, useState } from "react";
+import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import Navigation from "@/components/Navigation";
+import BottomNav from "@/components/BottomNav";
+import { useToast } from "@/hooks/use-toast";
 import PostCard from "@/components/PostCard";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,10 +13,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Hash, Users, Compass, Search, Flame, Star, Zap } from "lucide-react";
+import { TrendingUp, Hash, Users, Compass, Search, Flame, Star, Zap, Check, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
-import type { PostCardProps, PostComment } from "@/components/PostCard";
+import type { PostCardProps } from "@/components/PostCard";
 import type { Tables } from "@/integrations/supabase/types";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
@@ -25,10 +27,14 @@ interface TrendingTopic {
 
 const Explore = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
   useSEO({ title: "Explore", description: "Discover trending content and new people on CloudBook." });
   const [currentUser, setCurrentUser] = useState<Tables<"profiles"> | null>(null);
   const [trendingPosts, setTrendingPosts] = useState<(PostCardProps["post"] & { score: number })[]>([]);
-  const [suggestedUsers, setSuggestedUsers] = useState<Tables<"profiles">[]>([]);
+  const [suggestedUsers, setSuggestedUsers] = useState<(Tables<"profiles"> & { mutualCount: number })[]>([]);
+  const [requested, setRequested] = useState<Set<string>>(new Set());
+  const [addingId, setAddingId] = useState<string | null>(null);
+  const searchSeq = useRef(0);
   const [trendingTopics, setTrendingTopics] = useState<TrendingTopic[]>([]);
   const [searchParams, setSearchParams] = useSearchParams();
   // The search box mirrors ?q= so hashtag/mention links (and shared URLs) open with results.
@@ -64,8 +70,10 @@ const Explore = () => {
   };
 
   const runSearch = useEffectEvent(async (query: string, userId: string) => {
+    const seq = ++searchSeq.current;
     setIsSearching(true);
-    const pattern = `%${query}%`;
+    // % and _ are wildcards in LIKE; search for them literally.
+    const pattern = `%${query.replace(/[\\%_]/g, (c) => "\\" + c)}%`;
     // Characters with meaning inside a PostgREST `or` filter are dropped from that part of the search.
     const filterSafe = query.replace(/[,()*:"\\]/g, " ").trim();
     const [{ data: posts }, { data: people }] = await Promise.all([
@@ -84,7 +92,11 @@ const Explore = () => {
         .limit(12),
     ]);
     const found = posts ?? [];
-    if (found.length > 0) await loadPostExtras(found.map((p) => p.id), userId);
+    const extras = await fetchPostInteractions(found.map((p) => p.id), userId);
+    // A slower reply to an older query must not replace the results for the newer one.
+    if (seq !== searchSeq.current) return;
+    setReactionsData((prev) => ({ ...prev, ...extras.reactions }));
+    setCommentsData((prev) => ({ ...prev, ...extras.comments }));
     setSearchResults({ posts: found, people: people ?? [] });
     setIsSearching(false);
   });
@@ -100,80 +112,78 @@ const Explore = () => {
     return () => clearTimeout(timer);
   }, [trimmedQuery, currentUserId, runSearch]);
 
-  // Reactions/comments for search results, merged into the existing maps.
-  const loadPostExtras = async (postIds: string[], userId: string) => {
-    const [{ data: reactions }, { data: comments }] = await Promise.all([
-      supabase.from("reactions").select("post_id, reaction_type, user_id").in("post_id", postIds),
-      supabase.from("comments").select("*, profiles:user_id (id, full_name, avatar_url)").in("post_id", postIds).order("created_at", { ascending: true }),
-    ]);
-    const rMap: Record<string, { reactions: Record<string, number>; userReaction: string | null }> = {};
-    const cMap: Record<string, PostComment[]> = {};
-    postIds.forEach((id) => {
-      const pr = reactions?.filter((r) => r.post_id === id) || [];
-      const rc: Record<string, number> = {};
-      pr.forEach((r) => { rc[r.reaction_type] = (rc[r.reaction_type] || 0) + 1; });
-      rMap[id] = { reactions: rc, userReaction: pr.find((r) => r.user_id === userId)?.reaction_type || null };
-      cMap[id] = comments?.filter((c) => c.post_id === id) || [];
-    });
-    setReactionsData((prev) => ({ ...prev, ...rMap }));
-    setCommentsData((prev) => ({ ...prev, ...cMap }));
-  };
-
   const loadContent = async (userId: string) => {
-    // Load trending posts (most reacted in last 7 days)
+    // Recent posts from the last week, ranked by engagement for Trending.
     const { data: posts } = await supabase
       .from("posts")
       .select(`*, profiles:user_id (id, full_name, avatar_url, is_verified)`)
       .gte("created_at", new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString())
       .order("created_at", { ascending: false })
-      .limit(20);
+      .limit(50);
 
-    if (posts) {
-      // Get reaction counts for these posts
-      const postIds = posts.map(p => p.id);
-      const { data: reactions } = await supabase.from("reactions").select("post_id, reaction_type, user_id").in("post_id", postIds);
-      const { data: comments } = await supabase.from("comments").select("*, profiles:user_id (id, full_name, avatar_url)").in("post_id", postIds).order("created_at", { ascending: true });
-
-      // Score posts by engagement
-      const scored = posts.map(p => {
-        const postReactions = reactions?.filter(r => r.post_id === p.id) || [];
-        const postComments = comments?.filter(c => c.post_id === p.id) || [];
-        return { ...p, score: postReactions.length * 2 + postComments.length * 3 };
-      }).sort((a, b) => b.score - a.score);
-
-      setTrendingPosts(scored);
-
-      // Build reactions & comments maps
-      const rMap: Record<string, { reactions: Record<string, number>; userReaction: string | null }> = {};
-      const cMap: Record<string, PostComment[]> = {};
-      postIds.forEach(id => {
-        const pr = reactions?.filter(r => r.post_id === id) || [];
-        const rc: Record<string, number> = {};
-        pr.forEach(r => { rc[r.reaction_type] = (rc[r.reaction_type] || 0) + 1; });
-        const ur = pr.find(r => r.user_id === userId);
-        rMap[id] = { reactions: rc, userReaction: ur?.reaction_type || null };
-        cMap[id] = comments?.filter(c => c.post_id === id) || [];
-      });
-      setReactionsData(rMap);
-      setCommentsData(cMap);
-    }
-
-    // Load suggested users (not already friends)
-    const { data: friendships } = await supabase.from("friendships").select("user_id, friend_id").or(`user_id.eq.${userId},friend_id.eq.${userId}`);
-    const connectedIds = new Set([userId, ...(friendships || []).flatMap(f => [f.user_id, f.friend_id])]);
-
-    const { data: users } = await supabase.from("profiles").select("*").limit(50);
-    const suggestions = (users || []).filter(u => !connectedIds.has(u.id)).slice(0, 12);
-    setSuggestedUsers(suggestions);
+    const recent = posts ?? [];
+    const { reactions, comments } = await fetchPostInteractions(recent.map((p) => p.id), userId);
+    const scored = recent.map((p) => {
+      const reactionCount = Object.values(reactions[p.id]?.reactions ?? {}).reduce((sum, n) => sum + n, 0);
+      return { ...p, score: reactionCount * 2 + (comments[p.id]?.length ?? 0) * 3 };
+    });
+    setTrendingPosts(scored);
+    setReactionsData(reactions);
+    setCommentsData(comments);
 
     // Extract trending topics from recent posts
-    const allContent = (posts || []).map(p => p.content).join(" ");
-    const hashtags = allContent.match(/#\w+/g) || [];
     const tagCounts = new Map<string, number>();
-    hashtags.forEach(tag => tagCounts.set(tag.toLowerCase(), (tagCounts.get(tag.toLowerCase()) || 0) + 1));
-    const topics = Array.from(tagCounts.entries()).map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count).slice(0, 8);
-    setTrendingTopics(topics);
+    for (const post of recent) {
+      // Count each tag once per post, so one post repeating a tag doesn't make it trend.
+      const tags = new Set((post.content?.match(/#\w+/g) ?? []).map((t) => t.toLowerCase()));
+      tags.forEach((tag) => tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1));
+    }
+    setTrendingTopics(
+      Array.from(tagCounts.entries()).map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count).slice(0, 8)
+    );
+
+    loadSuggestions(userId);
   };
+
+  const loadSuggestions = async (userId: string) => {
+    // Friends of friends first (needs the server function), then newer members.
+    const { data: friendships } = await supabase.from("friendships").select("user_id, friend_id").or(`user_id.eq.${userId},friend_id.eq.${userId}`);
+    const connected = new Set([userId, ...(friendships || []).flatMap((f) => [f.user_id, f.friend_id])]);
+
+    const { data: mutual, error } = await supabase.rpc("friend_suggestions", { _limit: 12 });
+    const mutualCounts = new Map<string, number>();
+    if (!error) for (const row of mutual ?? []) mutualCounts.set(row.user_id, Number(row.mutual_count));
+
+    const [{ data: mutualProfiles }, { data: recentProfiles }] = await Promise.all([
+      mutualCounts.size
+        ? supabase.from("profiles").select("*").in("id", [...mutualCounts.keys()])
+        : Promise.resolve({ data: [] as Tables<"profiles">[] }),
+      supabase.from("profiles").select("*").order("created_at", { ascending: false }).limit(50),
+    ]);
+
+    const seen = new Set<string>();
+    const list = [...(mutualProfiles ?? []), ...(recentProfiles ?? [])]
+      .filter((u) => !connected.has(u.id) && !seen.has(u.id) && seen.add(u.id))
+      .map((u) => ({ ...u, mutualCount: mutualCounts.get(u.id) ?? 0 }))
+      .sort((a, b) => b.mutualCount - a.mutualCount)
+      .slice(0, 12);
+    setSuggestedUsers(list);
+  };
+
+  const sendRequest = async (userId: string) => {
+    if (!currentUser || addingId) return;
+    setAddingId(userId);
+    const { error } = await supabase.from("friendships").insert({ user_id: currentUser.id, friend_id: userId, status: "pending" });
+    setAddingId(null);
+    if (error) {
+      toast({ title: "Couldn't send friend request", description: error.message, variant: "destructive" });
+      return;
+    }
+    setRequested((prev) => new Set(prev).add(userId));
+  };
+
+  // "For You": newest first. "Trending": only posts people have engaged with, best first.
+  const rankedPosts = [...trendingPosts].filter((p) => p.score > 0).sort((a, b) => b.score - a.score).slice(0, 10);
 
   if (!currentUser) return (
     <div className="min-h-screen bg-background">
@@ -187,17 +197,19 @@ const Explore = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
-      <div className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6">
+      <div className="flex-1 max-w-3xl mx-auto w-full px-3 sm:px-4 py-4 sm:py-6 pb-28 md:pb-10">
         {/* Search */}
         <div className="relative mb-4">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search topics, people, content..." value={searchQuery} onChange={e => updateSearch(e.target.value)} className="pl-10 rounded-full bg-secondary border-0 h-10" aria-label="Search" />
+          <Input type="search" placeholder="Search topics, people, content..." value={searchQuery} onChange={e => updateSearch(e.target.value)} className="pl-10 rounded-full bg-secondary border-0 h-10" aria-label="Search posts and people" />
         </div>
 
         {trimmedQuery ? (
           <div className="space-y-6">
-            {isSearching && !searchResults && (
-              <p className="text-sm text-muted-foreground text-center py-8">Searching…</p>
+            {isSearching && (
+              <p className="text-sm text-muted-foreground text-center py-2 flex items-center justify-center gap-2" role="status">
+                <Loader2 className="h-4 w-4 animate-spin" /> Searching…
+              </p>
             )}
             {searchResults && searchResults.people.length > 0 && (
               <section>
@@ -209,10 +221,10 @@ const Explore = () => {
                     <Link key={user.id} to={`/profile/${user.id}`}>
                       <Card className="p-4 text-center hover:shadow-md transition-shadow h-full">
                         <Avatar className="h-14 w-14 mx-auto mb-2">
-                          <AvatarImage src={user.avatar_url || undefined} />
+                          <AvatarImage src={user.avatar_url || undefined} alt="" />
                           <AvatarFallback className="bg-primary/10 text-primary text-lg">{user.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                         </Avatar>
-                        <p className="font-semibold text-sm line-clamp-1">{user.full_name || "User"}</p>
+                        <p className="font-semibold text-sm line-clamp-1 break-all">{user.full_name || "User"}</p>
                       </Card>
                     </Link>
                   ))}
@@ -239,7 +251,7 @@ const Explore = () => {
                 ))}
               </section>
             )}
-            {searchResults && searchResults.people.length === 0 && searchResults.posts.length === 0 && (
+            {searchResults && !isSearching && searchResults.people.length === 0 && searchResults.posts.length === 0 && (
               <div className="text-center py-16">
                 <Search className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
                 <p className="text-muted-foreground">No results for “{trimmedQuery}”</p>
@@ -271,7 +283,7 @@ const Explore = () => {
                   comments={commentsData[post.id] || []}
                   onReactionToggle={(type) => toggleReaction(post.id, type)}
                   onCommentAdded={() => reloadComments(post.id)}
-                  onDelete={() => loadContent(currentUser.id)}
+                  onDelete={() => setTrendingPosts((prev) => prev.filter((p) => p.id !== post.id))}
                 />
               </motion.div>
             ))}
@@ -291,15 +303,17 @@ const Explore = () => {
                 </h3>
                 <div className="flex flex-wrap gap-2">
                   {trendingTopics.map(t => (
-                    <Badge key={t.tag} variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors" onClick={() => updateSearch(t.tag)}>
-                      <Hash className="h-3 w-3 mr-1" /> {t.tag.replace("#", "")}
-                      <span className="ml-1.5 text-[10px] opacity-70">{t.count}</span>
-                    </Badge>
+                    <button key={t.tag} type="button" onClick={() => updateSearch(t.tag)} className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                      <Badge variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors">
+                        <Hash className="h-3 w-3 mr-1" /> {t.tag.replace("#", "")}
+                        <span className="ml-1.5 text-[10px] opacity-70">{t.count} {t.count === 1 ? "post" : "posts"}</span>
+                      </Badge>
+                    </button>
                   ))}
                 </div>
               </Card>
             )}
-            {trendingPosts.slice(0, 10).map((post, i) => (
+            {rankedPosts.map((post, i) => (
               <motion.div key={post.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 5) * 0.05 }}>
                 <div className="flex items-start gap-2 mb-1">
                   <Badge variant="outline" className="text-[10px]">
@@ -314,10 +328,16 @@ const Explore = () => {
                   comments={commentsData[post.id] || []}
                   onReactionToggle={(type) => toggleReaction(post.id, type)}
                   onCommentAdded={() => reloadComments(post.id)}
-                  onDelete={() => loadContent(currentUser.id)}
+                  onDelete={() => setTrendingPosts((prev) => prev.filter((p) => p.id !== post.id))}
                 />
               </motion.div>
             ))}
+            {rankedPosts.length === 0 && trendingTopics.length === 0 && (
+              <div className="text-center py-16">
+                <Flame className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">Nothing is trending this week yet.</p>
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="people" className="space-y-3">
@@ -329,19 +349,32 @@ const Explore = () => {
                 <Card key={user.id} className="p-4 text-center hover:shadow-md transition-shadow">
                   <Link to={`/profile/${user.id}`}>
                     <Avatar className="h-16 w-16 mx-auto mb-2">
-                      <AvatarImage src={user.avatar_url || undefined} />
+                      <AvatarImage src={user.avatar_url || undefined} alt="" />
                       <AvatarFallback className="bg-primary/10 text-primary text-lg">{user.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                     </Avatar>
-                    <p className="font-semibold text-sm line-clamp-1">{user.full_name || "User"}</p>
-                    {user.bio && <p className="text-[10px] text-muted-foreground line-clamp-2 mt-1">{user.bio}</p>}
+                    <p className="font-semibold text-sm line-clamp-1 break-all">{user.full_name || "User"}</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      {user.mutualCount > 0 ? `${user.mutualCount} mutual ${user.mutualCount === 1 ? "friend" : "friends"}` : "New on CloudBook"}
+                    </p>
+                    {user.bio && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{user.bio}</p>}
                   </Link>
-                  <Button size="sm" variant="outline" className="mt-2 w-full text-xs h-7" onClick={() => {
-                    supabase.from("friendships").insert({ user_id: currentUser.id, friend_id: user.id, status: "pending" }).then(() => {
-                      setSuggestedUsers(prev => prev.filter(u => u.id !== user.id));
-                    });
-                  }}>
-                    Add Friend
-                  </Button>
+                  {requested.has(user.id) ? (
+                    <Button size="sm" variant="secondary" className="mt-2 w-full text-xs h-8" disabled>
+                      <Check className="h-3.5 w-3.5 mr-1" /> Requested
+                    </Button>
+                  ) : (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="mt-2 w-full text-xs h-8"
+                      disabled={addingId === user.id}
+                      onClick={() => sendRequest(user.id)}
+                      aria-label={`Add ${user.full_name || "user"} as a friend`}
+                    >
+                      {addingId === user.id && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}
+                      Add Friend
+                    </Button>
+                  )}
                 </Card>
               ))}
             </div>
@@ -355,6 +388,7 @@ const Explore = () => {
         </Tabs>
         )}
       </div>
+      <BottomNav currentUserId={currentUser.id} />
     </div>
   );
 };
