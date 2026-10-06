@@ -1,3 +1,7 @@
+> **Moved:** CloudBook now runs on its own Supabase project (`nipflgszescgafesikzo`), not Lovable Cloud.
+> For setting up a project from scratch, see [NEW-SUPABASE-PROJECT.md](NEW-SUPABASE-PROJECT.md). The notes below about
+> Lovable are from before the move.
+
 # Going live with CloudBook
 
 The code is ready for launch. These are the steps that happen in dashboards, in order.

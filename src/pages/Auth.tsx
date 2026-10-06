@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
-import { lovable } from "@/integrations/lovable";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, ArrowRight, MessageCircle, Video, Users, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -325,6 +324,9 @@ const Auth = () => {
               </motion.div>
             </form>
 
+            {/* Google sign-in: shown once Google is set up on the Supabase project. */}
+            {features.googleSignIn && (
+            <>
             {/* Divider */}
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
@@ -345,11 +347,13 @@ const Auth = () => {
                 onClick={async () => {
                   setIsGoogleLoading(true);
                   try {
-                    const result = await lovable.auth.signInWithOAuth("google", {
-                      redirect_uri: `${window.location.origin}${redirectPath}`,
+                    // Supabase's own Google sign-in (set up under Authentication → Providers → Google).
+                    const { error } = await supabase.auth.signInWithOAuth({
+                      provider: "google",
+                      options: { redirectTo: `${window.location.origin}${redirectPath}` },
                     });
-                    if (result?.error) {
-                      toast({ title: "Google sign in failed", description: String(result.error), variant: "destructive" });
+                    if (error) {
+                      toast({ title: "Google sign in failed", description: error.message, variant: "destructive" });
                     }
                   } catch (error) {
                     toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
@@ -373,6 +377,8 @@ const Auth = () => {
                 )}
               </Button>
             </motion.div>
+            </>
+            )}
 
             {/* Footer */}
             <p className="text-center text-xs text-muted-foreground mt-6">

@@ -22,4 +22,9 @@ export const features = {
    * uses another AI provider.
    */
   cloudBuddy: import.meta.env.VITE_CLOUDBUDDY === "true",
+  /**
+   * "Continue with Google". Off until Google is set up on the Supabase project
+   * (Authentication → Providers → Google); then set VITE_GOOGLE_SIGN_IN=true.
+   */
+  googleSignIn: import.meta.env.VITE_GOOGLE_SIGN_IN === "true",
 } as const;

@@ -32,7 +32,7 @@ A full-featured social network: feed, stories, real-time chat, voice and video c
 - **Frontend:** React 18, TypeScript (strict), Vite, Tailwind CSS, shadcn/ui (Radix), TanStack Query, React Router, Framer Motion
 - **Backend:** Supabase: Postgres with row-level security, Auth (email and Google), Storage, Realtime, and Edge Functions (Deno)
 - **Calls:** WebRTC, with Supabase Realtime for signalling
-- **Hosting:** [Lovable](https://lovable.dev) with Lovable Cloud
+- **Hosting:** Vercel (the site) and Supabase (database, sign-in, storage, server functions)
 
 ## Engineering notes
 
@@ -44,7 +44,7 @@ A full-featured social network: feed, stories, real-time chat, voice and video c
 
 ## Local development
 
-Requirements: Node.js 20+. The `.env` file (managed by Lovable Cloud) points the app at the project's database.
+Requirements: Node.js 20+. The `.env` file points the app at the Supabase project (its public anon key only).
 
 ```sh
 npm ci
@@ -58,7 +58,7 @@ npm run dev            # http://localhost:8080
 | `npm run lint` | ESLint |
 | `npm run typecheck` | TypeScript (strict mode) |
 
-Changes pushed to `main` sync back to the Lovable editor.
+Changes merged into `main` deploy to Vercel automatically.
 
 ### Optional settings
 
@@ -69,7 +69,7 @@ VITE_TENOR_API_KEY="..."
 VITE_GIPHY_API_KEY="..."
 ```
 
-Calls connect devices directly when they can. Across mobile networks and strict firewalls they need a TURN relay (for example from Metered, Cloudflare Calls or Twilio). The relay login is kept secret: the `turn-credentials` backend function gives it only to signed-in users when a call starts. Add these secrets in Lovable Cloud (or with `supabase secrets set`):
+Calls connect devices directly when they can. Across mobile networks and strict firewalls they need a TURN relay (for example from Metered, Cloudflare Calls or Twilio). The relay login is kept secret: the `turn-credentials` backend function gives it only to signed-in users when a call starts. Add these secrets in Supabase → Edge Functions → Secrets (or with `supabase secrets set`):
 
 | Secret | Value |
 | --- | --- |
