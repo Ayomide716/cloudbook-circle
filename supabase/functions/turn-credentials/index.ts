@@ -1,7 +1,7 @@
 // Hands the TURN relay login to signed-in users when they start a call, so the
 // password lives in the project's secrets instead of the website's code.
 //
-// Secrets (Lovable Cloud → Secrets, or `supabase secrets set`):
+// Secrets (Supabase → Edge Functions → Secrets, or `supabase secrets set`):
 //   TURN_USERNAME, TURN_CREDENTIAL   required
 //   TURN_URLS                        optional, comma-separated; defaults to Metered's global relay
 
