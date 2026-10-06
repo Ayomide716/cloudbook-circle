@@ -207,7 +207,7 @@ const Settings = () => {
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full" aria-label="Back">
             <ArrowLeft className="h-5 w-5" />
           </Button>
-          <h1 className="text-2xl sm:text-3xl font-bold font-display">Settings</h1>
+          <h1 className="text-[22px] sm:text-3xl font-bold font-display tracking-tight">Settings</h1>
         </div>
 
         {/* Appearance */}

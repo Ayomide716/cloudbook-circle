@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --background: 180 10% 97%;
+    --background: 214 30% 96%;
     --foreground: 200 25% 10%;
 
     --card: 0 0% 100%;
@@ -250,33 +250,44 @@
     @apply transition-all duration-200 hover:bg-accent/10 rounded-xl;
   }
 
-  /* Phones: page sections run edge to edge with square corners and a thin gap between them,
-     like Facebook's app. Scoped to .page-flush containers, so the same cards stay rounded
-     elsewhere (dialogs, sidebars) and on bigger screens. */
+  /* Phones: every page uses the home screen's look. Sections are rounded, softly outlined
+     cards inset from the screen edges, floating on the background. */
   @media (max-width: 639px) {
-    .page-flush .feed-section {
-      border-radius: 0;
-      border-left-width: 0;
-      border-right-width: 0;
-      box-shadow: none;
-    }
-    .page-flush > .feed-section:first-child {
-      border-top-width: 0;
-    }
-    /* The feed: rounded, softly outlined cards with a margin, floating on the background. */
+    .page-flush.page-flush,
     .feed-flush {
-      padding: 0.75rem 0.75rem 0;
+      padding-left: 0.75rem;
+      padding-right: 0.75rem;
+    }
+    .page-flush.page-flush {
+      padding-top: 0.5rem;
+    }
+    .feed-flush {
+      padding-top: 0.75rem;
+    }
+    .page-flush .feed-section,
+    .feed-flush .feed-section {
+      border-radius: 1.125rem;
+    }
+    .page-flush .feed-section {
+      border-width: 1px;
     }
     .feed-flush > * + * {
       margin-top: 0.875rem;
     }
-    .feed-flush .feed-section {
-      border-radius: 1.125rem;
-    }
   }
 
-  /* Dark mode "shine" on feed cards: a faint gradient and a thin light edge along the top. */
+  /* Light mode: the same cards lift off the background with a soft shadow. */
+  :root:not(.dark) .feed-flush .feed-section,
+  :root:not(.dark) .page-flush .feed-section,
+  :root:not(.dark) .shine-card {
+    box-shadow: 0 1px 2px hsl(215 30% 20% / 0.05), 0 8px 24px -16px hsl(215 30% 20% / 0.18);
+  }
+
+  /* Dark mode "shine" on cards: a faint gradient and a thin light edge along the top. */
   .dark .feed-flush .feed-section,
+  .dark .page-flush .feed-section,
+  .dark .bento-card,
+  .dark .premium-card,
   .dark .shine-card {
     background-image: linear-gradient(180deg, hsl(214 45% 11%) 0%, hsl(218 50% 7.5%) 100%);
     border-color: hsl(210 40% 22% / 0.55);
