@@ -17,7 +17,7 @@ in step with them. Tested: the whole app's phone tests pass on a database built 
 
 ## 3. Sign-in settings
 Supabase → **Authentication**:
-- **URL Configuration**: Site URL = your live address (e.g. `https://ayo-chat.vercel.app`).
+- **URL Configuration**: Site URL = your live address (e.g. `https://ayo-chat-xi.vercel.app`).
   Redirect URLs: `https://<your-domain>/reset-password` and `https://<your-domain>/**`.
 - **Providers → Email**: turn on **Confirm email**; minimum password length 8.
 - **Emails → SMTP**: the built-in sender only sends a few emails an hour. For real users,

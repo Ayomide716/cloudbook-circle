@@ -43,7 +43,7 @@ Each one is safe to run on the live database: it only adds or replaces functions
 Supabase / Lovable Cloud → **Authentication**:
 
 - **URL Configuration**
-  - **Site URL**: your live address, e.g. `https://ayo-chat.vercel.app` (or your custom domain).
+  - **Site URL**: your live address, e.g. `https://ayo-chat-xi.vercel.app` (or your custom domain).
   - **Redirect URLs**: add `https://<your-domain>/reset-password` and `https://<your-domain>/**`.
     Without these, the "Forgot password?" and confirmation emails send people to the wrong place.
 - **Providers → Email**
