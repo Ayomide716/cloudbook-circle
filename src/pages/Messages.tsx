@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, ReactElement } from "react";
+import { features } from "@/lib/features";
 import { playSound } from "@/lib/sounds";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -485,6 +486,7 @@ const Messages = () => {
               </div>
               <div className="flex-1 overflow-y-auto">
                 {/* AI Companion Entry */}
+                {features.cloudBuddy && (
                 <div
                   className={cn(
                     "flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-all duration-200 active:scale-[0.98] border-b",
@@ -506,6 +508,7 @@ const Messages = () => {
                   </div>
                   <div className="h-3 w-3 rounded-full bg-green-500 flex-shrink-0" />
                 </div>
+                )}
                 {conversations.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No conversations yet</p>
                 ) : (
@@ -559,7 +562,7 @@ const Messages = () => {
 
             {/* Chat Area — AI or regular conversation */}
             <Card className={cn("min-w-0 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (!selectedConversation && !showAIChat) ? "hidden md:flex" : "flex")}>
-              {showAIChat ? (
+              {features.cloudBuddy && showAIChat ? (
                 <AIChatCompanion onBack={() => { setShowAIChat(false); }} />
               ) : selectedConversation ? (
                 <>
