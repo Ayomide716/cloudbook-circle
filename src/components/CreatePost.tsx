@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { playSound } from "@/lib/sounds";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import PollCreator from "./PollCreator";
 import MultiImageUpload from "./MultiImageUpload";
 import MentionInput from "./MentionInput";
 import { cn } from "@/lib/utils";
+import { features } from "@/lib/features";
 import {
   Dialog,
   DialogClose,
@@ -86,7 +88,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
         image_url: imageUrls[0] ?? null,
         image_urls: imageUrls,
         video_url: videoUrl || null,
-        location: location.trim() || null,
+        ...(features.postLocation ? { location: location.trim() || null } : {}),
         expires_at: expiresAt,
        })
        .select()
@@ -122,6 +124,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     setLocation("");
     setShowLocation(false);
     setShowDialog(false);
+    playSound("post");
     toast({ title: "Post created!" });
     onPostCreated();
   };
@@ -222,7 +225,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   showPreview={false}
                 />
                 <PollCreator onCreatePoll={handleCreatePoll} />
-                <Button
+                {features.postLocation && <Button
                   type="button"
                   variant="ghost"
                   size="icon"
@@ -232,11 +235,11 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   aria-expanded={showLocation}
                 >
                   <MapPin className="h-5 w-5" />
-                </Button>
+                </Button>}
               </div>
             </div>
 
-            {(showLocation || location) && (
+            {features.postLocation && (showLocation || location) && (
               <div className="relative">
                 <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-red-500" />
                 <Input

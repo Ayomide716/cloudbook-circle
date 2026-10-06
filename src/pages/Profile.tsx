@@ -1,4 +1,5 @@
 import { postImages } from "@/lib/post-images";
+import { features } from "@/lib/features";
 import { useEffect, useState, useRef } from "react";
 import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";
 import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
@@ -197,7 +198,7 @@ const Profile = () => {
     setProfile(profileData);
     setSeoName(profileData.full_name);
 
-    if (userId !== currentUserId && await isBlockedWith(userId)) {
+    if (features.blocking && userId !== currentUserId && await isBlockedWith(userId)) {
       const { data: mine } = await supabase.from("blocks").select("id").eq("blocker_id", currentUserId).eq("blocked_id", userId).maybeSingle();
       setBlockState(mine ? "by_me" : "by_them");
       setPosts([]);
@@ -260,7 +261,7 @@ const Profile = () => {
   const loadThingsInCommon = async (other: ProfileData) => {
     if (!currentUserId || other.id === currentUserId) { setThingsInCommon([]); return; }
     const [{ data: me }, { data: mine }] = await Promise.all([
-      supabase.from("profiles").select("location, education, hometown").eq("id", currentUserId).maybeSingle(),
+      supabase.from("profiles").select((features.profileDetails ? "location, education, hometown" : "location, education") as "location, education, hometown").eq("id", currentUserId).maybeSingle(),
       supabase.from("group_members").select("group_id").eq("user_id", currentUserId),
     ]);
     const myGroups = (mine ?? []).map((g) => g.group_id);
@@ -468,9 +469,11 @@ const Profile = () => {
             <DropdownMenuItem onSelect={() => setReportOpen(true)}>
               <Flag className="h-4 w-4 mr-2" /> Report profile
             </DropdownMenuItem>
-            <DropdownMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
-              <Ban className="h-4 w-4 mr-2" /> Block
-            </DropdownMenuItem>
+            {features.blocking &&
+          <DropdownMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
+                <Ban className="h-4 w-4 mr-2" /> Block
+              </DropdownMenuItem>
+          }
           </>
       }
       </DropdownMenuContent>
@@ -1185,7 +1188,7 @@ const Profile = () => {
       {!isOwnProfile && currentUserId &&
       <>
           <ReportDialog reportedType="profile" reportedId={profile.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />
-          <BlockDialog open={blockOpen} onOpenChange={setBlockOpen} userId={profile.id} name={profile.full_name} onBlocked={() => loadProfile()} />
+          {features.blocking && <BlockDialog open={blockOpen} onOpenChange={setBlockOpen} userId={profile.id} name={profile.full_name} onBlocked={() => loadProfile()} />}
         </>
       }
 

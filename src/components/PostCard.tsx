@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { playSound } from "@/lib/sounds";
+import { features } from "@/lib/features";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
@@ -168,6 +170,8 @@ const PostCard = ({
 
   const handleReaction = async (reactionType: string) => {
     setShowReactions(false);
+    // A pop when you like or react (not when you take it back), as on Facebook.
+    if (userReaction !== reactionType) playSound("like");
     onReactionToggle(reactionType);
 
     if (userReaction === reactionType) {
@@ -278,6 +282,8 @@ const PostCard = ({
         description: await explainError(error, post.user_id),
         variant: "destructive",
       });
+    } else {
+      playSound("comment");
     }
 
     // Refresh real data from server
@@ -427,10 +433,12 @@ const PostCard = ({
                       reportedId={post.id}
                       currentUserId={currentUserId}
                     />
-                    <DropdownMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
-                      <Ban className="h-4 w-4 mr-2" />
-                      Block {post.profiles.full_name || "this person"}
-                    </DropdownMenuItem>
+                    {features.blocking && (
+                      <DropdownMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
+                        <Ban className="h-4 w-4 mr-2" />
+                        Block {post.profiles.full_name || "this person"}
+                      </DropdownMenuItem>
+                    )}
                   </>
                 )}
               </DropdownMenuContent>
@@ -801,7 +809,7 @@ const PostCard = ({
           })}
         </div>
       )}
-      {currentUserId !== post.user_id && (
+      {features.blocking && currentUserId !== post.user_id && (
         <BlockDialog
           open={blockOpen}
           onOpenChange={setBlockOpen}

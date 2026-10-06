@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, ReactElement } from "react";
+import { playSound } from "@/lib/sounds";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -385,6 +386,7 @@ const Messages = () => {
       toast({ title: "Couldn't send message", description: await explainError(error, selectedConversation.id), variant: "destructive" });
       return;
     }
+    playSound("send");
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
   };
 
@@ -415,6 +417,7 @@ const Messages = () => {
       toast({ title: "Couldn't send voice message", description: await explainError(error, selectedConversation.id), variant: "destructive" });
       return;
     }
+    playSound("send");
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
   };
 
