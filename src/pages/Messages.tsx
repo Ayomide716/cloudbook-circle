@@ -22,7 +22,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, CornerUpLeft, Bot, Sparkles, MoreVertical } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
@@ -405,6 +405,8 @@ const Messages = () => {
   const handleReply = (message: ChatMessage) => {
     setReplyingTo(message);
     setEditingMessage(null);
+    // Straight to typing, as after a swipe on WhatsApp.
+    requestAnimationFrame(() => document.querySelector<HTMLInputElement>('input[aria-label="Message"]')?.focus());
   };
 
   const handleVoiceMessageSent = async (audioUrl: string, duration: number) => {
@@ -672,25 +674,6 @@ const Messages = () => {
                     }
                   />
 
-                  {/* Reply / Edit bar */}
-                  {(replyingTo || editingMessage) && (
-                    <div className="px-3 pt-2 bg-card border-t flex items-center gap-2 animate-fade-in">
-                      <div className="flex-1 bg-muted rounded-lg px-3 py-2 text-sm">
-                        {editingMessage ? (
-                          <span className="text-muted-foreground">✏️ Editing message</span>
-                        ) : (
-                          <span className="text-muted-foreground flex items-center gap-1">
-                            <CornerUpLeft className="h-3 w-3" />
-                            Replying to: <span className="font-medium text-foreground truncate">{replyingTo?.content?.substring(0, 50)}</span>
-                          </span>
-                        )}
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { setReplyingTo(null); setEditingMessage(null); setMessageContent(""); }}>
-                        <X className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  )}
-
                   {/* Message bar, as in WhatsApp: a pill with emoji, text, attach and camera, and a round
                       button beside it that records a voice note, or sends once there's something to send. */}
                   <form onSubmit={handleSendMessage} className="chat-wallpaper px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex-shrink-0">
@@ -702,6 +685,27 @@ const Messages = () => {
                           <img src={imageUrl} alt="Preview" className="h-20 rounded-lg" />
                         )}
                         <button type="button" onClick={() => { setImageUrl(null); setMediaType(null); }} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs" aria-label="Remove attachment">✕</button>
+                      </div>
+                    )}
+                    {/* Replying to (or editing) a message: a quote above the box, as in WhatsApp. */}
+                    {(replyingTo || editingMessage) && !voiceActive && (
+                      <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-card dark:bg-[#22262d] p-1.5 pl-2 shadow-sm animate-fade-in">
+                        <div className="min-w-0 flex-1 rounded-lg border-l-4 border-primary bg-black/5 dark:bg-white/5 px-2 py-1">
+                          <p className="text-xs font-semibold text-primary">
+                            {editingMessage ? "Editing message" : replyingTo?.sender_id === currentUserId ? "You" : selectedConversation.full_name || "Them"}
+                          </p>
+                          <p className="truncate text-[13px] text-muted-foreground">
+                            {(editingMessage ?? replyingTo)?.image_url && !(editingMessage ?? replyingTo)?.content ? "📷 Photo" : (editingMessage ?? replyingTo)?.content?.substring(0, 80)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          aria-label={editingMessage ? "Cancel editing" : "Cancel reply"}
+                          className="mt-0.5 rounded-full p-1 text-muted-foreground hover:bg-accent"
+                          onClick={() => { setReplyingTo(null); setEditingMessage(null); if (editingMessage) setMessageContent(""); }}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
                       </div>
                     )}
                     <div className="flex items-end gap-1.5">

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { SWIPE_REPLY_THRESHOLD, useSwipeToReply } from "@/hooks/use-swipe-to-reply";
 import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
@@ -69,6 +70,8 @@ const ChatBubble = ({
   const [pickerOpen, setPickerOpen] = useState(false);
   const rowRef = useRef<HTMLDivElement>(null);
   const colors = themeColors[theme] || themeColors.default;
+  // Swipe a message to the right to reply to it, as on WhatsApp.
+  const swipe = useSwipeToReply(() => { setShowActions(false); onReply(message); });
 
   // On touch screens actions open with a tap; close them when tapping anywhere else.
   useEffect(() => {
@@ -129,10 +132,20 @@ const ChatBubble = ({
   return (
     <div
       ref={rowRef}
-      className={cn("flex group relative", isCurrentUser ? "justify-end" : "justify-start")}
+      className={cn("flex group relative touch-pan-y", isCurrentUser ? "justify-end" : "justify-start")}
+      {...(message.deleted_at ? {} : swipe.handlers)}
       onPointerEnter={(e) => { if (e.pointerType === "mouse") setShowActions(true); }}
       onPointerLeave={(e) => { if (e.pointerType === "mouse" && !pickerOpen) setShowActions(false); }}
     >
+      {swipe.swiping && (
+        <span
+          aria-hidden="true"
+          className="absolute left-1 top-1/2 -translate-y-1/2 flex h-8 w-8 items-center justify-center rounded-full bg-black/25 text-white"
+          style={{ opacity: Math.min(1, swipe.offset / SWIPE_REPLY_THRESHOLD), transform: `translateY(-50%) scale(${0.6 + 0.4 * Math.min(1, swipe.offset / SWIPE_REPLY_THRESHOLD)})` }}
+        >
+          <CornerUpLeft className="h-4 w-4" />
+        </span>
+      )}
       {/* Actions: hover on desktop, tap the bubble on phones */}
       <div className={cn(
         "flex items-center gap-0.5 flex-shrink-0 self-center transition-opacity duration-150",
@@ -149,7 +162,7 @@ const ChatBubble = ({
         </button>
         <button
           onClick={() => { onReply(message); setShowActions(false); }}
-          className="p-1.5 rounded-full hover:bg-accent transition-colors"
+          className="p-1.5 rounded-full hover:bg-accent transition-colors [@media(hover:none)]:hidden"
           aria-label="Reply"
           title="Reply"
         >
@@ -181,7 +194,10 @@ const ChatBubble = ({
         )}
       </div>
 
-      <div className={cn("flex flex-col gap-0.5 min-w-0", isCurrentUser ? "items-end" : "items-start")}>
+      <div
+        className={cn("flex flex-col gap-0.5 min-w-0", isCurrentUser ? "items-end" : "items-start", !swipe.swiping && "transition-transform duration-200 ease-out")}
+        style={swipe.offset ? { transform: `translateX(${swipe.offset}px)` } : undefined}
+      >
         {/* Message bubble (tap to show actions on touch screens) */}
         <div
           className={cn(
