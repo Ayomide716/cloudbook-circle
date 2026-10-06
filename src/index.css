@@ -54,18 +54,18 @@
     --shadow-lg: 0 12px 40px -8px hsl(200 25% 10% / 0.1);
     --shadow-glow: 0 0 24px hsl(174 72% 40% / 0.15);
     --shadow-dock: 0 8px 40px -8px hsl(200 25% 10% / 0.15), 0 0 0 1px hsl(180 10% 90% / 0.5);
-    --nav-height: 3.75rem;
+    --nav-height: 3.5rem;
   }
 
   .dark {
     /* Deep navy with bright cyan, as in the 2026 mockup. */
-    --background: 220 47% 6%;
+    --background: 222 60% 4%;
     --foreground: 210 30% 95%;
 
-    --card: 216 42% 10%;
+    --card: 218 48% 8%;
     --card-foreground: 210 30% 95%;
 
-    --popover: 216 42% 10%;
+    --popover: 218 48% 8%;
     --popover-foreground: 210 30% 95%;
 
     --primary: 177 78% 47%;
@@ -73,10 +73,10 @@
     --primary-foreground: 200 60% 6%;
     --primary-glow: 177 85% 55%;
 
-    --secondary: 216 34% 15%;
+    --secondary: 216 40% 12%;
     --secondary-foreground: 210 30% 95%;
 
-    --muted: 216 34% 15%;
+    --muted: 216 40% 12%;
     --muted-foreground: 214 18% 62%;
 
     --accent: 190 40% 15%;
@@ -88,15 +88,15 @@
     --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 215 32% 18%;
-    --input: 215 32% 18%;
+    --border: 214 35% 16%;
+    --input: 214 35% 16%;
     --ring: 177 78% 47%;
 
     --gradient-brand: linear-gradient(135deg, hsl(177 78% 47%), hsl(196 90% 55%));
     --gradient-brand-soft: linear-gradient(135deg, hsl(177 78% 47% / 0.15), hsl(196 90% 55% / 0.15));
     --gradient-card: linear-gradient(145deg, hsl(216 42% 10%), hsl(218 45% 8%));
 
-    --glass-bg: 216 42% 10% / 0.92;
+    --glass-bg: 218 48% 8% / 0.94;
     --glass-border: 215 32% 20% / 0.7;
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
     --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.4);
@@ -271,15 +271,23 @@
       margin-top: 0.875rem;
     }
     .feed-flush .feed-section {
-      border-radius: 1.25rem;
+      border-radius: 1.125rem;
     }
+  }
+
+  /* Dark mode "shine" on feed cards: a faint gradient and a thin light edge along the top. */
+  .dark .feed-flush .feed-section,
+  .dark .shine-card {
+    background-image: linear-gradient(180deg, hsl(214 45% 11%) 0%, hsl(218 50% 7.5%) 100%);
+    border-color: hsl(210 40% 22% / 0.55);
+    box-shadow: inset 0 1px 0 hsl(190 80% 75% / 0.07), 0 10px 28px -14px rgb(0 0 0 / 0.7);
   }
 
   /* Room for the floating dock (mobile bottom bar / desktop dock) so it never covers content.
      Navigation adds this class to <body> whenever a dock is shown. */
   .has-dock {
     /* Phones: the bottom bar (about 4.6rem) plus a little air. */
-    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom, 0px));
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   }
 
   @screen md {

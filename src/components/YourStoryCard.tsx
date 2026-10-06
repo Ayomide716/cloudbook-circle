@@ -51,30 +51,31 @@ const YourStoryCard = ({ userId, name, avatarUrl, onOpen }: YourStoryCardProps) 
       type="button"
       onClick={onOpen}
       aria-label="Your story"
-      className="flex-shrink-0 w-[118px] h-[184px] rounded-2xl border border-border bg-card p-2 text-left flex flex-col transition-transform duration-200 active:scale-[0.98]"
+      className="flex-shrink-0 shine-card w-[100px] h-[158px] rounded-2xl border border-border bg-card p-1.5 text-left flex flex-col transition-transform duration-200 active:scale-[0.98]"
     >
       <div className="flex flex-col items-center">
         <div className="relative rounded-full p-[2px] bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.5)]">
-          <Avatar className="h-11 w-11 border-2 border-card">
+          <Avatar className="h-8 w-8 border-2 border-card">
             <AvatarImage src={avatarUrl || undefined} alt="" />
             <AvatarFallback className="text-sm font-semibold">{name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
           </Avatar>
-          <span className="absolute -bottom-0.5 -right-0.5 flex h-[18px] w-[18px] items-center justify-center rounded-full bg-primary ring-2 ring-card">
-            <Plus className="h-3 w-3 text-primary-foreground" strokeWidth={3} />
+          <span className="absolute -bottom-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-primary ring-2 ring-card">
+            <Plus className="h-2.5 w-2.5 text-primary-foreground" strokeWidth={3.5} />
           </span>
         </div>
-        <p className="mt-1 w-full truncate text-center text-[12px] font-semibold">{name || "You"}</p>
+        <p className="mt-0.5 w-full truncate text-center text-[10.5px] font-semibold">{name || "You"}</p>
       </div>
-      <div className="mt-1 grid flex-1 grid-cols-2 gap-1">
+      <div className="mt-1 grid flex-1 grid-cols-2 gap-[3px]">
         {tiles.map((t) => (
-          <div key={t.label} className="rounded-lg bg-secondary/60 px-1.5 py-1">
-            <t.icon className={`h-3 w-3 ${t.color}`} aria-hidden="true" />
-            <p className="text-[12px] font-bold leading-tight">{t.value === undefined ? "–" : compactCount(t.value)}</p>
-            <p className="text-[9px] leading-tight text-muted-foreground">{t.label}</p>
+          <div key={t.label} className="rounded-md bg-secondary/70 px-1 py-[3px]">
+            <p className="flex items-center gap-[3px] text-[10.5px] font-bold leading-tight">
+              <t.icon className={`h-2.5 w-2.5 shrink-0 ${t.color}`} aria-hidden="true" />{t.value === undefined ? "–" : compactCount(t.value)}
+            </p>
+            <p className="text-[7.5px] leading-tight text-muted-foreground">{t.label}</p>
           </div>
         ))}
       </div>
-      <p className="mt-1 text-center text-[12px] font-semibold">Your Story</p>
+      <p className="mt-1 text-center text-[10.5px] font-semibold leading-none">Your Story</p>
     </button>
   );
 };

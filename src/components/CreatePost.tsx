@@ -138,9 +138,9 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     <>
       {/* Compact Create Post Card */}
       {/* One rounded pill on phones: photo, prompt, photo icon. */}
-      <Card className="feed-section p-3 sm:p-4 shadow-sm max-sm:!rounded-full max-sm:p-2 max-sm:pr-3 max-sm:bg-card/80">
+      <Card className="feed-section p-3 sm:p-4 shadow-sm max-sm:!rounded-full max-sm:p-1.5 max-sm:pr-2.5">
         <div className="flex items-center gap-3">
-          <Avatar className="h-11 w-11 sm:h-10 sm:w-10 flex-shrink-0">
+          <Avatar className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
             <AvatarImage src={currentUser.avatar_url || undefined} />
             <AvatarFallback className="bg-secondary text-secondary-foreground">
               {currentUser.full_name?.[0]?.toUpperCase() || "U"}
@@ -149,7 +149,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           
           <button
             onClick={() => setShowDialog(true)}
-            className="flex-1 min-w-0 h-10 text-left px-1 sm:px-4 sm:bg-secondary sm:hover:bg-secondary/80 rounded-full text-muted-foreground transition-colors text-base truncate"
+            className="flex-1 min-w-0 h-9 sm:h-10 text-left px-1 sm:px-4 sm:bg-secondary sm:hover:bg-secondary/80 rounded-full text-muted-foreground transition-colors text-[14.5px] sm:text-base truncate"
           >
             {/* Long names don't fit on a phone; the shorter prompt reads better than a cut-off name. */}
             <span className="sm:hidden">What's on your mind?</span>
@@ -158,7 +158,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 flex-shrink-0 rounded-full text-muted-foreground sm:text-primary hover:bg-primary/10 [&_svg]:size-6"
+            className="h-9 w-9 flex-shrink-0 rounded-full text-muted-foreground sm:text-primary hover:bg-primary/10 [&_svg]:size-5"
             onClick={() => setShowDialog(true)}
             aria-label="Add photos or video"
           >

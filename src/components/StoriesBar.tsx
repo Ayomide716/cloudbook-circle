@@ -309,10 +309,10 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   return (
     <>
       <div className="feed-stories sm:mb-4">
-        <div className="flex gap-2.5 overflow-x-auto py-1 px-0.5 -mx-0.5 scrollbar-hide">
+        <div className="flex gap-2 overflow-x-auto py-1 px-0.5 -mx-0.5 scrollbar-hide">
           {/* Create a story: your photo, a glowing outline and a + */}
           <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)} aria-label="Create a story">
-            <div className="relative w-[118px] h-[184px] rounded-2xl overflow-hidden bg-card ring-2 ring-primary shadow-[0_0_20px_-2px_hsl(var(--primary)/0.55)] transition-transform duration-200 group-active:scale-[0.98]">
+            <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden bg-card ring-[1.5px] ring-primary shadow-[0_0_18px_-2px_hsl(var(--primary)/0.65)] transition-transform duration-200 group-active:scale-[0.98]">
               {myProfile?.avatar_url ? (
                 <img src={myProfile.avatar_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
               ) : (
@@ -322,10 +322,10 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               )}
               <div className="absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-card via-card/90 to-transparent" />
               <div className="absolute inset-x-0 bottom-2.5 flex flex-col items-center">
-                <span className="mb-1.5 flex h-9 w-9 items-center justify-center rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.6)]">
-                  <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.8} />
+                <span className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.7)]">
+                  <Plus className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
                 </span>
-                <p className="text-[13px] font-semibold leading-tight text-foreground text-center">Create a<br />story</p>
+                <p className="text-[11.5px] font-semibold leading-tight text-foreground text-center">Create a<br />story</p>
               </div>
             </div>
           </button>
@@ -352,26 +352,26 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             const when = shortTime(latest.created_at);
             return (
               <button key={group.userId} className="flex-shrink-0 group" onClick={() => openViewer(index)} aria-label={`${group.profile.full_name || "User"}'s story`}>
-                <div className="relative w-[118px] h-[184px] rounded-2xl overflow-hidden border border-border bg-card transition-transform duration-200 group-active:scale-[0.98]">
+                <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden border border-border bg-card transition-transform duration-200 group-active:scale-[0.98]">
                   <img src={latest.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/80" />
                   <div className="absolute top-2 left-2 right-2 flex items-center gap-1.5">
                     <div className={cn("shrink-0 rounded-full p-[2px]", group.hasUnviewed ? "bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]" : "bg-white/50")}>
-                      <Avatar className="h-8 w-8 border-2 border-black/30">
+                      <Avatar className="h-7 w-7 border-2 border-black/30">
                         <AvatarImage src={group.profile.avatar_url || undefined} />
                         <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
                           {group.profile.full_name?.[0]?.toUpperCase() || "U"}
                         </AvatarFallback>
                       </Avatar>
                     </div>
-                    <p className="min-w-0 truncate text-[12px] font-semibold text-white drop-shadow">{group.profile.full_name || "User"}</p>
+                    <p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">{group.profile.full_name || "User"}</p>
                   </div>
                   {group.stories.length > 1 && (
                     <span className="absolute top-12 right-2 rounded-full bg-black/50 px-1.5 text-[10px] font-bold text-white">{group.stories.length}</span>
                   )}
                   <div className="absolute inset-x-2 bottom-2 text-left">
-                    {latest.caption && <p className="mb-0.5 line-clamp-2 text-[12px] font-semibold leading-tight text-white drop-shadow">{latest.caption}</p>}
-                    <p className="text-[10.5px] text-white/75">
+                    {latest.caption && <p className="mb-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow">{latest.caption}</p>}
+                    <p className="text-[9.5px] text-white/75">
                       {when === "Just now" ? when : `${when} ago`}
                       {group.views > 0 && <> · {compactCount(group.views)} {group.views === 1 ? "view" : "views"}</>}
                     </p>

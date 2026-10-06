@@ -365,10 +365,10 @@ const PostCard = ({
   return (
     <Card className="feed-section shadow-sm overflow-hidden rounded-2xl border-border/60">
       {/* Header */}
-      <div className="p-3 sm:p-4">
-        <div className="flex items-start gap-2 sm:gap-3">
+      <div className="p-3 pb-2 sm:p-4">
+        <div className="flex items-start gap-2.5 sm:gap-3">
           <Link to={`/profile/${post.profiles.id}`}>
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
               <AvatarImage src={post.profiles.avatar_url || undefined} />
               <AvatarFallback className="bg-secondary">
                 {post.profiles.full_name?.[0]?.toUpperCase() || "U"}
@@ -378,13 +378,13 @@ const PostCard = ({
           
           <div className="flex-1 min-w-0">
             <Link to={`/profile/${post.profiles.id}`}>
-              <p className="font-semibold text-sm sm:text-base hover:underline inline-flex items-center gap-1">
+              <p className="font-semibold text-[14px] sm:text-base leading-tight hover:underline inline-flex items-center gap-1">
                 {post.profiles.full_name || "Anonymous"}
                 {post.profiles.is_verified && <VerifiedBadge size="sm" />}
               </p>
             </Link>
             {/* As in Facebook: "Lekki, Lagos · 2h · 🌐" (CloudBook posts are public). */}
-            <p className="flex items-center gap-1 text-[13px] text-muted-foreground min-w-0">
+            <p className="flex items-center gap-1 text-[11.5px] sm:text-[13px] text-muted-foreground min-w-0">
               {post.location && <><span className="truncate">{post.location}</span><span aria-hidden="true">·</span></>}
               <time dateTime={toDate(post.created_at).toISOString()} title={formatDistanceToNow(toDate(post.created_at), { addSuffix: true })} className="shrink-0">
                 {shortTime(post.created_at)}
@@ -557,7 +557,7 @@ const PostCard = ({
 
       {/* Summary: the reactions people used and how many, then the comment count (as in the mockup). */}
       {(totalReactions > 0 || comments.length > 0) && (
-        <div className="flex items-center gap-2 px-3.5 pt-2.5 text-[14px] text-muted-foreground">
+        <div className="flex items-center gap-2 px-3.5 pt-2 text-[12.5px] text-muted-foreground">
           {totalReactions > 0 && (
             <span className="flex items-center gap-1.5">
               <span className="flex -space-x-1" aria-hidden="true">
@@ -566,8 +566,8 @@ const PostCard = ({
                   if (!reaction) return null;
                   const Icon = reaction.icon;
                   return (
-                    <span key={type} className={cn("h-5 w-5 rounded-full flex items-center justify-center ring-2 ring-card", reaction.bgColor)}>
-                      <Icon className="h-3 w-3 text-white" />
+                    <span key={type} className={cn("h-[18px] w-[18px] rounded-full flex items-center justify-center ring-2 ring-card", reaction.bgColor)}>
+                      <Icon className="h-2.5 w-2.5 text-white" />
                     </span>
                   );
                 })}
@@ -614,7 +614,7 @@ const PostCard = ({
             )}
             <Button
               variant="ghost"
-              className={cn("h-10 w-full gap-1.5 rounded-full text-[14px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-5", currentReaction?.color)}
+              className={cn("h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]", currentReaction?.color)}
               // Tapping removes your reaction, whichever it is; with none it's a like.
               onClick={() => handleReaction(userReaction ?? 'like')}
               aria-pressed={!!userReaction}
@@ -631,7 +631,7 @@ const PostCard = ({
 
           <Button
             variant="ghost"
-            className="h-10 w-full gap-1.5 rounded-full text-[14px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-5"
+            className="h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]"
             onClick={() => setShowComments(!showComments)}
             aria-expanded={showComments}
             aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
@@ -642,7 +642,7 @@ const PostCard = ({
 
           <Button
             variant="ghost"
-            className="h-10 w-full gap-1.5 rounded-full text-[14px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-5"
+            className="h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]"
             onClick={() => setShowShareDialog(true)}
             aria-label="Share"
           >

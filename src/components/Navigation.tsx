@@ -187,7 +187,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden -ml-1.5 h-9 w-9 rounded-full [&_svg]:size-6 hover:bg-secondary"
+                className="md:hidden -ml-1.5 h-8 w-8 rounded-full [&_svg]:size-[22px] hover:bg-secondary"
                 onClick={() => navigate("/menu")}
                 aria-label="Menu"
                 aria-current={location.pathname === "/menu" ? "page" : undefined}
@@ -198,10 +198,10 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
             {/* Cloud mark, the name in a cyan-to-white gradient, and the tagline under it. */}
             <Link to="/" className="shrink-0 flex flex-col" aria-label="CloudBook home">
               <span className="flex items-center gap-1.5">
-                <Cloud className="h-6 w-6 md:h-7 md:w-7 text-primary" strokeWidth={2.6} aria-hidden="true" />
-                <span className="text-[21px] md:text-2xl font-display font-extrabold tracking-[-0.03em] leading-none bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent">CloudBook</span>
+                <Cloud className="h-[22px] w-[22px] md:h-7 md:w-7 text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" strokeWidth={2.6} aria-hidden="true" />
+                <span className="text-[19px] md:text-2xl font-display font-extrabold tracking-[-0.03em] leading-none bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent">CloudBook</span>
               </span>
-              <span className="md:hidden mt-1 pl-1 text-[9.5px] leading-none tracking-[0.16em] text-muted-foreground">Connect · Share · Belong</span>
+              <span className="md:hidden mt-[3px] pl-1 text-[8.5px] leading-none tracking-[0.18em] text-muted-foreground">Connect · Share · Belong</span>
             </Link>
             </div>
 
@@ -252,11 +252,11 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                 <div className="flex md:hidden items-center gap-1.5">
                   {/* Round, softly outlined buttons, as in the mockup. */}
                   {[
-                    { label: "Create post", icon: <PlusCircle className="h-5 w-5" aria-hidden="true" />, onClick: () => navigate("/?compose=1") },
-                    { label: "Search", icon: <MagnifyingGlass className="h-5 w-5" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
+                    { label: "Create post", icon: <PlusCircle className="h-[17px] w-[17px]" aria-hidden="true" />, onClick: () => navigate("/?compose=1") },
+                    { label: "Search", icon: <MagnifyingGlass className="h-[16px] w-[16px]" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
                     {
                       label: unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages",
-                      icon: <MessengerLogo className="h-5 w-5" aria-hidden="true" />,
+                      icon: <MessengerLogo className="h-[17px] w-[17px]" aria-hidden="true" />,
                       onClick: () => navigate("/messages"),
                       dot: unreadMessages > 0,
                     },
@@ -266,10 +266,10 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       type="button"
                       onClick={b.onClick}
                       aria-label={b.label}
-                      className="relative flex h-9 w-9 items-center justify-center rounded-full border border-border bg-secondary/70 text-foreground transition-colors active:bg-secondary"
+                      className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border bg-secondary/60 text-foreground transition-colors active:bg-secondary"
                     >
                       {b.icon}
-                      {b.dot && <span className="absolute right-1 top-1 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-card" aria-hidden="true" />}
+                      {b.dot && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" aria-hidden="true" />}
                     </button>
                   ))}
                   {/* Your photo: opens your profile. */}
@@ -279,11 +279,11 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                     aria-label="Your profile"
                     className="relative ml-0.5 rounded-full ring-2 ring-border"
                   >
-                    <Avatar className="h-9 w-9">
+                    <Avatar className="h-8 w-8">
                       <AvatarImage src={userProfile?.avatar_url || undefined} alt="" />
                       <AvatarFallback className="text-sm font-semibold">{userProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                     </Avatar>
-                    <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card" aria-hidden="true" />
+                    <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card shadow-[0_0_6px_hsl(var(--primary))]" aria-hidden="true" />
                   </button>
                 </div>
               )}
