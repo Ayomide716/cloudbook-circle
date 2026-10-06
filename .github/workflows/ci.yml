@@ -29,6 +29,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: One-file database setup is up to date with the migrations
+        run: ./scripts/build-setup-sql.sh && git diff --exit-code supabase/setup/full-schema.sql
 
   e2e:
     name: End-to-end (phone)

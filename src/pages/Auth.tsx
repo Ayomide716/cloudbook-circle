@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { features } from "@/lib/features";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -123,7 +124,7 @@ const Auth = () => {
             { icon: MessageCircle, title: "Real-time chat", text: "Messages, voice notes and reactions" },
             { icon: Video, title: "Voice & video calls", text: "One-to-one and group calls" },
             { icon: Users, title: "Communities", text: "Groups, pages, events and voice rooms" },
-            { icon: Sparkles, title: "Stories & reels", text: "Plus CloudBuddy, your AI companion" },
+            { icon: Sparkles, title: "Stories & reels", text: features.cloudBuddy ? "Plus CloudBuddy, your AI companion" : "Share moments that last 24 hours" },
           ].map((f) => (
             <li key={f.title} className="flex gap-3 rounded-2xl bg-card/70 border border-border/60 p-4 backdrop-blur-sm">
               <span className="h-9 w-9 shrink-0 rounded-xl bg-primary/10 text-primary flex items-center justify-center">

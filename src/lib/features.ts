@@ -16,4 +16,10 @@ export const features = {
   profileDetails: on,
   /** Blocking people (Block in menus, Settings → Blocked people). */
   blocking: on,
+  /**
+   * CloudBuddy, the AI chat. Off for now: its server function uses Lovable's AI service,
+   * which doesn't work outside Lovable. Turn on with VITE_CLOUDBUDDY=true once ai-chat
+   * uses another AI provider.
+   */
+  cloudBuddy: import.meta.env.VITE_CLOUDBUDDY === "true",
 } as const;
