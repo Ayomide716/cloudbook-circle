@@ -3,7 +3,7 @@ import { useTheme } from "next-themes";
 
 // The header's colour (--card) in each theme, so the phone's status bar and the header read
 // as one piece, as in Facebook's app.
-const HEADER_COLOR = { light: "#FFFFFF", dark: "#181B21" } as const;
+const HEADER_COLOR = { light: "#FFFFFF", dark: "#0F1724" } as const;
 
 /** Keeps the status bar the header's colour, including when you switch light/dark in the app. */
 const StatusBarColor = () => {

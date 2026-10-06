@@ -137,9 +137,10 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   return (
     <>
       {/* Compact Create Post Card */}
-      <Card className="feed-section p-3 sm:p-4 shadow-sm">
+      {/* One rounded pill on phones: photo, prompt, photo icon. */}
+      <Card className="feed-section p-3 sm:p-4 shadow-sm max-sm:!rounded-full max-sm:p-2 max-sm:pr-3 max-sm:bg-card/80">
         <div className="flex items-center gap-3">
-          <Avatar className="h-10 w-10 flex-shrink-0">
+          <Avatar className="h-11 w-11 sm:h-10 sm:w-10 flex-shrink-0">
             <AvatarImage src={currentUser.avatar_url || undefined} />
             <AvatarFallback className="bg-secondary text-secondary-foreground">
               {currentUser.full_name?.[0]?.toUpperCase() || "U"}
@@ -157,11 +158,11 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-10 w-10 flex-shrink-0 rounded-full text-muted-foreground sm:text-primary hover:bg-primary/10"
+            className="h-10 w-10 flex-shrink-0 rounded-full text-muted-foreground sm:text-primary hover:bg-primary/10 [&_svg]:size-6"
             onClick={() => setShowDialog(true)}
             aria-label="Add photos or video"
           >
-            <Image className="h-5 w-5" />
+            <Image strokeWidth={1.6} />
           </Button>
         </div>
       </Card>
