@@ -5,7 +5,7 @@ test.describe("feed", () => {
   test("has the redesign's layout on a phone", async ({ page }) => {
     await signIn(page, "alice");
 
-    // Bottom bar: the mockup's tabs, flush with the bottom of the screen.
+    // Bottom bar: the mockup's tabs, in a pill floating above the bottom of the screen.
     const bar = page.getByRole("navigation", { name: "Main" }).last();
     const tabs = bar.getByRole("button");
     await expect(tabs).toHaveCount(6);
@@ -17,11 +17,14 @@ test.describe("feed", () => {
     await expect(bar.getByRole("button", { name: "Friends, 1 new" })).toBeVisible();
     // The bar slides in when the page opens; measure once it has settled.
     const viewport = page.viewportSize()!;
+    // A floating pill: 10px above the bottom edge and 12px in from each side.
     await expect.poll(async () => {
       const box = (await bar.boundingBox())!;
-      return Math.abs(box.y + box.height - viewport.height) <= 1;
+      return Math.abs(viewport.height - (box.y + box.height) - 10) <= 1;
     }).toBe(true);
-    expect(Math.round((await bar.boundingBox())!.width)).toBe(viewport.width);
+    const box = (await bar.boundingBox())!;
+    expect(Math.round(box.x)).toBe(12);
+    expect(Math.round(box.width)).toBe(viewport.width - 24);
 
     // Top bar, as in Facebook's app: menu, create, search and Messenger.
     await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();

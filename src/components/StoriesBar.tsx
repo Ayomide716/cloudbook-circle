@@ -14,7 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import LiveRoomStories from "./LiveRoomStories";
-import YourStoryCard from "./YourStoryCard";
 import { compactCount, shortTime } from "@/lib/time";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { formatDistanceToNow } from "date-fns";
@@ -330,28 +329,15 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             </div>
           </button>
 
-          {/* Your numbers, and your stories if you have any */}
-          <YourStoryCard
-            userId={currentUserId}
-            name={myProfile?.full_name ?? null}
-            avatarUrl={myProfile?.avatar_url ?? null}
-            onOpen={() => {
-              const mine = storyGroups.findIndex((g) => g.userId === currentUserId);
-              if (mine >= 0) openViewer(mine);
-              else setIsCreating(true);
-            }}
-          />
-
           {/* Live voice rooms in your groups */}
           <LiveRoomStories currentUserId={currentUserId} />
 
-          {/* Friends' stories: their photo and name, the picture, the caption, time and views */}
+          {/* Stories (yours first): the person's photo and name, the picture, the caption, time and views */}
           {storyGroups.map((group, index) => {
-            if (group.userId === currentUserId) return null;
             const latest = group.stories[group.stories.length - 1];
             const when = shortTime(latest.created_at);
             return (
-              <button key={group.userId} className="flex-shrink-0 group" onClick={() => openViewer(index)} aria-label={`${group.profile.full_name || "User"}'s story`}>
+              <button key={group.userId} className="flex-shrink-0 group" onClick={() => openViewer(index)} aria-label={group.userId === currentUserId ? "Your story" : `${group.profile.full_name || "User"}'s story`}>
                 <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden border border-border bg-card transition-transform duration-200 group-active:scale-[0.98]">
                   <img src={latest.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/80" />
@@ -364,7 +350,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                         </AvatarFallback>
                       </Avatar>
                     </div>
-                    <p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">{group.profile.full_name || "User"}</p>
+                    <p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">{group.userId === currentUserId ? "Your story" : group.profile.full_name || "User"}</p>
                   </div>
                   {group.stories.length > 1 && (
                     <span className="absolute top-12 right-2 rounded-full bg-black/50 px-1.5 text-[10px] font-bold text-white">{group.stories.length}</span>

@@ -26,8 +26,8 @@ interface BottomNavProps {
 }
 
 /**
- * The tab bar, laid out like Facebook's app: Home, Friends, Reels, Groups, Notifications
- * and your Profile along the bottom, the current tab in teal with a line on top.
+ * The tab bar, a floating pill: Home, Friends, Reels, Groups, Notifications and your
+ * Profile, the current tab glowing teal.
  * (Facebook's fourth tab is Marketplace; CloudBook keeps Groups there. The Menu is the
  * ☰ button in the top bar.)
  */
@@ -60,13 +60,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   );
 
   return (
-    // Solid, and its colour runs on below the screen edge, so no strip of page shows under it
-    // while the installed app settles into the space above the phone's gesture bar.
+    // A floating pill above the bottom edge of the screen.
     <nav
       aria-label="Main"
-      className="app-dock fixed bottom-0 inset-x-0 z-50 rounded-t-[22px] border border-b-0 border-border bg-card pb-[env(safe-area-inset-bottom)] shadow-[0_-10px_30px_-12px_rgba(0,0,0,0.45)] after:absolute after:inset-x-0 after:top-full after:h-24 after:bg-card after:content-[''] md:hidden"
+      className="app-dock fixed inset-x-3 bottom-[calc(0.625rem+env(safe-area-inset-bottom,0px))] z-50 rounded-full border border-border bg-card/95 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.55)] backdrop-blur-md dark:border-[hsl(210_40%_22%/0.6)] dark:bg-[linear-gradient(180deg,hsl(214_45%_11%/0.96),hsl(218_50%_7.5%/0.96))] dark:shadow-[inset_0_1px_0_hsl(190_80%_75%/0.08),0_14px_34px_-8px_rgba(0,0,0,0.8)] md:hidden"
     >
-      <div className="grid grid-cols-6 h-[62px] pt-1">
+      <div className="grid grid-cols-6 h-[60px] px-1.5">
         {tabs.map((tab) => {
           const active = isActive(tab.path);
           return (
