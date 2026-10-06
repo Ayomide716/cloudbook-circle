@@ -14,6 +14,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import LiveRoomStories from "./LiveRoomStories";
+import YourStoryCard from "./YourStoryCard";
+import { compactCount, shortTime } from "@/lib/time";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -38,6 +40,8 @@ interface UserStoryGroup {
   profile: { id: string; full_name: string | null; avatar_url: string | null };
   stories: Story[];
   hasUnviewed: boolean;
+  /** How many times these stories were viewed (only counted where you may see the views). */
+  views: number;
 }
 
 interface StoriesBarProps {
@@ -106,6 +110,10 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         .in("story_id", storyIds);
 
       const viewedIds = new Set((views || []).map((v) => v.story_id));
+      // View counts, shown on the cards as "3.4K views".
+      const { data: allViews } = await supabase.from("story_views").select("story_id").in("story_id", storyIds);
+      const viewsPerStory = new Map<string, number>();
+      for (const v of allViews ?? []) viewsPerStory.set(v.story_id, (viewsPerStory.get(v.story_id) ?? 0) + 1);
 
       // Group by user
       const groupMap = new Map<string, UserStoryGroup>();
@@ -117,10 +125,12 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             profile: story.profiles,
             stories: [],
             hasUnviewed: false,
+            views: 0,
           });
         }
         const group = groupMap.get(uid)!;
         group.stories.push(story);
+        group.views += viewsPerStory.get(story.id) ?? 0;
         if (!viewedIds.has(story.id)) group.hasUnviewed = true;
       });
 
@@ -298,70 +308,78 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   return (
     <>
-      <div className="feed-section feed-stories sm:mb-4">
-        <div className="flex gap-3 overflow-x-auto py-2 px-1.5 -mx-1.5 scrollbar-hide">
-          {/* Create Story */}
-          <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)}>
-            <div className="relative w-[104px] h-[172px] rounded-xl overflow-hidden border border-border bg-card shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
-              <div className="h-[66%] bg-secondary/60 flex items-center justify-center overflow-hidden">
-                {myProfile?.avatar_url ? (
-                  <img src={myProfile.avatar_url} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="font-display text-3xl font-bold text-primary">
-                    {myProfile?.full_name?.[0]?.toUpperCase() || <Plus className="h-5 w-5 text-muted-foreground" />}
-                  </span>
-                )}
-              </div>
-              <div className="absolute bottom-0 inset-x-0 h-[34%] bg-card flex flex-col items-center justify-end pb-2">
-                <div className="absolute -top-[18px] w-9 h-9 rounded-full bg-primary flex items-center justify-center border-[3px] border-card">
-                  <Plus className="h-5 w-5 text-primary-foreground" strokeWidth={2.6} />
+      <div className="feed-stories sm:mb-4">
+        <div className="flex gap-2 overflow-x-auto py-1 px-0.5 -mx-0.5 scrollbar-hide">
+          {/* Create a story: your photo, a glowing outline and a + */}
+          <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)} aria-label="Create a story">
+            <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden bg-card ring-[1.5px] ring-primary shadow-[0_0_18px_-2px_hsl(var(--primary)/0.65)] transition-transform duration-200 group-active:scale-[0.98]">
+              {myProfile?.avatar_url ? (
+                <img src={myProfile.avatar_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center bg-secondary">
+                  <span className="font-display text-4xl font-bold text-primary">{myProfile?.full_name?.[0]?.toUpperCase() || "+"}</span>
                 </div>
-                <p className="text-xs font-semibold leading-tight text-foreground text-center px-1">Create a<br />story</p>
+              )}
+              <div className="absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-card via-card/90 to-transparent" />
+              <div className="absolute inset-x-0 bottom-2.5 flex flex-col items-center">
+                <span className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.7)]">
+                  <Plus className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
+                </span>
+                <p className="text-[11.5px] font-semibold leading-tight text-foreground text-center">Create a<br />story</p>
               </div>
             </div>
           </button>
 
+          {/* Your numbers, and your stories if you have any */}
+          <YourStoryCard
+            userId={currentUserId}
+            name={myProfile?.full_name ?? null}
+            avatarUrl={myProfile?.avatar_url ?? null}
+            onOpen={() => {
+              const mine = storyGroups.findIndex((g) => g.userId === currentUserId);
+              if (mine >= 0) openViewer(mine);
+              else setIsCreating(true);
+            }}
+          />
+
           {/* Live voice rooms in your groups */}
           <LiveRoomStories currentUserId={currentUserId} />
 
-          {/* Story Groups */}
-          {storyGroups.map((group, index) => (
-            <button
-              key={group.userId}
-              className="flex-shrink-0 group"
-              onClick={() => openViewer(index)}
-            >
-              <div className="transition-transform duration-200 group-hover:scale-[1.03]">
-              <div className="relative w-[104px] h-[172px] rounded-xl overflow-hidden shadow-sm">
-                <img
-                  src={group.stories[group.stories.length - 1].media_url}
-                  alt="Story"
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-300"
-                />
-                <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/70" />
-                {/* As in Facebook: the ring is on the person's avatar, in the brand gradient while unseen. */}
-                <div className={cn("absolute top-2 left-2 rounded-full p-[2.5px]", group.hasUnviewed ? "gradient-brand" : "bg-white/60")}>
-                  <Avatar className="h-9 w-9 border-2 border-black/20">
-                    <AvatarImage src={group.profile.avatar_url || undefined} />
-                    <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
-                      {group.profile.full_name?.[0]?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
-                {group.stories.length > 1 && (
-                  <div className="absolute top-2 right-2 bg-primary text-primary-foreground text-[9px] font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                    {group.stories.length}
+          {/* Friends' stories: their photo and name, the picture, the caption, time and views */}
+          {storyGroups.map((group, index) => {
+            if (group.userId === currentUserId) return null;
+            const latest = group.stories[group.stories.length - 1];
+            const when = shortTime(latest.created_at);
+            return (
+              <button key={group.userId} className="flex-shrink-0 group" onClick={() => openViewer(index)} aria-label={`${group.profile.full_name || "User"}'s story`}>
+                <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden border border-border bg-card transition-transform duration-200 group-active:scale-[0.98]">
+                  <img src={latest.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
+                  <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/80" />
+                  <div className="absolute top-2 left-2 right-2 flex items-center gap-1.5">
+                    <div className={cn("shrink-0 rounded-full p-[2px]", group.hasUnviewed ? "bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]" : "bg-white/50")}>
+                      <Avatar className="h-7 w-7 border-2 border-black/30">
+                        <AvatarImage src={group.profile.avatar_url || undefined} />
+                        <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
+                          {group.profile.full_name?.[0]?.toUpperCase() || "U"}
+                        </AvatarFallback>
+                      </Avatar>
+                    </div>
+                    <p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">{group.profile.full_name || "User"}</p>
                   </div>
-                )}
-                <div className="absolute bottom-2 left-2 right-2">
-                  <p className="text-white text-[13px] font-semibold leading-tight line-clamp-2 drop-shadow-lg">
-                    {group.userId === currentUserId ? "Your Story" : group.profile.full_name || "User"}
-                  </p>
+                  {group.stories.length > 1 && (
+                    <span className="absolute top-12 right-2 rounded-full bg-black/50 px-1.5 text-[10px] font-bold text-white">{group.stories.length}</span>
+                  )}
+                  <div className="absolute inset-x-2 bottom-2 text-left">
+                    {latest.caption && <p className="mb-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow">{latest.caption}</p>}
+                    <p className="text-[9.5px] text-white/75">
+                      {when === "Just now" ? when : `${when} ago`}
+                      {group.views > 0 && <> · {compactCount(group.views)} {group.views === 1 ? "view" : "views"}</>}
+                    </p>
+                  </div>
                 </div>
-              </div>
-              </div>
-            </button>
-          ))}
+              </button>
+            );
+          })}
         </div>
       </div>
 

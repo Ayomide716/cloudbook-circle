@@ -66,7 +66,7 @@ const PostContent = ({ content }: PostContentProps) => {
   };
 
   return (
-    <p className="mt-3 text-sm sm:text-base whitespace-pre-wrap break-words">
+    <p className="mt-2.5 text-[14px] leading-snug sm:text-base whitespace-pre-wrap break-words">
       {parseContent(content)}
     </p>
   );

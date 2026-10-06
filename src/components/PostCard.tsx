@@ -80,7 +80,8 @@ export interface PostCardProps {
 }
 
 const REACTION_TYPES = [
-  { type: 'like', icon: ThumbsUp, label: 'Like', color: 'text-primary', bgColor: 'bg-primary' },
+  // Likes are Facebook blue, as in the mockup.
+  { type: 'like', icon: ThumbsUp, label: 'Like', color: 'text-[#2d88ff]', bgColor: 'bg-[#2d88ff]' },
   { type: 'love', icon: Heart, label: 'Love', color: 'text-red-500', bgColor: 'bg-red-500' },
   { type: 'haha', icon: Laugh, label: 'Haha', color: 'text-yellow-500', bgColor: 'bg-yellow-500' },
   { type: 'wow', icon: Sparkles, label: 'Wow', color: 'text-yellow-500', bgColor: 'bg-yellow-500' },
@@ -364,10 +365,10 @@ const PostCard = ({
   return (
     <Card className="feed-section shadow-sm overflow-hidden rounded-2xl border-border/60">
       {/* Header */}
-      <div className="p-3 sm:p-4">
-        <div className="flex items-start gap-2 sm:gap-3">
+      <div className="p-3 pb-2 sm:p-4">
+        <div className="flex items-start gap-2.5 sm:gap-3">
           <Link to={`/profile/${post.profiles.id}`}>
-            <Avatar className="h-10 w-10">
+            <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
               <AvatarImage src={post.profiles.avatar_url || undefined} />
               <AvatarFallback className="bg-secondary">
                 {post.profiles.full_name?.[0]?.toUpperCase() || "U"}
@@ -377,13 +378,13 @@ const PostCard = ({
           
           <div className="flex-1 min-w-0">
             <Link to={`/profile/${post.profiles.id}`}>
-              <p className="font-semibold text-sm sm:text-base hover:underline inline-flex items-center gap-1">
+              <p className="font-semibold text-[14px] sm:text-base leading-tight hover:underline inline-flex items-center gap-1">
                 {post.profiles.full_name || "Anonymous"}
                 {post.profiles.is_verified && <VerifiedBadge size="sm" />}
               </p>
             </Link>
             {/* As in Facebook: "Lekki, Lagos · 2h · 🌐" (CloudBook posts are public). */}
-            <p className="flex items-center gap-1 text-[13px] text-muted-foreground min-w-0">
+            <p className="flex items-center gap-1 text-[11.5px] sm:text-[13px] text-muted-foreground min-w-0">
               {post.location && <><span className="truncate">{post.location}</span><span aria-hidden="true">·</span></>}
               <time dateTime={toDate(post.created_at).toISOString()} title={formatDistanceToNow(toDate(post.created_at), { addSuffix: true })} className="shrink-0">
                 {shortTime(post.created_at)}
@@ -496,7 +497,7 @@ const PostCard = ({
 
       {/* Media */}
       {post.video_url && (
-        <div className="relative w-full bg-black">
+        <div className="relative mx-2.5 overflow-hidden rounded-2xl bg-black">
           <video
             // "#t=0.1" makes phones (iOS especially) show the first frame instead of a black box.
             src={post.video_url.includes("#") ? post.video_url : `${post.video_url}#t=0.1`}
@@ -512,7 +513,7 @@ const PostCard = ({
       )}
       {!post.video_url && photos.length > 0 && (
         <>
-          <div className="relative">
+          <div className="relative mx-2.5 overflow-hidden rounded-2xl">
             <PhotoCollage
               images={photos}
               onOpen={setViewerIndex}
@@ -554,86 +555,101 @@ const PostCard = ({
          </div>
        )}
 
-      {/* Actions, as in Facebook: 👍 99 · 💬 12 · ↪ on the left, the reactions people used on the right. */}
-      <div className="px-1.5 sm:px-2 py-1 flex items-center relative">
-        <div
-          className="relative"
-          onMouseEnter={() => setShowReactions(true)}
-          onMouseLeave={() => setShowReactions(false)}
-        >
-          {/* Reaction Picker */}
-          {showReactions && (
-            <div className="absolute bottom-full left-0 pb-2 z-20">
-              <div className="bg-card border rounded-full shadow-lg p-1.5 flex gap-1 animate-in fade-in-0 zoom-in-95">
-                {REACTION_TYPES.map(({ type, icon: Icon, label, color }) => (
-                  <button
-                    key={type}
-                    onClick={() => handleReaction(type)}
-                    className="p-1.5 hover:scale-125 transition-transform rounded-full hover:bg-accent"
-                    title={label}
-                    aria-label={label}
-                  >
-                    <Icon className={cn("h-6 w-6", color)} />
-                  </button>
-                ))}
-              </div>
-            </div>
+      {/* Summary: the reactions people used and how many, then the comment count (as in the mockup). */}
+      {(totalReactions > 0 || comments.length > 0) && (
+        <div className="flex items-center gap-2 px-3.5 pt-2 text-[12.5px] text-muted-foreground">
+          {totalReactions > 0 && (
+            <span className="flex items-center gap-1.5">
+              <span className="flex -space-x-1" aria-hidden="true">
+                {topReactions.map(([type]) => {
+                  const reaction = REACTION_TYPES.find(r => r.type === type);
+                  if (!reaction) return null;
+                  const Icon = reaction.icon;
+                  return (
+                    <span key={type} className={cn("h-[18px] w-[18px] rounded-full flex items-center justify-center ring-2 ring-card", reaction.bgColor)}>
+                      <Icon className="h-2.5 w-2.5 text-white" />
+                    </span>
+                  );
+                })}
+              </span>
+              {compactCount(totalReactions)}
+            </span>
           )}
+          <span className="ml-auto flex items-center gap-1">
+            {comments.length > 0 && (
+              <button type="button" className="hover:underline" onClick={() => setShowComments(true)}>
+                {compactCount(comments.length)} {comments.length === 1 ? "comment" : "comments"}
+              </button>
+            )}
+            <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact />
+          </span>
+        </div>
+      )}
+
+      {/* Like · Comment · Share in one outlined pill; Like turns blue and filled once you've liked. */}
+      <div className="px-2.5 pt-2 pb-2.5">
+        <div className="grid grid-cols-3 items-center rounded-full border border-border">
+          <div
+            className="relative flex justify-center"
+            onMouseEnter={() => setShowReactions(true)}
+            onMouseLeave={() => setShowReactions(false)}
+          >
+            {/* Reaction Picker */}
+            {showReactions && (
+              <div className="absolute bottom-full left-0 pb-2 z-20">
+                <div className="bg-card border rounded-full shadow-lg p-1.5 flex gap-1 animate-in fade-in-0 zoom-in-95">
+                  {REACTION_TYPES.map(({ type, icon: Icon, label, color }) => (
+                    <button
+                      key={type}
+                      onClick={() => handleReaction(type)}
+                      className="p-1.5 hover:scale-125 transition-transform rounded-full hover:bg-accent"
+                      title={label}
+                      aria-label={label}
+                    >
+                      <Icon className={cn("h-6 w-6", color)} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            <Button
+              variant="ghost"
+              className={cn("h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]", currentReaction?.color)}
+              // Tapping removes your reaction, whichever it is; with none it's a like.
+              onClick={() => handleReaction(userReaction ?? 'like')}
+              aria-pressed={!!userReaction}
+              aria-label={`${currentReaction?.label ?? "Like"}${totalReactions ? `, ${totalReactions} ${totalReactions === 1 ? "reaction" : "reactions"}` : ""}`}
+            >
+              {currentReaction && currentReaction.type !== "like" ? (
+                <currentReaction.icon className={cn("h-[21px] w-[21px]", currentReaction.color)} />
+              ) : (
+                <PhThumbsUp className="h-[21px] w-[21px]" weight={currentReaction ? "fill" : "regular"} aria-hidden="true" />
+              )}
+              {currentReaction?.label ?? "Like"}
+            </Button>
+          </div>
 
           <Button
             variant="ghost"
-            className={cn("h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent [&_svg]:size-[22px]", currentReaction?.color)}
-            // Tapping removes your reaction, whichever it is; with none it's a like.
-            onClick={() => handleReaction(userReaction ?? 'like')}
-            aria-pressed={!!userReaction}
-            aria-label={`${currentReaction?.label ?? "Like"}${totalReactions ? `, ${totalReactions} ${totalReactions === 1 ? "reaction" : "reactions"}` : ""}`}
+            className="h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]"
+            onClick={() => setShowComments(!showComments)}
+            aria-expanded={showComments}
+            aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
           >
-            {/* Facebook-style bold icons; a filled thumb once you've liked. */}
-            {currentReaction && currentReaction.type !== "like" ? (
-              <currentReaction.icon className={cn("h-[22px] w-[22px]", currentReaction.color)} />
-            ) : (
-              <PhThumbsUp className="h-[22px] w-[22px]" weight={currentReaction ? "fill" : "bold"} aria-hidden="true" />
-            )}
-            {totalReactions > 0 && <span className="text-[15px] font-medium">{compactCount(totalReactions)}</span>}
+            <ChatCircle className="h-[21px] w-[21px]" weight="regular" aria-hidden="true" />
+            Comment
+          </Button>
+
+          <Button
+            variant="ghost"
+            className="h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]"
+            onClick={() => setShowShareDialog(true)}
+            aria-label="Share"
+          >
+            <ShareFat className="h-[21px] w-[21px]" weight="regular" aria-hidden="true" />
+            Share
           </Button>
         </div>
-
-        <Button
-          variant="ghost"
-          className="h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent [&_svg]:size-[22px]"
-          onClick={() => setShowComments(!showComments)}
-          aria-expanded={showComments}
-          aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
-        >
-          <ChatCircle className="h-[22px] w-[22px]" weight="bold" aria-hidden="true" />
-          {comments.length > 0 && <span className="text-[15px] font-medium">{compactCount(comments.length)}</span>}
-        </Button>
-
-        <Button
-          variant="ghost"
-          className="h-10 gap-1.5 px-3 text-muted-foreground hover:bg-accent [&_svg]:size-[22px]"
-          onClick={() => setShowShareDialog(true)}
-          aria-label="Share"
-        >
-          <ShareFat className="h-[22px] w-[22px]" weight="bold" aria-hidden="true" />
-        </Button>
-
-        <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact />
-
-        {topReactions.length > 0 && (
-          <div className="ml-auto flex -space-x-1 pr-2" aria-hidden="true">
-            {topReactions.map(([type]) => {
-              const reaction = REACTION_TYPES.find(r => r.type === type);
-              if (!reaction) return null;
-              const Icon = reaction.icon;
-              return (
-                <div key={type} className={cn("h-[18px] w-[18px] rounded-full flex items-center justify-center ring-2 ring-card", reaction.bgColor)}>
-                  <Icon className="h-2.5 w-2.5 text-white" />
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
 
        {/* Share Dialog */}

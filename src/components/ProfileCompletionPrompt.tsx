@@ -57,19 +57,19 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
         initial={{ opacity: 0, y: -6 }}
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0, y: -6 }}
-        className="feed-section flex items-center gap-3 rounded-2xl border border-border/60 bg-card px-3 py-2.5 sm:px-4"
+        className="feed-section flex items-center gap-2.5 rounded-2xl border border-border/60 bg-card px-3 py-2 sm:px-4"
       >
         <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold">
+          <p className="truncate text-[13px] font-semibold">
             Your profile is {completion}% done
           </p>
-          <Progress value={completion} className="mt-1.5 h-1.5" aria-label={`Profile ${completion}% complete. Next: ${nextStep}`} />
+          <Progress value={completion} className="mt-1.5 h-1" aria-label={`Profile ${completion}% complete. Next: ${nextStep}`} />
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="h-8 shrink-0 rounded-full text-xs"
+          className="h-7 shrink-0 rounded-full px-3 text-[12px]"
           onClick={() => navigate(`/profile/${userId}`)}
           title={`Next: ${nextStep}`}
         >

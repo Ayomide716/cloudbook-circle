@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Image, Video, X, Loader2 } from "lucide-react";
+import { X, Loader2, Paperclip, Camera } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils";
 
@@ -147,12 +147,13 @@ const ChatMediaUpload = ({
             size="icon"
             onClick={() => imageInputRef.current?.click()}
             disabled={isUploading}
-            className="h-9 w-9 rounded-full"
+            className="h-9 w-9 rounded-full text-muted-foreground"
+            aria-label="Attach a photo"
           >
             {isUploading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
             ) : (
-              <Image className="h-5 w-5 text-muted-foreground" />
+              <Paperclip className="h-[22px] w-[22px] -rotate-45" />
             )}
           </Button>
           <Button
@@ -161,9 +162,10 @@ const ChatMediaUpload = ({
             size="icon"
             onClick={() => videoInputRef.current?.click()}
             disabled={isUploading}
-            className="h-9 w-9 rounded-full text-destructive"
+            className="h-9 w-9 rounded-full text-muted-foreground"
+            aria-label="Send a video"
           >
-            <Video className="h-5 w-5" />
+            <Camera className="h-[22px] w-[22px]" />
           </Button>
         </>
       )}

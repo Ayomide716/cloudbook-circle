@@ -54,53 +54,54 @@
     --shadow-lg: 0 12px 40px -8px hsl(200 25% 10% / 0.1);
     --shadow-glow: 0 0 24px hsl(174 72% 40% / 0.15);
     --shadow-dock: 0 8px 40px -8px hsl(200 25% 10% / 0.15), 0 0 0 1px hsl(180 10% 90% / 0.5);
-    --nav-height: 3.75rem;
+    --nav-height: 3.5rem;
   }
 
   .dark {
-    --background: 220 18% 7%;
-    --foreground: 210 20% 94%;
+    /* Deep navy with bright cyan, as in the 2026 mockup. */
+    --background: 222 60% 4%;
+    --foreground: 210 30% 95%;
 
-    --card: 220 16% 11%;
-    --card-foreground: 210 20% 94%;
+    --card: 218 48% 8%;
+    --card-foreground: 210 30% 95%;
 
-    --popover: 220 16% 11%;
-    --popover-foreground: 210 20% 94%;
+    --popover: 218 48% 8%;
+    --popover-foreground: 210 30% 95%;
 
-    --primary: 174 72% 45%;
-    /* The bright teal reads best with dark text on it (white was 2.2:1). */
-    --primary-foreground: 180 60% 6%;
-    --primary-glow: 174 80% 55%;
+    --primary: 177 78% 47%;
+    /* The bright cyan reads best with dark text on it. */
+    --primary-foreground: 200 60% 6%;
+    --primary-glow: 177 85% 55%;
 
-    --secondary: 220 14% 15%;
-    --secondary-foreground: 210 20% 94%;
+    --secondary: 216 40% 12%;
+    --secondary-foreground: 210 30% 95%;
 
-    --muted: 220 14% 15%;
-    --muted-foreground: 210 12% 55%;
+    --muted: 216 40% 12%;
+    --muted-foreground: 214 18% 62%;
 
-    --accent: 174 25% 18%;
-    --accent-foreground: 210 20% 94%;
+    --accent: 190 40% 15%;
+    --accent-foreground: 210 30% 95%;
 
     --gold: 36 90% 52%;
     --gold-foreground: 0 0% 100%;
 
-    --destructive: 0 70% 50%;
+    --destructive: 0 75% 55%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 220 14% 18%;
-    --input: 220 14% 18%;
-    --ring: 174 72% 45%;
+    --border: 214 35% 16%;
+    --input: 214 35% 16%;
+    --ring: 177 78% 47%;
 
-    --gradient-brand: linear-gradient(135deg, hsl(174 72% 45%), hsl(36 90% 52%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(174 72% 45% / 0.15), hsl(36 90% 52% / 0.15));
-    --gradient-card: linear-gradient(145deg, hsl(220 16% 11%), hsl(220 16% 9%));
+    --gradient-brand: linear-gradient(135deg, hsl(177 78% 47%), hsl(196 90% 55%));
+    --gradient-brand-soft: linear-gradient(135deg, hsl(177 78% 47% / 0.15), hsl(196 90% 55% / 0.15));
+    --gradient-card: linear-gradient(145deg, hsl(216 42% 10%), hsl(218 45% 8%));
 
-    --glass-bg: 220 16% 11% / 0.88;
-    --glass-border: 220 14% 22% / 0.6;
+    --glass-bg: 218 48% 8% / 0.94;
+    --glass-border: 215 32% 20% / 0.7;
     --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
     --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.4);
     --shadow-lg: 0 12px 40px -8px hsl(0 0% 0% / 0.55);
-    --shadow-glow: 0 0 30px hsl(174 72% 45% / 0.2);
+    --shadow-glow: 0 0 24px hsl(177 78% 47% / 0.35);
     --shadow-dock: 0 8px 40px -8px hsl(0 0% 0% / 0.5), 0 0 0 1px hsl(220 14% 22% / 0.6);
   }
 }
@@ -249,33 +250,44 @@
     @apply transition-all duration-200 hover:bg-accent/10 rounded-xl;
   }
 
-  /* Phones: feed and page sections run edge to edge with square corners and a thin gap between
-     them, like Facebook's app. Scoped to .feed-flush / .page-flush containers, so the same cards
-     stay rounded elsewhere (dialogs, sidebars) and on bigger screens. */
+  /* Phones: page sections run edge to edge with square corners and a thin gap between them,
+     like Facebook's app. Scoped to .page-flush containers, so the same cards stay rounded
+     elsewhere (dialogs, sidebars) and on bigger screens. */
   @media (max-width: 639px) {
-    :is(.feed-flush, .page-flush) .feed-section {
+    .page-flush .feed-section {
       border-radius: 0;
       border-left-width: 0;
       border-right-width: 0;
       box-shadow: none;
     }
-    /* The composer sits right under the top bar, as one piece with it. */
-    :is(.feed-flush, .page-flush) > .feed-section:first-child {
+    .page-flush > .feed-section:first-child {
       border-top-width: 0;
     }
-    .feed-flush .feed-stories {
-      background: hsl(var(--card));
-      border-top: 1px solid hsl(var(--border) / 0.6);
-      border-bottom: 1px solid hsl(var(--border) / 0.6);
-      padding: 0.25rem 0.75rem;
+    /* The feed: rounded, softly outlined cards with a margin, floating on the background. */
+    .feed-flush {
+      padding: 0.75rem 0.75rem 0;
     }
+    .feed-flush > * + * {
+      margin-top: 0.875rem;
+    }
+    .feed-flush .feed-section {
+      border-radius: 1.125rem;
+    }
+  }
+
+  /* Dark mode "shine" on feed cards: a faint gradient and a thin light edge along the top. */
+  .dark .feed-flush .feed-section,
+  .dark .shine-card {
+    background-image: linear-gradient(180deg, hsl(214 45% 11%) 0%, hsl(218 50% 7.5%) 100%);
+    border-color: hsl(210 40% 22% / 0.55);
+    box-shadow: inset 0 1px 0 hsl(190 80% 75% / 0.07), 0 10px 28px -14px rgb(0 0 0 / 0.7);
   }
 
   /* Room for the floating dock (mobile bottom bar / desktop dock) so it never covers content.
      Navigation adds this class to <body> whenever a dock is shown. */
   .has-dock {
-    /* Phones: the flat bottom bar (3.5rem) plus a little air. */
-    padding-bottom: calc(4.25rem + env(safe-area-inset-bottom, 0px));
+    /* Phones: the bottom bar (about 4.6rem) plus a little air. */
+    padding-bottom: calc(4.75rem + env(safe-area-inset-bottom, 0px));
   }
 
   @screen md {
@@ -297,6 +309,17 @@
   }
   body.keyboard-open.has-dock {
     padding-bottom: 0;
+  }
+
+  /* Chat wallpaper: faint doodles (hearts, stars, clouds, bubbles), like WhatsApp's. */
+  .chat-wallpaper {
+    background-color: hsl(var(--background));
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22220%22%20height=%22220%22%20viewBox=%220%200%20220%20220%22%3E%3Cg%20fill=%22none%22%20stroke=%22%230D877A%22%20stroke-opacity=%220.08%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%20%3Cpath%20d=%22M30%2038c-6-5-12-9-12-15a6%206%200%200%201%2012-2%206%206%200%200%201%2012%202c0%206-6%2010-12%2015z%22/%3E%20%3Cpath%20d=%22M150%2022l3%207%208%201-6%205%202%208-7-4-7%204%202-8-6-5%208-1z%22/%3E%20%3Cpath%20d=%22M92%2070c-8%200-13-5-13-11%200-5%204-10%2010-10%202-7%208-11%2014-11%207%200%2012%204%2014%2010%206%200%2010%204%2010%2010s-5%2012-12%2012z%22/%3E%20%3Cpath%20d=%22M28%20120h30a6%206%200%200%201%206%206v16a6%206%200%200%201-6%206H44l-9%208v-8h-7a6%206%200%200%201-6-6v-16a6%206%200%200%201%206-6z%22/%3E%20%3Ccircle%20cx=%2235%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2243%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2251%22%20cy=%22134%22%20r=%221.5%22/%3E%20%3Cpath%20d=%22M168%20104v24a5%205%200%201%201-3-4.6V108l14-4v20a5%205%200%201%201-3-4.6V102z%22/%3E%20%3Crect%20x=%22118%22%20y=%22160%22%20width=%2234%22%20height=%2224%22%20rx=%225%22/%3E%3Ccircle%20cx=%22135%22%20cy=%22172%22%20r=%226%22/%3E%3Cpath%20d=%22M127%20160l3-5h10l3%205%22/%3E%20%3Ccircle%20cx=%22190%22%20cy=%22180%22%20r=%228%22/%3E%3Cpath%20d=%22M190%20166v-4M190%20198v-4M176%20180h-4M208%20180h-4%22/%3E%20%3Cpath%20d=%22M78%20176l6-12%206%2012%206-12%206%2012%22/%3E%20%3Cpath%20d=%22M100%20120c0-6%206-8%209-4%203-4%209-2%209%204%200%205-9%2010-9%2010s-9-5-9-10z%22/%3E%20%3C/g%3E%3C/svg%3E");
+    background-size: 170px 170px;
+  }
+  .dark .chat-wallpaper {
+    background-color: #0b0e12;
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22220%22%20height=%22220%22%20viewBox=%220%200%20220%20220%22%3E%3Cg%20fill=%22none%22%20stroke=%22%232bb3a3%22%20stroke-opacity=%220.07%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%20%3Cpath%20d=%22M30%2038c-6-5-12-9-12-15a6%206%200%200%201%2012-2%206%206%200%200%201%2012%202c0%206-6%2010-12%2015z%22/%3E%20%3Cpath%20d=%22M150%2022l3%207%208%201-6%205%202%208-7-4-7%204%202-8-6-5%208-1z%22/%3E%20%3Cpath%20d=%22M92%2070c-8%200-13-5-13-11%200-5%204-10%2010-10%202-7%208-11%2014-11%207%200%2012%204%2014%2010%206%200%2010%204%2010%2010s-5%2012-12%2012z%22/%3E%20%3Cpath%20d=%22M28%20120h30a6%206%200%200%201%206%206v16a6%206%200%200%201-6%206H44l-9%208v-8h-7a6%206%200%200%201-6-6v-16a6%206%200%200%201%206-6z%22/%3E%20%3Ccircle%20cx=%2235%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2243%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2251%22%20cy=%22134%22%20r=%221.5%22/%3E%20%3Cpath%20d=%22M168%20104v24a5%205%200%201%201-3-4.6V108l14-4v20a5%205%200%201%201-3-4.6V102z%22/%3E%20%3Crect%20x=%22118%22%20y=%22160%22%20width=%2234%22%20height=%2224%22%20rx=%225%22/%3E%3Ccircle%20cx=%22135%22%20cy=%22172%22%20r=%226%22/%3E%3Cpath%20d=%22M127%20160l3-5h10l3%205%22/%3E%20%3Ccircle%20cx=%22190%22%20cy=%22180%22%20r=%228%22/%3E%3Cpath%20d=%22M190%20166v-4M190%20198v-4M176%20180h-4M208%20180h-4%22/%3E%20%3Cpath%20d=%22M78%20176l6-12%206%2012%206-12%206%2012%22/%3E%20%3Cpath%20d=%22M100%20120c0-6%206-8%209-4%203-4%209-2%209%204%200%205-9%2010-9%2010s-9-5-9-10z%22/%3E%20%3C/g%3E%3C/svg%3E");
   }
 
   /* Loading placeholders: a light band sweeps across, as in Facebook's app. */

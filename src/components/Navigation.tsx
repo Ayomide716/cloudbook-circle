@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield } from "lucide-react";
+import { Cloud, Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield } from "lucide-react";
 import { List, MagnifyingGlass, MessengerLogo, PlusCircle } from "@phosphor-icons/react";
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
@@ -179,7 +179,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
     <>
       {/* Top bar - minimal brand + search + actions */}
       <header className={cn("sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50 max-md:bg-card max-md:border-x-0 max-md:border-t-0", hideMobileTopBar && "max-md:hidden")}>
-        <div className="max-w-[1400px] mx-auto px-4 lg:px-6">
+        <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-[var(--nav-height)]">
             {/* Left - Logo (phones: the Menu button sits before it, as in Facebook's app) */}
             <div className="flex items-center gap-1 shrink-0">
@@ -187,17 +187,21 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
               <Button
                 variant="ghost"
                 size="icon"
-                className="md:hidden -ml-2 h-11 w-11 rounded-full [&_svg]:size-[30px] hover:bg-secondary"
+                className="md:hidden -ml-1.5 h-8 w-8 rounded-full [&_svg]:size-[22px] hover:bg-secondary"
                 onClick={() => navigate("/menu")}
                 aria-label="Menu"
                 aria-current={location.pathname === "/menu" ? "page" : undefined}
               >
-                <List className="h-[30px] w-[30px]" weight="bold" aria-hidden="true" />
+                <List className="h-[26px] w-[26px]" weight="regular" aria-hidden="true" />
               </Button>
             )}
-            {/* Just the name, in one solid colour, as Facebook's app shows "facebook". */}
-            <Link to="/" className="shrink-0" aria-label="CloudBook home">
-              <span className="text-[26px] md:text-2xl font-display font-extrabold tracking-[-0.03em] text-primary leading-none">CloudBook</span>
+            {/* Cloud mark, the name in a cyan-to-white gradient, and the tagline under it. */}
+            <Link to="/" className="shrink-0 flex flex-col" aria-label="CloudBook home">
+              <span className="flex items-center gap-1.5">
+                <Cloud className="h-[22px] w-[22px] md:h-7 md:w-7 text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" strokeWidth={2.6} aria-hidden="true" />
+                <span className="text-[19px] md:text-2xl font-display font-extrabold tracking-[-0.03em] leading-none bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent">CloudBook</span>
+              </span>
+              <span className="md:hidden mt-[3px] pl-1 text-[8.5px] leading-none tracking-[0.18em] text-muted-foreground">Connect · Share · Belong</span>
             </Link>
             </div>
 
@@ -245,39 +249,42 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
               {/* Mobile top bar, as in Facebook's app: plain create, search and Messenger icons.
                   Notifications and everything else live in the bottom tab bar. */}
               {currentUserId && (
-                <div className="flex md:hidden items-center">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-11 w-11 rounded-full hover:bg-secondary [&_svg]:size-[30px]"
-                    onClick={() => navigate("/?compose=1")}
-                    aria-label="Create post"
+                <div className="flex md:hidden items-center gap-1.5">
+                  {/* Round, softly outlined buttons, as in the mockup. */}
+                  {[
+                    { label: "Create post", icon: <PlusCircle className="h-[17px] w-[17px]" aria-hidden="true" />, onClick: () => navigate("/?compose=1") },
+                    { label: "Search", icon: <MagnifyingGlass className="h-[16px] w-[16px]" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
+                    {
+                      label: unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages",
+                      icon: <MessengerLogo className="h-[17px] w-[17px]" aria-hidden="true" />,
+                      onClick: () => navigate("/messages"),
+                      dot: unreadMessages > 0,
+                    },
+                  ].map((b) => (
+                    <button
+                      key={b.label}
+                      type="button"
+                      onClick={b.onClick}
+                      aria-label={b.label}
+                      className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border bg-secondary/60 text-foreground transition-colors active:bg-secondary"
+                    >
+                      {b.icon}
+                      {b.dot && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" aria-hidden="true" />}
+                    </button>
+                  ))}
+                  {/* Your photo: opens your profile. */}
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/profile/${currentUserId}`)}
+                    aria-label="Your profile"
+                    className="relative ml-0.5 rounded-full ring-2 ring-border"
                   >
-                    <PlusCircle className="h-[30px] w-[30px]" weight="bold" aria-hidden="true" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-11 w-11 rounded-full hover:bg-secondary [&_svg]:size-[30px]"
-                    onClick={() => setMobileSearchOpen(true)}
-                    aria-label="Search"
-                  >
-                    <MagnifyingGlass className="h-[30px] w-[30px]" weight="bold" aria-hidden="true" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-11 w-11 rounded-full relative hover:bg-secondary [&_svg]:size-[30px]"
-                    onClick={() => navigate("/messages")}
-                    aria-label={unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages"}
-                  >
-                    <MessengerLogo className="h-[30px] w-[30px]" weight="bold" aria-hidden="true" />
-                    {unreadMessages > 0 && (
-                      <span className="absolute top-0.5 right-0 bg-destructive text-destructive-foreground text-[10px] font-bold rounded-full h-[18px] min-w-[18px] px-1 flex items-center justify-center">
-                        {unreadMessages > 9 ? "9+" : unreadMessages}
-                      </span>
-                    )}
-                  </Button>
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={userProfile?.avatar_url || undefined} alt="" />
+                      <AvatarFallback className="text-sm font-semibold">{userProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                    <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card shadow-[0_0_6px_hsl(var(--primary))]" aria-hidden="true" />
+                  </button>
                 </div>
               )}
               {currentUserId && (
