@@ -26,7 +26,7 @@ interface RowProps {
 
 const RowComponent = ({ index, style, renderItem }: RowComponentProps<RowProps>) => (
   <div style={style} data-message-row={index}>
-    <div className="px-3 sm:px-4 py-1">
+    <div className="px-4 sm:px-5 py-px">
       {renderItem(index)}
     </div>
   </div>

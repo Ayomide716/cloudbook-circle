@@ -11,9 +11,11 @@ interface VoiceMessageRecorderProps {
   disabled?: boolean;
   /** Told when recording/previewing starts or ends, so the composer can give the recorder the whole row. */
   onActiveChange?: (active: boolean) => void;
+  /** Classes for the idle mic button (the chat shows it as a round button, like WhatsApp). */
+  buttonClassName?: string;
 }
 
-const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled, onActiveChange }: VoiceMessageRecorderProps) => {
+const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled, onActiveChange, buttonClassName }: VoiceMessageRecorderProps) => {
   const notifyActive = useEffectEvent((active: boolean) => onActiveChange?.(active));
   const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
@@ -235,7 +237,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled, onActiveChange }: 
       type="button"
       variant="ghost"
       size="icon"
-      className="h-10 w-10 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary"
+      className={buttonClassName ?? "h-10 w-10 rounded-full hover:bg-primary/10 text-muted-foreground hover:text-primary"}
       onClick={startRecording}
       disabled={disabled}
       aria-label="Record voice message"

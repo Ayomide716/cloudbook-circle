@@ -36,10 +36,15 @@ interface ChatBubbleProps {
   onEdit: (message: ChatMessage) => void;
   onUnsend: (messageId: string) => void;
   theme?: string;
+  /** First of a run of messages from the same person: gets the little tail, as in WhatsApp. */
+  isFirstInGroup?: boolean;
+  /** The other person's name, shown on quotes of their messages. */
+  otherName?: string | null;
 }
 
 const themeColors: Record<string, { sent: string; received: string }> = {
-  default: { sent: "bg-primary text-primary-foreground", received: "bg-secondary text-foreground" },
+  // Dark mode: a deep teal for your messages and a raised grey for theirs, as WhatsApp does.
+  default: { sent: "bg-primary text-primary-foreground dark:bg-[#0b5d53] dark:text-white", received: "bg-card text-foreground dark:bg-[#22262d]" },
   ocean: { sent: "bg-blue-600 text-white", received: "bg-blue-100 dark:bg-blue-900/40 text-foreground" },
   sunset: { sent: "bg-orange-700 text-white", received: "bg-orange-100 dark:bg-orange-900/40 text-foreground" },
   forest: { sent: "bg-green-700 text-white", received: "bg-green-100 dark:bg-green-900/40 text-foreground" },
@@ -57,6 +62,8 @@ const ChatBubble = ({
   onEdit,
   onUnsend,
   theme = "default",
+  isFirstInGroup = true,
+  otherName,
 }: ChatBubbleProps) => {
   const [showActions, setShowActions] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -80,7 +87,7 @@ const ChatBubble = ({
   if (message.deleted_at) {
     return (
       <div className={cn("flex", isCurrentUser ? "justify-end" : "justify-start")}>
-        <div className="px-3 py-2 rounded-[18px] bg-muted/50 border border-border/50 italic text-muted-foreground text-sm">
+        <div className="px-2.5 py-1.5 rounded-lg bg-card/80 dark:bg-[#22262d]/80 italic text-muted-foreground text-sm shadow-sm">
           This message was unsent
         </div>
       </div>
@@ -112,7 +119,7 @@ const ChatBubble = ({
       {time}
       {isCurrentUser &&
         (message.read ? (
-          <CheckCheck className="h-3.5 w-3.5 ml-0.5 opacity-100" strokeWidth={2.5} aria-label="Read" />
+          <CheckCheck className="h-3.5 w-3.5 ml-0.5 text-sky-400" strokeWidth={2.5} aria-label="Read" />
         ) : (
           <Check className="h-3.5 w-3.5 ml-0.5 opacity-60" aria-label="Sent" />
         ))}
@@ -175,48 +182,65 @@ const ChatBubble = ({
       </div>
 
       <div className={cn("flex flex-col gap-0.5 min-w-0", isCurrentUser ? "items-end" : "items-start")}>
-        {/* Reply preview */}
-        {replyMessage && (
-          <div className={cn(
-            "text-xs px-3 py-1.5 rounded-lg max-w-[240px] truncate border-l-2 text-muted-foreground",
-            isCurrentUser ? "bg-primary/10 border-primary/50" : "bg-muted border-muted-foreground/30"
-          )}>
-            {replyMessage.deleted_at ? "Deleted message" : replyMessage.content?.substring(0, 60)}
-          </div>
-        )}
-
         {/* Message bubble (tap to show actions on touch screens) */}
         <div
           className={cn(
-            "max-w-[min(280px,75vw)] sm:max-w-[360px] relative",
+            "max-w-[80vw] sm:max-w-[420px] relative shadow-sm",
             isCurrentUser ? colors.sent : colors.received,
-            "rounded-[18px]",
-            isCurrentUser ? "rounded-br-[4px]" : "rounded-bl-[4px]",
-            isMedia ? "p-1" : "px-3 py-2"
+            "rounded-lg",
+            // The tail sits at the top corner of the first message in a run.
+            isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
+            isMedia ? "p-1" : "px-2.5 py-1.5"
           )}
           onClick={(e) => {
             if ((e.target as HTMLElement).closest("button, a, video, audio")) return;
             if (window.matchMedia("(hover: none)").matches) setShowActions((v) => !v);
           }}
         >
+          {isFirstInGroup && (
+            <span
+              aria-hidden="true"
+              className={cn(
+                "absolute top-0 h-3 w-2",
+                isCurrentUser
+                  ? cn(colors.sent, "-right-2 [clip-path:polygon(0_0,100%_0,0_100%)]")
+                  : cn(colors.received, "-left-2 [clip-path:polygon(0_0,100%_0,100%_100%)]")
+              )}
+            />
+          )}
+          {/* The message being replied to, quoted inside the bubble with a coloured bar (as in WhatsApp). */}
+          {replyMessage && (
+            <div className={cn(
+              "mb-1 rounded-md border-l-4 px-2 py-1 text-[13px] leading-snug min-w-[160px]",
+              isCurrentUser ? "bg-black/15 border-white/70" : "bg-black/5 dark:bg-white/5 border-primary",
+              isMedia && "mx-1 mt-1"
+            )}>
+              <p className={cn("font-semibold text-xs", isCurrentUser ? "text-current opacity-90" : "text-primary")}>
+                {replyMessage.sender_id === currentUserId ? "You" : otherName || "Them"}
+              </p>
+              <p className="truncate max-w-[240px] opacity-80">
+                {replyMessage.deleted_at ? "Deleted message" : replyMessage.image_url && !replyMessage.content ? "📷 Photo" : replyMessage.content?.substring(0, 80)}
+              </p>
+            </div>
+          )}
           {/* Voice */}
           {isVoice && message.image_url && (
             <VoiceMessagePlayer audioUrl={message.image_url} isOwnMessage={isCurrentUser} />
           )}
           {/* Video */}
           {isVideo && message.image_url && (
-            <video src={message.image_url} controls className="rounded-[14px] max-w-full max-h-64" />
+            <video src={message.image_url} controls className="rounded-md max-w-full max-h-64" />
           )}
           {/* GIF */}
           {isGif && message.image_url && (
-            <img src={message.image_url} alt="GIF" className="rounded-[14px] max-w-full max-h-52" />
+            <img src={message.image_url} alt="GIF" className="rounded-md max-w-full max-h-52" />
           )}
           {/* Image */}
           {isMedia && !isVideo && !isGif && message.image_url && (
             <img
               src={message.image_url}
               alt="Shared"
-              className="rounded-[14px] max-w-full cursor-pointer hover:opacity-90 transition-opacity"
+              className="rounded-md max-w-full cursor-pointer hover:opacity-90 transition-opacity"
               onClick={() => window.open(message.image_url!, "_blank")}
             />
           )}

@@ -439,12 +439,15 @@ const Messages = () => {
     const isCurrentUser = message.sender_id === currentUserId;
     const isLastOwnMessage = isCurrentUser && !visibleMessages.slice(index + 1).some((m) => m.sender_id === currentUserId);
     const isLastMessage = index === visibleMessages.length - 1;
+    // A new run starts when the sender changes: more space above it, and a tail on its bubble.
+    const isFirstInGroup = index === 0 || visibleMessages[index - 1].sender_id !== message.sender_id;
 
     return (
       <div
         id={`msg-${message.id}`}
         className={cn(
           "transition-all duration-300",
+          isFirstInGroup ? "pt-2" : "pt-0.5",
           highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1"
         )}
       >
@@ -459,17 +462,23 @@ const Messages = () => {
           onEdit={handleEdit}
           onUnsend={handleUnsend}
           theme={chatTheme}
+          isFirstInGroup={isFirstInGroup}
+          otherName={selectedConversation?.full_name}
         />
       </div>
     );
-  }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme, getReplyMessage]);
+  }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme, getReplyMessage, selectedConversation?.full_name]);
 
   if (isLoading) return <MessagesSkeleton />;
 
   return (
     // Starts under the app's header (drawn once for all pages) and ends above the keyboard.
-    <div className="fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background">
-      <Navigation currentUserId={currentUserId || undefined} />
+    <div className={cn(
+      "fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background",
+      // Phones: an open chat takes the whole screen, as in WhatsApp.
+      (selectedConversation || showAIChat) && "max-md:top-0"
+    )}>
+      <Navigation currentUserId={currentUserId || undefined} hideMobileTopBar={!!(selectedConversation || showAIChat)} />
       <div className="flex-1 flex overflow-hidden">
         <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] gap-0 sm:gap-4 flex-1 overflow-hidden">
@@ -567,8 +576,8 @@ const Messages = () => {
               ) : selectedConversation ? (
                 <>
                   {/* Chat Header */}
-                  <div className="border-b p-2.5 sm:p-4 flex items-center gap-2 sm:gap-3 flex-shrink-0 bg-card">
-                    <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-target" aria-label="Back to conversations" onClick={() => { setSelectedConversation(null); setReplyingTo(null); setEditingMessage(null); }}>
+                  <div className="border-b p-2.5 sm:p-4 max-md:pt-[max(0.625rem,env(safe-area-inset-top))] flex items-center gap-2 sm:gap-3 flex-shrink-0 bg-card">
+                    <Button variant="ghost" size="icon" className="md:hidden h-10 w-10 -ml-1 touch-target [&_svg]:size-6" aria-label="Back to conversations" onClick={() => { setSelectedConversation(null); setReplyingTo(null); setEditingMessage(null); }}>
                       <ArrowLeft className="h-5 w-5" />
                     </Button>
                     <div className="relative">
@@ -593,15 +602,15 @@ const Messages = () => {
                     <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowChatSettings(true)} aria-label="Chat settings">
                       <Settings className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
-                      <Phone className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
+                      <Video />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-9 w-9 rounded-full hover:bg-primary/10 text-primary" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
-                      <Video className="h-5 w-5" />
+                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-[22px]" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
+                      <Phone />
                     </Button>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="sm:hidden h-9 w-9 rounded-full hover:bg-accent" aria-label="More options">
+                        <Button variant="ghost" size="icon" className="sm:hidden h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" aria-label="More options">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -640,7 +649,7 @@ const Messages = () => {
                     firstItemKey={visibleMessages[0]?.id}
                     scrollToIndex={highlightedMessageId ? visibleMessages.findIndex(m => m.id === highlightedMessageId) : undefined}
                     estimatedItemSize={80}
-                    className="flex-1 overflow-hidden"
+                    className="flex-1 overflow-hidden chat-wallpaper"
                     renderItem={renderMessage}
                     onLoadMore={loadOlderMessages}
                     isLoadingMore={isLoadingMore}
@@ -682,50 +691,58 @@ const Messages = () => {
                     </div>
                   )}
 
-                  {/* Message input */}
-                  <form onSubmit={handleSendMessage} className="border-t p-3 sm:p-4 pb-4 flex-shrink-0 bg-card">
+                  {/* Message bar, as in WhatsApp: a pill with emoji, text, attach and camera, and a round
+                      button beside it that records a voice note, or sends once there's something to send. */}
+                  <form onSubmit={handleSendMessage} className="chat-wallpaper px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex-shrink-0">
                     {imageUrl && (
-                      <div className="mb-2 relative inline-block">
+                      <div className="mb-2 ml-2 relative inline-block">
                         {mediaType === "video" ? (
                           <video src={imageUrl} className="h-20 rounded-lg" />
                         ) : (
                           <img src={imageUrl} alt="Preview" className="h-20 rounded-lg" />
                         )}
-                        <button type="button" onClick={() => { setImageUrl(null); setMediaType(null); }} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs">✕</button>
+                        <button type="button" onClick={() => { setImageUrl(null); setMediaType(null); }} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs" aria-label="Remove attachment">✕</button>
                       </div>
                     )}
-                    {/* Attachment buttons keep their size; only the text box flexes. */}
-                    <div className={cn("flex gap-1 sm:gap-2 items-center", !voiceActive && "[&>*]:shrink-0")}>
+                    <div className="flex items-end gap-1.5">
                       {!voiceActive && (
-                      <ChatImageUpload
-                        onMediaUploaded={(url, type) => { setImageUrl(url); setMediaType(type); }}
-                        onMediaCleared={() => { setImageUrl(null); setMediaType(null); }}
-                        previewUrl={null}
-                        mediaType={null}
-                        isUploading={isUploadingImage}
-                        setIsUploading={setIsUploadingImage}
-                      />
+                        <div className="flex-1 min-w-0 flex items-center gap-0.5 rounded-3xl bg-card dark:bg-[#22262d] shadow-sm pl-1 pr-1 min-h-12">
+                          <GifPicker
+                            onSelect={(content) => {
+                              if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }
+                              else setMessageContent((prev) => prev + content);
+                            }}
+                          />
+                          <Input
+                            placeholder={editingMessage ? "Edit message" : "Message"}
+                            value={messageContent}
+                            onChange={handleInputChange}
+                            disabled={isSending}
+                            className="flex-1 min-w-0 h-11 border-0 bg-transparent px-1 text-[16px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                            aria-label="Message"
+                          />
+                          <ChatImageUpload
+                            onMediaUploaded={(url, type) => { setImageUrl(url); setMediaType(type); }}
+                            onMediaCleared={() => { setImageUrl(null); setMediaType(null); }}
+                            previewUrl={null}
+                            mediaType={null}
+                            isUploading={isUploadingImage}
+                            setIsUploading={setIsUploadingImage}
+                          />
+                        </div>
                       )}
-                      <VoiceMessageRecorder onVoiceMessageSent={handleVoiceMessageSent} disabled={isSending} onActiveChange={setVoiceActive} />
-                      {!voiceActive && (<>
-                      <GifPicker
-                        onSelect={(content) => {
-                          if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }
-                          else setMessageContent((prev) => prev + content);
-                        }}
-                      />
-                      <Input
-                        placeholder={editingMessage ? "Edit message..." : "Type a message..."}
-                        value={messageContent}
-                        onChange={handleInputChange}
-                        disabled={isSending}
-                        className="flex-1 min-w-0 !shrink"
-                        aria-label="Message"
-                      />
-                      <Button type="submit" size="icon" disabled={isSending || (!messageContent.trim() && !imageUrl)} className="touch-target">
-                        {isSending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                      </Button>
-                      </>)}
+                      {messageContent.trim() || imageUrl ? (
+                        <Button type="submit" size="icon" disabled={isSending} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5">
+                          {isSending ? <Loader2 className="animate-spin" /> : <Send className="translate-x-px" />}
+                        </Button>
+                      ) : (
+                        <VoiceMessageRecorder
+                          onVoiceMessageSent={handleVoiceMessageSent}
+                          disabled={isSending}
+                          onActiveChange={setVoiceActive}
+                          buttonClassName="h-12 w-12 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground [&_svg]:size-6"
+                        />
+                      )}
                     </div>
                   </form>
                 </>
