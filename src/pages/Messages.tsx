@@ -485,17 +485,17 @@ const Messages = () => {
         <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] gap-0 sm:gap-4 flex-1 overflow-hidden">
             {/* Conversations List */}
-            <Card className={cn("min-w-0 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
-              <div className="p-3 sm:p-4 border-b flex-shrink-0">
-                <div className="flex items-center gap-2 mb-3">
-                  <Button variant="ghost" size="icon" className="md:hidden h-9 w-9 touch-target" onClick={() => navigate("/")}>
-                    <ArrowLeft className="h-5 w-5" />
+            <Card className={cn("min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
+              <div className="px-3 pt-3 pb-2.5 sm:p-4 md:border-b flex-shrink-0">
+                <div className="flex items-center gap-1.5">
+                  <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 -ml-1 [&_svg]:size-5" onClick={() => navigate("/")} aria-label="Back">
+                    <ArrowLeft />
                   </Button>
-                  <h2 className="text-lg sm:text-xl font-bold">Messages</h2>
+                  <h2 className="flex-1 font-display text-[22px] sm:text-xl font-bold tracking-tight">Messages</h2>
+                  <NewConversation currentUserId={currentUserId!} onSelectUser={setSelectedConversation} />
                 </div>
-                <NewConversation currentUserId={currentUserId!} onSelectUser={setSelectedConversation} />
               </div>
-              <div className="flex-1 overflow-y-auto">
+              <div className="flex-1 overflow-y-auto max-md:px-3 max-md:pb-3">
                 {/* AI Companion Entry */}
                 {features.cloudBuddy && (
                 <div
@@ -523,7 +523,7 @@ const Messages = () => {
                 {conversations.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No conversations yet</p>
                 ) : (
-                  <div className="divide-y">
+                  <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
                     {conversations.map((conv) => (
                       <div
                         key={conv.profile.id}
@@ -572,7 +572,7 @@ const Messages = () => {
             </Card>
 
             {/* Chat Area — AI or regular conversation */}
-            <Card className={cn("min-w-0 flex flex-col rounded-none sm:rounded-lg overflow-hidden", (!selectedConversation && !showAIChat) ? "hidden md:flex" : "flex")}>
+            <Card className={cn("min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (!selectedConversation && !showAIChat) ? "hidden md:flex" : "flex")}>
               {features.cloudBuddy && showAIChat ? (
                 <AIChatCompanion onBack={() => { setShowAIChat(false); }} />
               ) : selectedConversation ? (
