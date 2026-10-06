@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import { features } from "@/lib/features";
 
 /**
  * Blocking. The database does the real work (see the block_users migration): once either
@@ -40,6 +41,6 @@ export const BLOCKED_ACTION_MESSAGE = "You can't do this: one of you has blocked
 
 /** The text to show when saving something for/with this person failed: plain words if a block stopped it. */
 export async function explainError(error: { message: string; code?: string }, otherUserId: string | null | undefined) {
-  if (error.code === "42501" && otherUserId && await isBlockedWith(otherUserId)) return BLOCKED_ACTION_MESSAGE;
+  if (features.blocking && error.code === "42501" && otherUserId && await isBlockedWith(otherUserId)) return BLOCKED_ACTION_MESSAGE;
   return error.message;
 }

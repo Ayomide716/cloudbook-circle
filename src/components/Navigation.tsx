@@ -4,8 +4,9 @@ import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays,
 import { List, MagnifyingGlass, MessengerLogo, PlusCircle } from "@phosphor-icons/react";
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
+import { playSound } from "@/lib/sounds";
 import { useToast } from "@/hooks/use-toast";
-import { useState, useEffect, useContext, useLayoutEffect } from "react";
+import { useState, useEffect, useContext, useLayoutEffect, useRef } from "react";
 import BottomNav from "./BottomNav";
 import { cn } from "@/lib/utils";
 import ThemeToggle from "./ThemeToggle";
@@ -69,6 +70,9 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
     if (data) setUserProfile(data);
   });
 
+  // Last counts seen, so a new notification or message (not the first load) plays a chime.
+  const lastCounts = useRef<{ notifications: number; messages: number; requests: number } | null>(null);
+
   const loadCounts = useEffectEvent(async () => {
     if (!currentUserId) return;
     const [notifResult, requestsResult, messagesResult] = await Promise.all([
@@ -88,9 +92,17 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
         .eq("receiver_id", currentUserId)
         .eq("read", false),
     ]);
-    setUnreadNotifications(notifResult.count || 0);
-    setUnreadMessages(messagesResult.count || 0);
-    setPendingRequests(requestsResult.count || 0);
+    const next = { notifications: notifResult.count || 0, messages: messagesResult.count || 0, requests: requestsResult.count || 0 };
+    const before = lastCounts.current;
+    if (before && document.visibilityState === "visible") {
+      // On the Messages page the chat itself is open, so stay quiet there.
+      if (next.messages > before.messages && location.pathname !== "/messages") playSound("message");
+      else if (next.notifications > before.notifications || next.requests > before.requests) playSound("notification");
+    }
+    lastCounts.current = next;
+    setUnreadNotifications(next.notifications);
+    setUnreadMessages(next.messages);
+    setPendingRequests(next.requests);
   });
 
   const setupRealtimeSubscriptions = useEffectEvent(() => {

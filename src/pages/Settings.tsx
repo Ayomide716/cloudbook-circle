@@ -1,16 +1,18 @@
 import { useEffect, useState } from "react";
+import { features } from "@/lib/features";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import BlockedPeople from "@/components/BlockedPeople";
+import { playSound, setSoundsEnabled, soundsEnabled } from "@/lib/sounds";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, Sun, Moon, Monitor, LogOut, KeyRound, Mail, Trash2 } from "lucide-react";
+import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, Sun, Moon, Monitor, LogOut, KeyRound, Mail, Trash2, Volume2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -98,6 +100,7 @@ const Settings = () => {
   };
   useSEO({ title: "Settings", description: "Manage your CloudBook settings." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [sounds, setSounds] = useState(soundsEnabled);
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -268,6 +271,21 @@ const Settings = () => {
           </button>
         </Card>
 
+        <Card className="p-4 mb-6 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+            <Volume2 className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <Label htmlFor="in-app-sounds" className="font-medium text-sm">In-app sounds</Label>
+            <p className="text-xs text-muted-foreground">Sounds when you like, post, send a message, or get a notification</p>
+          </div>
+          <Switch
+            id="in-app-sounds"
+            checked={sounds}
+            onCheckedChange={(on) => { setSoundsEnabled(on); setSounds(on); if (on) playSound("like"); }}
+          />
+        </Card>
+
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notifications</h2>
 
         {/* Push Permission Banner */}
@@ -316,7 +334,7 @@ const Settings = () => {
           </p>
         )}
 
-        {currentUserId && (
+        {features.blocking && currentUserId && (
           <>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">Blocked people</h2>
             <BlockedPeople userId={currentUserId} />

@@ -1,4 +1,5 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { features } from "@/lib/features";
 import { supabase } from "@/integrations/supabase/client";
 import type { PostComment } from "@/components/PostCard";
 
@@ -70,7 +71,8 @@ async function fetchFeedPage(
     const postIds = posts.map((p) => p.id);
     const { data: postsData } = await supabase
       .from("posts")
-      .select("id, image_urls, location")
+      // Without the place column on the live database yet, ask only for photos (place stays empty).
+      .select((features.postLocation ? "id, image_urls, location" : "id, image_urls") as "id, image_urls, location")
       .in("id", postIds);
 
     if (postsData) {

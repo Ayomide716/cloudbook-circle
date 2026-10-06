@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Loader2 } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { cn } from '@/lib/utils';
+import { playSound } from '@/lib/sounds';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -15,7 +16,10 @@ const PullToRefresh = ({ onRefresh, children, className }: PullToRefreshProps) =
     pullDistance,
     isRefreshing,
     pullProgress,
-  } = usePullToRefresh({ onRefresh });
+  } = usePullToRefresh({
+    // A small tick once the feed has refreshed, as on Facebook.
+    onRefresh: async () => { await onRefresh(); playSound("refresh"); },
+  });
 
   return (
     <div

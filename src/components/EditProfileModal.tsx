@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { features } from "@/lib/features";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,9 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
     const { error } = await supabase
       .from("profiles")
       // Empty date and choice fields are saved as "not set".
-      .update({ ...formData, birthday: formData.birthday || null, relationship_status: formData.relationship_status || null })
+      .update(features.profileDetails
+        ? { ...formData, birthday: formData.birthday || null, relationship_status: formData.relationship_status || null }
+        : (({ hometown: _h, birthday: _b, relationship_status: _r, ...base }) => base)(formData))
       .eq("id", profile.id);
 
     setIsLoading(false);
@@ -147,6 +150,8 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
             />
           </div>
 
+          {features.profileDetails && (
+            <>
           <div className="space-y-2">
             <Label htmlFor="hometown">Hometown</Label>
             <Input
@@ -186,6 +191,8 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
               </select>
             </div>
           </div>
+            </>
+          )}
 
           <div className="flex justify-end gap-2">
             <Button

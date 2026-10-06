@@ -33,6 +33,8 @@ export default defineConfig({
     env: {
       VITE_SUPABASE_URL: process.env.E2E_SUPABASE_URL ?? "",
       VITE_SUPABASE_PUBLISHABLE_KEY: process.env.E2E_SUPABASE_ANON_KEY ?? "",
+      // The test database has every update, so test the features that need them too.
+      VITE_DB_UPDATES_2026_10: "true",
     },
   },
 });
