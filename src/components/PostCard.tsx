@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { haptic } from "@/lib/haptics";
 import { playSound } from "@/lib/sounds";
 import { features } from "@/lib/features";
@@ -18,6 +18,8 @@ import { hidePost, snoozePerson, unhidePost, SNOOZE_DAYS } from "@/lib/hidden-po
 import { Link } from "react-router-dom";
 import { cn, toDate } from "@/lib/utils";
 import SharePostDialog from "./SharePostDialog";
+import LinkPreview from "./LinkPreview";
+import { firstLink } from "@/lib/links";
 import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
@@ -115,6 +117,7 @@ const PostCard = ({
   const photos = postImages(post);
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const postLink = useMemo(() => firstLink(post.content ?? ""), [post.content]);
   const [showReactions, setShowReactions] = useState(false);
   const likeAreaRef = useRef<HTMLDivElement>(null);
   const pressTimerRef = useRef<number>();
@@ -509,6 +512,11 @@ const PostCard = ({
           <PostContent content={post.content} />
         )}
       </div>
+
+      {/* A card for the first link, when the post has no photo or video of its own */}
+      {!isEditing && !post.image_url && !post.video_url && postLink && (
+        <LinkPreview url={postLink} className="mx-2.5 mt-1" />
+      )}
 
       {/* Media */}
       {post.video_url && (
