@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { haptic } from "@/lib/haptics";
 import { playSound } from "@/lib/sounds";
 import { features } from "@/lib/features";
@@ -116,6 +116,21 @@ const PostCard = ({
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const likeAreaRef = useRef<HTMLDivElement>(null);
+  const pressTimerRef = useRef<number>();
+  const longPressedRef = useRef(false);
+  const isTouchRef = useRef(false);
+
+  // A picker opened by a long press closes when you tap anywhere else.
+  useEffect(() => {
+    if (!showReactions || !isTouchRef.current) return;
+    const close = (e: PointerEvent) => {
+      if (!likeAreaRef.current?.contains(e.target as Node)) setShowReactions(false);
+    };
+    document.addEventListener("pointerdown", close);
+    return () => document.removeEventListener("pointerdown", close);
+  }, [showReactions]);
+  useEffect(() => () => window.clearTimeout(pressTimerRef.current), []);
   const [replyingTo, setReplyingTo] = useState<PostComment | null>(null);
   const [isSaved, setIsSaved] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
@@ -590,9 +605,26 @@ const PostCard = ({
       <div className="px-2.5 pt-2 pb-2.5">
         <div className="grid grid-cols-3 items-center rounded-full border border-border">
           <div
-            className="relative flex justify-center"
-            onMouseEnter={() => setShowReactions(true)}
-            onMouseLeave={() => setShowReactions(false)}
+            ref={likeAreaRef}
+            className="relative flex justify-center select-none [-webkit-touch-callout:none]"
+            onMouseEnter={() => { if (!isTouchRef.current) setShowReactions(true); }}
+            onMouseLeave={() => { if (!isTouchRef.current) setShowReactions(false); }}
+            // Phones: press and hold Like to pick a reaction, as in Facebook's app.
+            onPointerDown={(e) => {
+              isTouchRef.current = e.pointerType !== "mouse";
+              if (!isTouchRef.current) return;
+              longPressedRef.current = false;
+              window.clearTimeout(pressTimerRef.current);
+              pressTimerRef.current = window.setTimeout(() => {
+                longPressedRef.current = true;
+                setShowReactions(true);
+                haptic(15);
+              }, 420);
+            }}
+            onPointerUp={() => window.clearTimeout(pressTimerRef.current)}
+            onPointerCancel={() => window.clearTimeout(pressTimerRef.current)}
+            onPointerLeave={() => window.clearTimeout(pressTimerRef.current)}
+            onContextMenu={(e) => e.preventDefault()}
           >
             {/* Reaction Picker */}
             {showReactions && (
@@ -601,8 +633,8 @@ const PostCard = ({
                   {REACTION_TYPES.map(({ type, icon: Icon, label, color }) => (
                     <button
                       key={type}
-                      onClick={() => handleReaction(type)}
-                      className="p-1.5 hover:scale-125 transition-transform rounded-full hover:bg-accent"
+                      onClick={() => { handleReaction(type); setShowReactions(false); }}
+                      className="p-1.5 sm:p-1.5 max-sm:p-2 hover:scale-125 active:scale-125 transition-transform rounded-full hover:bg-accent"
                       title={label}
                       aria-label={label}
                     >
@@ -616,7 +648,11 @@ const PostCard = ({
               variant="ghost"
               className={cn("h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]", currentReaction?.color)}
               // Tapping removes your reaction, whichever it is; with none it's a like.
-              onClick={() => handleReaction(userReaction ?? 'like')}
+              onClick={() => {
+                // Letting go after a long press keeps the picker open instead of liking.
+                if (longPressedRef.current) { longPressedRef.current = false; return; }
+                handleReaction(userReaction ?? 'like');
+              }}
               aria-pressed={!!userReaction}
               aria-label={`${currentReaction?.label ?? "Like"}${totalReactions ? `, ${totalReactions} ${totalReactions === 1 ? "reaction" : "reactions"}` : ""}`}
             >
