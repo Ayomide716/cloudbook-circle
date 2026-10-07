@@ -3,6 +3,7 @@ import { Loader2 } from 'lucide-react';
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { cn } from '@/lib/utils';
 import { playSound } from '@/lib/sounds';
+import { haptic } from '@/lib/haptics';
 
 interface PullToRefreshProps {
   onRefresh: () => Promise<void>;
@@ -18,7 +19,7 @@ const PullToRefresh = ({ onRefresh, children, className }: PullToRefreshProps) =
     pullProgress,
   } = usePullToRefresh({
     // A small tick once the feed has refreshed, as on Facebook.
-    onRefresh: async () => { await onRefresh(); playSound("refresh"); },
+    onRefresh: async () => { haptic(); await onRefresh(); playSound("refresh"); },
   });
 
   return (

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { haptic } from "@/lib/haptics";
 import { playSound } from "@/lib/sounds";
 import { features } from "@/lib/features";
 import { Card } from "@/components/ui/card";
@@ -172,7 +173,7 @@ const PostCard = ({
   const handleReaction = async (reactionType: string) => {
     setShowReactions(false);
     // A pop when you like or react (not when you take it back), as on Facebook.
-    if (userReaction !== reactionType) playSound("like");
+    if (userReaction !== reactionType) { playSound("like"); haptic(); }
     onReactionToggle(reactionType);
 
     if (userReaction === reactionType) {

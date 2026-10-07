@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { explainError } from "@/lib/blocking";
+import { haptic } from "@/lib/haptics";
 
 interface Profile {
   id: string;
@@ -43,6 +44,14 @@ interface Conversation {
   lastMessage?: ChatMessage;
   unreadCount: number;
 }
+
+/** The label between days in a chat, as WhatsApp shows it: Today, Yesterday, Monday, 12 March 2026. */
+const dayLabel = (d: Date) => {
+  if (isToday(d)) return "Today";
+  if (isYesterday(d)) return "Yesterday";
+  if (isThisWeek(d)) return format(d, "EEEE");
+  return format(d, "d MMMM yyyy");
+};
 
 /** Compact timestamp for the conversation list: 13:38, Yesterday, Mon, 12 Mar. */
 const shortTime = (iso: string) => {
@@ -388,6 +397,7 @@ const Messages = () => {
       return;
     }
     playSound("send");
+    haptic();
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
   };
 
@@ -421,6 +431,7 @@ const Messages = () => {
       return;
     }
     playSound("send");
+    haptic();
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
   };
 
@@ -442,9 +453,19 @@ const Messages = () => {
     const isLastOwnMessage = isCurrentUser && !visibleMessages.slice(index + 1).some((m) => m.sender_id === currentUserId);
     const isLastMessage = index === visibleMessages.length - 1;
     // A new run starts when the sender changes: more space above it, and a tail on its bubble.
-    const isFirstInGroup = index === 0 || visibleMessages[index - 1].sender_id !== message.sender_id;
+    const day = new Date(message.created_at);
+    const newDay = index === 0 || new Date(visibleMessages[index - 1].created_at).toDateString() !== day.toDateString();
+    const isFirstInGroup = newDay || visibleMessages[index - 1].sender_id !== message.sender_id;
 
     return (
+      <>
+      {newDay && (
+        <div className="flex justify-center pt-3 pb-1">
+          <span className="rounded-lg bg-card/90 px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground shadow-sm backdrop-blur dark:bg-[#1c2530]/90">
+            {dayLabel(day)}
+          </span>
+        </div>
+      )}
       <div
         id={`msg-${message.id}`}
         className={cn(
@@ -468,6 +489,7 @@ const Messages = () => {
           otherName={selectedConversation?.full_name}
         />
       </div>
+      </>
     );
   }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme, getReplyMessage, selectedConversation?.full_name]);
 
@@ -593,7 +615,11 @@ const Messages = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{selectedConversation.full_name || "Anonymous"}</p>
-                      <OnlineStatusIndicator userId={selectedConversation.id} showText currentUserId={currentUserId || undefined} />
+                      {typingUsers.length > 0 ? (
+                        <p className="text-xs font-medium text-primary">typing…</p>
+                      ) : (
+                        <OnlineStatusIndicator userId={selectedConversation.id} showText currentUserId={currentUserId || undefined} />
+                      )}
                     </div>
 
                     <div className="flex items-center gap-0.5 sm:gap-1 shrink-0">
@@ -648,6 +674,7 @@ const Messages = () => {
                   <VirtualizedChatList
                     itemCount={visibleMessages.length}
                     scrollToBottomKey={visibleMessages.length}
+                    lastIsMine={visibleMessages[visibleMessages.length - 1]?.sender_id === currentUserId}
                     firstItemKey={visibleMessages[0]?.id}
                     scrollToIndex={highlightedMessageId ? visibleMessages.findIndex(m => m.id === highlightedMessageId) : undefined}
                     estimatedItemSize={80}

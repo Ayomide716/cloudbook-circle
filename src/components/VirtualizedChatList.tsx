@@ -1,6 +1,6 @@
-import { useEffect, useCallback, useRef, ReactElement, CSSProperties } from "react";
+import { useEffect, useRef, useState, ReactElement, CSSProperties } from "react";
 import { List, useDynamicRowHeight, useListRef, type RowComponentProps } from "react-window";
-import { Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "lucide-react";
 
 interface VirtualizedChatListProps {
   itemCount: number;
@@ -8,6 +8,8 @@ interface VirtualizedChatListProps {
   estimatedItemSize?: number;
   footer?: ReactElement | null;
   scrollToBottomKey?: number | string;
+  /** The newest message is yours: scroll down to it even if you had scrolled up. */
+  lastIsMine?: boolean;
   scrollToIndex?: number;
   /** Identity of the first item. If it changes when items are added, older items were prepended
    *  (keep the reader's position); otherwise new items were appended (scroll to the bottom). */
@@ -38,6 +40,7 @@ const VirtualizedChatList = ({
   estimatedItemSize = 72,
   footer,
   scrollToBottomKey,
+  lastIsMine,
   scrollToIndex,
   firstItemKey,
   onLoadMore,
@@ -57,6 +60,10 @@ const VirtualizedChatList = ({
   const prevCountRef = useRef(itemCount);
   const prevFirstKeyRef = useRef(firstItemKey);
   const isInitialLoad = useRef(true);
+  // Whether the reader is at (or near) the newest message, and how many arrived while they weren't.
+  const atBottomRef = useRef(true);
+  const [showJump, setShowJump] = useState(false);
+  const [unseen, setUnseen] = useState(0);
 
   // Scroll to bottom on initial load and new messages appended at bottom
   useEffect(() => {
@@ -86,6 +93,13 @@ const VirtualizedChatList = ({
         return;
       }
 
+      // Scrolled up reading older messages: a new message from them doesn't pull you down
+      // (the ↓ button counts it instead), as in WhatsApp.
+      if (!isInitialLoad.current && !atBottomRef.current && !lastIsMine && itemCount > prevCount) {
+        setUnseen((n) => n + (itemCount - prevCount));
+        return;
+      }
+
       isInitialLoad.current = false;
       const scrollToEnd = () => {
         try {
@@ -103,7 +117,31 @@ const VirtualizedChatList = ({
       const settle = setTimeout(scrollToEnd, 150);
       return () => clearTimeout(settle);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- lastIsMine is read with the new count
   }, [itemCount, scrollToBottomKey, canLoadMore, firstItemKey, listRef]);
+
+  // Track whether the reader is near the bottom, for the ↓ button.
+  useEffect(() => {
+    const listEl = listRef.current?.element;
+    if (!listEl) return;
+    const onScroll = () => {
+      const fromBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight;
+      atBottomRef.current = fromBottom < 120;
+      setShowJump(fromBottom > 300);
+      if (atBottomRef.current) setUnseen(0);
+    };
+    listEl.addEventListener("scroll", onScroll, { passive: true });
+    return () => listEl.removeEventListener("scroll", onScroll);
+  }, [listRef, itemCount]);
+
+  const jumpToBottom = () => {
+    setUnseen(0);
+    try {
+      listRef.current?.scrollToRow({ index: itemCount - 1, align: "end", behavior: "smooth" });
+    } catch {
+      // The list may be re-rendering; the next tap will work.
+    }
+  };
 
   // Scroll to specific index (for message search highlight)
   useEffect(() => {
@@ -169,6 +207,21 @@ const VirtualizedChatList = ({
         overscanCount={10}
         style={{ height: "100%", overflow: "auto" }}
       />
+      {(showJump || unseen > 0) && itemCount > 0 && (
+        <button
+          type="button"
+          onClick={jumpToBottom}
+          aria-label={unseen > 0 ? `${unseen} new ${unseen === 1 ? "message" : "messages"}, go to latest` : "Go to latest message"}
+          className="absolute bottom-3 right-3 z-10 flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-lg animate-in fade-in-0 zoom-in-95"
+        >
+          <ChevronDown className="h-5 w-5" />
+          {unseen > 0 && (
+            <span className="absolute -top-1.5 -left-1.5 min-w-[20px] h-5 rounded-full bg-primary px-1 text-[11px] font-bold leading-5 text-primary-foreground text-center">
+              {unseen > 99 ? "99+" : unseen}
+            </span>
+          )}
+        </button>
+      )}
       {footer}
     </div>
   );

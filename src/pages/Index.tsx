@@ -22,6 +22,9 @@ import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 import NewPostsBanner from "@/components/NewPostsBanner";
 import ScreenTimeWidget from "@/components/ScreenTimeWidget";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { TAB_RESELECT_EVENT } from "@/components/BottomNav";
+import { haptic } from "@/lib/haptics";
+import { playSound } from "@/lib/sounds";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -141,6 +144,17 @@ const Index = () => {
     await refetch();
     setLastFetchTime(new Date());
   }, [refetch]);
+
+  // Tapping Home again while already at the top refreshes the feed.
+  useEffect(() => {
+    const onReselect = (e: Event) => {
+      if ((e as CustomEvent<string>).detail !== "/") return;
+      haptic();
+      void handleRefresh().then(() => playSound("refresh"));
+    };
+    window.addEventListener(TAB_RESELECT_EVENT, onReselect);
+    return () => window.removeEventListener(TAB_RESELECT_EVENT, onReselect);
+  }, [handleRefresh]);
 
   if ((isLoading && allPosts.length === 0) || !currentUser) {
     return (
