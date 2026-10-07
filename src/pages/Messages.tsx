@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical } from "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
@@ -636,21 +636,21 @@ const Messages = () => {
                     <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-[22px]" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
                       <Phone />
                     </Button>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                    <ActionMenu>
+                      <ActionMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="sm:hidden h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" aria-label="More options">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onSelect={() => setShowMessageSearch((v) => !v)}>
+                      </ActionMenuTrigger>
+                      <ActionMenuContent align="end">
+                        <ActionMenuItem onSelect={() => setShowMessageSearch((v) => !v)}>
                           <Search className="h-4 w-4 mr-2" /> Search messages
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onSelect={() => setShowChatSettings(true)}>
+                        </ActionMenuItem>
+                        <ActionMenuItem onSelect={() => setShowChatSettings(true)}>
                           <Settings className="h-4 w-4 mr-2" /> Chat settings
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                        </ActionMenuItem>
+                      </ActionMenuContent>
+                    </ActionMenu>
                     </div>
                   </div>
 

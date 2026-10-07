@@ -21,7 +21,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { cn } from "@/lib/utils";
 import EventsSkeleton from "@/components/skeletons/EventsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -399,23 +399,23 @@ const Events = () => {
                           </span>
                         </p>
                       </div>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
+                      <ActionMenu>
+                        <ActionMenuTrigger asChild>
                           <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 -mr-2 -mt-1" aria-label="More options">
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onSelect={() => downloadCalendarFile(event)}>
+                        </ActionMenuTrigger>
+                        <ActionMenuContent align="end">
+                          <ActionMenuItem onSelect={() => downloadCalendarFile(event)}>
                             <CalendarPlus className="h-4 w-4 mr-2" /> Add to calendar
-                          </DropdownMenuItem>
+                          </ActionMenuItem>
                           {mine && (
-                            <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={() => setPendingDelete(event)}>
+                            <ActionMenuItem className="text-destructive focus:text-destructive" onSelect={() => setPendingDelete(event)}>
                               <Trash2 className="h-4 w-4 mr-2" /> Delete event
-                            </DropdownMenuItem>
+                            </ActionMenuItem>
                           )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                        </ActionMenuContent>
+                      </ActionMenu>
                     </div>
 
                     {event.location && (

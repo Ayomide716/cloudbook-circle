@@ -1,7 +1,7 @@
  import { useState, useEffect } from "react";
  import { Button } from "@/components/ui/button";
  import { Textarea } from "@/components/ui/textarea";
- import { Share2, Loader2 } from "lucide-react";
+ import { Share2, Loader2, Link2, Send } from "lucide-react";
  import {
    Dialog,
    DialogContent,
@@ -59,6 +59,27 @@
      }
    }, [open, loadUserGroups]);
  
+   const postUrl = `${window.location.origin}/post/${postId}`;
+   const canShareOutside = typeof navigator !== "undefined" && !!navigator.share;
+
+   const copyLink = async () => {
+     try {
+       await navigator.clipboard.writeText(postUrl);
+       toast({ title: "Link copied" });
+     } catch {
+       toast({ title: "Couldn't copy the link", description: postUrl, variant: "destructive" });
+     }
+   };
+
+   const shareOutside = async () => {
+     try {
+       await navigator.share({ title: "A post on CloudBook", url: postUrl });
+       onOpenChange(false);
+     } catch {
+       // Closed the share menu without picking an app.
+     }
+   };
+
    const handleShare = async () => {
      setIsLoading(true);
  
@@ -135,6 +156,20 @@
              )}
              Share Now
            </Button>
+
+           {/* Outside CloudBook: the phone's own share menu (WhatsApp, Instagram, X…), or the link. */}
+           <div className={canShareOutside ? "grid grid-cols-2 gap-2 border-t pt-4" : "grid border-t pt-4"}>
+             <Button type="button" variant="secondary" onClick={copyLink}>
+               <Link2 className="h-4 w-4 mr-2" />
+               Copy link
+             </Button>
+             {canShareOutside && (
+               <Button type="button" variant="secondary" onClick={shareOutside}>
+                 <Send className="h-4 w-4 mr-2" />
+                 Share to…
+               </Button>
+             )}
+           </div>
          </div>
        </DialogContent>
      </Dialog>
