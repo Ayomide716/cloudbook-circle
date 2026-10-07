@@ -20,6 +20,7 @@ import { cn, toDate } from "@/lib/utils";
 import SharePostDialog from "./SharePostDialog";
 import LinkPreview from "./LinkPreview";
 import { firstLink } from "@/lib/links";
+import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
@@ -191,6 +192,8 @@ const PostCard = ({
   // One reaction change at a time: a fast double tap (or a tap during a long press) would
   // otherwise race two writes for the same post.
   const reactionBusy = useRef(false);
+  const commentBoxRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(commentBoxRef, commentContent, 120);
 
   const handleReaction = async (reactionType: string) => {
     setShowReactions(false);
@@ -723,16 +726,12 @@ const PostCard = ({
                 <Textarea
                   placeholder={replyingTo ? `Reply to ${replyingTo.profiles.full_name || "Anonymous"}...` : "Write a comment..."}
                   value={commentContent}
+                  ref={commentBoxRef}
                   onChange={(e) => setCommentContent(e.target.value)}
-                  // Enter sends, Shift+Enter adds a line (and never mid-composition on IME keyboards).
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
-                      e.preventDefault();
-                      e.currentTarget.form?.requestSubmit();
-                    }
-                  }}
+                  // Phones: Enter adds a line. Keyboards: Enter sends, Shift+Enter adds a line.
+                  onKeyDown={sendOnEnter}
                   aria-label={replyingTo ? "Write a reply" : "Write a comment"}
-                  className="min-h-[36px] h-9 py-2 resize-none rounded-full bg-secondary border-0"
+                  className="min-h-[36px] py-2 resize-none rounded-[18px] bg-secondary border-0 leading-5"
                   disabled={isSubmitting}
                   rows={1}
                 />

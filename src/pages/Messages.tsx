@@ -20,7 +20,6 @@ import MessageSearch from "@/components/MessageSearch";
 import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, Archive } from "lucide-react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
@@ -34,6 +33,7 @@ import type { TablesInsert } from "@/integrations/supabase/types";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { explainError } from "@/lib/blocking";
 import { haptic } from "@/lib/haptics";
+import { enterMakesNewLine, sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 
 interface Profile {
   id: string;
@@ -347,7 +347,11 @@ const Messages = () => {
     }, 2500);
   }, [currentUserId, currentUserName]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // The message box grows with what you type (Enter adds lines on phones), up to about 6 lines.
+  const messageBoxRef = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(messageBoxRef, messageContent, 150);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setMessageContent(e.target.value);
     handleTyping();
   };
@@ -426,7 +430,7 @@ const Messages = () => {
     setReplyingTo(message);
     setEditingMessage(null);
     // Straight to typing, as after a swipe on WhatsApp.
-    requestAnimationFrame(() => document.querySelector<HTMLInputElement>('input[aria-label="Message"]')?.focus());
+    requestAnimationFrame(() => messageBoxRef.current?.focus());
   };
 
   const handleVoiceMessageSent = async (audioUrl: string, duration: number) => {
@@ -742,19 +746,23 @@ const Messages = () => {
                     )}
                     <div className="flex items-end gap-1.5">
                       {!voiceActive && (
-                        <div className="flex-1 min-w-0 flex items-center gap-0.5 rounded-3xl bg-card dark:bg-[#22262d] shadow-sm pl-1 pr-1 min-h-12">
+                        <div className="flex-1 min-w-0 flex items-end gap-0.5 rounded-3xl bg-card dark:bg-[#22262d] shadow-sm pl-1 pr-1 min-h-12">
                           <GifPicker
                             onSelect={(content) => {
                               if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }
                               else setMessageContent((prev) => prev + content);
                             }}
                           />
-                          <Input
+                          <textarea
+                            ref={messageBoxRef}
+                            rows={1}
                             placeholder={editingMessage ? "Edit message" : "Message"}
                             value={messageContent}
                             onChange={handleInputChange}
+                            onKeyDown={sendOnEnter}
                             disabled={isSending}
-                            className="flex-1 min-w-0 h-11 border-0 bg-transparent px-1 text-[16px] shadow-none focus-visible:ring-0 focus-visible:ring-offset-0"
+                            enterKeyHint={enterMakesNewLine() ? "enter" : "send"}
+                            className="flex-1 min-w-0 resize-none self-center border-0 bg-transparent px-1 py-2.5 text-[16px] leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-50"
                             aria-label="Message"
                           />
                           <ChatImageUpload

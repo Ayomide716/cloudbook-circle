@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
 import { playSound } from "@/lib/sounds";
 import { CHAT_PREFS_EVENT, readChatPrefs } from "@/lib/chat-prefs";
+import { groupNotifications } from "@/lib/notification-groups";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useContext, useLayoutEffect, useRef } from "react";
 import BottomNav from "./BottomNav";
@@ -90,11 +91,15 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   const loadCounts = useEffectEvent(async () => {
     if (!currentUserId) return;
     const [notifResult, requestsResult, messagesResult] = await Promise.all([
+      // The rows themselves, so the badge counts groups ("Alice and 3 others liked your post"
+      // is one) the same way the Notifications page shows them.
       supabase
         .from("notifications")
-        .select("id", { count: "exact", head: true })
+        .select("id, type, content, read, created_at, related_id, actor_id")
         .eq("user_id", currentUserId)
-        .eq("read", false),
+        .eq("read", false)
+        .order("created_at", { ascending: false })
+        .limit(200),
       supabase
         .from("friendships")
         .select("id", { count: "exact", head: true })
@@ -102,7 +107,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
         .eq("status", "pending"),
       unreadMessagesQuery(currentUserId),
     ]);
-    const next = { notifications: notifResult.count || 0, messages: messagesResult.count || 0, requests: requestsResult.count || 0 };
+    const next = { notifications: groupNotifications(notifResult.data ?? []).length, messages: messagesResult.count || 0, requests: requestsResult.count || 0 };
     const before = lastCounts.current;
     if (before && document.visibilityState === "visible") {
       // On the Messages page the chat itself is open, so stay quiet there.
