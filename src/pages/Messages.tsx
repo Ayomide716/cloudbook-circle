@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback, ReactElement } from "react";
+import { useEffect, useState, useRef, useCallback, useMemo, ReactElement } from "react";
 import { features } from "@/lib/features";
 import { playSound } from "@/lib/sounds";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -22,9 +22,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Check, CheckCheck, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, Archive } from "lucide-react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
+import ConversationRow from "@/components/ConversationRow";
+import { useChatPrefs } from "@/lib/chat-prefs";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -80,6 +82,14 @@ const Messages = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
+  const { prefs: chatPrefs, toggle: toggleChatPref } = useChatPrefs(currentUserId);
+  const [showArchived, setShowArchived] = useState(false);
+  // Pinned chats first (then newest first, as loaded); archived ones in their own list.
+  const listedConversations = useMemo(() => {
+    const inView = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id) === showArchived);
+    return [...inView].sort((a, b) => Number(chatPrefs.pinned.includes(b.profile.id)) - Number(chatPrefs.pinned.includes(a.profile.id)));
+  }, [conversations, chatPrefs, showArchived]);
+  const archivedCount = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id)).length;
   const [selectedConversation, setSelectedConversation] = useState<Profile | null>(null);
   const [showAIChat, setShowAIChat] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -545,50 +555,45 @@ const Messages = () => {
                 {conversations.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">No conversations yet</p>
                 ) : (
-                  <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
-                    {conversations.map((conv) => (
-                      <div
-                        key={conv.profile.id}
-                        className={cn(
-                          "flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-all duration-200 active:scale-[0.98]",
-                          selectedConversation?.id === conv.profile.id ? "bg-accent" : "hover:bg-accent/50"
-                        )}
-                        onClick={() => setSelectedConversation(conv.profile)}
+                  <>
+                    {showArchived ? (
+                      <button type="button" onClick={() => setShowArchived(false)} className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-primary">
+                        <ArrowLeft className="h-4 w-4" /> Archived chats
+                      </button>
+                    ) : archivedCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setShowArchived(true)}
+                        className="mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-accent/50"
                       >
-                        <Avatar className="h-12 w-12 flex-shrink-0">
-                          <AvatarImage src={conv.profile.avatar_url || undefined} />
-                          <AvatarFallback>{conv.profile.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between">
-                            <p className="font-semibold truncate">{conv.profile.full_name || "Anonymous"}</p>
-                            {conv.lastMessage && (
-                              <span className="text-[11px] text-muted-foreground flex-shrink-0 ml-2">
-                                {shortTime(conv.lastMessage.created_at)}
-                              </span>
-                            )}
-                          </div>
-                          {conv.lastMessage && (
-                            <div className="flex items-center gap-1">
-                              {conv.lastMessage.sender_id === currentUserId && (
-                                <span className="flex-shrink-0">
-                                  {conv.lastMessage.read ? <CheckCheck className="h-3.5 w-3.5 text-primary" /> : <Check className="h-3.5 w-3.5 text-muted-foreground" />}
-                                </span>
-                              )}
-                              <p className={cn("text-sm truncate", conv.unreadCount > 0 ? "text-foreground font-medium" : "text-muted-foreground")}>
-                                {conv.lastMessage.deleted_at ? "🚫 Message unsent" : conv.lastMessage.content}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                        {conv.unreadCount > 0 && (
-                          <span className="bg-primary text-primary-foreground text-xs rounded-full h-6 min-w-6 px-2 flex items-center justify-center">
-                            {conv.unreadCount}
-                          </span>
-                        )}
-                      </div>
+                        <Archive className="h-5 w-5 text-muted-foreground" />
+                        <span className="flex-1">Archived</span>
+                        <span className="text-xs text-muted-foreground">{archivedCount}</span>
+                      </button>
+                    )}
+                    {listedConversations.length === 0 ? (
+                      <p className="text-center text-muted-foreground py-8">No archived chats</p>
+                    ) : (
+                  <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
+                    {listedConversations.map((conv) => (
+                      <ConversationRow
+                        key={conv.profile.id}
+                        profile={conv.profile}
+                        lastMessage={conv.lastMessage}
+                        unreadCount={conv.unreadCount}
+                        currentUserId={currentUserId!}
+                        selected={selectedConversation?.id === conv.profile.id}
+                        pinned={chatPrefs.pinned.includes(conv.profile.id)}
+                        muted={chatPrefs.muted.includes(conv.profile.id)}
+                        archived={chatPrefs.archived.includes(conv.profile.id)}
+                        time={conv.lastMessage ? shortTime(conv.lastMessage.created_at) : undefined}
+                        onOpen={() => setSelectedConversation(conv.profile)}
+                        onToggle={(list) => toggleChatPref(list, conv.profile.id)}
+                      />
                     ))}
                   </div>
+                    )}
+                  </>
                 )}
               </div>
             </Card>

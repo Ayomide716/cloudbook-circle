@@ -5,6 +5,7 @@ import { List, MagnifyingGlass, MessengerLogo, PlusCircle } from "@phosphor-icon
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
 import { playSound } from "@/lib/sounds";
+import { CHAT_PREFS_EVENT, readChatPrefs } from "@/lib/chat-prefs";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useContext, useLayoutEffect, useRef } from "react";
 import BottomNav from "./BottomNav";
@@ -75,6 +76,17 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   // Last counts seen, so a new notification or message (not the first load) plays a chime.
   const lastCounts = useRef<{ notifications: number; messages: number; requests: number } | null>(null);
 
+  // Muted chats don't count towards the Messages badge and don't chime.
+  const unreadMessagesQuery = (userId: string) => {
+    const muted = readChatPrefs(userId).muted.filter((id) => /^[0-9a-f-]{36}$/i.test(id));
+    const query = supabase
+      .from("messages")
+      .select("id", { count: "exact", head: true })
+      .eq("receiver_id", userId)
+      .eq("read", false);
+    return muted.length ? query.not("sender_id", "in", `(${muted.join(",")})`) : query;
+  };
+
   const loadCounts = useEffectEvent(async () => {
     if (!currentUserId) return;
     const [notifResult, requestsResult, messagesResult] = await Promise.all([
@@ -88,11 +100,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
         .select("id", { count: "exact", head: true })
         .eq("friend_id", currentUserId)
         .eq("status", "pending"),
-      supabase
-        .from("messages")
-        .select("id", { count: "exact", head: true })
-        .eq("receiver_id", currentUserId)
-        .eq("read", false),
+      unreadMessagesQuery(currentUserId),
     ]);
     const next = { notifications: notifResult.count || 0, messages: messagesResult.count || 0, requests: requestsResult.count || 0 };
     const before = lastCounts.current;
@@ -116,6 +124,13 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   });
+
+  // Muting or unmuting a chat changes the Messages badge straight away.
+  useEffect(() => {
+    const recount = () => loadCounts();
+    window.addEventListener(CHAT_PREFS_EVENT, recount);
+    return () => window.removeEventListener(CHAT_PREFS_EVENT, recount);
+  }, [loadCounts]);
 
   useEffect(() => {
     if (currentUserId) {
