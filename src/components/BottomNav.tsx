@@ -14,6 +14,9 @@ const ReelsIcon = ({ className, weight }: { className?: string; weight?: "fill" 
   </svg>
 );
 
+/** Sent when the current tab is tapped again while already at the top of the page. */
+export const TAB_RESELECT_EVENT = "cloudbook:tab-reselect";
+
 interface BottomNavProps {
   currentUserId?: string;
   /** Pending friend requests, shown on the Friends tab. */
@@ -46,6 +49,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   const profilePath = `/profile/${currentUserId ?? ""}`;
   const profileActive = !!currentUserId && location.pathname === profilePath;
 
+  // Tapping the tab you're on scrolls back to the top; at the top, it refreshes (the feed listens).
+  const reselect = () => {
+    if (window.scrollY > 0) window.scrollTo({ top: 0, behavior: "smooth" });
+    else window.dispatchEvent(new CustomEvent(TAB_RESELECT_EVENT, { detail: location.pathname }));
+  };
+
   const tabClass = (active: boolean) =>
     cn("relative flex min-w-0 flex-col items-center justify-center gap-0.5 transition-colors", active ? "text-primary" : "text-muted-foreground");
   // The selected tab glows: a soft cyan disc behind the icon and a dot under its name.
@@ -71,7 +80,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
           return (
             <motion.button
               key={tab.label}
-              onClick={() => navigate(tab.path)}
+              onClick={() => (active ? reselect() : navigate(tab.path))}
               onTouchStart={() => prefetchRoute(tab.path)}
               whileTap={{ scale: 0.9 }}
               aria-current={active ? "page" : undefined}
@@ -94,7 +103,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
 
         {/* Profile: your photo, as Facebook's last tab. */}
         <motion.button
-          onClick={() => currentUserId && navigate(profilePath)}
+          onClick={() => (profileActive ? reselect() : currentUserId && navigate(profilePath))}
           whileTap={{ scale: 0.9 }}
           aria-current={profileActive ? "page" : undefined}
           aria-label="Profile"

@@ -29,6 +29,8 @@ import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
 
 interface NavigationProps {
   currentUserId?: string;
@@ -167,6 +169,10 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
     return () => document.body.classList.remove("has-dock");
   }, [showDock]);
 
+  // Phones: the top bar slides away while you scroll down and comes back when you scroll up.
+  const isPhone = useIsMobile();
+  const topBarHidden = useHideOnScroll(isPhone && !hideMobileTopBar);
+
   const dockItems = [
     { icon: Home, path: "/", label: "Home" },
     { icon: MonitorPlay, path: "/watch", label: "Watch" },
@@ -178,7 +184,12 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   return (
     <>
       {/* Top bar - minimal brand + search + actions */}
-      <header className={cn("sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50 max-md:bg-card max-md:border-x-0 max-md:border-t-0", hideMobileTopBar && "max-md:hidden")}>
+      <header className={cn(
+        "sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50 max-md:bg-card max-md:border-x-0 max-md:border-t-0",
+        "transition-transform duration-200 ease-out",
+        hideMobileTopBar && "max-md:hidden",
+        topBarHidden && "max-md:-translate-y-full"
+      )}>
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-[var(--nav-height)]">
             {/* Left - Logo (phones: the Menu button sits before it, as in Facebook's app) */}
