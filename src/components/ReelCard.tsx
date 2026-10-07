@@ -1,14 +1,14 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { ThumbsUp, MessageCircle, Share2, Play, Trash2, Music, Volume2, VolumeX, MoreHorizontal, Link2, UserX } from "lucide-react";
+import { ThumbsUp, MessageCircle, Share2, Play, Trash2, Music, Volume2, VolumeX, MoreHorizontal, Link2, UserX, Flag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ActionMenu,
+  ActionMenuContent,
+  ActionMenuItem,
+  ActionMenuTrigger,
+} from "@/components/ui/action-menu";
 import { useToast } from "@/hooks/use-toast";
 import ReportDialog from "@/components/ReportDialog";
 
@@ -50,6 +50,7 @@ export default function ReelCard({
   const [buffered, setBuffered] = useState(0);
   const [doubleTapHeart, setDoubleTapHeart] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [reportOpen, setReportOpen] = useState(false);
   const lastTapRef = useRef(0);
   const animFrameRef = useRef<number>(0);
   const { toast } = useToast();
@@ -274,32 +275,33 @@ export default function ReelCard({
             <span className="text-white text-xs mt-1 font-medium drop-shadow-lg">Share</span>
           </button>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <ActionMenu>
+            <ActionMenuTrigger asChild>
               <button className="flex flex-col items-center" aria-label="More options">
                 <div className="h-11 w-11 rounded-full bg-black/40 flex items-center justify-center">
                   <MoreHorizontal className="h-6 w-6 text-white" />
                 </div>
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent side="left" align="end" className="w-48">
-              <DropdownMenuItem onClick={handleCopyLink}>
+            </ActionMenuTrigger>
+            <ActionMenuContent side="left" align="end" className="w-48">
+              <ActionMenuItem onClick={handleCopyLink}>
                 <Link2 className="h-4 w-4 mr-2" /> Copy link
-              </DropdownMenuItem>
+              </ActionMenuItem>
               {currentUserId && currentUserId !== reel.user_id && (
-                <ReportDialog
-                  reportedType="reel"
-                  reportedId={reel.id}
-                  currentUserId={currentUserId}
-                />
+                <ActionMenuItem onSelect={() => setReportOpen(true)}>
+                  <Flag className="h-4 w-4 mr-2" /> Report reel
+                </ActionMenuItem>
               )}
               {currentUserId === reel.user_id && (
-                <DropdownMenuItem onSelect={() => onDelete(reel.id)} className="text-destructive focus:text-destructive">
+                <ActionMenuItem onSelect={() => onDelete(reel.id)} className="text-destructive focus:text-destructive">
                   <Trash2 className="h-4 w-4 mr-2" /> Delete reel
-                </DropdownMenuItem>
+                </ActionMenuItem>
               )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+            </ActionMenuContent>
+          </ActionMenu>
+          {currentUserId && currentUserId !== reel.user_id && (
+            <ReportDialog reportedType="reel" reportedId={reel.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />
+          )}
         </div>
       </div>
     </div>

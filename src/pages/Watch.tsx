@@ -26,8 +26,8 @@ import {
   Upload, X, Loader2, MoreHorizontal, Trash2,
 } from "lucide-react";
 import {
-  DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger,
+} from "@/components/ui/action-menu";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
@@ -600,27 +600,27 @@ const VideoCard = ({
                 {formatViews(video.views_count)} {video.views_count === 1 ? "view" : "views"} · {formatDistanceToNow(new Date(video.created_at), { addSuffix: true })}
               </p>
             </div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
+            <ActionMenu>
+              <ActionMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-8 w-8 flex-shrink-0" aria-label="More options">
                   <MoreHorizontal className="h-4 w-4" />
                 </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={onToggleSave}>
+              </ActionMenuTrigger>
+              <ActionMenuContent align="end">
+                <ActionMenuItem onSelect={onToggleSave}>
                   {isSaved ? <BookmarkCheck className="h-4 w-4 mr-2" /> : <Bookmark className="h-4 w-4 mr-2" />}
                   {isSaved ? "Remove from watchlist" : "Save to watchlist"}
-                </DropdownMenuItem>
-                <DropdownMenuItem onSelect={onShare}>
+                </ActionMenuItem>
+                <ActionMenuItem onSelect={onShare}>
                   <Share2 className="h-4 w-4 mr-2" /> Share
-                </DropdownMenuItem>
+                </ActionMenuItem>
                 {video.user_id === currentUserId && (
-                  <DropdownMenuItem className="text-destructive focus:text-destructive" onSelect={onDelete}>
+                  <ActionMenuItem className="text-destructive focus:text-destructive" onSelect={onDelete}>
                     <Trash2 className="h-4 w-4 mr-2" /> Delete
-                  </DropdownMenuItem>
+                  </ActionMenuItem>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </ActionMenuContent>
+            </ActionMenu>
           </div>
 
           {/* Action bar */}

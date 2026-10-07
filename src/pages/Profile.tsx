@@ -45,7 +45,7 @@ import {
   Flag,
   Share2 } from
 "lucide-react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import ReportDialog from "@/components/ReportDialog";
 import BlockDialog from "@/components/BlockDialog";
 import { isBlockedWith, unblockUser } from "@/lib/blocking";
@@ -457,27 +457,27 @@ const Profile = () => {
 
   // ··· on the cover (phones) and beside Message: share, and for others report or block.
   const profileMenu = (trigger: React.ReactNode) =>
-  <DropdownMenu>
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent align="end">
-        <DropdownMenuItem onSelect={shareProfile}>
+  <ActionMenu>
+      <ActionMenuTrigger asChild>{trigger}</ActionMenuTrigger>
+      <ActionMenuContent align="end">
+        <ActionMenuItem onSelect={shareProfile}>
           <Share2 className="h-4 w-4 mr-2" /> Share profile
-        </DropdownMenuItem>
+        </ActionMenuItem>
         {!isOwnProfile &&
       <>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onSelect={() => setReportOpen(true)}>
+            <ActionMenuSeparator />
+            <ActionMenuItem onSelect={() => setReportOpen(true)}>
               <Flag className="h-4 w-4 mr-2" /> Report profile
-            </DropdownMenuItem>
+            </ActionMenuItem>
             {features.blocking &&
-          <DropdownMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
+          <ActionMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
                 <Ban className="h-4 w-4 mr-2" /> Block
-              </DropdownMenuItem>
+              </ActionMenuItem>
           }
           </>
       }
-      </DropdownMenuContent>
-    </DropdownMenu>;
+      </ActionMenuContent>
+    </ActionMenu>;
 
   const photoPosts = posts.filter((p) => postImages(p).length > 0);
   const videoPosts = posts.filter((p) => p.video_url);

@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Heart, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, ThumbsUp, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2, Ban } from "lucide-react";
 import { ChatCircle, ShareFat, ThumbsUp as PhThumbsUp } from "@phosphor-icons/react";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -395,14 +395,14 @@ const PostCard = ({
             </p>
           </div>
 
-           <DropdownMenu>
-             <DropdownMenuTrigger asChild>
+           <ActionMenu>
+             <ActionMenuTrigger asChild>
                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label="Post options">
                  <MoreHorizontal className="h-5 w-5" />
                </Button>
-             </DropdownMenuTrigger>
-             <DropdownMenuContent align="end">
-               <DropdownMenuItem onClick={handleSavePost}>
+             </ActionMenuTrigger>
+             <ActionMenuContent align="end" title="Post options">
+               <ActionMenuItem onClick={handleSavePost}>
                  {isSaved ? (
                    <>
                      <BookmarkCheck className="h-4 w-4 mr-2 text-primary" />
@@ -414,37 +414,36 @@ const PostCard = ({
                      Save Post
                    </>
                  )}
-               </DropdownMenuItem>
+               </ActionMenuItem>
                 {currentUserId === post.user_id && (
                   <>
-                    <DropdownMenuItem onClick={() => { setIsEditing(true); setEditContent(post.content); }}>
+                    <ActionMenuItem onClick={() => { setIsEditing(true); setEditContent(post.content); }}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit Post
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onSelect={() => setConfirmDelete(true)} className="text-destructive focus:text-destructive">
+                    </ActionMenuItem>
+                    <ActionMenuItem onSelect={() => setConfirmDelete(true)} className="text-destructive focus:text-destructive">
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Post
-                    </DropdownMenuItem>
+                    </ActionMenuItem>
                   </>
                  )}
                 {currentUserId !== post.user_id && (
                   <>
-                    <DropdownMenuSeparator />
-                    <ReportDialog
-                      reportedType="post"
-                      reportedId={post.id}
-                      currentUserId={currentUserId}
-                    />
+                    <ActionMenuSeparator />
+                    <ActionMenuItem onSelect={() => setReportOpen(true)}>
+                      <Flag className="h-4 w-4 mr-2" />
+                      Report post
+                    </ActionMenuItem>
                     {features.blocking && (
-                      <DropdownMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
+                      <ActionMenuItem onSelect={() => setBlockOpen(true)} className="text-destructive focus:text-destructive">
                         <Ban className="h-4 w-4 mr-2" />
                         Block {post.profiles.full_name || "this person"}
-                      </DropdownMenuItem>
+                      </ActionMenuItem>
                     )}
                   </>
                 )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+              </ActionMenuContent>
+            </ActionMenu>
             {currentUserId !== post.user_id && (
               <Button
                 variant="ghost"
@@ -825,6 +824,9 @@ const PostCard = ({
             );
           })}
         </div>
+      )}
+      {currentUserId !== post.user_id && (
+        <ReportDialog reportedType="post" reportedId={post.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />
       )}
       {features.blocking && currentUserId !== post.user_id && (
         <BlockDialog

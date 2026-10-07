@@ -6,11 +6,11 @@ import { format, isToday, isYesterday } from "date-fns";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
 import MessageReactions from "./MessageReactions";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  ActionMenu,
+  ActionMenuContent,
+  ActionMenuItem,
+  ActionMenuTrigger,
+} from "@/components/ui/action-menu";
 
 interface ChatMessage {
   id: string;
@@ -169,28 +169,28 @@ const ChatBubble = ({
           <CornerUpLeft className="h-4 w-4 text-muted-foreground" />
         </button>
         {isCurrentUser && (
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+          <ActionMenu>
+            <ActionMenuTrigger asChild>
               <button className="p-1.5 rounded-full hover:bg-accent transition-colors" aria-label="More actions">
                 <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
               </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align={isCurrentUser ? "end" : "start"} className="w-40">
+            </ActionMenuTrigger>
+            <ActionMenuContent align={isCurrentUser ? "end" : "start"} className="w-40">
               {!isMedia && !isVoice && (
-                <DropdownMenuItem onClick={() => onEdit(message)}>
+                <ActionMenuItem onClick={() => onEdit(message)}>
                   <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                </DropdownMenuItem>
+                </ActionMenuItem>
               )}
               {hasText && (
-                <DropdownMenuItem onClick={() => navigator.clipboard.writeText(message.content)}>
+                <ActionMenuItem onClick={() => navigator.clipboard.writeText(message.content)}>
                   <Copy className="h-3.5 w-3.5 mr-2" /> Copy
-                </DropdownMenuItem>
+                </ActionMenuItem>
               )}
-              <DropdownMenuItem className="text-destructive" onClick={() => onUnsend(message.id)}>
+              <ActionMenuItem className="text-destructive" onClick={() => onUnsend(message.id)}>
                 <Trash2 className="h-3.5 w-3.5 mr-2" /> Unsend
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              </ActionMenuItem>
+            </ActionMenuContent>
+          </ActionMenu>
         )}
       </div>
 
