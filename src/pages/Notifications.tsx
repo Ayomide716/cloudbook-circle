@@ -12,44 +12,20 @@ import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton"
 import { formatDistanceToNow } from "date-fns";
 import { cn, toDate } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { groupMessage, groupNotifications, type GroupableNotification, type NotificationGroup } from "@/lib/notification-groups";
 
-interface Notification {
-  id: string;
-  type: string;
-  content: string;
-  read: boolean | null;
-  created_at: string | null;
-  related_id: string | null;
-  actor_id: string | null;
+interface Notification extends GroupableNotification {
   actor_profile?: { full_name: string | null; avatar_url: string | null } | null;
-  /** Identical copies hidden from the list (an old bug created many notifications twice). */
-  duplicateIds?: string[];
 }
 
-/** Keeps the newest of each identical notification, remembering the others' ids. */
-const collapseDuplicates = (list: Notification[]) => {
-  const seen = new Map<string, Notification>();
-  for (const n of list) {
-    const key = `${n.type}|${n.actor_id}|${n.related_id}|${n.content}`;
-    const kept = seen.get(key);
-    if (kept) {
-      kept.duplicateIds = [...(kept.duplicateIds ?? []), n.id];
-      if (!n.read) kept.read = false;
-    } else {
-      seen.set(key, { ...n });
-    }
-  }
-  return [...seen.values()];
-};
-
-
+type NotificationRow = NotificationGroup<Notification>;
 
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   useSEO({ title: "Notifications", description: "Your CloudBook notifications." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
 
@@ -103,7 +79,7 @@ const Notifications = () => {
       actor_profile: n.actor_id ? actorMap[n.actor_id] || null : null,
     }));
 
-    setNotifications(collapseDuplicates(enriched));
+    setNotifications(groupNotifications(enriched));
     setIsLoading(false);
   });
 
@@ -136,11 +112,11 @@ const Notifications = () => {
     }
   }, [currentUserId, loadNotifications, setupRealtimeSubscription]);
 
-  const markAsRead = async (notification: Notification) => {
+  const markAsRead = async (notification: NotificationRow) => {
     await supabase
       .from("notifications")
       .update({ read: true })
-      .in("id", [notification.id, ...(notification.duplicateIds ?? [])]);
+      .in("id", notification.memberIds);
 
     loadNotifications();
   };
@@ -159,7 +135,7 @@ const Notifications = () => {
     });
   };
 
-  const handleNotificationClick = async (notification: Notification) => {
+  const handleNotificationClick = async (notification: NotificationRow) => {
     // Mark as read first
     if (!notification.read) {
       await markAsRead(notification);
@@ -234,13 +210,6 @@ const Notifications = () => {
     }
   };
 
-  const getNotificationMessage = (notification: Notification) => {
-    // Parse the content to make it more readable
-    const content = notification.content;
-    
-    // Extract the action part (e.g., "liked your post", "commented on your post")
-    return content;
-  };
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const shown = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
@@ -305,7 +274,20 @@ const Notifications = () => {
                 >
                   {/* Avatar or Icon */}
                   <div className="flex-shrink-0 relative">
-                    {notification.actor_profile ? (
+                    {notification.actor_profile && notification.actors.length > 1 ? (
+                      // Two people stacked, as Facebook shows a group.
+                      <div className="relative h-12 w-12">
+                        {notification.actors.slice(0, 2).reverse().map((actor, i) => (
+                          <Avatar key={actor.id ?? i} className={cn("absolute h-9 w-9 border-2 border-card", i === 0 ? "right-0 top-0" : "bottom-0 left-0")}>
+                            <AvatarImage src={actor.avatar_url || ""} />
+                            <AvatarFallback className="bg-secondary text-xs">{actor.name[0]?.toUpperCase() || "U"}</AvatarFallback>
+                          </Avatar>
+                        ))}
+                        <div className="absolute -bottom-1 -right-1">
+                          {getNotificationIcon(notification.type, true)}
+                        </div>
+                      </div>
+                    ) : notification.actor_profile ? (
                       <div className="relative">
                         <Avatar className="h-12 w-12">
                           <AvatarImage src={notification.actor_profile.avatar_url || ""} />
@@ -328,7 +310,7 @@ const Notifications = () => {
                       "text-sm sm:text-base leading-snug",
                       !notification.read ? "font-medium text-foreground" : "text-muted-foreground"
                     )}>
-                      {getNotificationMessage(notification)}
+                      {groupMessage(notification)}
                     </p>
                     <p className={cn(
                       "text-xs mt-1",

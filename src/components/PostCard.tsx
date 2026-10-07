@@ -188,43 +188,36 @@ const PostCard = ({
      }
    };
 
+  // One reaction change at a time: a fast double tap (or a tap during a long press) would
+  // otherwise race two writes for the same post.
+  const reactionBusy = useRef(false);
+
   const handleReaction = async (reactionType: string) => {
     setShowReactions(false);
+    if (reactionBusy.current) return;
+    reactionBusy.current = true;
+    const previous = userReaction;
+    const removing = previous === reactionType;
     // A pop when you like or react (not when you take it back), as on Facebook.
-    if (userReaction !== reactionType) { playSound("like"); haptic(); }
+    if (!removing) { playSound("like"); haptic(); }
     onReactionToggle(reactionType);
 
-    if (userReaction === reactionType) {
-      const { error } = await supabase
-        .from("reactions")
-        .delete()
-        .eq("post_id", post.id)
-        .eq("user_id", currentUserId);
+    try {
+      // Adding or changing is one "insert or update", so it can't trip over a reaction that
+      // is already saved (from another tab, or before this page had loaded it).
+      const { error } = removing
+        ? await supabase.from("reactions").delete().eq("post_id", post.id).eq("user_id", currentUserId)
+        : await supabase
+            .from("reactions")
+            .upsert({ post_id: post.id, user_id: currentUserId, reaction_type: reactionType }, { onConflict: "post_id,user_id" });
 
       if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        onReactionToggle(reactionType);
+        toast({ title: "Couldn't save your reaction", description: await explainError(error, post.user_id), variant: "destructive" });
+        // Put the button back how it was.
+        onReactionToggle(previous ?? reactionType);
       }
-    } else if (userReaction) {
-      const { error } = await supabase
-        .from("reactions")
-        .update({ reaction_type: reactionType })
-        .eq("post_id", post.id)
-        .eq("user_id", currentUserId);
-
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        onReactionToggle(userReaction);
-      }
-    } else {
-      const { error } = await supabase
-        .from("reactions")
-        .insert({ post_id: post.id, user_id: currentUserId, reaction_type: reactionType });
-
-      if (error) {
-        toast({ title: "Error", description: error.message, variant: "destructive" });
-        onReactionToggle(reactionType);
-      }
+    } finally {
+      reactionBusy.current = false;
     }
   };
 
