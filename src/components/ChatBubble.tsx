@@ -12,6 +12,12 @@ import {
   ActionMenuTrigger,
 } from "@/components/ui/action-menu";
 
+/** The length saved in a voice note's text, "🎤 Voice message (1:05)" → 65. */
+const voiceSeconds = (content: string) => {
+  const m = content.match(/\((\d+):(\d{2})\)\s*$/);
+  return m ? Number(m[1]) * 60 + Number(m[2]) : undefined;
+};
+
 interface ChatMessage {
   id: string;
   sender_id: string;
@@ -241,7 +247,7 @@ const ChatBubble = ({
           )}
           {/* Voice */}
           {isVoice && message.image_url && (
-            <VoiceMessagePlayer audioUrl={message.image_url} isOwnMessage={isCurrentUser} />
+            <VoiceMessagePlayer audioUrl={message.image_url} duration={voiceSeconds(message.content)} isOwnMessage={isCurrentUser} />
           )}
           {/* Video */}
           {isVideo && message.image_url && (
