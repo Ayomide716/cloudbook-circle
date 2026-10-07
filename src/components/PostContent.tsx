@@ -14,8 +14,9 @@ const PostContent = ({ content }: PostContentProps) => {
     const parts: (string | JSX.Element)[] = [];
     let lastIndex = 0;
     
-    // Combined pattern to find both hashtags and mentions
-    const combinedPattern = /(#\w+|@\w+)/g;
+    // Combined pattern to find links, hashtags and mentions (a link is matched whole, so a
+    // "#" inside it isn't taken for a hashtag)
+    const combinedPattern = /(https?:\/\/[^\s<>"]+|#\w+|@\w+)/gi;
     let match;
     
     while ((match = combinedPattern.exec(text)) !== null) {
@@ -27,7 +28,23 @@ const PostContent = ({ content }: PostContentProps) => {
       const matchedText = match[0];
       const key = `${match.index}-${matchedText}`;
       
-      if (matchedText.startsWith('#')) {
+      if (/^https?:\/\//i.test(matchedText)) {
+        // Link: opens in a new tab; punctuation right after it stays as text
+        const url = matchedText.replace(/[.,!?;:)\]}'"]+$/, "");
+        parts.push(
+          <a
+            key={key}
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer nofollow ugc"
+            className="text-primary hover:underline break-all"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {url}
+          </a>
+        );
+        if (url.length < matchedText.length) parts.push(matchedText.slice(url.length));
+      } else if (matchedText.startsWith('#')) {
         // Hashtag
         parts.push(
           <Link
