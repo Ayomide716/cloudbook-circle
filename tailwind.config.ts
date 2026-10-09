@@ -78,12 +78,27 @@ export default {
           "0%, 100%": { height: "30%" },
           "50%": { height: "100%" },
         },
+        // Instagram's double-tap heart: bounces in with a little tilt, settles, then floats away.
         "heart-pop": {
-          "0%": { transform: "scale(0.2)", opacity: "0" },
-          "15%": { transform: "scale(1.2)", opacity: "0.95" },
-          "30%": { transform: "scale(1)", opacity: "0.95" },
-          "70%": { transform: "scale(1)", opacity: "0.95" },
-          "100%": { transform: "scale(1.1)", opacity: "0" },
+          "0%": { transform: "scale(0) rotate(-14deg)", opacity: "0" },
+          "14%": { transform: "scale(1.3) rotate(6deg)", opacity: "1" },
+          "24%": { transform: "scale(0.92) rotate(-3deg)", opacity: "1" },
+          "34%": { transform: "scale(1.06) rotate(0deg)", opacity: "1" },
+          "44%": { transform: "scale(1)", opacity: "1" },
+          "72%": { transform: "scale(1) translateY(0)", opacity: "1" },
+          "100%": { transform: "scale(0.6) translateY(-90px)", opacity: "0" },
+        },
+        // The small hearts that fly out around it (direction set per heart with --dx / --dy).
+        "heart-spark": {
+          "0%": { transform: "translate(0, 0) scale(0.3)", opacity: "0" },
+          "20%": { opacity: "1" },
+          "100%": { transform: "translate(var(--dx), var(--dy)) scale(1)", opacity: "0" },
+        },
+        // "Posting…": fills most of the way quickly, then waits for the server.
+        "post-progress": {
+          "0%": { transform: "scaleX(0.04)" },
+          "40%": { transform: "scaleX(0.6)" },
+          "100%": { transform: "scaleX(0.92)" },
         },
         "accordion-down": {
           from: { height: "0", opacity: "0" },
@@ -132,7 +147,9 @@ export default {
       },
       animation: {
         "sound-bar": "sound-bar 0.9s ease-in-out infinite",
-        "heart-pop": "heart-pop 0.9s ease-out forwards",
+        "heart-pop": "heart-pop 1.1s cubic-bezier(.2,.8,.3,1) forwards",
+        "heart-spark": "heart-spark 0.75s ease-out 0.08s forwards",
+        "post-progress": "post-progress 3s cubic-bezier(.1,.7,.3,1) forwards",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "fade-in": "fade-in 0.3s ease-out",
