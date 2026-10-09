@@ -54,6 +54,25 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     setSearchParams(next, { replace: true });
   }, [searchParams, setSearchParams]);
 
+  // The post on its way up, shown under the composer pill until it's saved.
+  const [pending, setPending] = useState<{
+    content: string;
+    image: string | null;
+    video: boolean;
+    failed: boolean;
+    draft: { content: string; imageUrls: string[]; videoUrl: string; pollData: { question: string; options: string[] } | null; postExpiry: string | null; location: string; showLocation: boolean };
+  } | null>(null);
+
+  /** Puts a post that failed back in the composer to try again. */
+  const retryPending = () => {
+    if (!pending) return;
+    const d = pending.draft;
+    setContent(d.content); setImageUrls(d.imageUrls); setVideoUrl(d.videoUrl); setPollData(d.pollData);
+    setPostExpiry(d.postExpiry); setLocation(d.location); setShowLocation(d.showLocation);
+    setPending(null);
+    setShowDialog(true);
+  };
+
   // A second tap can land before React disables the button; the ref blocks it at once.
   const submittingRef = useRef(false);
 
@@ -72,6 +91,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
     submittingRef.current = true;
     setIsLoading(true);
+
+    // Close the composer at once and show the post going up at the top of the feed, with a
+    // progress bar, instead of making you wait in the composer.
+    const draft = { content, imageUrls, videoUrl, pollData, postExpiry, location, showLocation };
+    setPending({ content: content.trim() || (pollData ? `📊 ${pollData.question}` : ""), image: imageUrls[0] ?? null, video: !!videoUrl, failed: false, draft });
+    setShowDialog(false);
 
     // Calculate expires_at from post expiry setting
     let expiresAt: string | null = null;
@@ -108,14 +133,11 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     submittingRef.current = false;
 
     if (error) {
-      toast({
-        title: "Error creating post",
-        description: error.message,
-        variant: "destructive",
-      });
+      setPending((p) => (p ? { ...p, failed: true } : p));
       return;
     }
 
+    setPending(null);
     setContent("");
     setImageUrls([]);
     setVideoUrl("");
@@ -125,7 +147,6 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     setShowLocation(false);
     setShowDialog(false);
     playSound("post");
-    toast({ title: "Post created!" });
     onPostCreated();
   };
  
@@ -166,6 +187,33 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           </Button>
         </div>
       </Card>
+
+      {pending && (
+        <Card className="feed-section overflow-hidden" role="status" aria-live="polite">
+          <div className="flex items-center gap-3 p-3">
+            <Avatar className="h-9 w-9 flex-shrink-0">
+              <AvatarImage src={currentUser.avatar_url || undefined} />
+              <AvatarFallback className="bg-secondary text-secondary-foreground">{currentUser.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-semibold">{pending.failed ? "Couldn't post" : "Posting…"}</p>
+              <p className="truncate text-[13px] text-muted-foreground">{pending.failed ? "Check your connection and try again." : pending.content || (pending.video ? "Video" : "Photo")}</p>
+            </div>
+            {pending.image && <img src={pending.image} alt="" className="h-11 w-11 flex-shrink-0 rounded-lg object-cover" />}
+            {pending.failed && (
+              <div className="flex flex-shrink-0 gap-1">
+                <Button size="sm" variant="ghost" className="h-8 rounded-full" onClick={() => setPending(null)}>Discard</Button>
+                <Button size="sm" className="h-8 rounded-full" onClick={retryPending}>Retry</Button>
+              </div>
+            )}
+          </div>
+          {!pending.failed && (
+            <div className="h-1 w-full overflow-hidden bg-secondary">
+              <div className="h-full w-full origin-left animate-post-progress bg-primary" />
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Full Create Post Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>

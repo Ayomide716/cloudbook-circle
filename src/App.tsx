@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import SessionProvider from "@/components/SessionProvider";
 import RequireAuth from "@/components/RequireAuth";
@@ -14,6 +14,7 @@ import { useKeyboardInset } from "@/hooks/use-keyboard-inset";
 import { useSession } from "@/hooks/use-session";
 import { NavShellContext } from "@/lib/nav-shell";
 import { AppNavigation } from "@/components/Navigation";
+import EdgeSwipeBack from "@/components/EdgeSwipeBack";
 
 // Shown after a delay, so it shouldn't weigh down the first load.
 const InstallPrompt = lazy(() => import("@/components/InstallPrompt"));
@@ -62,11 +63,21 @@ const queryClient = new QueryClient();
 // Quick fade-in for each page. There is no exit animation, so the next page
 // never waits for the previous one to animate out.
 // (Plain CSS, so the animation library isn't needed before the first paint.)
-const AnimatedPage = ({ children }: { children: React.ReactNode }) => (
-  <div className="animate-in fade-in-0 slide-in-from-bottom-1 duration-200 ease-out">
-    {children}
-  </div>
-);
+// The main tabs swap in place; other pages slide in from the right going forward and from the
+// left coming back, as in native apps.
+const TAB_ROOTS = ["/", "/friends", "/groups", "/notifications", "/menu", "/messages"];
+
+const AnimatedPage = ({ children }: { children: React.ReactNode }) => {
+  const navigationType = useNavigationType();
+  const { pathname } = useLocation();
+  const motion =
+    navigationType === "POP"
+      ? "motion-safe:slide-in-from-left-10"
+      : TAB_ROOTS.includes(pathname)
+        ? "motion-safe:slide-in-from-bottom-1"
+        : "motion-safe:slide-in-from-right-10";
+  return <div className={`animate-in fade-in-0 duration-200 ease-out ${motion}`}>{children}</div>;
+};
 
 /** Signed-in pages: wait for the session (showing the page skeleton), then render or redirect. */
 const Protected = ({ children, redirectTo }: { children: React.ReactNode; redirectTo?: string }) => (
@@ -122,6 +133,7 @@ const AppShell = ({ children }: { children: ReactNode }) => {
   return (
     <NavShellContext.Provider value={active ? shell : null}>
       {active && <AppNavigation currentUserId={session.user.id} hideMobileTopBar={hideMobileTopBar} />}
+      {session && <EdgeSwipeBack />}
       {children}
     </NavShellContext.Provider>
   );

@@ -12,6 +12,7 @@ import { ChatCircle, ShareFat, ThumbsUp as PhThumbsUp } from "@phosphor-icons/re
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
 import { formatDistanceToNow } from "date-fns";
 import { compactCount, shortTime } from "@/lib/time";
 import { hidePost, snoozePerson, unhidePost, SNOOZE_DAYS } from "@/lib/hidden-posts";
@@ -19,13 +20,13 @@ import { Link } from "react-router-dom";
 import { cn, toDate } from "@/lib/utils";
 import SharePostDialog from "./SharePostDialog";
 import LinkPreview from "./LinkPreview";
+import HeartBurst from "./HeartBurst";
 import { firstLink } from "@/lib/links";
 import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
 import VerifiedBadge from "./VerifiedBadge";
 import ReportDialog from "./ReportDialog";
-import ConfirmDialog from "./ConfirmDialog";
 import BlockDialog from "./BlockDialog";
 import { explainError } from "@/lib/blocking";
 import PhotoCollage from "./PhotoCollage";
@@ -106,7 +107,6 @@ const PostCard = ({
 }: PostCardProps) => {
   const [showComments, setShowComments] = useState(defaultShowComments);
   const myProfile = useMyProfile();
-  const [confirmDelete, setConfirmDelete] = useState(false);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [heartBurst, setHeartBurst] = useState(0);
   // Hidden with ✕: the card turns into Facebook's "Why aren't you interested?" panel.
@@ -231,12 +231,42 @@ const PostCard = ({
       .eq("id", post.id);
 
     if (error) {
-      toast({ title: "Error deleting post", variant: "destructive" });
+      setRemoved(false);
+      toast({ title: "Couldn't delete the post", variant: "destructive" });
     } else {
-      toast({ title: "Post deleted" });
       onDelete?.();
     }
   };
+
+  // Deleting hides the post at once with "Post deleted · Undo"; it's really deleted 5 seconds
+  // later (or straight away if you leave the page first).
+  const [removed, setRemoved] = useState(false);
+  const pendingDelete = useRef<{ timer: number; run: () => void } | null>(null);
+  const deleteWithUndo = () => {
+    setRemoved(true);
+    const run = () => { pendingDelete.current = null; void handleDeletePost(); };
+    pendingDelete.current = { timer: window.setTimeout(run, 5000), run };
+    toast({
+      title: "Post deleted",
+      duration: 5000,
+      action: (
+        <ToastAction
+          altText="Undo delete"
+          onClick={() => {
+            if (pendingDelete.current) window.clearTimeout(pendingDelete.current.timer);
+            pendingDelete.current = null;
+            setRemoved(false);
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+  useEffect(() => () => {
+    const pending = pendingDelete.current;
+    if (pending) { window.clearTimeout(pending.timer); pending.run(); }
+  }, []);
 
   const handleDeleteComment = async (commentId: string) => {
     const { error } = await supabase
@@ -317,7 +347,7 @@ const PostCard = ({
 
   const authorFirstName = post.profiles.full_name?.split(" ")[0] || "them";
 
-  if (blocked) return null;
+  if (blocked || removed) return null;
 
   if (hidden) {
     const reasons = ["This post", `Too much from ${authorFirstName}`, "Seen it before", "Not relevant to me"];
@@ -435,7 +465,7 @@ const PostCard = ({
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit Post
                     </ActionMenuItem>
-                    <ActionMenuItem onSelect={() => setConfirmDelete(true)} className="text-destructive focus:text-destructive">
+                    <ActionMenuItem onSelect={deleteWithUndo} className="text-destructive focus:text-destructive">
                       <Trash2 className="h-4 w-4 mr-2" />
                       Delete Post
                     </ActionMenuItem>
@@ -539,14 +569,11 @@ const PostCard = ({
               // Double-tap likes (never un-likes), with a heart that pops over the photo.
               onDoubleTap={() => {
                 if (!userReaction) handleReaction("like");
+                else haptic(12);
                 setHeartBurst((n) => n + 1);
               }}
             />
-            {heartBurst > 0 && (
-              <span key={heartBurst} className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
-                <Heart className="h-24 w-24 fill-white text-white drop-shadow-lg animate-heart-pop" />
-              </span>
-            )}
+            {heartBurst > 0 && <HeartBurst key={heartBurst} />}
           </div>
           <PhotoViewer
             images={photos}
@@ -873,13 +900,6 @@ const PostCard = ({
           onBlocked={() => setBlocked(true)}
         />
       )}
-      <ConfirmDialog
-        open={confirmDelete}
-        onOpenChange={setConfirmDelete}
-        title="Delete this post?"
-        description="It will be removed with its reactions and comments."
-        onConfirm={handleDeletePost}
-      />
     </Card>
   );
 };
