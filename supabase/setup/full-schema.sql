@@ -3643,7 +3643,7 @@ GRANT EXECUTE ON FUNCTION public.mark_messages_delivered() TO authenticated;
 -- Each phone or browser that allows notifications saves a subscription here. When a message,
 -- group message or notification is created, the database asks the send-push function to
 -- deliver it to every subscription of the person it's for. The function's address and a
--- shared secret live in private.push_config (filled in once, by hand; see the README).
+-- shared secret live in private.push_config (filled in once, by hand; see docs/push-notifications.md).
 
 CREATE EXTENSION IF NOT EXISTS pg_net WITH SCHEMA extensions;
 
