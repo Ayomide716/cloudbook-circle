@@ -4,17 +4,19 @@ import { supabase } from "@/integrations/supabase/client";
  * Notifications that reach a locked phone or a closed app (Web Push). The phone's browser
  * gives us a subscription; we save it, and the server (send-push) delivers through it.
  *
- * The public half of the server's key pair; the private half is only on the server.
+ * VITE_VAPID_PUBLIC_KEY is the public half of the server's key pair (the private half is only
+ * in the send-push function's secrets). Without it, push stays off. See docs/push-notifications.md.
  */
-const VAPID_PUBLIC_KEY =
-  import.meta.env.VITE_VAPID_PUBLIC_KEY ||
-  "BDpNQiIEbgdBPOB0Q58T7aHS58bvQ9ZXry75_dduoLhhVcEGvLvTk-2SWz6F-CKqv-AulMqFom5sE_3nCThLMK4";
+const VAPID_PUBLIC_KEY: string = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? "";
 
 /** Set while this device is subscribed, so the open app doesn't show the same alert twice. */
 export const PUSH_ACTIVE_KEY = "ember_push_active";
 
+/** The app has a key to subscribe with (set up on the server too). */
+export const pushConfigured = !!VAPID_PUBLIC_KEY;
+
 export const pushSupported = () =>
-  typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  !!VAPID_PUBLIC_KEY && typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 
 /** iPhones only allow notifications for apps added to the Home Screen. */
 export const needsHomeScreenInstall = () => {

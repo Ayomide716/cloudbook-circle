@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { BellRing, Share, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { enablePush, needsHomeScreenInstall, pushActive, pushSupported } from "@/lib/web-push";
+import { enablePush, needsHomeScreenInstall, pushActive, pushConfigured, pushSupported } from "@/lib/web-push";
 
 const DISMISS_KEY = "ember_push_banner_dismissed";
 const DISMISS_DAYS = 14;
@@ -29,7 +29,7 @@ const EnablePushBanner = () => {
 
   useEffect(() => {
     if (dismissedRecently() || pushActive()) return;
-    if (ios) return setShow(true);
+    if (ios) return setShow(pushConfigured);
     setShow(pushSupported() && Notification.permission === "default");
   }, [ios]);
 

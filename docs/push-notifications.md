@@ -21,10 +21,11 @@ On iPhone, Web Push only works for Ember added to the Home Screen (iOS 16.4+).
    `supabase functions deploy send-push --no-verify-jwt`
    (or in the dashboard: Edge Functions → Deploy a new function → `send-push`, paste
    `supabase/functions/send-push/index.ts`, and turn off "Enforce JWT verification").
-3. Add the function's secrets (Edge Functions → Secrets):
-   - `VAPID_PUBLIC_KEY`: the public key in `src/lib/web-push.ts` (or your own, also set as
-     `VITE_VAPID_PUBLIC_KEY` in Vercel)
-   - `VAPID_PRIVATE_KEY`: its private half (never in the app or the repo)
+3. Make a key pair (`npx web-push generate-vapid-keys`, or any "VAPID key generator") and add
+   the function's secrets (Edge Functions → Secrets):
+   - `VAPID_PUBLIC_KEY`: the public key (also set it as `VITE_VAPID_PUBLIC_KEY` in Vercel and
+     redeploy; until then the app keeps push off)
+   - `VAPID_PRIVATE_KEY`: the private key (never in the app, Vercel or the repo)
    - `VAPID_SUBJECT`: `mailto:` + a contact address
    - `PUSH_WEBHOOK_SECRET`: a long random string
 4. Tell the database where to send, with the same secret:
@@ -34,5 +35,4 @@ On iPhone, Web Push only works for Ember added to the Home Screen (iOS 16.4+).
    on conflict (id) do update set function_url = excluded.function_url, secret = excluded.secret;
    ```
 
-To make a new key pair: `npx web-push generate-vapid-keys`. Changing keys means everyone
-turns notifications on again.
+Changing keys later means everyone turns notifications on again.
