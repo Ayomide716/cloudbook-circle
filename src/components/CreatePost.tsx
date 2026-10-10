@@ -126,21 +126,34 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
        .select()
        .single();
 
+     let pollError: { message: string } | null = null;
      if (!error && postData && pollData) {
-       // Create the poll
-       await supabase.from("polls").insert({
+       // A post and its poll are one user action. Never report success when the poll failed.
+       const result = await supabase.from("polls").insert({
          post_id: postData.id,
          question: pollData.question,
          options: pollData.options,
          user_id: currentUser.id,
        });
+       pollError = result.error;
+       if (pollError) {
+         // Best-effort cleanup prevents a broken poll post from remaining in the feed.
+         await supabase.from("posts").delete().eq("id", postData.id).eq("user_id", currentUser.id);
+       }
      }
  
     setIsLoading(false);
     submittingRef.current = false;
 
-    if (error) {
+    if (error || pollError || !postData) {
       setPending((p) => (p ? { ...p, failed: true } : p));
+      toast({
+        title: "Couldn't publish your post",
+        description: pollError
+          ? "The poll couldn't be saved. Your draft is still available to retry."
+          : "Check your connection and try again. Your draft is still available to retry.",
+        variant: "destructive",
+      });
       return;
     }
 
