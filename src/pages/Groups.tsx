@@ -30,7 +30,7 @@ interface Group {
 const Groups = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Groups", description: "Discover and join groups on CloudBook." });
+  useSEO({ title: "Groups", description: "Discover and join groups on Ember." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   // Invites to community groups (group chat invites are answered in Messages).
@@ -231,8 +231,6 @@ const Groups = () => {
         description: memberError.message,
         variant: "destructive",
       });
-    } else {
-      toast({ title: "Group created successfully" });
     }
     setIsCreating(false);
     setFormData({ name: "", description: "" });
@@ -266,7 +264,6 @@ const Groups = () => {
       return;
     }
 
-    toast({ title: "Joined group successfully!" });
     navigate(`/groups/${groupId}`);
   };
 
@@ -316,7 +313,7 @@ const Groups = () => {
         )}
 
         {filteredGroups.length === 0 ? (
-          <Card className="feed-section p-12 text-center">
+          <Card className="feed-section flat-list p-12 text-center">
             {searchQuery || view !== "all" ? (
               <>
                 <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
@@ -345,14 +342,15 @@ const Groups = () => {
             )}
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2 sm:gap-4">
+          // Flat rows on the page, as in native apps: photo, name and members, then Join.
+          <div className="grid grid-cols-1 gap-0.5 md:grid-cols-2 md:gap-2">
             {filteredGroups.map((group) => (
-              <Card
+              <div
                 key={group.id}
                 role="link"
                 tabIndex={0}
                 aria-label={group.name}
-                className="feed-section overflow-hidden hover:shadow-lg transition-all cursor-pointer group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                className="group flex cursor-pointer items-center gap-3 rounded-2xl px-3 py-2.5 transition-colors hover:bg-accent/60 active:bg-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => navigate(`/groups/${group.id}`)}
                 onKeyDown={(e) => {
                   if (e.target === e.currentTarget && (e.key === "Enter" || e.key === " ")) {
@@ -361,70 +359,46 @@ const Groups = () => {
                   }
                 }}
               >
-                {/* Group Card with Avatar */}
-                <div className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    {/* Group Avatar */}
-                    <div className="h-14 w-14 rounded-full bg-gradient-to-br from-primary/20 to-primary/5 flex-shrink-0 overflow-hidden flex items-center justify-center">
-                      {group.image_url ? (
-                        <img
-                          src={group.image_url}
-                          alt=""
-                          loading="lazy"
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                        />
-                      ) : (
-                        <Users className="h-7 w-7 text-primary/50" />
-                      )}
-                    </div>
-                    
-                    {/* Group Name & Members */}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-lg font-semibold truncate group-hover:text-primary transition-colors">
-                        {group.name}
-                      </h3>
-                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                        {/* Without the count function, only members can count a group, so hide it. */}
-                        {group.member_count !== undefined && (
-                          <>
-                            <Users className="h-3.5 w-3.5" />
-                            <span>{group.member_count} {group.member_count === 1 ? "member" : "members"}</span>
-                            <span>·</span>
-                          </>
-                        )}
-                        <Globe className="h-3.5 w-3.5" />
-                        <span>Public</span>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {group.description && (
-                    <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                      {group.description}
-                    </p>
+                <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 to-primary/5">
+                  {group.image_url ? (
+                    <img src={group.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                  ) : (
+                    <Users className="h-7 w-7 text-primary/60" />
                   )}
-                  
-                  <div className="flex items-center justify-end">
-                    {!group.is_member && (
-                      <Button
-                        size="sm"
-                        onClick={(e) => handleJoinGroup(e, group.id)}
-                        onKeyDown={(e) => e.stopPropagation()}
-                        disabled={joiningId === group.id}
-                        aria-label={`Join ${group.name}`}
-                      >
-                        {joiningId === group.id && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                        Join
-                      </Button>
-                    )}
-                    {group.is_member && (
-                      <span className="text-xs text-primary font-medium px-2 py-1 bg-primary/10 rounded-full">
-                        Member
-                      </span>
-                    )}
-                  </div>
                 </div>
-              </Card>
+                <div className="min-w-0 flex-1">
+                  <h3 className="truncate text-[16px] font-semibold">{group.name}</h3>
+                  <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
+                    {/* Without the count function, only members can count a group, so hide it. */}
+                    {group.member_count !== undefined && (
+                      <>
+                        <span>{group.member_count} {group.member_count === 1 ? "member" : "members"}</span>
+                        <span>·</span>
+                      </>
+                    )}
+                    <Globe className="h-3 w-3" />
+                    <span>Public</span>
+                  </div>
+                  {group.description && (
+                    <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{group.description}</p>
+                  )}
+                </div>
+                {group.is_member ? (
+                  <span className="shrink-0 rounded-full bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary">Member</span>
+                ) : (
+                  <Button
+                    size="sm"
+                    className="h-8 shrink-0 rounded-full px-4"
+                    onClick={(e) => handleJoinGroup(e, group.id)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    disabled={joiningId === group.id}
+                    aria-label={`Join ${group.name}`}
+                  >
+                    {joiningId === group.id && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
+                    Join
+                  </Button>
+                )}
+              </div>
             ))}
           </div>
         )}

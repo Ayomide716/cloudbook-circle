@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { features } from "@/lib/features";
 
 interface FeedSidebarProps {
   currentUser: {
@@ -17,17 +18,17 @@ interface FeedSidebarProps {
 }
 
 // Same icon set as the header and dock, so a destination always looks the same.
-const sidebarLinks: { href: string; icon: LucideIcon; label: string; adminOnly?: boolean }[] = [
+const sidebarLinks: { href: string; icon: LucideIcon; label: string; adminOnly?: boolean; extra?: boolean }[] = [
   { href: "/friends", icon: UserPlus, label: "Friends" },
   { href: "/messages", icon: MessageCircle, label: "Messages" },
   { href: "/groups", icon: Users, label: "Communities" },
-  { href: "/pages", icon: FileText, label: "Pages" },
-  { href: "/watch", icon: MonitorPlay, label: "Watch" },
+  { href: "/pages", icon: FileText, label: "Pages", extra: true },
+  { href: "/watch", icon: MonitorPlay, label: "Watch", extra: true },
   { href: "/reels", icon: Film, label: "Reels" },
   { href: "/saved", icon: Bookmark, label: "Saved" },
   { href: "/events", icon: CalendarDays, label: "Events" },
-  { href: "/marketplace", icon: ShoppingBag, label: "Marketplace" },
-  { href: "/ads", icon: Megaphone, label: "Ad Manager" },
+  { href: "/marketplace", icon: ShoppingBag, label: "Marketplace", extra: true },
+  { href: "/ads", icon: Megaphone, label: "Ad Manager", extra: true },
   { href: "/admin", icon: Shield, label: "Admin", adminOnly: true },
 ];
 
@@ -83,7 +84,7 @@ const FeedSidebar = ({ currentUser }: FeedSidebarProps) => {
           </Link>
         </motion.div>
         
-        {sidebarLinks.filter((link) => !link.adminOnly || isAdmin).map((link) => (
+        {sidebarLinks.filter((link) => (!link.adminOnly || isAdmin) && (!link.extra || features.extras)).map((link) => (
           <motion.div key={link.href} variants={item}>
             <Link
               to={link.href}

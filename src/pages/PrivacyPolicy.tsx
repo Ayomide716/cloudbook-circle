@@ -67,7 +67,7 @@ const PrivacyPolicy = () => {
         <p>We use local storage and session tokens for authentication. We do not use third-party tracking cookies.</p>
 
         <h2>7. Children's Privacy</h2>
-        <p>CloudBook is not intended for children under 13. We do not knowingly collect data from children under 13.</p>
+        <p>Ember is not intended for children under 13. We do not knowingly collect data from children under 13.</p>
 
         <h2>8. Changes to This Policy</h2>
         <p>We may update this policy periodically. We will notify you of significant changes through the Platform.</p>

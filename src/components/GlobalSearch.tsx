@@ -97,7 +97,7 @@ export default function GlobalSearch() {
           value={query}
           onChange={(e) => { setQuery(e.target.value); setIsOpen(true); }}
           onFocus={() => query && setIsOpen(true)}
-          placeholder="Search CloudBook"
+          placeholder="Search Ember"
           className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground"
         />
         {query && (

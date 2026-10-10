@@ -101,7 +101,6 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
         throw error;
       }
 
-      toast({ title: "Group updated successfully!" });
       onGroupUpdated();
       onOpenChange(false);
     } catch (error) {

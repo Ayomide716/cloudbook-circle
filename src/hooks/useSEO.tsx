@@ -5,7 +5,7 @@ interface SEOProps {
   description?: string;
 }
 
-const BASE_TITLE = "CloudBook";
+const BASE_TITLE = "Ember";
 
 export function useSEO({ title, description }: SEOProps) {
   useEffect(() => {

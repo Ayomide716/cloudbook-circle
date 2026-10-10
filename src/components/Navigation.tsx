@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Cloud, Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, ShoppingBag, MonitorPlay, Search, Shield } from "lucide-react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, Search, Shield } from "lucide-react";
 import { List, MagnifyingGlass, MessengerLogo, PlusCircle } from "@phosphor-icons/react";
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useContext, useLayoutEffect, useRef } from "react";
 import BottomNav from "./BottomNav";
 import { cn } from "@/lib/utils";
+import Wordmark from "@/components/Wordmark";
 import ThemeToggle from "./ThemeToggle";
 import GlobalSearch from "./GlobalSearch";
 import MobileSearchOverlay from "./MobileSearchOverlay";
@@ -185,7 +186,6 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast({ title: "Logged out successfully" });
     navigate("/auth");
   };
 
@@ -204,8 +204,8 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
 
   const dockItems = [
     { icon: Home, path: "/", label: "Home" },
-    { icon: MonitorPlay, path: "/watch", label: "Watch" },
     { icon: Film, path: "/reels", label: "Reels" },
+    { icon: UserPlus, path: "/friends", label: "Friends" },
     { icon: Users, path: "/groups", label: "Groups" },
     { icon: MessageCircle, path: "/messages", label: "Messages" },
   ];
@@ -214,7 +214,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
     <>
       {/* Top bar - minimal brand + search + actions */}
       <header className={cn(
-        "sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50 max-md:bg-card max-md:border-x-0 max-md:border-t-0",
+        "sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50 max-md:bg-background max-md:border-x-0 max-md:border-t-0",
         "transition-transform duration-200 ease-out",
         hideMobileTopBar && "max-md:hidden",
         topBarHidden && "max-md:-translate-y-full"
@@ -235,13 +235,9 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                 <List className="h-[26px] w-[26px]" weight="regular" aria-hidden="true" />
               </Button>
             )}
-            {/* Cloud mark, the name in a cyan-to-white gradient, and the tagline under it. */}
-            <Link to="/" className="shrink-0 flex flex-col" aria-label="CloudBook home">
-              <span className="flex items-center gap-1.5">
-                <Cloud className="h-[22px] w-[22px] md:h-7 md:w-7 text-primary drop-shadow-[0_0_6px_hsl(var(--primary)/0.6)]" strokeWidth={2.6} aria-hidden="true" />
-                <span className="text-[19px] md:text-2xl font-display font-extrabold tracking-[-0.03em] leading-none bg-gradient-to-r from-primary to-foreground bg-clip-text text-transparent">CloudBook</span>
-              </span>
-              <span className="md:hidden mt-[3px] pl-1 text-[8.5px] leading-none tracking-[0.18em] text-muted-foreground">Connect · Share · Belong</span>
+            {/* The wordmark: "ember." in the display font. */}
+            <Link to="/" className="shrink-0 flex items-center" aria-label="Ember home">
+              <Wordmark className="text-[26px] md:text-[28px]" />
             </Link>
             </div>
 
@@ -323,7 +319,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       <AvatarImage src={userProfile?.avatar_url || undefined} alt="" />
                       <AvatarFallback className="text-sm font-semibold">{userProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                     </Avatar>
-                    <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card shadow-[0_0_6px_hsl(var(--primary))]" aria-hidden="true" />
+                    <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" aria-hidden="true" />
                   </button>
                 </div>
               )}
@@ -416,10 +412,6 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/events")}>
                         <CalendarDays className="h-4 w-4 mr-3" />
                         Events
-                      </DropdownMenuItem>
-                      <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/marketplace")}>
-                        <ShoppingBag className="h-4 w-4 mr-3" />
-                        Marketplace
                       </DropdownMenuItem>
                       <DropdownMenuItem className="p-3 cursor-pointer rounded-xl focus:bg-accent/10" onClick={() => navigate("/settings")}>
                         <Settings className="h-4 w-4 mr-3" />

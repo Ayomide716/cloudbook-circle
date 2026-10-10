@@ -6,7 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Bell, Heart, MessageCircle, UserPlus, CheckCheck, Users, ThumbsUp, Share2 } from "lucide-react";
+import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2 } from "lucide-react";
+import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import { PageHeader, HeaderAction, Chips } from "@/components/layout/PageHeader";
 import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -24,7 +25,7 @@ type NotificationRow = NotificationGroup<Notification>;
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Notifications", description: "Your CloudBook notifications." });
+  useSEO({ title: "Notifications", description: "Your Ember notifications." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -130,9 +131,6 @@ const Notifications = () => {
       .eq("read", false);
 
     loadNotifications();
-    toast({
-      title: "All notifications marked as read",
-    });
   };
 
   const handleNotificationClick = async (notification: NotificationRow) => {
@@ -178,50 +176,50 @@ const Notifications = () => {
     switch (type) {
       case "like":
         return (
-          <div className={`${size} rounded-full bg-red-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
-            <Heart className={`${iconSize} text-white`} fill="currentColor" />
+          <div className={`${size} rounded-full bg-card flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
+            <ReactionEmoji type="love" className="h-full w-full" />
           </div>
         );
       case "comment":
         return (
-          <div className={`${size} rounded-full bg-blue-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+          <div className={`${size} rounded-full bg-blue-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
             <MessageCircle className={`${iconSize} text-white`} fill="currentColor" />
           </div>
         );
       case "friend_request":
         return (
-          <div className={`${size} rounded-full bg-green-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+          <div className={`${size} rounded-full bg-green-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
             <UserPlus className={`${iconSize} text-white`} />
           </div>
         );
       case "group_added":
       case "group_invite":
         return (
-          <div className={`${size} rounded-full bg-sky-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+          <div className={`${size} rounded-full bg-sky-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
             <Users className={`${iconSize} text-white`} />
           </div>
         );
       case "friend_accepted":
         return (
-          <div className={`${size} rounded-full bg-purple-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+          <div className={`${size} rounded-full bg-purple-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
             <Users className={`${iconSize} text-white`} />
           </div>
         );
       case "share":
         return (
-          <div className={`${size} rounded-full bg-orange-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+          <div className={`${size} rounded-full bg-orange-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
             <Share2 className={`${iconSize} text-white`} />
           </div>
         );
       case "reaction":
         return (
-          <div className={`${size} rounded-full bg-yellow-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
-            <ThumbsUp className={`${iconSize} text-white`} />
+          <div className={`${size} rounded-full bg-card flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
+            <ReactionEmoji type="like" className="h-full w-full" />
           </div>
         );
       default:
         return (
-          <div className={`${size} rounded-full bg-primary flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+          <div className={`${size} rounded-full bg-primary flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
             <Bell className={`${iconSize} text-white`} />
           </div>
         );
@@ -263,7 +261,7 @@ const Notifications = () => {
           />
         </PageHeader>
 
-        <Card className="feed-section overflow-hidden mt-2 sm:mt-0">
+        <Card className="feed-section flat-list overflow-hidden mt-2 sm:mt-0">
           {shown.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -279,14 +277,13 @@ const Notifications = () => {
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-border">
+            <div>
               {shown.map((notification) => (
                 <button
                   type="button"
                   key={notification.id}
                   className={cn(
-                    "flex w-full items-start gap-3 p-4 text-left transition-colors hover:bg-accent/50 active:bg-accent focus-visible:outline-none focus-visible:bg-accent",
-                    !notification.read && "bg-primary/5"
+                    "flex w-full items-start gap-3 rounded-2xl p-4 text-left transition-colors hover:bg-accent/50 active:bg-accent focus-visible:outline-none focus-visible:bg-accent",
                   )}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -296,7 +293,7 @@ const Notifications = () => {
                       // Two people stacked, as Facebook shows a group.
                       <div className="relative h-12 w-12">
                         {notification.actors.slice(0, 2).reverse().map((actor, i) => (
-                          <Avatar key={actor.id ?? i} className={cn("absolute h-9 w-9 border-2 border-card", i === 0 ? "right-0 top-0" : "bottom-0 left-0")}>
+                          <Avatar key={actor.id ?? i} className={cn("absolute h-9 w-9 border-2 border-background", i === 0 ? "right-0 top-0" : "bottom-0 left-0")}>
                             <AvatarImage src={actor.avatar_url || ""} />
                             <AvatarFallback className="bg-secondary text-xs">{actor.name[0]?.toUpperCase() || "U"}</AvatarFallback>
                           </Avatar>

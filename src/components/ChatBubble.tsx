@@ -53,8 +53,8 @@ interface ChatBubbleProps {
 }
 
 const themeColors: Record<string, { sent: string; received: string }> = {
-  // Dark mode: a deep teal for your messages and a raised grey for theirs, as WhatsApp does.
-  default: { sent: "bg-primary text-primary-foreground dark:bg-[#0b5d53] dark:text-white", received: "bg-card text-foreground dark:bg-[#22262d]" },
+  // Dark mode: a deep ember for your messages and a raised warm grey for theirs.
+  default: { sent: "bg-primary text-primary-foreground dark:bg-[#8a3412] dark:text-white", received: "bg-card text-foreground dark:bg-[#232327]" },
   ocean: { sent: "bg-blue-600 text-white", received: "bg-blue-100 dark:bg-blue-900/40 text-foreground" },
   sunset: { sent: "bg-orange-700 text-white", received: "bg-orange-100 dark:bg-orange-900/40 text-foreground" },
   forest: { sent: "bg-green-700 text-white", received: "bg-green-100 dark:bg-green-900/40 text-foreground" },
@@ -90,7 +90,7 @@ const ChatBubble = ({
   if (message.deleted_at) {
     return (
       <div className={cn("flex", isCurrentUser ? "justify-end" : "justify-start")}>
-        <div className="px-2.5 py-1.5 rounded-lg bg-card/80 dark:bg-[#22262d]/80 italic text-muted-foreground text-sm shadow-sm">
+        <div className="px-2.5 py-1.5 rounded-lg bg-card/80 dark:bg-[#232327]/80 italic text-muted-foreground text-sm shadow-sm">
           This message was unsent
         </div>
       </div>

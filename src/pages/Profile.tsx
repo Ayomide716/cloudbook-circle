@@ -119,7 +119,7 @@ const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const [seoName, setSeoName] = useState<string | null>(null);
-  useSEO({ title: seoName ?? "Profile", description: seoName ? `${seoName} on CloudBook.` : "View user profile on CloudBook." });
+  useSEO({ title: seoName ?? "Profile", description: seoName ? `${seoName} on Ember.` : "View user profile on Ember." });
   const { toast } = useToast();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -279,7 +279,7 @@ const Profile = () => {
   const shareProfile = async () => {
     const url = `${window.location.origin}/profile/${userId}`;
     try {
-      if (navigator.share) { await navigator.share({ title: profile?.full_name || "CloudBook profile", url }); return; }
+      if (navigator.share) { await navigator.share({ title: profile?.full_name || "Ember profile", url }); return; }
       await navigator.clipboard.writeText(url);
       toast({ title: "Profile link copied" });
     } catch { /* share sheet closed */ }
@@ -313,7 +313,6 @@ const Profile = () => {
     if (error) {
       toast({ title: "Error creating album", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Album created!" });
       setNewAlbumName("");
       setNewAlbumDesc("");
       setCreateAlbumOpen(false);
@@ -327,7 +326,6 @@ const Profile = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Album deleted" });
       setSelectedAlbum(null);
       loadAlbums();
     }
@@ -348,7 +346,6 @@ const Profile = () => {
         image_url: urlData.publicUrl
       });
       if (insertError) throw insertError;
-      toast({ title: "Photo added!" });
       loadAlbums();
     } catch (error) {
       toast({ title: "Upload failed", description: getErrorMessage(error), variant: "destructive" });
@@ -361,7 +358,6 @@ const Profile = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Photo removed" });
       loadAlbums();
     }
   };
@@ -378,7 +374,6 @@ const Profile = () => {
     const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", profile.id);
     if (error) {toast({ title: "Error", description: error.message, variant: "destructive" });return;}
     setProfile({ ...profile, avatar_url: url });
-    toast({ title: "Avatar updated" });
   };
 
   const handleCoverUpload = async (url: string) => {
@@ -386,7 +381,6 @@ const Profile = () => {
     const { error } = await supabase.from("profiles").update({ cover_url: url }).eq("id", profile.id);
     if (error) {toast({ title: "Error", description: error.message, variant: "destructive" });return;}
     setProfile({ ...profile, cover_url: url });
-    toast({ title: "Cover photo updated" });
   };
 
   const startMessage = () => {

@@ -17,7 +17,7 @@ import logo from "@/assets/logo-mark.png";
 const ResetPassword = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Reset password", description: "Choose a new password for CloudBook." });
+  useSEO({ title: "Reset password", description: "Choose a new password for Ember." });
   const [status, setStatus] = useState<"checking" | "ready" | "invalid">("checking");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -70,7 +70,7 @@ const ResetPassword = () => {
       <Card className="w-full max-w-sm p-6">
         <div className="flex items-center gap-2 mb-5">
           <img src={logo} alt="" className="h-9 w-9 rounded-xl" />
-          <span className="font-display text-xl font-bold gradient-text">CloudBook</span>
+          <span className="font-display text-xl font-bold gradient-text">Ember</span>
         </div>
         <h1 className="font-display text-2xl font-bold mb-1">Choose a new password</h1>
 

@@ -30,8 +30,8 @@ interface BottomNavProps {
 
 /**
  * The tab bar, a floating pill: Home, Friends, Reels, Groups, Notifications and your
- * Profile, the current tab glowing teal.
- * (Facebook's fourth tab is Marketplace; CloudBook keeps Groups there. The Menu is the
+ * Profile, the current tab filled in tangerine on a soft tinted pill.
+ * (Facebook's fourth tab is Marketplace; Ember keeps Groups there. The Menu is the
  * ☰ button in the top bar.)
  */
 const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0, avatarUrl, name }: BottomNavProps) => {
@@ -57,14 +57,13 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
 
   const tabClass = (active: boolean) =>
     cn("relative flex min-w-0 flex-col items-center justify-center gap-0.5 transition-colors", active ? "text-primary" : "text-muted-foreground");
-  // The selected tab glows: a soft cyan disc behind the icon and a dot under its name.
+  // The selected tab sits on a soft tangerine pill, as on iOS and Android.
   const iconWrap = (active: boolean) =>
-    cn("relative flex h-[34px] w-[34px] items-center justify-center rounded-full transition-all duration-200",
-      active && "bg-primary/15 shadow-[0_0_18px_2px_hsl(var(--primary)/0.5)]");
+    cn("relative flex h-[30px] w-[46px] items-center justify-center rounded-full transition-all duration-300 ease-out",
+      active ? "bg-primary/15 scale-100" : "scale-95");
   const label = (text: string, active: boolean) => (
     <span className="flex flex-col items-center gap-[3px]">
       <span className={cn("max-w-full truncate text-[10px] tracking-tight leading-none", active ? "font-semibold" : "font-medium")}>{text}</span>
-      <span className={cn("h-[3px] w-[3px] rounded-full", active ? "bg-primary shadow-[0_0_4px_hsl(var(--primary))]" : "bg-transparent")} aria-hidden="true" />
     </span>
   );
 
@@ -72,9 +71,9 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
     // A floating pill above the bottom edge of the screen.
     <nav
       aria-label="Main"
-      className="app-dock fixed inset-x-3 bottom-[calc(0.625rem+env(safe-area-inset-bottom,0px))] z-50 rounded-full border border-border bg-card/95 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.55)] backdrop-blur-md dark:border-[hsl(210_40%_22%/0.6)] dark:bg-[linear-gradient(180deg,hsl(214_45%_11%/0.96),hsl(218_50%_7.5%/0.96))] dark:shadow-[inset_0_1px_0_hsl(190_80%_75%/0.08),0_14px_34px_-8px_rgba(0,0,0,0.8)] md:hidden"
+      className="app-dock fixed inset-x-3 bottom-[calc(0.625rem+env(safe-area-inset-bottom,0px))] z-50 rounded-[28px] border border-border/80 bg-card/85 shadow-[var(--shadow-dock)] backdrop-blur-xl backdrop-saturate-150 md:hidden"
     >
-      <div className="grid grid-cols-6 h-[60px] px-1.5">
+      <div className="grid grid-cols-6 h-[62px] px-1">
         {tabs.map((tab) => {
           const active = isActive(tab.path);
           return (
@@ -89,9 +88,9 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
             >
               <span className={iconWrap(active)}>
                 {/* Light outlines, filled when selected. */}
-                <tab.icon className="h-[22px] w-[22px]" weight={active ? "fill" : "regular"} aria-hidden="true" />
+                <tab.icon className="h-[23px] w-[23px]" weight={active ? "fill" : "regular"} aria-hidden="true" />
                 {tab.badge > 0 && (
-                  <span className="absolute -top-0.5 -right-1.5 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground text-center">
+                  <span className="absolute -top-1 right-0 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground text-center ring-2 ring-card">
                     {tab.badge > 9 ? "9+" : tab.badge}
                   </span>
                 )}
@@ -110,7 +109,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
           className={tabClass(profileActive)}
         >
           <span className={iconWrap(profileActive)}>
-            <Avatar className={cn("h-[26px] w-[26px]", profileActive ? "ring-2 ring-primary" : "ring-1 ring-border")}>
+            <Avatar className={cn("h-[26px] w-[26px] transition-shadow", profileActive ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : "ring-1 ring-border")}>
               <AvatarImage src={avatarUrl || undefined} alt="" />
               <AvatarFallback className="text-[10px] font-bold">{name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
             </Avatar>

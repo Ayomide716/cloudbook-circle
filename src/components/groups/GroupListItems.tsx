@@ -64,7 +64,7 @@ export const GroupInviteCards = ({ invites, onAnswered }: { invites: GroupInvite
     <div className="mb-3 space-y-2" aria-label="Group invites">
       <p className="px-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Group invites</p>
       {invites.map((inv) => (
-        <div key={inv.group.id} className="shine-card flex items-center gap-3 rounded-[1.125rem] border bg-card p-3">
+        <div key={inv.group.id} className="flex items-center gap-3 rounded-2xl px-3 py-2.5">
           <Avatar className="h-11 w-11 flex-shrink-0">
             <AvatarImage src={inv.group.image_url || undefined} className="object-cover" />
             <AvatarFallback className="bg-secondary"><Users className="h-5 w-5 text-muted-foreground" /></AvatarFallback>

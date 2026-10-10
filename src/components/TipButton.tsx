@@ -76,7 +76,7 @@ const TipButton = ({ postId, receiverId, currentUserId, compact = false }: TipBu
       { user_id: receiverId, amount, type: "tip_received", description: `Tip received on post` },
     ]);
 
-    toast({ title: `Sent ${amount} credits! 💰`, description: "Your tip was delivered!" });
+    toast({ title: `Sent ${amount} credits`, description: "Your tip was delivered!" });
     setOpen(false);
     setAmount(5);
     setMessage("");
@@ -107,7 +107,7 @@ const TipButton = ({ postId, receiverId, currentUserId, compact = false }: TipBu
                 size="sm"
                 onClick={() => setAmount(v)}
               >
-                {v} 🪙
+                {v} credits
               </Button>
             ))}
           </div>

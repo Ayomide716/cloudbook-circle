@@ -27,7 +27,7 @@ interface TrendingTopic {
 const Explore = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Explore", description: "Discover trending content and new people on CloudBook." });
+  useSEO({ title: "Explore", description: "Discover trending content and new people on Ember." });
   const [currentUser, setCurrentUser] = useState<Tables<"profiles"> | null>(null);
   const [trendingPosts, setTrendingPosts] = useState<(PostCardProps["post"] & { score: number })[]>([]);
   const [suggestedUsers, setSuggestedUsers] = useState<(Tables<"profiles"> & { mutualCount: number })[]>([]);
@@ -354,7 +354,7 @@ const Explore = () => {
                     </Avatar>
                     <p className="font-semibold text-sm line-clamp-1 break-all">{user.full_name || "User"}</p>
                     <p className="text-xs text-muted-foreground mt-0.5">
-                      {user.mutualCount > 0 ? `${user.mutualCount} mutual ${user.mutualCount === 1 ? "friend" : "friends"}` : "New on CloudBook"}
+                      {user.mutualCount > 0 ? `${user.mutualCount} mutual ${user.mutualCount === 1 ? "friend" : "friends"}` : "New on Ember"}
                     </p>
                     {user.bio && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{user.bio}</p>}
                   </Link>

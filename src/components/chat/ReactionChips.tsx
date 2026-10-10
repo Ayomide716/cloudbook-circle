@@ -2,6 +2,8 @@ import { useState } from "react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { reactionEmoji, type ChatReaction } from "@/lib/chat-reactions";
 import { cn } from "@/lib/utils";
+import ReactionEmoji from "@/components/reactions/ReactionEmoji";
+import { hasReactionEmoji } from "@/lib/reaction-emoji";
 
 interface ReactionChipsProps {
   reactions: ChatReaction[];
@@ -30,10 +32,10 @@ const ReactionChips = ({ reactions, currentUserId, nameOf, onRemoveMine, isOwnMe
         <ActionMenuTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-0.5 rounded-full border border-border bg-card px-1.5 py-0.5 text-[13px] leading-none shadow-sm dark:bg-[#22262d]"
+            className="flex items-center gap-0.5 rounded-full border border-border bg-card px-1.5 py-0.5 text-[13px] leading-none shadow-sm dark:bg-[#232327]"
             aria-label={`Reactions: ${reactions.length}. See who reacted`}
           >
-            {kinds.slice(0, 3).map((k) => <span key={k}>{reactionEmoji(k)}</span>)}
+            {kinds.slice(0, 3).map((k) => (hasReactionEmoji(k) ? <ReactionEmoji key={k} type={k} className="h-4 w-4" /> : <span key={k}>{reactionEmoji(k)}</span>))}
             {reactions.length > 1 && <span className="ml-0.5 text-xs text-muted-foreground">{reactions.length}</span>}
           </button>
         </ActionMenuTrigger>
@@ -49,7 +51,7 @@ const ReactionChips = ({ reactions, currentUserId, nameOf, onRemoveMine, isOwnMe
                   <span className="block truncate">{mine ? "You" : nameOf(r.user_id)}</span>
                   {mine && <span className="block text-xs font-normal text-muted-foreground">Tap to remove</span>}
                 </span>
-                <span className="text-xl leading-none">{reactionEmoji(r.reaction_type)}</span>
+                {hasReactionEmoji(r.reaction_type) ? <ReactionEmoji type={r.reaction_type} className="h-6 w-6" /> : <span className="text-xl leading-none">{reactionEmoji(r.reaction_type)}</span>}
               </ActionMenuItem>
             );
           })}

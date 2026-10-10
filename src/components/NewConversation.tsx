@@ -88,7 +88,7 @@ const NewConversation = ({ currentUserId, onSelectUser, onNewGroup }: NewConvers
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="icon" aria-label="New message" title="New message" className="h-9 w-9 shrink-0 rounded-full bg-primary/15 text-primary shadow-[0_0_14px_-2px_hsl(var(--primary)/0.45)] hover:bg-primary/25 [&_svg]:size-[18px]">
+        <Button size="icon" aria-label="New message" title="New message" className="h-9 w-9 shrink-0 rounded-full bg-primary/15 text-primary hover:bg-primary/25 [&_svg]:size-[18px]">
           <MessageSquarePlus />
         </Button>
       </DialogTrigger>

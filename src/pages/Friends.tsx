@@ -36,7 +36,7 @@ interface Profile {
 }
 
 interface SuggestedProfile extends Profile {
-  /** 0 for "new on CloudBook" suggestions. */
+  /** 0 for "new on Ember" suggestions. */
   mutualCount: number;
 }
 
@@ -58,7 +58,7 @@ interface Friendship {
 const Friends = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Friends", description: "Manage your friends on CloudBook." });
+  useSEO({ title: "Friends", description: "Manage your friends on Ember." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
@@ -240,7 +240,6 @@ const Friends = () => {
       return;
     }
 
-    toast({ title: "Friend request accepted!" });
     loadData();
   };
 
@@ -259,7 +258,6 @@ const Friends = () => {
       return;
     }
 
-    toast({ title: "Friend request declined" });
     loadData();
   };
 
@@ -307,7 +305,6 @@ const Friends = () => {
                 next.delete(userId);
                 return next;
               });
-              toast({ title: "Request cancelled" });
               loadData();
             }
           }}
@@ -334,7 +331,6 @@ const Friends = () => {
       return;
     }
 
-    toast({ title: "Friend request cancelled" });
     loadData();
   };
 
@@ -470,7 +466,7 @@ const Friends = () => {
           </TabsList>
 
           <TabsContent value="requests">
-            <Card className="feed-section">
+            <Card className="feed-section flat-list">
               {pendingRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -531,7 +527,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="sent">
-            <Card className="feed-section">
+            <Card className="feed-section flat-list">
               {sentRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -581,7 +577,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="friends">
-            <Card className="feed-section">
+            <Card className="feed-section flat-list">
               {friends.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserCheck className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -636,7 +632,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="suggestions">
-            <Card className="feed-section">
+            <Card className="feed-section flat-list">
               {suggestions.filter(s => !hiddenSuggestions.has(s.id)).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -668,7 +664,7 @@ const Friends = () => {
                         <p className="text-xs text-muted-foreground">
                           {profile.mutualCount > 0
                             ? `${profile.mutualCount} mutual ${profile.mutualCount === 1 ? "friend" : "friends"}`
-                            : "New on CloudBook"}
+                            : "New on Ember"}
                         </p>
                       </div>
                       <Button

@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image, X, MapPin, Globe } from "lucide-react";
+import { Loader2, Image, X, MapPin, Globe, Timer, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PostExpirySelector from "./PostExpirySelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -248,7 +248,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </Avatar>
               <div>
                 <p className="font-semibold leading-tight">{currentUser.full_name || "Anonymous"}</p>
-                {/* Posts on CloudBook are public; shown as Facebook shows the audience. */}
+                {/* Posts on Ember are public; shown as Facebook shows the audience. */}
                 <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
                   <Globe className="h-3 w-3" /> Public
                 </span>
@@ -371,7 +371,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                  >
                    <X className="h-4 w-4" />
                  </Button>
-                 <p className="font-medium text-sm mb-2">📊 {pollData.question}</p>
+                 <p className="font-medium text-sm mb-2 flex items-center gap-1.5"><BarChart3 className="h-4 w-4 text-primary" aria-hidden="true" />{pollData.question}</p>
                  <div className="space-y-1">
                    {pollData.options.map((opt, i) => (
                      <div key={i} className="bg-secondary rounded-lg px-3 py-2 text-sm">
@@ -437,7 +437,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </div>
               {postExpiry && (
                 <span className="text-xs text-muted-foreground">
-                  ⏱ Auto-deletes after {postExpiry === "24h" ? "24h" : postExpiry === "7d" ? "7d" : "30d"}
+                  <Timer className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true" />Auto-deletes after {postExpiry === "24h" ? "24h" : postExpiry === "7d" ? "7d" : "30d"}
                 </span>
               )}
             </div>

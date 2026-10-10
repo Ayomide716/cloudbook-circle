@@ -20,7 +20,7 @@ const readDismissed = (): string[] => {
 
 /**
  * "People you may know" between posts, as on Facebook: swipe through friends of friends (or,
- * when you're new, other people on CloudBook) and add them (or ✕ to stop suggesting someone).
+ * when you're new, other people on Ember) and add them (or ✕ to stop suggesting someone).
  * Hidden when there's no one to suggest.
  */
 const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
@@ -43,7 +43,7 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
           return { id: r.user_id, full_name: p?.full_name ?? null, avatar_url: p?.avatar_url ?? null, mutual: Number(r.mutual_count) };
         });
       }
-      // New here (no friends, so no friends of friends): suggest other people on CloudBook,
+      // New here (no friends, so no friends of friends): suggest other people on Ember,
       // newest first, leaving out anyone you're already connected with or have blocked.
       if (list.length < 6) {
         const [{ data: links }, { data: blocks }, { data: recent }] = await Promise.all([
@@ -111,7 +111,7 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
             </Link>
             <div className="p-2.5">
               <Link to={`/profile/${p.id}`} className="block truncate text-[14px] font-semibold hover:underline">{p.full_name || "Someone"}</Link>
-              <p className="truncate text-xs text-muted-foreground">{p.mutual > 0 ? `${p.mutual} mutual ${p.mutual === 1 ? "friend" : "friends"}` : "On CloudBook"}</p>
+              <p className="truncate text-xs text-muted-foreground">{p.mutual > 0 ? `${p.mutual} mutual ${p.mutual === 1 ? "friend" : "friends"}` : "On Ember"}</p>
               {sent.has(p.id) ? (
                 <Button size="sm" variant="secondary" disabled className="mt-2 h-8 w-full rounded-lg">
                   <Check className="mr-1 h-4 w-4" /> Requested

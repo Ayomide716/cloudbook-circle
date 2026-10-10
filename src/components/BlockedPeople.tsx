@@ -46,7 +46,7 @@ const BlockedPeople = ({ userId }: { userId: string }) => {
                 <AvatarFallback>{person.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
               </Avatar>
               <Link to={`/profile/${person.id}`} className="flex-1 min-w-0 truncate font-medium hover:underline">
-                {person.full_name || "CloudBook user"}
+                {person.full_name || "Ember user"}
               </Link>
               <Button variant="secondary" size="sm" onClick={() => unblock(person)}>
                 Unblock

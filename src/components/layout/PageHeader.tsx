@@ -42,7 +42,7 @@ interface HeaderActionProps {
   icon: LucideIcon;
   label: string;
   onClick?: () => void;
-  /** The page's main action: teal with its label on bigger screens. */
+  /** The page's main action: tangerine with its label on bigger screens. */
   primary?: boolean;
   badge?: number;
 }
@@ -113,7 +113,7 @@ export function Chips<T extends string>({ options, value, onChange, label }: Chi
             className={cn(
               "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors sm:h-9 sm:px-3.5 sm:text-sm [&_svg]:h-3.5 [&_svg]:w-3.5",
               active
-                ? "border-primary/60 bg-primary/15 text-primary shadow-[0_0_14px_-2px_hsl(var(--primary)/0.45)]"
+                ? "border-primary/60 bg-primary/15 text-primary"
                 : "border-border bg-card text-foreground hover:bg-secondary"
             )}
           >

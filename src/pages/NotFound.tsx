@@ -6,7 +6,7 @@ import { useSEO } from "@/hooks/useSEO";
 
 const NotFound = () => {
   const location = useLocation();
-  useSEO({ title: "Page not found", description: "This page doesn't exist on CloudBook." });
+  useSEO({ title: "Page not found", description: "This page doesn't exist on Ember." });
 
   useEffect(() => {
     console.error("404 Error: User attempted to access non-existent route:", location.pathname);

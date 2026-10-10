@@ -1,6 +1,7 @@
 import type { ReactNode, SyntheticEvent } from "react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { CHAT_REACTIONS } from "@/lib/chat-reactions";
+import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import { cn } from "@/lib/utils";
 
 export interface MessageAction {
@@ -61,7 +62,7 @@ const MessageActionSheet = ({ open, onOpenChange, myReaction, onReact, actions, 
               myReaction === r.type && "bg-background shadow-sm"
             )}
           >
-            {r.emoji}
+            <ReactionEmoji type={r.type} className="h-8 w-8 sm:h-7 sm:w-7" />
           </button>
         ))}
       </div>

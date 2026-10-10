@@ -481,7 +481,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
         {embedded && typingLine && <p className="px-3 pb-1 text-xs font-medium text-primary" aria-live="polite">{typingLine}</p>}
         {/* Replying to (or editing) a message: a quote above the box, as in WhatsApp. */}
         {(replyingTo || editing) && !recording && (
-          <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-card p-1.5 pl-2 shadow-sm animate-fade-in dark:bg-[#22262d]">
+          <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-card p-1.5 pl-2 shadow-sm animate-fade-in dark:bg-[#232327]">
             <div className="min-w-0 flex-1 rounded-lg border-l-4 border-primary bg-black/5 px-2 py-1 dark:bg-white/5">
               <p className="text-xs font-semibold text-primary">
                 {editing ? "Editing message" : replyingTo!.user_id === currentUserId ? "You" : nameOf(replyingTo!.user_id)}
@@ -508,7 +508,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
         )}
         <div className="flex items-end gap-1.5">
           {!recording && (
-            <div className="flex min-h-12 min-w-0 flex-1 items-end gap-0.5 rounded-3xl bg-card px-1 py-1 shadow-sm dark:bg-[#22262d] [&_button]:h-10 [&_button]:w-10 [&_button]:shrink-0 [&_button]:rounded-full [&_button_svg]:!h-[22px] [&_button_svg]:!w-[22px] [&_button_svg]:text-muted-foreground">
+            <div className="flex min-h-12 min-w-0 flex-1 items-end gap-0.5 rounded-3xl bg-card px-1 py-1 shadow-sm dark:bg-[#232327] [&_button]:h-10 [&_button]:w-10 [&_button]:shrink-0 [&_button]:rounded-full [&_button_svg]:!h-[22px] [&_button_svg]:!w-[22px] [&_button_svg]:text-muted-foreground">
               {!editing && <GifPicker
                 onSelect={(picked) => {
                   if (picked.startsWith("http")) setMedia({ url: picked, type: "image" });

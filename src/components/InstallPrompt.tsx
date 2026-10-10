@@ -61,7 +61,7 @@ const InstallPrompt = () => {
             <Download className="h-5 w-5 text-primary-foreground" />
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold font-display">Install CloudBook</p>
+            <p className="text-sm font-semibold font-display">Install Ember</p>
             <p className="text-xs text-muted-foreground">Get the full app experience</p>
           </div>
           <Button size="sm" className="rounded-full text-xs" onClick={handleInstall}>

@@ -27,7 +27,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
  
  const SavedPosts = () => {
   const navigate = useNavigate();
-  useSEO({ title: "Saved Posts", description: "Your saved posts on CloudBook." });
+  useSEO({ title: "Saved Posts", description: "Your saved posts on Ember." });
    const [currentUserId, setCurrentUserId] = useState<string | null>(null);
    const [posts, setPosts] = useState<Post[]>([]);
    const [isLoading, setIsLoading] = useState(true);

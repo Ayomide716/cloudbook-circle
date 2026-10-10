@@ -27,4 +27,10 @@ export const features = {
    * (Authentication → Providers → Google); then set VITE_GOOGLE_SIGN_IN=true.
    */
   googleSignIn: import.meta.env.VITE_GOOGLE_SIGN_IN === "true",
+  /**
+   * Marketplace, Watch, Pages and the Ad Manager. Muted for now (hidden from the Menu and the
+   * desktop bar; their links still open) while Ember focuses on friends, groups, chat and
+   * reels. Turn back on with VITE_EXTRAS=true.
+   */
+  extras: import.meta.env.VITE_EXTRAS === "true",
 } as const;

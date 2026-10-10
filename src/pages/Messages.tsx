@@ -21,7 +21,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, Archive, Image as ImageIcon, Star } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, Archive, Image as ImageIcon, Star, Timer } from "lucide-react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -88,7 +88,7 @@ interface TypingUser {
 const Messages = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Messages", description: "Chat with your friends on CloudBook." });
+  useSEO({ title: "Messages", description: "Chat with your friends on Ember." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [currentUserName, setCurrentUserName] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -723,7 +723,7 @@ const Messages = () => {
                         className={cn(
                           "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors",
                           chatFilter === chip.value
-                            ? "border-primary/60 bg-primary/15 text-primary shadow-[0_0_14px_-2px_hsl(var(--primary)/0.45)]"
+                            ? "border-primary/60 bg-primary/15 text-primary"
                             : "border-border bg-card text-foreground hover:bg-secondary"
                         )}
                       >
@@ -759,7 +759,7 @@ const Messages = () => {
                     {showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "No group chats yet. Tap the new-message button to start one." : "No conversations yet"}
                   </p>
                 ) : (
-                  <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
+                  <div className="flat-list divide-y">
                     {chatRows.map((row) =>
                       row.kind === "group" ? (
                         <GroupChatRow
@@ -890,7 +890,7 @@ const Messages = () => {
                   {/* Disappearing messages notice */}
                   {disappearingMinutes && (
                     <div className="text-center py-1.5 bg-accent/50 text-xs text-muted-foreground">
-                      ⏱ Disappearing messages are on ({disappearingMinutes >= 1440 ? `${disappearingMinutes / 1440}d` : disappearingMinutes >= 60 ? `${disappearingMinutes / 60}h` : `${disappearingMinutes}m`})
+                      <Timer className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true" />Disappearing messages are on ({disappearingMinutes >= 1440 ? `${disappearingMinutes / 1440}d` : disappearingMinutes >= 60 ? `${disappearingMinutes / 60}h` : `${disappearingMinutes}m`})
                     </div>
                   )}
 
@@ -940,7 +940,7 @@ const Messages = () => {
                     )}
                     {/* Replying to (or editing) a message: a quote above the box, as in WhatsApp. */}
                     {(replyingTo || editingMessage) && !voiceActive && (
-                      <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-card dark:bg-[#22262d] p-1.5 pl-2 shadow-sm animate-fade-in">
+                      <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-card dark:bg-[#232327] p-1.5 pl-2 shadow-sm animate-fade-in">
                         <div className="min-w-0 flex-1 rounded-lg border-l-4 border-primary bg-black/5 dark:bg-white/5 px-2 py-1">
                           <p className="text-xs font-semibold text-primary">
                             {editingMessage ? "Editing message" : replyingTo?.sender_id === currentUserId ? "You" : selectedConversation.full_name || "Them"}
@@ -961,7 +961,7 @@ const Messages = () => {
                     )}
                     <div className="flex items-end gap-1.5">
                       {!voiceActive && (
-                        <div className="flex-1 min-w-0 flex items-end gap-0.5 rounded-3xl bg-card dark:bg-[#22262d] shadow-sm px-1 py-1 min-h-12 [&_button]:h-10 [&_button]:w-10 [&_button]:shrink-0 [&_button]:rounded-full [&_button_svg]:!h-[22px] [&_button_svg]:!w-[22px] [&_button_svg]:text-muted-foreground">
+                        <div className="flex-1 min-w-0 flex items-end gap-0.5 rounded-3xl bg-card dark:bg-[#232327] shadow-sm px-1 py-1 min-h-12 [&_button]:h-10 [&_button]:w-10 [&_button]:shrink-0 [&_button]:rounded-full [&_button_svg]:!h-[22px] [&_button_svg]:!w-[22px] [&_button_svg]:text-muted-foreground">
                           <GifPicker
                             onSelect={(content) => {
                               if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }

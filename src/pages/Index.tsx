@@ -30,6 +30,7 @@ import { TAB_RESELECT_EVENT } from "@/components/BottomNav";
 import { haptic } from "@/lib/haptics";
 import { playSound } from "@/lib/sounds";
 import { dbChannel } from "@/lib/realtime";
+import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -52,7 +53,7 @@ const Index = () => {
     if (legacyPostId) navigate(`/post/${legacyPostId}`, { replace: true });
   }, [legacyPostId, navigate]);
   const { toast } = useToast();
-  useSEO({ title: "Home", description: "Your CloudBook news feed - see updates from friends and community." });
+  useSEO({ title: "Home", description: "Your Ember news feed - see updates from friends and community." });
   const [currentUser, setCurrentUser] = useState<Profile | null>(null);
   // Opening the feed counts as today's visit; the streak itself shows on your profile.
   useLoginStreak(currentUser?.id);
@@ -86,6 +87,7 @@ const Index = () => {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isPlaceholderData,
     refetch,
   } = useFeedQuery(currentUser?.id ?? null, feedTab);
 
@@ -287,11 +289,14 @@ const Index = () => {
                     aria-selected={feedTab === value}
                     onClick={() => chooseTab(value)}
                     className={cn(
-                      "h-9 flex-1 rounded-full text-[14px] font-semibold transition-colors",
-                      feedTab === value ? "bg-primary/15 text-primary shadow-[0_0_14px_-4px_hsl(var(--primary)/0.6)]" : "text-muted-foreground hover:text-foreground"
+                      "relative h-9 flex-1 rounded-full text-[14px] font-semibold transition-colors",
+                      feedTab === value ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {label}
+                    {feedTab === value && (
+                      <motion.span layoutId="feed-tab-pill" className="absolute inset-0 rounded-full bg-primary/15" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
+                    )}
+                    <span className="relative">{label}</span>
                   </button>
                 ))}
               </div>
@@ -306,9 +311,9 @@ const Index = () => {
                   className="space-y-2 sm:space-y-4"
                 >
                   <section className="feed-section rounded-[1.125rem] border bg-card px-5 py-6 text-center">
-                    <p className="text-3xl" aria-hidden="true">👋</p>
+                    <ReactionEmoji type="wave" className="mx-auto h-14 w-14 animate-[wave_1.6s_ease-in-out_1]" />
                     <h2 className="mt-2 text-lg font-semibold">
-                      {feedTab === "friends" ? "No posts from friends yet" : `Welcome to CloudBook${currentUser.full_name ? `, ${currentUser.full_name.split(" ")[0]}` : ""}!`}
+                      {feedTab === "friends" ? "No posts from friends yet" : `Welcome to Ember${currentUser.full_name ? `, ${currentUser.full_name.split(" ")[0]}` : ""}!`}
                     </h2>
                     <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
                       {feedTab === "friends"
@@ -330,8 +335,15 @@ const Index = () => {
                 </motion.div>
               ) : (
                 <>
-                  {/* Bento Grid Layout */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
+                  {/* Bento Grid Layout. While the other tab's posts load, the current ones dim
+                      a little; the new list then fades in (keyed by tab). */}
+                  <motion.div
+                    key={feedTab}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: isPlaceholderData ? 0.55 : 1 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4"
+                  >
                     {allPosts.map((post, index) => {
                       const size = getBentoSize(index);
                       const ad = getAdForPosition(index);
@@ -357,7 +369,7 @@ const Index = () => {
                           {/* Friends: posts you've already seen sit below a checkpoint, as on Instagram. */}
                           {feedTab === "friends" && index === caughtUpIndex && (
                             <div className="mb-2 flex flex-col items-center gap-1 py-5 text-center sm:mb-4" role="note">
-                              <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary text-primary shadow-[0_0_18px_-4px_hsl(var(--primary)/0.7)]">
+                              <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary text-primary">
                                 <Check className="h-6 w-6" strokeWidth={3} />
                               </span>
                               <p className="mt-1 font-semibold">You're all caught up</p>
@@ -395,7 +407,7 @@ const Index = () => {
                         </motion.div>
                       );
                     })}
-                  </div>
+                  </motion.div>
 
                   {/* A short feed never reaches the rows that sit between posts: show them after it. */}
                   {!hasNextPage && allPosts.length <= 12 && (
@@ -418,7 +430,7 @@ const Index = () => {
                           <Button variant="secondary" className="rounded-full" onClick={() => chooseTab("foryou")}>See more in For you</Button>
                         </div>
                       ) : (
-                        <p className="text-sm text-muted-foreground">You're all caught up! 🎉</p>
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><ReactionEmoji type="party" className="h-5 w-5" /> You're all caught up!</p>
                       )
                     )}
                   </div>

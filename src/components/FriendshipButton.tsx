@@ -72,7 +72,6 @@ const FriendshipButton = ({ currentUserId, profileUserId, className }: Friendshi
       return;
     }
 
-    toast({ title: "Friend request sent" });
   }, [currentUserId, profileUserId, friendshipStatus, toast]);
 
   const removeFriend = useCallback(async () => {
@@ -114,7 +113,6 @@ const FriendshipButton = ({ currentUserId, profileUserId, className }: Friendshi
       return;
     }
     setFriendshipStatus("friends");
-    toast({ title: "You're now friends" });
   };
 
   if (friendshipStatus === null) {

@@ -1,11 +1,11 @@
 {
-  "name": "CloudBook",
-  "short_name": "CloudBook",
-  "description": "Connect with friends, share moments, and build your community.",
+  "name": "Ember",
+  "short_name": "Ember",
+  "description": "Your people, closer: friends, groups, chats and reels in one place.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#FFFFFF",
-  "theme_color": "#FFFFFF",
+  "background_color": "#0C0C0E",
+  "theme_color": "#F8F5F0",
   "orientation": "portrait-primary",
   "scope": "/",
   "categories": [

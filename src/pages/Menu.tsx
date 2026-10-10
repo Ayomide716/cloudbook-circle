@@ -9,6 +9,7 @@ import {
   FileText,
   HelpCircle,
   LogOut,
+  MessageCircle,
   Megaphone,
   Monitor,
   MonitorPlay,
@@ -30,26 +31,32 @@ import { useToast } from "@/hooks/use-toast";
 import { useSEO } from "@/hooks/useSEO";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { cn } from "@/lib/utils";
+import { features } from "@/lib/features";
+import { fadeTheme } from "@/lib/theme-fade";
+import { motion } from "framer-motion";
 
 interface Shortcut {
   icon: LucideIcon;
   label: string;
   path: string;
-  /** Tile icon colour, so the grid scans quickly (Facebook colours each shortcut). */
-  tint: string;
+  /** The icon's tile colour, like an app icon on a phone's home screen. */
+  tile: string;
   adminOnly?: boolean;
+  /** Muted for now (see features.extras). */
+  extra?: boolean;
 }
 
-// Everything that isn't a bottom tab (Home, Reels, Friends, Groups, Notifications).
+// Everything that isn't a bottom tab (Home, Friends, Reels, Groups, Notifications).
 const SHORTCUTS: Shortcut[] = [
-  { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", tint: "text-sky-600 dark:text-sky-400" },
-  { icon: MonitorPlay, label: "Watch", path: "/watch", tint: "text-rose-600 dark:text-rose-400" },
-  { icon: CalendarDays, label: "Events", path: "/events", tint: "text-red-600 dark:text-red-400" },
-  { icon: Bookmark, label: "Saved", path: "/saved", tint: "text-violet-600 dark:text-violet-400" },
-  { icon: FileText, label: "Pages", path: "/pages", tint: "text-orange-600 dark:text-orange-400" },
-  { icon: Compass, label: "Explore", path: "/explore", tint: "text-primary" },
-  { icon: Megaphone, label: "Ad Manager", path: "/ads", tint: "text-amber-600 dark:text-amber-400" },
-  { icon: Shield, label: "Admin", path: "/admin", tint: "text-slate-600 dark:text-slate-300", adminOnly: true },
+  { icon: MessageCircle, label: "Messages", path: "/messages", tile: "from-orange-400 to-primary" },
+  { icon: CalendarDays, label: "Events", path: "/events", tile: "from-rose-400 to-rose-600" },
+  { icon: Bookmark, label: "Saved", path: "/saved", tile: "from-violet-400 to-violet-600" },
+  { icon: Compass, label: "Explore", path: "/explore", tile: "from-amber-300 to-amber-500" },
+  { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", tile: "from-sky-400 to-sky-600", extra: true },
+  { icon: MonitorPlay, label: "Watch", path: "/watch", tile: "from-pink-400 to-pink-600", extra: true },
+  { icon: FileText, label: "Pages", path: "/pages", tile: "from-orange-300 to-orange-500", extra: true },
+  { icon: Megaphone, label: "Ad Manager", path: "/ads", tile: "from-yellow-400 to-amber-600", extra: true },
+  { icon: Shield, label: "Admin", path: "/admin", tile: "from-slate-400 to-slate-600", adminOnly: true },
 ];
 
 const THEMES = [
@@ -66,7 +73,7 @@ const Menu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { setTheme, theme } = useTheme();
-  useSEO({ title: "Menu", description: "Shortcuts to everything on CloudBook." });
+  useSEO({ title: "Menu", description: "Shortcuts to everything on Ember." });
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
   const [friendCount, setFriendCount] = useState<number | null>(null);
@@ -107,7 +114,6 @@ const Menu = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast({ title: "Logged out successfully" });
     navigate("/auth");
   };
 
@@ -157,18 +163,24 @@ const Menu = () => {
           </div>
         </section>
 
-        {/* Shortcuts: Facebook's two-column grid of tiles */}
-        <nav aria-label="Shortcuts" className="grid grid-cols-2 gap-2 px-3 py-1 sm:px-0">
-          {SHORTCUTS.filter((s) => !s.adminOnly || isAdmin).map((s) => (
-            <button
+        {/* Shortcuts: rounded app-icon tiles, four to a row, as on a phone's home screen. */}
+        <nav aria-label="Shortcuts" className="feed-section grid grid-cols-4 gap-y-4 rounded-2xl border border-border bg-card px-2 py-4">
+          {SHORTCUTS.filter((s) => (!s.adminOnly || isAdmin) && (!s.extra || features.extras)).map((s, i) => (
+            <motion.button
               key={s.path}
               type="button"
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.03, duration: 0.25 }}
+              whileTap={{ scale: 0.92 }}
               onClick={() => navigate(s.path)}
-              className="flex flex-col items-start gap-2 rounded-xl border border-border bg-card p-3 text-left shadow-sm transition-colors hover:bg-accent/60"
+              className="group flex flex-col items-center gap-1.5 text-center"
             >
-              <s.icon className={cn("h-6 w-6", s.tint)} />
-              <span className="text-[15px] font-semibold">{s.label}</span>
-            </button>
+              <span className={cn("flex h-[52px] w-[52px] items-center justify-center rounded-[16px] bg-gradient-to-br text-white shadow-sm transition-transform duration-200 group-hover:-translate-y-0.5", s.tile)}>
+                <s.icon className="h-6 w-6" strokeWidth={2.1} />
+              </span>
+              <span className="text-[12px] font-medium leading-tight">{s.label}</span>
+            </motion.button>
           ))}
         </nav>
 
@@ -200,7 +212,7 @@ const Menu = () => {
                   type="button"
                   role="radio"
                   aria-checked={theme === t.value}
-                  onClick={() => setTheme(t.value)}
+                  onClick={() => fadeTheme(() => setTheme(t.value))}
                   className={cn(
                     "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors",
                     theme === t.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"

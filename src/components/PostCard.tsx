@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Heart, Loader2, Laugh, Frown, Angry, Sparkles, Trash2, MoreHorizontal, ThumbsUp, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2, Ban } from "lucide-react";
+import { Loader2, Trash2, MoreHorizontal, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2, Ban } from "lucide-react";
 import { ChatCircle, ShareFat, ThumbsUp as PhThumbsUp } from "@phosphor-icons/react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
@@ -21,6 +21,8 @@ import { cn, toDate } from "@/lib/utils";
 import SharePostDialog from "./SharePostDialog";
 import LinkPreview from "./LinkPreview";
 import HeartBurst from "./HeartBurst";
+import ReactionEmoji from "./reactions/ReactionEmoji";
+import { motion } from "framer-motion";
 import FeedVideo from "./FeedVideo";
 import { CommentThread } from "./comments/CommentThread";
 import CommentsSheet from "./comments/CommentsSheet";
@@ -93,14 +95,14 @@ export interface PostCardProps {
   defaultShowComments?: boolean;
 }
 
+// Facebook's six reactions, each a 3D emoji (see ReactionEmoji) with its label colour.
 const REACTION_TYPES = [
-  // Likes are Facebook blue, as in the mockup.
-  { type: 'like', icon: ThumbsUp, label: 'Like', color: 'text-[#2d88ff]', bgColor: 'bg-[#2d88ff]' },
-  { type: 'love', icon: Heart, label: 'Love', color: 'text-red-500', bgColor: 'bg-red-500' },
-  { type: 'haha', icon: Laugh, label: 'Haha', color: 'text-yellow-500', bgColor: 'bg-yellow-500' },
-  { type: 'wow', icon: Sparkles, label: 'Wow', color: 'text-yellow-500', bgColor: 'bg-yellow-500' },
-  { type: 'sad', icon: Frown, label: 'Sad', color: 'text-yellow-600', bgColor: 'bg-yellow-600' },
-  { type: 'angry', icon: Angry, label: 'Angry', color: 'text-orange-500', bgColor: 'bg-orange-500' },
+  { type: 'like', label: 'Like', color: 'text-primary' },
+  { type: 'love', label: 'Love', color: 'text-rose-500' },
+  { type: 'haha', label: 'Haha', color: 'text-amber-500' },
+  { type: 'wow', label: 'Wow', color: 'text-amber-500' },
+  { type: 'sad', label: 'Sad', color: 'text-amber-500' },
+  { type: 'angry', label: 'Angry', color: 'text-orange-600' },
 ];
 
 const PostCard = ({
@@ -189,13 +191,11 @@ const PostCard = ({
          .eq("post_id", post.id)
          .eq("user_id", currentUserId);
        setIsSaved(false);
-       toast({ title: "Post unsaved" });
      } else {
        await supabase
          .from("saved_posts")
          .insert({ post_id: post.id, user_id: currentUserId });
        setIsSaved(true);
-       toast({ title: "Post saved!" });
      }
    };
 
@@ -509,7 +509,7 @@ const PostCard = ({
                 {post.profiles.is_verified && <VerifiedBadge size="sm" />}
               </p>
             </Link>
-            {/* As in Facebook: "Lekki, Lagos · 2h · 🌐" (CloudBook posts are public). */}
+            {/* As in Facebook: "Lekki, Lagos · 2h · 🌐" (Ember posts are public). */}
             <p className="flex items-center gap-1 text-[11.5px] sm:text-[13px] text-muted-foreground min-w-0">
               {post.location && <><span className="truncate">{post.location}</span><span aria-hidden="true">·</span></>}
               <time dateTime={toDate(post.created_at).toISOString()} title={formatDistanceToNow(toDate(post.created_at), { addSuffix: true })} className="shrink-0">
@@ -605,7 +605,6 @@ const PostCard = ({
                     toast({ title: "Error updating post", variant: "destructive" });
                   } else {
                     setIsEditing(false);
-                    toast({ title: "Post updated!" });
                     onDelete?.(); // triggers refetch
                   }
                 }}
@@ -685,16 +684,11 @@ const PostCard = ({
           {totalReactions > 0 && (
             <span className="flex items-center gap-1.5">
               <span className="flex -space-x-1" aria-hidden="true">
-                {topReactions.map(([type]) => {
-                  const reaction = REACTION_TYPES.find(r => r.type === type);
-                  if (!reaction) return null;
-                  const Icon = reaction.icon;
-                  return (
-                    <span key={type} className={cn("h-[18px] w-[18px] rounded-full flex items-center justify-center ring-2 ring-card", reaction.bgColor)}>
-                      <Icon className="h-2.5 w-2.5 text-white" />
-                    </span>
-                  );
-                })}
+                {topReactions.map(([type]) => (
+                  <span key={type} className="flex h-[19px] w-[19px] items-center justify-center rounded-full bg-card ring-2 ring-card">
+                    <ReactionEmoji type={type} className="h-[19px] w-[19px]" />
+                  </span>
+                ))}
               </span>
               {reactionSummary}
             </span>
@@ -738,17 +732,24 @@ const PostCard = ({
             {/* Reaction Picker */}
             {showReactions && (
               <div className="absolute bottom-full left-0 pb-2 z-20">
-                <div className="bg-card border rounded-full shadow-lg p-1.5 flex gap-1 animate-in fade-in-0 zoom-in-95">
-                  {REACTION_TYPES.map(({ type, icon: Icon, label, color }) => (
-                    <button
+                {/* The faces pop in one after another and grow under your finger, as on Facebook. */}
+                <div className="flex w-max gap-0.5 rounded-full border border-border/70 bg-card p-1.5 shadow-xl animate-in fade-in-0 zoom-in-90 slide-in-from-bottom-2 duration-200">
+                  {REACTION_TYPES.map(({ type, label }, i) => (
+                    <motion.button
                       key={type}
+                      initial={{ opacity: 0, y: 14, scale: 0.4 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      transition={{ delay: i * 0.035, type: "spring", stiffness: 520, damping: 22 }}
+                      whileHover={{ scale: 1.32, y: -6 }}
+                      whileTap={{ scale: 1.2 }}
                       onClick={() => { handleReaction(type); setShowReactions(false); }}
-                      className="p-1.5 sm:p-1.5 max-sm:p-2 hover:scale-125 active:scale-125 transition-transform rounded-full hover:bg-accent"
+                      className="group relative shrink-0 rounded-full p-1"
                       title={label}
                       aria-label={label}
                     >
-                      <Icon className={cn("h-6 w-6", color)} />
-                    </button>
+                      <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 rounded-full bg-foreground/85 px-2 py-0.5 text-[10.5px] font-semibold text-background opacity-0 transition-opacity group-hover:opacity-100">{label}</span>
+                      <ReactionEmoji type={type} className="h-9 w-9 max-sm:h-10 max-sm:w-10" />
+                    </motion.button>
                   ))}
                 </div>
               </div>
@@ -765,8 +766,10 @@ const PostCard = ({
               aria-pressed={!!userReaction}
               aria-label={`${currentReaction?.label ?? "Like"}${totalReactions ? `, ${totalReactions} ${totalReactions === 1 ? "reaction" : "reactions"}` : ""}`}
             >
-              {currentReaction && currentReaction.type !== "like" ? (
-                <currentReaction.icon className={cn("h-[21px] w-[21px]", currentReaction.color)} />
+              {currentReaction ? (
+                <motion.span key={currentReaction.type} initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 600, damping: 14 }} className="flex">
+                  <ReactionEmoji type={currentReaction.type} className="h-[21px] w-[21px]" />
+                </motion.span>
               ) : (
                 <PhThumbsUp className="h-[21px] w-[21px]" weight={currentReaction ? "fill" : "regular"} aria-hidden="true" />
               )}
