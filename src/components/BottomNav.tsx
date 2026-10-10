@@ -56,14 +56,14 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   };
 
   const tabClass = (active: boolean) =>
-    cn("relative flex min-w-0 flex-col items-center justify-center gap-0.5 transition-colors", active ? "text-primary" : "text-muted-foreground");
+    cn("relative flex min-w-0 min-h-[44px] flex-col items-center justify-center gap-1 rounded-xl px-0.5 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-card", active ? "text-primary" : "text-muted-foreground hover:text-foreground");
   // The selected tab glows: a soft cyan disc behind the icon and a dot under its name.
   const iconWrap = (active: boolean) =>
-    cn("relative flex h-[34px] w-[34px] items-center justify-center rounded-full transition-all duration-200",
-      active && "bg-primary/15 shadow-[0_0_18px_2px_hsl(var(--primary)/0.5)]");
+    cn("relative flex h-[32px] w-[32px] items-center justify-center rounded-full transition-colors duration-200",
+      active && "bg-primary/12");
   const label = (text: string, active: boolean) => (
     <span className="flex flex-col items-center gap-[3px]">
-      <span className={cn("max-w-full truncate text-[10px] tracking-tight leading-none", active ? "font-semibold" : "font-medium")}>{text}</span>
+      <span className={cn("max-w-full truncate text-[10px] leading-none tracking-[-0.01em]", active ? "font-semibold" : "font-medium")}>{text}</span>
       <span className={cn("h-[3px] w-[3px] rounded-full", active ? "bg-primary shadow-[0_0_4px_hsl(var(--primary))]" : "bg-transparent")} aria-hidden="true" />
     </span>
   );
@@ -72,9 +72,9 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
     // A floating pill above the bottom edge of the screen.
     <nav
       aria-label="Main"
-      className="app-dock fixed inset-x-3 bottom-[calc(0.625rem+env(safe-area-inset-bottom,0px))] z-50 rounded-full border border-border bg-card/95 shadow-[0_12px_32px_-8px_rgba(0,0,0,0.55)] backdrop-blur-md dark:border-[hsl(210_40%_22%/0.6)] dark:bg-[linear-gradient(180deg,hsl(214_45%_11%/0.96),hsl(218_50%_7.5%/0.96))] dark:shadow-[inset_0_1px_0_hsl(190_80%_75%/0.08),0_14px_34px_-8px_rgba(0,0,0,0.8)] md:hidden"
+      className="app-dock fixed inset-x-2 bottom-[calc(0.5rem+env(safe-area-inset-bottom,0px))] z-50 rounded-[1.35rem] border border-border/80 bg-card/95 shadow-[0_8px_28px_-12px_rgba(0,0,0,0.35)] backdrop-blur-xl dark:border-white/10 dark:bg-[linear-gradient(180deg,hsl(214_45%_11%/0.97),hsl(218_50%_7.5%/0.97))] dark:shadow-[0_10px_30px_-14px_rgba(0,0,0,0.75)] md:hidden"
     >
-      <div className="grid grid-cols-6 h-[60px] px-1.5">
+      <div className="grid grid-cols-6 min-h-[64px] items-center px-1.5 py-1">
         {tabs.map((tab) => {
           const active = isActive(tab.path);
           return (
@@ -82,7 +82,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
               key={tab.label}
               onClick={() => (active ? reselect() : navigate(tab.path))}
               onTouchStart={() => prefetchRoute(tab.path)}
-              whileTap={{ scale: 0.9 }}
+              whileTap={{ scale: 0.96 }}
               aria-current={active ? "page" : undefined}
               aria-label={tab.badge > 0 ? `${tab.label}, ${tab.badge} new` : tab.label}
               className={tabClass(active)}
