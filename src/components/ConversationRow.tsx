@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { Archive, ArchiveRestore, BellOff, BellRing, Check, CheckCheck, ChevronDown, Pin, PinOff } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
@@ -18,6 +18,12 @@ interface ConversationRowProps {
   time?: string;
   onOpen: () => void;
   onToggle: (list: keyof ChatPrefs) => void;
+  /** Text typed but not sent, shown as "Draft: …" (as on WhatsApp). */
+  draft?: string;
+  /** Shown instead of the last message (group chats: "Ada: hello"). */
+  preview?: string;
+  /** In the picture's place when there's no picture (a group icon for groups). */
+  fallback?: ReactNode;
 }
 
 /**
@@ -25,7 +31,7 @@ interface ConversationRowProps {
  * are unread messages. Press and hold (or the ⌄ button on bigger screens) to pin, mute or archive.
  */
 const ConversationRow = ({
-  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle,
+  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback,
 }: ConversationRowProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pressTimer = useRef<number>();
@@ -59,8 +65,8 @@ const ConversationRow = ({
       onContextMenu={(e) => { e.preventDefault(); setMenuOpen(true); }}
     >
       <Avatar className="h-12 w-12 flex-shrink-0">
-        <AvatarImage src={profile.avatar_url || undefined} />
-        <AvatarFallback>{profile.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+        <AvatarImage src={profile.avatar_url || undefined} className="object-cover" />
+        <AvatarFallback className={cn(fallback && "bg-secondary")}>{fallback ?? (profile.full_name?.[0]?.toUpperCase() || "U")}</AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
@@ -72,13 +78,15 @@ const ConversationRow = ({
           )}
         </div>
         <div className="mt-0.5 flex items-center gap-1">
-          {lastMessage?.sender_id === currentUserId && (
+          {!draft && lastMessage?.sender_id === currentUserId && (
             <span className="flex-shrink-0">
               {lastMessage.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-400" /> : <Check className="h-3.5 w-3.5 text-muted-foreground" />}
             </span>
           )}
           <p className={cn("flex-1 truncate text-sm", unread ? "font-medium text-foreground" : "text-muted-foreground")}>
-            {lastMessage ? (lastMessage.deleted_at ? "🚫 Message unsent" : lastMessage.content) : ""}
+            {draft ? (
+              <><span className="font-medium text-primary">Draft: </span>{draft}</>
+            ) : preview ?? (lastMessage ? (lastMessage.deleted_at ? "🚫 Message unsent" : lastMessage.content) : "")}
           </p>
           {muted && <BellOff className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" aria-label="Muted" />}
           {pinned && <Pin className="h-3.5 w-3.5 flex-shrink-0 rotate-45 text-muted-foreground" aria-label="Pinned" />}

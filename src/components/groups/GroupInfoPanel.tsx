@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, ExternalLink, LogOut, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "lucide-react";
+import { ArrowLeft, BellOff, ExternalLink, LogOut, Pencil, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -10,6 +10,8 @@ import { Input } from "@/components/ui/input";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
+import EditGroupModal from "@/components/EditGroupModal";
+import { Switch } from "@/components/ui/switch";
 import type { GroupInfo } from "@/lib/group-chats";
 
 export interface GroupMember {
@@ -27,18 +29,22 @@ interface GroupInfoPanelProps {
   onChanged: () => void;
   onCall: (voiceOnly: boolean) => void;
   onLeft: () => void;
+  muted?: boolean;
+  onToggleMute?: () => void;
+  onGroupUpdated?: () => void;
 }
 
 const managementError = (error: { message: string }) =>
   /Could not find the function|function .*group_/i.test(error.message) ? "This needs the latest database update." : error.message;
 
 /** The group's info, as on WhatsApp: picture, name, members (admins marked) and the actions. */
-const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onCall, onLeft }: GroupInfoPanelProps) => {
+const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onCall, onLeft, muted = false, onToggleMute, onGroupUpdated }: GroupInfoPanelProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
+  const [showEdit, setShowEdit] = useState(false);
   const [confirm, setConfirm] = useState<{ kind: "remove"; member: GroupMember } | { kind: "leave" } | null>(null);
 
   const me = members.find((m) => m.id === currentUserId);
@@ -90,7 +96,14 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
           <AvatarImage src={group.image_url || undefined} className="object-cover" />
           <AvatarFallback className="bg-secondary"><Users className="h-12 w-12 text-muted-foreground" /></AvatarFallback>
         </Avatar>
-        <h2 className="mt-4 font-display text-2xl font-bold leading-tight">{group.name}</h2>
+        <div className="mt-4 flex max-w-full items-center gap-1">
+          <h2 className="min-w-0 break-words font-display text-2xl font-bold leading-tight">{group.name}</h2>
+          {(isAdmin || isCreator) && (
+            <Button variant="ghost" size="icon" className="h-9 w-9 flex-shrink-0 rounded-full text-muted-foreground" aria-label="Edit group name, description and picture" title="Edit group" onClick={() => setShowEdit(true)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
         <p className="mt-1 text-muted-foreground">Group · {members.length} {members.length === 1 ? "member" : "members"}</p>
         <div className="mt-5 flex gap-3">
           {[
@@ -114,6 +127,17 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
             Created by {creator?.id === currentUserId ? "you" : creator?.full_name || "someone"}, {format(new Date(group.created_at), "dd/MM/yyyy")}
           </p>
         </div>
+      )}
+
+      {onToggleMute && (
+        <label className="flex cursor-pointer items-center gap-3 border-t border-border px-5 py-3.5">
+          <BellOff className="h-5 w-5 text-muted-foreground" />
+          <span className="flex-1">
+            <span className="block text-[15px] font-medium">Mute notifications</span>
+            <span className="block text-xs text-muted-foreground">No sound for new messages in this group</span>
+          </span>
+          <Switch checked={muted} onCheckedChange={() => onToggleMute()} aria-label="Mute notifications" />
+        </label>
       )}
 
       {/* Members */}
@@ -184,6 +208,14 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
         memberIds={members.map((m) => m.id)}
         onAdded={onChanged}
       />
+      {showEdit && (
+        <EditGroupModal
+          group={group}
+          open={showEdit}
+          onOpenChange={setShowEdit}
+          onGroupUpdated={() => onGroupUpdated?.()}
+        />
+      )}
       <ConfirmDialog
         open={!!confirm}
         onOpenChange={(open) => !open && setConfirm(null)}

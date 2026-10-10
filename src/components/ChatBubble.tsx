@@ -1,16 +1,13 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SWIPE_REPLY_THRESHOLD, useSwipeToReply } from "@/hooks/use-swipe-to-reply";
 import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
-import MessageReactions from "./MessageReactions";
-import {
-  ActionMenu,
-  ActionMenuContent,
-  ActionMenuItem,
-  ActionMenuTrigger,
-} from "@/components/ui/action-menu";
+import MessageActionSheet, { type MessageAction } from "@/components/chat/MessageActionSheet";
+import ReactionChips from "@/components/chat/ReactionChips";
+import { useMessageReactions } from "@/hooks/use-message-reactions";
+import { useLongPress } from "@/hooks/use-long-press";
 
 /** The length saved in a voice note's text, "🎤 Voice message (1:05)" → 65. */
 const voiceSeconds = (content: string) => {
@@ -72,25 +69,13 @@ const ChatBubble = ({
   isFirstInGroup = true,
   otherName,
 }: ChatBubbleProps) => {
-  const [showActions, setShowActions] = useState(false);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const rowRef = useRef<HTMLDivElement>(null);
+  // WhatsApp's message menu: press and hold on phones, the buttons by the message on computers.
+  const [menuOpen, setMenuOpen] = useState(false);
   const colors = themeColors[theme] || themeColors.default;
+  const { reactions, mine, react } = useMessageReactions(message.id, currentUserId);
+  const longPress = useLongPress(() => setMenuOpen(true));
   // Swipe a message to the right to reply to it, as on WhatsApp.
-  const swipe = useSwipeToReply(() => { setShowActions(false); onReply(message); });
-
-  // On touch screens actions open with a tap; close them when tapping anywhere else.
-  useEffect(() => {
-    if (!showActions && !pickerOpen) return;
-    const close = (e: PointerEvent) => {
-      if (rowRef.current && !rowRef.current.contains(e.target as Node)) {
-        setShowActions(false);
-        setPickerOpen(false);
-      }
-    };
-    document.addEventListener("pointerdown", close);
-    return () => document.removeEventListener("pointerdown", close);
-  }, [showActions, pickerOpen]);
+  const swipe = useSwipeToReply(() => onReply(message));
 
   // Deleted message
   if (message.deleted_at) {
@@ -108,6 +93,13 @@ const ChatBubble = ({
   const isVideo = isMedia && (message.image_url?.includes('.mp4') || message.image_url?.includes('.mov') || message.image_url?.includes('.webm'));
   const isGif = isMedia && (message.image_url?.includes('giphy.com') || message.image_url?.includes('tenor.com'));
   const hasText = !!message.content && message.content !== "Sent an image" && !message.content.startsWith("🎤");
+
+  const actions: MessageAction[] = [
+    { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(message) },
+    ...(hasText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(message.content) }] : []),
+    ...(isCurrentUser && !isMedia && !isVoice ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(message) }] : []),
+    ...(isCurrentUser ? [{ label: "Unsend", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onUnsend(message.id), destructive: true }] : []),
+  ];
 
   const sentAt = new Date(message.created_at);
   const time = format(sentAt, "HH:mm");
@@ -137,11 +129,8 @@ const ChatBubble = ({
 
   return (
     <div
-      ref={rowRef}
       className={cn("flex group relative touch-pan-y", isCurrentUser ? "justify-end" : "justify-start")}
-      {...(message.deleted_at ? {} : swipe.handlers)}
-      onPointerEnter={(e) => { if (e.pointerType === "mouse") setShowActions(true); }}
-      onPointerLeave={(e) => { if (e.pointerType === "mouse" && !pickerOpen) setShowActions(false); }}
+      {...swipe.handlers}
     >
       {swipe.swiping && (
         <span
@@ -152,14 +141,14 @@ const ChatBubble = ({
           <CornerUpLeft className="h-4 w-4" />
         </span>
       )}
-      {/* Actions: hover on desktop, tap the bubble on phones */}
+      {/* Reply and the message menu, shown on hover with a mouse (phones press and hold instead). */}
       <div className={cn(
-        "flex items-center gap-0.5 flex-shrink-0 self-center transition-opacity duration-150",
-        showActions || pickerOpen ? "opacity-100" : "opacity-0 pointer-events-none",
+        "hidden [@media(hover:hover)]:flex items-center gap-0.5 flex-shrink-0 self-center transition-opacity duration-150",
+        menuOpen ? "opacity-100" : "opacity-0 group-hover:opacity-100 focus-within:opacity-100",
         isCurrentUser ? "order-first mr-1" : "order-last ml-1"
       )}>
         <button
-          onClick={() => { setPickerOpen((o) => !o); setShowActions(true); }}
+          onClick={() => setMenuOpen(true)}
           className="p-1.5 rounded-full hover:bg-accent transition-colors"
           aria-label="React"
           title="React"
@@ -167,37 +156,21 @@ const ChatBubble = ({
           <SmilePlus className="h-4 w-4 text-muted-foreground" />
         </button>
         <button
-          onClick={() => { onReply(message); setShowActions(false); }}
-          className="p-1.5 rounded-full hover:bg-accent transition-colors [@media(hover:none)]:hidden"
+          onClick={() => onReply(message)}
+          className="p-1.5 rounded-full hover:bg-accent transition-colors"
           aria-label="Reply"
           title="Reply"
         >
           <CornerUpLeft className="h-4 w-4 text-muted-foreground" />
         </button>
-        {isCurrentUser && (
-          <ActionMenu>
-            <ActionMenuTrigger asChild>
-              <button className="p-1.5 rounded-full hover:bg-accent transition-colors" aria-label="More actions">
-                <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
-              </button>
-            </ActionMenuTrigger>
-            <ActionMenuContent align={isCurrentUser ? "end" : "start"} className="w-40">
-              {!isMedia && !isVoice && (
-                <ActionMenuItem onClick={() => onEdit(message)}>
-                  <Pencil className="h-3.5 w-3.5 mr-2" /> Edit
-                </ActionMenuItem>
-              )}
-              {hasText && (
-                <ActionMenuItem onClick={() => navigator.clipboard.writeText(message.content)}>
-                  <Copy className="h-3.5 w-3.5 mr-2" /> Copy
-                </ActionMenuItem>
-              )}
-              <ActionMenuItem className="text-destructive" onClick={() => onUnsend(message.id)}>
-                <Trash2 className="h-3.5 w-3.5 mr-2" /> Unsend
-              </ActionMenuItem>
-            </ActionMenuContent>
-          </ActionMenu>
-        )}
+        <button
+          onClick={() => setMenuOpen(true)}
+          className="p-1.5 rounded-full hover:bg-accent transition-colors"
+          aria-label="More actions"
+          title="More"
+        >
+          <MoreHorizontal className="h-4 w-4 text-muted-foreground" />
+        </button>
       </div>
 
       <div
@@ -212,13 +185,25 @@ const ChatBubble = ({
             "rounded-lg",
             // The tail sits at the top corner of the first message in a run.
             isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
-            isMedia ? "p-1" : "px-2.5 py-1.5"
+            isMedia ? "p-1" : "px-2.5 py-1.5",
+            "[@media(hover:none)]:select-none [-webkit-touch-callout:none]",
+            menuOpen && "ring-2 ring-primary/40"
           )}
-          onClick={(e) => {
-            if ((e.target as HTMLElement).closest("button, a, video, audio")) return;
-            if (window.matchMedia("(hover: none)").matches) setShowActions((v) => !v);
+          {...longPress.handlers}
+          onClickCapture={(e) => {
+            // The tap that ends a press-and-hold shouldn't also open a photo or play a video.
+            if (!e.currentTarget.contains(e.target as Node)) return; // a tap in the (portalled) menu
+            if (longPress.fired.current) { e.preventDefault(); e.stopPropagation(); longPress.fired.current = false; }
           }}
         >
+          <MessageActionSheet
+            open={menuOpen}
+            onOpenChange={setMenuOpen}
+            myReaction={mine}
+            onReact={(type) => void react(type)}
+            actions={actions}
+            align={isCurrentUser ? "end" : "start"}
+          />
           {isFirstInGroup && (
             <span
               aria-hidden="true"
@@ -279,12 +264,12 @@ const ChatBubble = ({
           )}
         </div>
 
-        <MessageReactions
-          messageId={message.id}
+        <ReactionChips
+          reactions={reactions}
           currentUserId={currentUserId}
+          nameOf={() => otherName || "Them"}
+          onRemoveMine={() => void react(null)}
           isOwnMessage={isCurrentUser}
-          pickerOpen={pickerOpen}
-          onPickerOpenChange={(open) => { setPickerOpen(open); if (!open) setShowActions(false); }}
         />
       </div>
     </div>

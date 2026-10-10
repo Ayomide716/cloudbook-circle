@@ -686,29 +686,67 @@ export type Database = {
           },
         ]
       }
+      group_message_reactions: {
+        Row: {
+          created_at: string
+          id: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          message_id: string
+          reaction_type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          message_id?: string
+          reaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_message_reactions_message_id_fkey"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "group_messages"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_messages: {
         Row: {
           content: string
           created_at: string
+          edited_at: string | null
           group_id: string
           id: string
           image_url: string | null
+          reply_to: string | null
           user_id: string
         }
         Insert: {
           content: string
           created_at?: string
+          edited_at?: string | null
           group_id: string
           id?: string
           image_url?: string | null
+          reply_to?: string | null
           user_id: string
         }
         Update: {
           content?: string
           created_at?: string
+          edited_at?: string | null
           group_id?: string
           id?: string
           image_url?: string | null
+          reply_to?: string | null
           user_id?: string
         }
         Relationships: [
@@ -2248,6 +2286,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      edit_group_message: {
+        Args: { _content: string; _id: string }
+        Returns: undefined
+      }
+      update_group_details: {
+        Args: { _description: string | null; _group: string; _image_url: string | null; _name: string }
+        Returns: undefined
+      }
       cleanup_expired_posts: { Args: never; Returns: undefined }
       get_ranked_posts: {
         Args: {
