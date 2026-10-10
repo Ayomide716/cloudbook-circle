@@ -119,7 +119,7 @@ const Profile = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
   const [seoName, setSeoName] = useState<string | null>(null);
-  useSEO({ title: seoName ?? "Profile", description: seoName ? `${seoName} on CloudBook.` : "View user profile on CloudBook." });
+  useSEO({ title: seoName ?? "Profile", description: seoName ? `${seoName} on Ember.` : "View user profile on Ember." });
   const { toast } = useToast();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [posts, setPosts] = useState<Post[]>([]);
@@ -279,7 +279,7 @@ const Profile = () => {
   const shareProfile = async () => {
     const url = `${window.location.origin}/profile/${userId}`;
     try {
-      if (navigator.share) { await navigator.share({ title: profile?.full_name || "CloudBook profile", url }); return; }
+      if (navigator.share) { await navigator.share({ title: profile?.full_name || "Ember profile", url }); return; }
       await navigator.clipboard.writeText(url);
       toast({ title: "Profile link copied" });
     } catch { /* share sheet closed */ }

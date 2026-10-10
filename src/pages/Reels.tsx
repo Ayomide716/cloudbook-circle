@@ -25,6 +25,8 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import CommentsSheet from "@/components/comments/CommentsSheet";
 import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import { playSound } from "@/lib/sounds";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 interface Reel {
   id: string;
@@ -49,7 +51,7 @@ interface Reel {
 export default function Reels() {
   const navigate = useNavigate();
   const { reelId: paramReelId } = useParams();
-  useSEO({ title: "Reels", description: "Watch short videos on CloudBook." });
+  useSEO({ title: "Reels", description: "Watch short videos on Ember." });
   const [reels, setReels] = useState<Reel[]>([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<User | null>(null);
@@ -70,6 +72,9 @@ export default function Reels() {
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const myProfile = useMyProfile();
+  // "For you" is everyone's reels; "Friends" only your friends' (and yours).
+  const [tab, setTab] = useState<"for-you" | "friends">("for-you");
+  const shown = tab === "friends" ? reels.filter((r) => friendIds.has(r.user_id) || r.user_id === user?.id) : reels;
 
   const loadFriendIds = async (userId: string) => {
     const { data } = await supabase
@@ -243,7 +248,7 @@ export default function Reels() {
     if (!containerRef.current) return;
     const { scrollTop, clientHeight } = containerRef.current;
     const index = Math.round(scrollTop / clientHeight);
-    if (reels[index] && reels[index].id !== activeReelId) setActiveReelId(reels[index].id);
+    if (shown[index] && shown[index].id !== activeReelId) setActiveReelId(shown[index].id);
   };
 
   const scroll = (dir: number) => {
@@ -266,6 +271,31 @@ export default function Reels() {
     return () => window.removeEventListener("keydown", onKey);
   }, [onKey]);
 
+  const pickTab = (next: "for-you" | "friends") => {
+    if (next === tab) return;
+    setTab(next);
+    const list = next === "friends" ? reels.filter((r) => friendIds.has(r.user_id) || r.user_id === user?.id) : reels;
+    setActiveReelId(list[0]?.id ?? null);
+    containerRef.current?.scrollTo({ top: 0 });
+  };
+
+  const tabSwitch = (
+    <div role="tablist" aria-label="Which reels" className="relative flex rounded-full border border-white/15 bg-black/25 p-1 backdrop-blur-md">
+      {(["for-you", "friends"] as const).map((t) => (
+        <button
+          key={t}
+          role="tab"
+          aria-selected={tab === t}
+          onClick={() => pickTab(t)}
+          className={cn("relative z-[1] rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors", tab === t ? "text-black" : "text-white/80")}
+        >
+          {tab === t && <motion.span layoutId="reels-tab" className="absolute inset-0 -z-[1] rounded-full bg-white" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
+          {t === "for-you" ? "For you" : "Friends"}
+        </button>
+      ))}
+    </div>
+  );
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -282,8 +312,9 @@ export default function Reels() {
           <button onClick={() => navigate("/")} className="text-white/70 hover:text-white transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <h1 className="text-white font-bold text-lg">Reels</h1>
+          <h1 className="text-white font-display font-bold text-xl">Reels</h1>
         </div>
+        {tabSwitch}
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("/")} className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-sm">
             <Home className="h-4 w-4" /> Home
@@ -297,22 +328,26 @@ export default function Reels() {
         </div>
       </div>
 
-      <div className="md:hidden absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/60 to-transparent safe-area-top">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="text-white/80 hover:text-white p-2 -m-2" aria-label="Back to home">
-            <ArrowLeft className="h-6 w-6" />
-          </button>
-          <h1 className="text-white font-bold text-xl">Reels</h1>
-        </div>
-        <button onClick={() => setShowUpload(true)} className="text-white p-2 -m-2" aria-label="Create reel"><Plus className="h-6 w-6" /></button>
+      {/* Phones: glass back and create buttons either side of the For you / Friends switch. */}
+      <div className="md:hidden absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 pt-[calc(env(safe-area-inset-top)+0.6rem)]">
+        <button onClick={() => navigate("/")} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur-md" aria-label="Back to home">
+          <ArrowLeft className="h-5 w-5" />
+        </button>
+        {tabSwitch}
+        <button onClick={() => setShowUpload(true)} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur-md" aria-label="Create reel">
+          <Plus className="h-5 w-5" />
+        </button>
       </div>
 
-      {reels.length === 0 ? (
-        <div className="flex flex-col items-center justify-center flex-1 text-white">
-          <Film className="h-16 w-16 mb-4 opacity-50" />
-          <p className="text-lg mb-4">No reels yet</p>
-          <Button onClick={() => setShowUpload(true)} variant="secondary">
-            <Plus className="h-4 w-4 mr-2" /> Create First Reel
+      {shown.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center px-8 text-center text-white min-h-[100dvh] md:min-h-0">
+          <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-[28px] bg-gradient-to-br from-primary to-rose-500">
+            <Film className="h-9 w-9" />
+          </span>
+          <p className="font-display text-xl font-bold">{tab === "friends" && reels.length > 0 ? "No reels from friends yet" : "No reels yet"}</p>
+          <p className="mt-1.5 max-w-xs text-sm text-white/60">{tab === "friends" && reels.length > 0 ? "When your friends post reels, they'll show up here." : "Share a short video and be the first."}</p>
+          <Button onClick={() => setShowUpload(true)} className="mt-6 rounded-full px-6">
+            <Plus className="h-4 w-4 mr-1.5" /> Create a reel
           </Button>
         </div>
       ) : (
@@ -322,7 +357,7 @@ export default function Reels() {
             onScroll={handleScroll}
             className="h-[100dvh] md:h-[calc(100dvh-57px)] w-full md:w-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-contain"
           >
-            {reels.map((reel) => (
+            {shown.map((reel) => (
               <ReelCard
                 key={reel.id}
                 reel={reel}

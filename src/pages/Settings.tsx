@@ -49,7 +49,7 @@ const defaultPrefs: NotificationPrefs = {
 const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Settings", description: "Your CloudBook account, appearance and notification settings." });
+  useSEO({ title: "Settings", description: "Your Ember account, appearance and notification settings." });
   const { theme, setTheme } = useTheme();
   const [email, setEmail] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
@@ -98,7 +98,7 @@ const Settings = () => {
     await supabase.auth.signOut();
     navigate("/auth", { replace: true });
   };
-  useSEO({ title: "Settings", description: "Manage your CloudBook settings." });
+  useSEO({ title: "Settings", description: "Manage your Ember settings." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sounds, setSounds] = useState(soundsEnabled);
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
@@ -356,7 +356,7 @@ const Settings = () => {
             <AlertDialogHeader>
               <AlertDialogTitle>Delete your account?</AlertDialogTitle>
               <AlertDialogDescription>
-                Everything you've shared on CloudBook will be removed for good. Type <strong>DELETE</strong> to confirm.
+                Everything you've shared on Ember will be removed for good. Type <strong>DELETE</strong> to confirm.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <div>

@@ -91,7 +91,7 @@ const formatViews = (count: number) => {
 const Watch = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Watch", description: "Watch videos on CloudBook." });
+  useSEO({ title: "Watch", description: "Watch videos on Ember." });
   const [searchParams, setSearchParams] = useSearchParams();
   const sharedVideoId = searchParams.get("v");
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);

@@ -27,7 +27,7 @@ interface ConversationRowProps {
 }
 
 /**
- * One chat in the list, WhatsApp style: the time turns teal and a round count shows while there
+ * One chat in the list, WhatsApp style: the time turns tangerine and a round count shows while there
  * are unread messages. Press and hold (or the ⌄ button on bigger screens) to pin, mute or archive.
  */
 const ConversationRow = ({
@@ -86,7 +86,7 @@ const ConversationRow = ({
           <p className={cn("flex-1 truncate text-sm", unread ? "font-medium text-foreground" : "text-muted-foreground")}>
             {draft ? (
               <><span className="font-medium text-primary">Draft: </span>{draft}</>
-            ) : preview ?? (lastMessage ? (lastMessage.deleted_at ? "🚫 Message unsent" : lastMessage.content) : "")}
+            ) : preview ?? (lastMessage ? (lastMessage.deleted_at ? "Message unsent" : lastMessage.content) : "")}
           </p>
           {muted && <BellOff className="h-3.5 w-3.5 flex-shrink-0 text-muted-foreground" aria-label="Muted" />}
           {pinned && <Pin className="h-3.5 w-3.5 flex-shrink-0 rotate-45 text-muted-foreground" aria-label="Pinned" />}

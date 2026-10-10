@@ -66,7 +66,7 @@ const downloadCalendarFile = (e: Event) => {
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//CloudBook//Events//EN",
+    "PRODID:-//Ember//Events//EN",
     "BEGIN:VEVENT",
     `UID:${e.id}@cloudbook`,
     `DTSTAMP:${stamp(new Date())}`,
@@ -91,7 +91,7 @@ const emptyForm = { name: "", description: "", location: "", start_date: "", end
 const Events = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Events", description: "Discover and create events on CloudBook." });
+  useSEO({ title: "Events", description: "Discover and create events on Ember." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [events, setEvents] = useState<Event[]>([]);
   const [rsvps, setRsvps] = useState<Record<string, RsvpStatus>>({});
@@ -270,7 +270,7 @@ const Events = () => {
             <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle>Create event</DialogTitle>
-                <DialogDescription>Everyone on CloudBook can see and RSVP to it.</DialogDescription>
+                <DialogDescription>Everyone on Ember can see and RSVP to it.</DialogDescription>
               </DialogHeader>
               <div className="space-y-4">
                 {/* Cover photo */}

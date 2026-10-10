@@ -73,7 +73,7 @@
 
    const shareOutside = async () => {
      try {
-       await navigator.share({ title: "A post on CloudBook", url: postUrl });
+       await navigator.share({ title: "A post on Ember", url: postUrl });
        onOpenChange(false);
      } catch {
        // Closed the share menu without picking an app.
@@ -157,7 +157,7 @@
              Share Now
            </Button>
 
-           {/* Outside CloudBook: the phone's own share menu (WhatsApp, Instagram, X…), or the link. */}
+           {/* Outside Ember: the phone's own share menu (WhatsApp, Instagram, X…), or the link. */}
            <div className={canShareOutside ? "grid grid-cols-2 gap-2 border-t pt-4" : "grid border-t pt-4"}>
              <Button type="button" variant="secondary" onClick={copyLink}>
                <Link2 className="h-4 w-4 mr-2" />

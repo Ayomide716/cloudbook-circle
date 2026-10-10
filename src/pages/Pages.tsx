@@ -44,7 +44,7 @@ const Pages = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery.trim());
-  useSEO({ title: "Pages", description: "Discover and follow pages on CloudBook." });
+  useSEO({ title: "Pages", description: "Discover and follow pages on Ember." });
   const [showCreate, setShowCreate] = useState(false);
   const [activeTab, setActiveTab] = useState("discover");
 

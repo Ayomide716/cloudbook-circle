@@ -93,7 +93,7 @@ const PageDetail = () => {
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [uploading, setUploading] = useState<"avatar" | "cover" | null>(null);
   const [confirm, setConfirm] = useState<{ kind: "page" } | { kind: "post"; id: string } | null>(null);
-  useSEO({ title: page?.name ?? "Page", description: page?.description ?? "A page on CloudBook." });
+  useSEO({ title: page?.name ?? "Page", description: page?.description ?? "A page on Ember." });
 
   const postImagePreview = useMemo(() => (postImage ? URL.createObjectURL(postImage) : null), [postImage]);
   useEffect(() => () => { if (postImagePreview) URL.revokeObjectURL(postImagePreview); }, [postImagePreview]);

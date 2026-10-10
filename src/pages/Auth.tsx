@@ -74,7 +74,7 @@ const Auth = () => {
         if (error) throw error;
         // With email confirmation on (as it should be when live), there's no session until the link is opened.
         if (data.session) {
-          toast({ title: "Account created!", description: "Welcome to CloudBook!" });
+          toast({ title: "Account created!", description: "Welcome to Ember!" });
         } else {
           toast({ title: "Check your email", description: `We sent a confirmation link to ${email}. Open it to finish signing up.` });
         }
@@ -100,17 +100,17 @@ const Auth = () => {
       <div className="absolute inset-0 auth-grid-overlay pointer-events-none" />
 
       <div className="w-full max-w-6xl relative z-10 grid lg:grid-cols-2 lg:gap-16 items-center">
-      {/* Wide screens: what CloudBook is, next to the form (this page is the front door). */}
+      {/* Wide screens: what Ember is, next to the form (this page is the front door). */}
       <motion.section
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.5, ease: "easeOut" }}
         className="hidden lg:block"
-        aria-label="About CloudBook"
+        aria-label="About Ember"
       >
         <div className="flex items-center gap-3 mb-6">
           <img src={logo} alt="" className="h-12 w-12 rounded-xl" />
-          <span className="text-4xl font-display font-bold tracking-tight gradient-text">CloudBook</span>
+          <span className="text-4xl font-display font-bold tracking-tight gradient-text">Ember</span>
         </div>
         <h2 className="text-5xl font-display font-bold leading-[1.1] tracking-tight mb-5">
           Your people, your communities, <span className="gradient-text">one place.</span>
@@ -152,9 +152,9 @@ const Auth = () => {
           className="text-center mb-8 lg:hidden"
         >
           <div className="inline-flex items-center gap-2 mb-3">
-            <img src={logo} alt="CloudBook" className="h-10 w-10 rounded-xl" />
+            <img src={logo} alt="Ember" className="h-10 w-10 rounded-xl" />
             <span className="text-4xl font-display font-bold tracking-tight gradient-text">
-              CloudBook
+              Ember
             </span>
           </div>
           <p className="text-muted-foreground text-sm">

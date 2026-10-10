@@ -144,9 +144,9 @@ const ScreenTimeWidget = () => {
                   <Coffee className="h-5 w-5 text-primary" />
                 </div>
                 <div className="flex-1">
-                  <p className="font-semibold text-sm">Time for a break! ☕</p>
+                  <p className="font-semibold text-sm">Time for a break</p>
                   <p className="text-xs text-muted-foreground mt-0.5">
-                    You've been on CloudBook for {formatTime(sessionMinutes)}. Stretch, grab water, or step outside for a moment.
+                    You've been on Ember for {formatTime(sessionMinutes)}. Stretch, grab water, or step outside for a moment.
                   </p>
                   <div className="flex gap-2 mt-2">
                     <Button size="sm" variant="outline" className="text-xs h-7" onClick={() => { setShowBreakReminder(false); setDismissed(true); }}>

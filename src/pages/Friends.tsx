@@ -36,7 +36,7 @@ interface Profile {
 }
 
 interface SuggestedProfile extends Profile {
-  /** 0 for "new on CloudBook" suggestions. */
+  /** 0 for "new on Ember" suggestions. */
   mutualCount: number;
 }
 
@@ -58,7 +58,7 @@ interface Friendship {
 const Friends = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Friends", description: "Manage your friends on CloudBook." });
+  useSEO({ title: "Friends", description: "Manage your friends on Ember." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
@@ -668,7 +668,7 @@ const Friends = () => {
                         <p className="text-xs text-muted-foreground">
                           {profile.mutualCount > 0
                             ? `${profile.mutualCount} mutual ${profile.mutualCount === 1 ? "friend" : "friends"}`
-                            : "New on CloudBook"}
+                            : "New on Ember"}
                         </p>
                       </div>
                       <Button

@@ -99,8 +99,8 @@ test.describe("feed", () => {
     await expect(page).toHaveURL(/\/menu$/);
     await expect(page.getByRole("heading", { level: 1, name: "Menu" })).toBeVisible();
     await expect(page.getByText("Alice Johnson")).toBeVisible();
-    await page.getByRole("navigation", { name: "Shortcuts" }).getByRole("button", { name: "Marketplace" }).click();
-    await expect(page).toHaveURL(/\/marketplace$/);
+    await page.getByRole("navigation", { name: "Shortcuts" }).getByRole("button", { name: "Events" }).click();
+    await expect(page).toHaveURL(/\/events$/);
 
     await page.getByRole("button", { name: "Create post" }).click();
     await expect(page.getByRole("dialog").getByText("Create post")).toBeVisible();

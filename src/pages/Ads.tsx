@@ -68,7 +68,7 @@ const tooltipStyle = {
 const Ads = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Ad Manager", description: "Manage your ad campaigns on CloudBook." });
+  useSEO({ title: "Ad Manager", description: "Manage your ad campaigns on Ember." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [credits, setCredits] = useState(0);
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -200,7 +200,7 @@ const Ads = () => {
     setCreating(false);
     resetForm();
     setShowCreate(false);
-    toast({ title: "Campaign launched! 🚀" });
+    toast({ title: "Campaign launched" });
     fetchCampaigns(currentUserId);
   };
 
@@ -390,7 +390,7 @@ const Ads = () => {
               <Info className="h-4 w-4 text-primary shrink-0 mt-0.5" />
               <p>
                 <span className="font-medium">Demo credits.</span>{" "}
-                <span className="text-muted-foreground">CloudBook doesn't take payments, so credits are free to add for trying out ads.</span>
+                <span className="text-muted-foreground">Ember doesn't take payments, so credits are free to add for trying out ads.</span>
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">

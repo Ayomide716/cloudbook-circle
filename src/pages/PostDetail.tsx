@@ -22,8 +22,8 @@ const PostDetail = () => {
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
 
   useSEO({
-    title: post ? `${post.profiles.full_name || "Someone"} on CloudBook` : "Post",
-    description: post?.content.slice(0, 150) || "A post on CloudBook.",
+    title: post ? `${post.profiles.full_name || "Someone"} on Ember` : "Post",
+    description: post?.content.slice(0, 150) || "A post on Ember.",
   });
 
   useEffect(() => {

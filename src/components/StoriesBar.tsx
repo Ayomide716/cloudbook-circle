@@ -20,6 +20,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
+import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 
 interface Story {
   id: string;
@@ -311,7 +312,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         <div className="flex gap-2 overflow-x-auto py-1 px-0.5 -mx-0.5 scrollbar-hide">
           {/* Create a story: your photo, a glowing outline and a + */}
           <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)} aria-label="Create a story">
-            <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden bg-card ring-[1.5px] ring-primary shadow-[0_0_18px_-2px_hsl(var(--primary)/0.65)] transition-transform duration-200 group-active:scale-[0.98]">
+            <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden bg-card ring-[1.5px] ring-primary transition-transform duration-200 group-active:scale-[0.98]">
               {myProfile?.avatar_url ? (
                 <img src={myProfile.avatar_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
               ) : (
@@ -321,7 +322,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               )}
               <div className="absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-card via-card/90 to-transparent" />
               <div className="absolute inset-x-0 bottom-2.5 flex flex-col items-center">
-                <span className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary shadow-[0_0_14px_hsl(var(--primary)/0.7)]">
+                <span className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary">
                   <Plus className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
                 </span>
                 <p className="text-[11.5px] font-semibold leading-tight text-foreground text-center">Create a<br />story</p>
@@ -342,7 +343,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                   <img src={latest.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/80" />
                   <div className="absolute top-2 left-2 right-2 flex items-center gap-1.5">
-                    <div className={cn("shrink-0 rounded-full p-[2px]", group.hasUnviewed ? "bg-primary shadow-[0_0_10px_hsl(var(--primary)/0.6)]" : "bg-white/50")}>
+                    <div className={cn("shrink-0 rounded-full p-[2px]", group.hasUnviewed ? "bg-primary" : "bg-white/50")}>
                       <Avatar className="h-7 w-7 border-2 border-black/30">
                         <AvatarImage src={group.profile.avatar_url || undefined} />
                         <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
@@ -476,8 +477,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                   { emoji: "❤️", type: "love" }, { emoji: "😂", type: "haha" }, { emoji: "😮", type: "wow" },
                   { emoji: "👍", type: "like" }, { emoji: "🔥", type: "fire" }, { emoji: "😢", type: "sad" },
                 ].map((r) => (
-                  <button key={r.type} onClick={() => handleReaction(r.emoji, r.type)} className="text-xl sm:text-2xl hover:scale-125 transition-transform p-0.5">
-                    {r.emoji}
+                  <button key={r.type} onClick={() => handleReaction(r.emoji, r.type)} aria-label={r.type} className="p-0.5 transition-transform hover:scale-125 active:scale-110">
+                    <ReactionEmoji type={r.type} className="h-8 w-8 sm:h-9 sm:w-9" />
                   </button>
                 ))}
               </div>

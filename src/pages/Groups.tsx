@@ -30,7 +30,7 @@ interface Group {
 const Groups = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Groups", description: "Discover and join groups on CloudBook." });
+  useSEO({ title: "Groups", description: "Discover and join groups on Ember." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
   // Invites to community groups (group chat invites are answered in Messages).

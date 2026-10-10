@@ -4,105 +4,110 @@
 
 @layer base {
   :root {
-    --background: 214 30% 96%;
-    --foreground: 200 25% 10%;
+    /* Ember: warm off-white paper, near-black ink, one tangerine accent. */
+    --background: 36 38% 96%;
+    --foreground: 260 9% 8%;
 
     --card: 0 0% 100%;
-    --card-foreground: 200 25% 10%;
+    --card-foreground: 260 9% 8%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 200 25% 10%;
+    --popover-foreground: 260 9% 8%;
 
-    /* Deep enough for white text and teal links to read clearly (about 4.5:1). */
-    --primary: 174 82% 29%;
+    /* Deep enough tangerine for white text and links on white. */
+    --primary: 16 85% 46%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 174 80% 50%;
+    --primary-glow: 14 100% 62%;
 
-    --secondary: 180 8% 93%;
-    --secondary-foreground: 200 25% 10%;
+    --secondary: 36 30% 92%;
+    --secondary-foreground: 260 9% 8%;
 
-    --muted: 180 8% 93%;
-    --muted-foreground: 200 10% 48%;
+    --muted: 36 30% 92%;
+    --muted-foreground: 270 4% 42%;
 
-    /* Hover/selected surfaces (menus, ghost buttons, list rows): a soft brand-teal tint. */
-    --accent: 174 35% 92%;
-    --accent-foreground: 200 25% 10%;
+    /* Hover/selected surfaces (menus, ghost buttons, list rows). */
+    --accent: 30 40% 93%;
+    --accent-foreground: 260 9% 8%;
 
-    /* Brand gold: the warm half of the logo gradient, for intentional highlights. */
-    --gold: 36 95% 55%;
+    /* Circle colours and highlights. */
+    --gold: 40 100% 52%;
     --gold-foreground: 0 0% 100%;
+    --lime: 75 88% 46%;
+    --lime-foreground: 260 9% 8%;
 
-    --destructive: 0 80% 58%;
+    --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 180 10% 88%;
-    --input: 180 10% 88%;
-    --ring: 174 82% 29%;
+    --border: 35 25% 88%;
+    --input: 35 25% 86%;
+    --ring: 16 85% 46%;
 
-    --radius: 1rem;
+    --radius: 1.25rem;
 
     /* Gradient tokens */
-    --gradient-brand: linear-gradient(135deg, hsl(174 82% 29%), hsl(30 92% 42%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(174 72% 40% / 0.12), hsl(36 95% 55% / 0.12));
-    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(180 10% 97%));
+    --gradient-brand: linear-gradient(135deg, hsl(14 100% 58%), hsl(340 100% 62%));
+    --gradient-brand-soft: linear-gradient(135deg, hsl(14 100% 58% / 0.12), hsl(340 100% 62% / 0.12));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 100%));
 
     /* Glass & shadow */
-    --glass-bg: 0 0% 100% / 0.75;
-    --glass-border: 180 10% 90% / 0.5;
-    --shadow-sm: 0 1px 3px 0 hsl(200 25% 10% / 0.04), 0 1px 2px -1px hsl(200 25% 10% / 0.04);
-    --shadow-md: 0 4px 12px -2px hsl(200 25% 10% / 0.06), 0 2px 4px -2px hsl(200 25% 10% / 0.04);
-    --shadow-lg: 0 12px 40px -8px hsl(200 25% 10% / 0.1);
-    --shadow-glow: 0 0 24px hsl(174 72% 40% / 0.15);
-    --shadow-dock: 0 8px 40px -8px hsl(200 25% 10% / 0.15), 0 0 0 1px hsl(180 10% 90% / 0.5);
+    --glass-bg: 36 38% 98% / 0.86;
+    --glass-border: 35 25% 86% / 0.8;
+    --shadow-sm: 0 1px 2px 0 hsl(260 9% 8% / 0.05);
+    --shadow-md: 0 6px 16px -6px hsl(260 9% 8% / 0.10);
+    --shadow-lg: 0 16px 40px -12px hsl(260 9% 8% / 0.16);
+    --shadow-glow: none;
+    --shadow-dock: 0 12px 30px -10px hsl(260 9% 8% / 0.22), 0 0 0 1px hsl(35 25% 86% / 0.9);
     --nav-height: 3.5rem;
   }
 
   .dark {
-    /* Deep navy with bright cyan, as in the 2026 mockup. */
-    --background: 222 60% 4%;
-    --foreground: 210 30% 95%;
+    /* Warm ink with the brighter tangerine. */
+    --background: 240 8% 5%;
+    --foreground: 40 33% 94%;
 
-    --card: 218 48% 8%;
-    --card-foreground: 210 30% 95%;
+    --card: 240 8% 9.5%;
+    --card-foreground: 40 33% 94%;
 
-    --popover: 218 48% 8%;
-    --popover-foreground: 210 30% 95%;
+    --popover: 240 8% 10%;
+    --popover-foreground: 40 33% 94%;
 
-    --primary: 177 78% 47%;
-    /* The bright cyan reads best with dark text on it. */
-    --primary-foreground: 200 60% 6%;
-    --primary-glow: 177 85% 55%;
+    --primary: 14 100% 62%;
+    /* The bright tangerine reads best with dark text on it. */
+    --primary-foreground: 18 68% 6%;
+    --primary-glow: 14 100% 66%;
 
-    --secondary: 216 40% 12%;
-    --secondary-foreground: 210 30% 95%;
+    --secondary: 240 9% 13%;
+    --secondary-foreground: 40 33% 94%;
 
-    --muted: 216 40% 12%;
-    --muted-foreground: 214 18% 62%;
+    --muted: 240 9% 13%;
+    --muted-foreground: 263 5% 60%;
 
-    --accent: 190 40% 15%;
-    --accent-foreground: 210 30% 95%;
+    --accent: 240 8% 15%;
+    --accent-foreground: 40 33% 94%;
 
-    --gold: 36 90% 52%;
-    --gold-foreground: 0 0% 100%;
+    --gold: 40 100% 62%;
+    --gold-foreground: 260 9% 8%;
+    --lime: 75 88% 58%;
+    --lime-foreground: 260 9% 8%;
 
-    --destructive: 0 75% 55%;
+    --destructive: 0 75% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 214 35% 16%;
-    --input: 214 35% 16%;
-    --ring: 177 78% 47%;
+    --border: 240 8% 16%;
+    --input: 240 8% 18%;
+    --ring: 14 100% 62%;
 
-    --gradient-brand: linear-gradient(135deg, hsl(177 78% 47%), hsl(196 90% 55%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(177 78% 47% / 0.15), hsl(196 90% 55% / 0.15));
-    --gradient-card: linear-gradient(145deg, hsl(216 42% 10%), hsl(218 45% 8%));
+    --gradient-brand: linear-gradient(135deg, hsl(14 100% 62%), hsl(340 100% 64%));
+    --gradient-brand-soft: linear-gradient(135deg, hsl(14 100% 62% / 0.16), hsl(340 100% 64% / 0.16));
+    --gradient-card: linear-gradient(145deg, hsl(240 8% 9.5%), hsl(240 8% 9.5%));
 
-    --glass-bg: 218 48% 8% / 0.94;
-    --glass-border: 215 32% 20% / 0.7;
-    --shadow-sm: 0 1px 3px 0 hsl(0 0% 0% / 0.3);
-    --shadow-md: 0 4px 12px -2px hsl(0 0% 0% / 0.4);
-    --shadow-lg: 0 12px 40px -8px hsl(0 0% 0% / 0.55);
-    --shadow-glow: 0 0 24px hsl(177 78% 47% / 0.35);
-    --shadow-dock: 0 8px 40px -8px hsl(0 0% 0% / 0.5), 0 0 0 1px hsl(220 14% 22% / 0.6);
+    --glass-bg: 240 8% 9% / 0.9;
+    --glass-border: 240 8% 18% / 0.9;
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
+    --shadow-md: 0 6px 16px -6px hsl(0 0% 0% / 0.45);
+    --shadow-lg: 0 16px 40px -12px hsl(0 0% 0% / 0.6);
+    --shadow-glow: none;
+    --shadow-dock: 0 12px 30px -10px hsl(0 0% 0% / 0.6), 0 0 0 1px hsl(240 8% 18%);
   }
 }
 
@@ -120,7 +125,7 @@
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Outfit', 'Inter', system-ui, sans-serif;
+    font-family: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
     letter-spacing: -0.02em;
   }
 
@@ -214,7 +219,7 @@
   }
 
   .glow-text {
-    text-shadow: 0 0 20px hsl(var(--primary) / 0.3);
+    text-shadow: none;
   }
 
   /* Floating dock styles */
@@ -225,18 +230,12 @@
   /* Active nav indicator with gradient */
   .nav-indicator {
     @apply absolute bottom-0 left-2 right-2 h-[3px] rounded-t-full;
-    background: var(--gradient-brand);
-    box-shadow: 0 -2px 12px hsl(var(--primary) / 0.4);
+    background: hsl(var(--primary));
   }
 
   /* Premium button variants */
   .btn-glow {
     @apply relative overflow-hidden;
-    box-shadow: 0 0 15px hsl(var(--primary) / 0.3);
-    transition: box-shadow 0.3s ease;
-  }
-  .btn-glow:hover {
-    box-shadow: 0 0 25px hsl(var(--primary) / 0.5);
   }
 
   /* Notification badge pulse */
@@ -276,22 +275,21 @@
     }
   }
 
-  /* Light mode: the same cards lift off the background with a soft shadow. */
+  /* Cards are flat: a hairline border, no glow or sheen. */
   :root:not(.dark) .feed-flush .feed-section,
   :root:not(.dark) .page-flush .feed-section,
   :root:not(.dark) .shine-card {
-    box-shadow: 0 1px 2px hsl(215 30% 20% / 0.05), 0 8px 24px -16px hsl(215 30% 20% / 0.18);
+    box-shadow: 0 1px 2px hsl(260 9% 8% / 0.04);
   }
 
-  /* Dark mode "shine" on cards: a faint gradient and a thin light edge along the top. */
   .dark .feed-flush .feed-section,
   .dark .page-flush .feed-section,
   .dark .bento-card,
   .dark .premium-card,
   .dark .shine-card {
-    background-image: linear-gradient(180deg, hsl(214 45% 11%) 0%, hsl(218 50% 7.5%) 100%);
-    border-color: hsl(210 40% 22% / 0.55);
-    box-shadow: inset 0 1px 0 hsl(190 80% 75% / 0.07), 0 10px 28px -14px rgb(0 0 0 / 0.7);
+    background-image: none;
+    border-color: hsl(var(--border));
+    box-shadow: none;
   }
 
   /* Room for the floating dock (mobile bottom bar / desktop dock) so it never covers content.
@@ -325,12 +323,12 @@
   /* Chat wallpaper: faint doodles (hearts, stars, clouds, bubbles), like WhatsApp's. */
   .chat-wallpaper {
     background-color: hsl(var(--background));
-    background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22220%22%20height=%22220%22%20viewBox=%220%200%20220%20220%22%3E%3Cg%20fill=%22none%22%20stroke=%22%230D877A%22%20stroke-opacity=%220.08%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%20%3Cpath%20d=%22M30%2038c-6-5-12-9-12-15a6%206%200%200%201%2012-2%206%206%200%200%201%2012%202c0%206-6%2010-12%2015z%22/%3E%20%3Cpath%20d=%22M150%2022l3%207%208%201-6%205%202%208-7-4-7%204%202-8-6-5%208-1z%22/%3E%20%3Cpath%20d=%22M92%2070c-8%200-13-5-13-11%200-5%204-10%2010-10%202-7%208-11%2014-11%207%200%2012%204%2014%2010%206%200%2010%204%2010%2010s-5%2012-12%2012z%22/%3E%20%3Cpath%20d=%22M28%20120h30a6%206%200%200%201%206%206v16a6%206%200%200%201-6%206H44l-9%208v-8h-7a6%206%200%200%201-6-6v-16a6%206%200%200%201%206-6z%22/%3E%20%3Ccircle%20cx=%2235%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2243%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2251%22%20cy=%22134%22%20r=%221.5%22/%3E%20%3Cpath%20d=%22M168%20104v24a5%205%200%201%201-3-4.6V108l14-4v20a5%205%200%201%201-3-4.6V102z%22/%3E%20%3Crect%20x=%22118%22%20y=%22160%22%20width=%2234%22%20height=%2224%22%20rx=%225%22/%3E%3Ccircle%20cx=%22135%22%20cy=%22172%22%20r=%226%22/%3E%3Cpath%20d=%22M127%20160l3-5h10l3%205%22/%3E%20%3Ccircle%20cx=%22190%22%20cy=%22180%22%20r=%228%22/%3E%3Cpath%20d=%22M190%20166v-4M190%20198v-4M176%20180h-4M208%20180h-4%22/%3E%20%3Cpath%20d=%22M78%20176l6-12%206%2012%206-12%206%2012%22/%3E%20%3Cpath%20d=%22M100%20120c0-6%206-8%209-4%203-4%209-2%209%204%200%205-9%2010-9%2010s-9-5-9-10z%22/%3E%20%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22220%22%20height=%22220%22%20viewBox=%220%200%20220%20220%22%3E%3Cg%20fill=%22none%22%20stroke=%22%23D9541E%22%20stroke-opacity=%220.08%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%20%3Cpath%20d=%22M30%2038c-6-5-12-9-12-15a6%206%200%200%201%2012-2%206%206%200%200%201%2012%202c0%206-6%2010-12%2015z%22/%3E%20%3Cpath%20d=%22M150%2022l3%207%208%201-6%205%202%208-7-4-7%204%202-8-6-5%208-1z%22/%3E%20%3Cpath%20d=%22M92%2070c-8%200-13-5-13-11%200-5%204-10%2010-10%202-7%208-11%2014-11%207%200%2012%204%2014%2010%206%200%2010%204%2010%2010s-5%2012-12%2012z%22/%3E%20%3Cpath%20d=%22M28%20120h30a6%206%200%200%201%206%206v16a6%206%200%200%201-6%206H44l-9%208v-8h-7a6%206%200%200%201-6-6v-16a6%206%200%200%201%206-6z%22/%3E%20%3Ccircle%20cx=%2235%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2243%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2251%22%20cy=%22134%22%20r=%221.5%22/%3E%20%3Cpath%20d=%22M168%20104v24a5%205%200%201%201-3-4.6V108l14-4v20a5%205%200%201%201-3-4.6V102z%22/%3E%20%3Crect%20x=%22118%22%20y=%22160%22%20width=%2234%22%20height=%2224%22%20rx=%225%22/%3E%3Ccircle%20cx=%22135%22%20cy=%22172%22%20r=%226%22/%3E%3Cpath%20d=%22M127%20160l3-5h10l3%205%22/%3E%20%3Ccircle%20cx=%22190%22%20cy=%22180%22%20r=%228%22/%3E%3Cpath%20d=%22M190%20166v-4M190%20198v-4M176%20180h-4M208%20180h-4%22/%3E%20%3Cpath%20d=%22M78%20176l6-12%206%2012%206-12%206%2012%22/%3E%20%3Cpath%20d=%22M100%20120c0-6%206-8%209-4%203-4%209-2%209%204%200%205-9%2010-9%2010s-9-5-9-10z%22/%3E%20%3C/g%3E%3C/svg%3E");
     background-size: 170px 170px;
   }
   .dark .chat-wallpaper {
-    background-color: #0b0e12;
-    background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22220%22%20height=%22220%22%20viewBox=%220%200%20220%20220%22%3E%3Cg%20fill=%22none%22%20stroke=%22%232bb3a3%22%20stroke-opacity=%220.07%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%20%3Cpath%20d=%22M30%2038c-6-5-12-9-12-15a6%206%200%200%201%2012-2%206%206%200%200%201%2012%202c0%206-6%2010-12%2015z%22/%3E%20%3Cpath%20d=%22M150%2022l3%207%208%201-6%205%202%208-7-4-7%204%202-8-6-5%208-1z%22/%3E%20%3Cpath%20d=%22M92%2070c-8%200-13-5-13-11%200-5%204-10%2010-10%202-7%208-11%2014-11%207%200%2012%204%2014%2010%206%200%2010%204%2010%2010s-5%2012-12%2012z%22/%3E%20%3Cpath%20d=%22M28%20120h30a6%206%200%200%201%206%206v16a6%206%200%200%201-6%206H44l-9%208v-8h-7a6%206%200%200%201-6-6v-16a6%206%200%200%201%206-6z%22/%3E%20%3Ccircle%20cx=%2235%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2243%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2251%22%20cy=%22134%22%20r=%221.5%22/%3E%20%3Cpath%20d=%22M168%20104v24a5%205%200%201%201-3-4.6V108l14-4v20a5%205%200%201%201-3-4.6V102z%22/%3E%20%3Crect%20x=%22118%22%20y=%22160%22%20width=%2234%22%20height=%2224%22%20rx=%225%22/%3E%3Ccircle%20cx=%22135%22%20cy=%22172%22%20r=%226%22/%3E%3Cpath%20d=%22M127%20160l3-5h10l3%205%22/%3E%20%3Ccircle%20cx=%22190%22%20cy=%22180%22%20r=%228%22/%3E%3Cpath%20d=%22M190%20166v-4M190%20198v-4M176%20180h-4M208%20180h-4%22/%3E%20%3Cpath%20d=%22M78%20176l6-12%206%2012%206-12%206%2012%22/%3E%20%3Cpath%20d=%22M100%20120c0-6%206-8%209-4%203-4%209-2%209%204%200%205-9%2010-9%2010s-9-5-9-10z%22/%3E%20%3C/g%3E%3C/svg%3E");
+    background-color: #0e0e11;
+    background-image: url("data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20width=%22220%22%20height=%22220%22%20viewBox=%220%200%20220%20220%22%3E%3Cg%20fill=%22none%22%20stroke=%22%23FF7A45%22%20stroke-opacity=%220.07%22%20stroke-width=%222%22%20stroke-linecap=%22round%22%20stroke-linejoin=%22round%22%3E%20%3Cpath%20d=%22M30%2038c-6-5-12-9-12-15a6%206%200%200%201%2012-2%206%206%200%200%201%2012%202c0%206-6%2010-12%2015z%22/%3E%20%3Cpath%20d=%22M150%2022l3%207%208%201-6%205%202%208-7-4-7%204%202-8-6-5%208-1z%22/%3E%20%3Cpath%20d=%22M92%2070c-8%200-13-5-13-11%200-5%204-10%2010-10%202-7%208-11%2014-11%207%200%2012%204%2014%2010%206%200%2010%204%2010%2010s-5%2012-12%2012z%22/%3E%20%3Cpath%20d=%22M28%20120h30a6%206%200%200%201%206%206v16a6%206%200%200%201-6%206H44l-9%208v-8h-7a6%206%200%200%201-6-6v-16a6%206%200%200%201%206-6z%22/%3E%20%3Ccircle%20cx=%2235%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2243%22%20cy=%22134%22%20r=%221.5%22/%3E%3Ccircle%20cx=%2251%22%20cy=%22134%22%20r=%221.5%22/%3E%20%3Cpath%20d=%22M168%20104v24a5%205%200%201%201-3-4.6V108l14-4v20a5%205%200%201%201-3-4.6V102z%22/%3E%20%3Crect%20x=%22118%22%20y=%22160%22%20width=%2234%22%20height=%2224%22%20rx=%225%22/%3E%3Ccircle%20cx=%22135%22%20cy=%22172%22%20r=%226%22/%3E%3Cpath%20d=%22M127%20160l3-5h10l3%205%22/%3E%20%3Ccircle%20cx=%22190%22%20cy=%22180%22%20r=%228%22/%3E%3Cpath%20d=%22M190%20166v-4M190%20198v-4M176%20180h-4M208%20180h-4%22/%3E%20%3Cpath%20d=%22M78%20176l6-12%206%2012%206-12%206%2012%22/%3E%20%3Cpath%20d=%22M100%20120c0-6%206-8%209-4%203-4%209-2%209%204%200%205-9%2010-9%2010s-9-5-9-10z%22/%3E%20%3C/g%3E%3C/svg%3E");
   }
 
   /* Loading placeholders: a light band sweeps across, as in Facebook's app. */

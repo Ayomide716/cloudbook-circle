@@ -57,7 +57,7 @@ const AnonymousQA = ({ profileId, isOwnProfile, currentUserId }: AnonymousQAProp
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Question sent! 🎉", description: "They'll see it anonymously." });
+      toast({ title: "Question sent", description: "They'll see it anonymously." });
       setNewQuestion("");
       loadQuestions();
     }

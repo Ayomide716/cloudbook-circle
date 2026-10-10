@@ -117,7 +117,7 @@ const GroupMessageBubble = ({
           data-message-bubble
           className={cn(
             "relative w-full rounded-lg px-2.5 pb-1.5 pt-1 shadow-sm [-webkit-touch-callout:none] [@media(hover:none)]:select-none",
-            mine ? "bg-primary text-primary-foreground dark:bg-[#0b5d53] dark:text-white" : "bg-card text-foreground dark:bg-[#22262d]",
+            mine ? "bg-primary text-primary-foreground dark:bg-[#8a3412] dark:text-white" : "bg-card text-foreground dark:bg-[#232327]",
             firstInRun && (mine ? "rounded-tr-none" : "rounded-tl-none"),
             pending && "opacity-70",
             (menuOpen || highlighted) && "ring-2 ring-primary/40",

@@ -16,7 +16,7 @@ export default {
     extend: {
       fontFamily: {
         sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
-        display: ["Outfit", "Inter", "system-ui", "sans-serif"],
+        display: ["Bricolage Grotesque", "Inter", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -44,6 +44,10 @@ export default {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+        },
+        lime: {
+          DEFAULT: "hsl(var(--lime))",
+          foreground: "hsl(var(--lime-foreground))",
         },
         gold: {
           DEFAULT: "hsl(var(--gold))",
@@ -74,6 +78,17 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        // The welcome wave.
+        wave: {
+          "0%, 100%": { transform: "rotate(0deg)" },
+          "20%, 60%": { transform: "rotate(14deg)" },
+          "40%, 80%": { transform: "rotate(-8deg)" },
+        },
+        // A reel's sound name drifting past in its pill.
+        marquee: {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(-100%)" },
+        },
         "sound-bar": {
           "0%, 100%": { height: "30%" },
           "50%": { height: "100%" },
@@ -146,6 +161,7 @@ export default {
         },
       },
       animation: {
+        marquee: "marquee 9s linear infinite",
         "sound-bar": "sound-bar 0.9s ease-in-out infinite",
         "heart-pop": "heart-pop 1.1s cubic-bezier(.2,.8,.3,1) forwards",
         "heart-spark": "heart-spark 0.75s ease-out 0.08s forwards",

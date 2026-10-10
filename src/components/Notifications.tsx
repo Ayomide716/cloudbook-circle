@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell } from "lucide-react";
+import { Bell, BadgeCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -149,7 +149,7 @@ const Notifications = ({ userId }: NotificationsProps) => {
                   onClick={() => !notification.read && markAsRead(notification.id)}
                 >
                   {notification.type === 'verification' && (
-                    <span className="text-xs font-semibold text-primary flex items-center gap-1 mb-1">✅ Verified</span>
+                    <span className="text-xs font-semibold text-primary flex items-center gap-1 mb-1"><BadgeCheck className="h-3.5 w-3.5" aria-hidden="true" /> Verified</span>
                   )}
                   <p className="text-sm">{notification.content}</p>
                   <p className="text-xs text-muted-foreground mt-1">

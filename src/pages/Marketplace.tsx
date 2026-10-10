@@ -59,7 +59,7 @@ const usePreviews = (files: File[]) => {
 const Marketplace = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Marketplace", description: "Buy and sell items on CloudBook Marketplace." });
+  useSEO({ title: "Marketplace", description: "Buy and sell items on Ember Marketplace." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);

@@ -95,7 +95,7 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
       description: `Subscribed to ${tier.name}`,
     });
 
-    toast({ title: `Subscribed to ${tier.name}! 🎉` });
+    toast({ title: `Subscribed to ${tier.name}` });
     setSubscribing(null);
     loadData();
   };
@@ -110,7 +110,7 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
     for (const t of defaults) {
       await supabase.from("creator_tiers").insert({ creator_id: currentUserId, ...t });
     }
-    toast({ title: "Subscription tiers created! 🚀" });
+    toast({ title: "Subscription tiers created" });
     setShowSetup(false);
     loadData();
   };

@@ -6,7 +6,8 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Bell, Heart, MessageCircle, UserPlus, CheckCheck, Users, ThumbsUp, Share2 } from "lucide-react";
+import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2 } from "lucide-react";
+import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import { PageHeader, HeaderAction, Chips } from "@/components/layout/PageHeader";
 import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
@@ -24,7 +25,7 @@ type NotificationRow = NotificationGroup<Notification>;
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  useSEO({ title: "Notifications", description: "Your CloudBook notifications." });
+  useSEO({ title: "Notifications", description: "Your Ember notifications." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -178,8 +179,8 @@ const Notifications = () => {
     switch (type) {
       case "like":
         return (
-          <div className={`${size} rounded-full bg-red-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
-            <Heart className={`${iconSize} text-white`} fill="currentColor" />
+          <div className={`${size} rounded-full bg-card flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <ReactionEmoji type="love" className="h-full w-full" />
           </div>
         );
       case "comment":
@@ -215,8 +216,8 @@ const Notifications = () => {
         );
       case "reaction":
         return (
-          <div className={`${size} rounded-full bg-yellow-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
-            <ThumbsUp className={`${iconSize} text-white`} />
+          <div className={`${size} rounded-full bg-card flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <ReactionEmoji type="like" className="h-full w-full" />
           </div>
         );
       default:
