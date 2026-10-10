@@ -76,9 +76,12 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
         <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-6" aria-label="Back to the chat" onClick={onClose}>
           <ArrowLeft />
         </Button>
-        <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-5" aria-label="Open the group's page" title="Open the group's page" onClick={() => navigate(`/groups/${group.id}`)}>
-          <ExternalLink />
-        </Button>
+        {/* Community groups also have a page (posts, events); group chats are just the chat. */}
+        {!group.is_chat && (
+          <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-5" aria-label="Open the group's page" title="Open the group's page" onClick={() => navigate(`/groups/${group.id}`)}>
+            <ExternalLink />
+          </Button>
+        )}
       </div>
 
       {/* Picture, name, member count, quick actions */}

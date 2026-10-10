@@ -10,6 +10,8 @@ import { supabase } from "@/integrations/supabase/client";
 export interface GroupInfo {
   id: string;
   name: string;
+  /** A group chat (made in Messages) rather than a community group (the Groups tab). */
+  is_chat?: boolean;
   image_url: string | null;
   description: string | null;
   created_by: string;
@@ -25,7 +27,7 @@ export interface GroupChatSummary {
 }
 
 export interface GroupInvite {
-  group: Pick<GroupInfo, "id" | "name" | "image_url">;
+  group: Pick<GroupInfo, "id" | "name" | "image_url" | "is_chat">;
   invitedBy: { id: string; full_name: string | null };
   created_at: string;
 }
@@ -60,9 +62,12 @@ export function useGroupChats(userId: string | null) {
     if (!userId) return;
     const { data: memberships } = await supabase
       .from("group_members")
-      .select("joined_at, groups (id, name, image_url, description, created_by, created_at)")
+      // Every column, so this still works before the group-chats database update adds is_chat.
+      .select("joined_at, groups (*)")
       .eq("user_id", userId);
-    const mine = (memberships ?? []).filter((m) => m.groups) as unknown as { joined_at: string; groups: GroupInfo }[];
+    // Only group chats belong in Messages; community groups stay on the Groups tab.
+    const mine = ((memberships ?? []).filter((m) => m.groups) as unknown as { joined_at: string; groups: GroupInfo }[])
+      .filter((m) => m.groups.is_chat === true);
     const ids = mine.map((m) => m.groups.id);
 
     // Recent messages across your groups: enough to find each one's latest and count new ones.
@@ -98,7 +103,7 @@ export function useGroupChats(userId: string | null) {
     // Invites waiting for you (the table only exists after the invites database update).
     const { data: inviteRows, error } = await supabase
       .from("group_invites")
-      .select("created_at, invited_by, groups (id, name, image_url)")
+      .select("created_at, invited_by, groups (*)")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
     if (error) { setInvites([]); return; }

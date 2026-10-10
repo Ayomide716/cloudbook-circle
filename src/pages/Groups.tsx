@@ -14,6 +14,8 @@ import { Loader2, Plus, Users, Search, Globe, ImagePlus } from "lucide-react";
 import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import GroupsSkeleton from "@/components/skeletons/GroupsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { useGroupChats } from "@/lib/group-chats";
+import { GroupInviteCards } from "@/components/groups/GroupListItems";
 
 interface Group {
   id: string;
@@ -31,6 +33,9 @@ const Groups = () => {
   useSEO({ title: "Groups", description: "Discover and join groups on CloudBook." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [groups, setGroups] = useState<Group[]>([]);
+  // Invites to community groups (group chat invites are answered in Messages).
+  const { invites, reload: reloadInvites } = useGroupChats(currentUserId);
+  const communityInvites = invites.filter((i) => i.group.is_chat !== true);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
@@ -77,7 +82,8 @@ const Groups = () => {
       return;
     }
 
-    const list = groupsData || [];
+    // Group chats (made in Messages) aren't communities, so they don't show here.
+    const list = (groupsData || []).filter((g) => (g as { is_chat?: boolean }).is_chat !== true);
     const ids = list.map((g) => g.id);
     // Two queries for the whole list instead of two per group. Only members can
     // see a group's member rows, so counts come from a server function when it's installed.
@@ -299,6 +305,15 @@ const Groups = () => {
             </p>
           )}
         </PageHeader>
+
+        {communityInvites.length > 0 && (
+          <div className="mb-3 sm:mb-4">
+            <GroupInviteCards
+              invites={communityInvites}
+              onAnswered={(groupId, accepted) => { void reloadInvites(); if (accepted) navigate(`/groups/${groupId}`); }}
+            />
+          </div>
+        )}
 
         {filteredGroups.length === 0 ? (
           <Card className="feed-section p-12 text-center">

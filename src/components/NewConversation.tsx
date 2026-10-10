@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { MessageSquarePlus, Loader2 } from "lucide-react";
+import { Users, MessageSquarePlus, Loader2 } from "lucide-react";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Profile {
@@ -23,9 +23,11 @@ interface Profile {
 interface NewConversationProps {
   currentUserId: string;
   onSelectUser: (user: Profile) => void;
+  /** "New group chat" at the top of the list, as on WhatsApp. */
+  onNewGroup?: () => void;
 }
 
-const NewConversation = ({ currentUserId, onSelectUser }: NewConversationProps) => {
+const NewConversation = ({ currentUserId, onSelectUser, onNewGroup }: NewConversationProps) => {
   const [friends, setFriends] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -96,6 +98,16 @@ const NewConversation = ({ currentUserId, onSelectUser }: NewConversationProps) 
         </DialogHeader>
         
         <div className="space-y-4">
+          {onNewGroup && (
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onNewGroup(); }}
+              className="flex w-full items-center gap-3 rounded-xl px-1 py-1.5 text-left hover:bg-secondary"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground"><Users className="h-5 w-5" /></span>
+              <span className="font-semibold">New group chat</span>
+            </button>
+          )}
           <Input
             placeholder="Search friends..."
             value={searchQuery}

@@ -29,6 +29,7 @@ import { useChatPrefs } from "@/lib/chat-prefs";
 import { groupActivity, useGroupChats, type GroupChatSummary } from "@/lib/group-chats";
 import GroupConversation from "@/components/groups/GroupConversation";
 import { GroupChatRow, GroupInviteCards } from "@/components/groups/GroupListItems";
+import NewGroupChatDialog from "@/components/groups/NewGroupChatDialog";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -88,10 +89,13 @@ const Messages = () => {
   const { prefs: chatPrefs, toggle: toggleChatPref } = useChatPrefs(currentUserId);
   const [showArchived, setShowArchived] = useState(false);
   // Groups are chats too (as on WhatsApp), with their invites at the top of the list.
-  const { groups: groupChats, invites: groupInvites, reload: reloadGroups, markSeen: markGroupSeen } = useGroupChats(currentUserId);
+  const { groups: groupChats, invites: allInvites, reload: reloadGroups, markSeen: markGroupSeen } = useGroupChats(currentUserId);
+  // Invites to group chats are answered here; community invites on the Groups tab.
+  const groupInvites = allInvites.filter((i) => i.group.is_chat === true);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const selectedGroup = groupChats.find((g) => g.group.id === selectedGroupId)?.group ?? null;
   const [chatFilter, setChatFilter] = useState<"all" | "unread" | "groups">("all");
+  const [showNewGroup, setShowNewGroup] = useState(false);
   const openPerson = (profile: Profile) => { setSelectedGroupId(null); setShowAIChat(false); setSelectedConversation(profile); };
   const openGroup = (groupId: string) => { setSelectedConversation(null); setShowAIChat(false); setSelectedGroupId(groupId); };
   // Pinned chats first (then newest first, as loaded); archived ones in their own list.
@@ -558,7 +562,7 @@ const Messages = () => {
                     <ArrowLeft />
                   </Button>
                   <h2 className="flex-1 font-display text-[22px] sm:text-xl font-bold tracking-tight">Messages</h2>
-                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} />
+                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} />
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto max-md:px-3 max-md:pb-3">
@@ -635,7 +639,7 @@ const Messages = () => {
                 )}
                 {chatRows.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    {showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "You're not in any groups yet" : "No conversations yet"}
+                    {showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "No group chats yet. Tap the new-message button to start one." : "No conversations yet"}
                   </p>
                 ) : (
                   <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
@@ -887,6 +891,14 @@ const Messages = () => {
       
 
       {/* Chat Settings Modal */}
+      {currentUserId && (
+        <NewGroupChatDialog
+          open={showNewGroup}
+          onOpenChange={setShowNewGroup}
+          currentUserId={currentUserId}
+          onCreated={async (groupId) => { await reloadGroups(); openGroup(groupId); }}
+        />
+      )}
       {selectedConversation && currentUserId && (
         <ChatSettingsModal
           open={showChatSettings}
