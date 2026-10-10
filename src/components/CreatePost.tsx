@@ -14,6 +14,7 @@ import PollCreator from "./PollCreator";
 import MultiImageUpload from "./MultiImageUpload";
 import MentionInput from "./MentionInput";
 import { cn } from "@/lib/utils";
+import { BACKGROUND_MAX_LENGTH, POST_BACKGROUNDS, backgroundCss } from "@/lib/post-backgrounds";
 import { features } from "@/lib/features";
 import {
   Dialog,
@@ -40,6 +41,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [showDialog, setShowDialog] = useState(false);
   const [pollData, setPollData] = useState<{ question: string; options: string[] } | null>(null);
   const [postExpiry, setPostExpiry] = useState<string | null>(null);
+  const [background, setBackground] = useState<string | null>(null);
   // "Lekki, Lagos": shown on the post as "Lekki, Lagos · 2h", as on Facebook.
   const [location, setLocation] = useState("");
   const [showLocation, setShowLocation] = useState(false);
@@ -72,6 +74,10 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     setPending(null);
     setShowDialog(true);
   };
+
+  // Coloured backgrounds are for short text on its own (no photo, video or poll).
+  const canUseBackground = imageUrls.length === 0 && !videoUrl && !pollData && content.length <= BACKGROUND_MAX_LENGTH;
+  const bgCss = canUseBackground ? backgroundCss(background) : null;
 
   // A second tap can land before React disables the button; the ref blocks it at once.
   const submittingRef = useRef(false);
@@ -112,6 +118,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
         // image_url is the cover (profile photo grids, link previews); image_urls has them all.
         image_url: imageUrls[0] ?? null,
         image_urls: imageUrls,
+        ...(bgCss ? { background } : {}),
         video_url: videoUrl || null,
         ...(features.postLocation ? { location: location.trim() || null } : {}),
         expires_at: expiresAt,
@@ -143,6 +150,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     setVideoUrl("");
     setPollData(null);
     setPostExpiry(null);
+    setBackground(null);
     setLocation("");
     setShowLocation(false);
     setShowDialog(false);
@@ -247,13 +255,52 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </div>
             </div>
 
-            <MentionInput
-              placeholder={`What's on your mind, ${currentUser.full_name?.split(' ')[0] || 'there'}? Use @ to mention friends`}
-              value={content}
-              onChange={setContent}
-              className="min-h-[120px] max-sm:min-h-[38dvh] resize-none border-0 focus-visible:ring-0 text-lg placeholder:text-muted-foreground/60 p-0"
-              disabled={isLoading}
-            />
+            {/* On a coloured background, the text is big and centred as it will be on the post. */}
+            <div
+              className={cn(bgCss && "flex min-h-[230px] items-center rounded-2xl px-5 py-6")}
+              style={bgCss ? { backgroundImage: bgCss } : undefined}
+            >
+              <MentionInput
+                placeholder={`What's on your mind, ${currentUser.full_name?.split(' ')[0] || 'there'}? Use @ to mention friends`}
+                value={content}
+                onChange={setContent}
+                className={cn(
+                  "resize-none border-0 focus-visible:ring-0 p-0",
+                  bgCss
+                    ? "min-h-[80px] w-full bg-transparent text-center text-2xl font-bold text-white placeholder:text-white/70"
+                    : "min-h-[120px] max-sm:min-h-[38dvh] text-lg placeholder:text-muted-foreground/60"
+                )}
+                disabled={isLoading}
+              />
+            </div>
+
+            {/* Backgrounds for short text posts, as on Facebook */}
+            {canUseBackground && (
+              <div className="-mt-1 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" role="radiogroup" aria-label="Background">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!background}
+                  aria-label="No background"
+                  onClick={() => setBackground(null)}
+                  className={cn("flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg border text-xs font-bold", !background ? "border-primary ring-2 ring-primary" : "border-border")}
+                >
+                  Aa
+                </button>
+                {POST_BACKGROUNDS.map((bg) => (
+                  <button
+                    key={bg.key}
+                    type="button"
+                    role="radio"
+                    aria-checked={background === bg.key}
+                    aria-label={`${bg.label} background`}
+                    onClick={() => setBackground(bg.key)}
+                    className={cn("h-8 w-8 flex-shrink-0 rounded-lg", background === bg.key && "ring-2 ring-primary ring-offset-2 ring-offset-background")}
+                    style={{ backgroundImage: bg.css }}
+                  />
+                ))}
+              </div>
+            )}
 
             <div className="flex items-center justify-between p-3 border rounded-lg">
               <span className="text-sm font-medium">Add to your post</span>
