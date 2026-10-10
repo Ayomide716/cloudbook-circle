@@ -49,11 +49,9 @@ export default function ReelCard({
   onNavigateToProfile, onFollow, isFollowing, isPending,
 }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const backdropRef = useRef<HTMLCanvasElement>(null);
-  // Tall videos fill the screen; wider ones (landscape, square) show whole, over a blurred
-  // copy of their first frame, so nothing important gets cropped off.
+  // Tall videos fill the screen; wider ones (landscape, square) show whole and centred on
+  // black, as on TikTok, so nothing gets cropped off.
   const [fit, setFit] = useState<"cover" | "contain">("cover");
-  const backdropPainted = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -122,17 +120,6 @@ export default function ReelCard({
     setFit(videoRatio <= boxRatio * 1.25 ? "cover" : "contain");
   };
 
-  // The blurred backdrop: one tiny frame drawn into a canvas (cheap; no second video).
-  const paintBackdrop = () => {
-    const video = videoRef.current, canvas = backdropRef.current;
-    if (!video || !canvas || fit !== "contain") return;
-    try {
-      canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
-    } catch {
-      // Not ready yet: the plain dark background shows instead.
-    }
-  };
-  useEffect(paintBackdrop, [fit]);
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
@@ -188,28 +175,22 @@ export default function ReelCard({
 
   return (
     <div ref={containerRef} className="h-[100dvh] md:h-[calc(100dvh-57px)] snap-start snap-always flex items-center justify-center relative">
-      <div className="relative h-full w-full overflow-hidden md:w-[420px] md:max-h-[calc(100dvh-80px)] md:rounded-[28px] md:mx-auto md:ring-1 md:ring-white/10">
+      <div className="relative h-full w-full overflow-hidden bg-black md:w-[420px] md:max-h-[calc(100dvh-80px)] md:rounded-[28px] md:mx-auto md:ring-1 md:ring-white/10">
         {canPlayInline ? (
           <>
             {isVisible && (
               <>
-              {fit === "contain" && (
-                <canvas ref={backdropRef} width={24} height={42} aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 opacity-70 blur-2xl" />
-              )}
               <video
                 ref={videoRef}
                 src={reel.video_url}
                 onLoadedMetadata={onMetadata}
-                onLoadedData={paintBackdrop}
-                className={cn("absolute inset-0 h-full w-full", fit === "cover" ? "object-cover" : "object-contain")}
+                className={cn("absolute inset-0 h-full w-full", fit === "cover" ? "object-cover" : "object-contain object-center")}
                 loop
                 playsInline
                 muted={isMuted}
                 preload="metadata"
                 onError={() => onVideoError(reel.id)}
                 onClick={handleTap}
-                // First frames are often black: repaint the backdrop once it's a second in.
-                onTimeUpdate={(e) => { if (!backdropPainted.current && e.currentTarget.currentTime > 1) { backdropPainted.current = true; paintBackdrop(); } }}
               />
               </>
             )}
@@ -260,11 +241,8 @@ export default function ReelCard({
             </div>
           </>
         ) : (
-          // A link that can't play here: their photo, softly blurred, instead of an error box.
-          <div className="absolute inset-0 flex items-center justify-center overflow-hidden bg-[radial-gradient(120%_80%_at_50%_0%,hsl(var(--primary)/0.45),transparent_60%),linear-gradient(180deg,#1b1210,#09090b)]">
-            {reel.profiles.avatar_url && (
-              <img src={reel.profiles.avatar_url} alt="" className="absolute inset-0 h-full w-full scale-125 object-cover opacity-40 blur-3xl" />
-            )}
+          // A link that can't play here: a plain black screen that says so, instead of an error box.
+          <div className="absolute inset-0 flex items-center justify-center bg-black">
             <div className="relative mx-8 flex flex-col items-center text-center">
               <span className="flex h-16 w-16 items-center justify-center rounded-full border border-white/15 bg-white/10 backdrop-blur-md">
                 <VideoOff className="h-7 w-7 text-white/80" />

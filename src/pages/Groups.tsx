@@ -231,8 +231,6 @@ const Groups = () => {
         description: memberError.message,
         variant: "destructive",
       });
-    } else {
-      toast({ title: "Group created successfully" });
     }
     setIsCreating(false);
     setFormData({ name: "", description: "" });
@@ -266,7 +264,6 @@ const Groups = () => {
       return;
     }
 
-    toast({ title: "Joined group successfully!" });
     navigate(`/groups/${groupId}`);
   };
 

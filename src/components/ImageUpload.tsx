@@ -74,9 +74,6 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
       setPreview(publicUrl);
       onUploadComplete(publicUrl);
 
-      toast({
-        title: "Image uploaded successfully",
-      });
     } catch (error) {
       toast({
         title: "Upload failed",

@@ -320,6 +320,23 @@
     padding-bottom: 0;
   }
 
+  /* Lists of people and chats sit flat on the page, as in native apps: no card around them,
+     no lines between rows. (After the card rules above so it wins.) */
+  .flat-list,
+  .dark .flat-list,
+  .page-flush .flat-list,
+  :root:not(.dark) .page-flush .flat-list {
+    background: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+  .flat-list.divide-y > *,
+  .flat-list .divide-y > * {
+    border-top-width: 0 !important;
+  }
+
   /* Chat wallpaper: faint doodles (hearts, stars, clouds, bubbles), like WhatsApp's. */
   .chat-wallpaper {
     background-color: hsl(var(--background));

@@ -214,7 +214,6 @@ const PageDetail = () => {
       return;
     }
     setPosts((prev) => prev.filter((p) => p.id !== postId));
-    toast({ title: "Post deleted" });
   };
 
   const toggleLike = async (postId: string) => {
@@ -305,7 +304,6 @@ const PageDetail = () => {
     }
     setPage({ ...page, ...changes });
     setShowEdit(false);
-    toast({ title: "Page updated!" });
   };
 
   const deletePage = async () => {

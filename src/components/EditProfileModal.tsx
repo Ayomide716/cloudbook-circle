@@ -68,9 +68,6 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
       return;
     }
 
-    toast({
-      title: "Profile updated successfully",
-    });
     onUpdate();
     onClose();
   };

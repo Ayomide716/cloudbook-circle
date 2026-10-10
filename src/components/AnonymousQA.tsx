@@ -74,7 +74,6 @@ const AnonymousQA = ({ profileId, isOwnProfile, currentUserId }: AnonymousQAProp
     if (error) {
       toast({ title: "Error", variant: "destructive" });
     } else {
-      toast({ title: "Answer posted!" });
       setAnswerText(prev => ({ ...prev, [id]: "" }));
       loadQuestions();
     }

@@ -191,13 +191,11 @@ const PostCard = ({
          .eq("post_id", post.id)
          .eq("user_id", currentUserId);
        setIsSaved(false);
-       toast({ title: "Post unsaved" });
      } else {
        await supabase
          .from("saved_posts")
          .insert({ post_id: post.id, user_id: currentUserId });
        setIsSaved(true);
-       toast({ title: "Post saved!" });
      }
    };
 
@@ -607,7 +605,6 @@ const PostCard = ({
                     toast({ title: "Error updating post", variant: "destructive" });
                   } else {
                     setIsEditing(false);
-                    toast({ title: "Post updated!" });
                     onDelete?.(); // triggers refetch
                   }
                 }}

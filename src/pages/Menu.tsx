@@ -113,7 +113,6 @@ const Menu = () => {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast({ title: "Logged out successfully" });
     navigate("/auth");
   };
 

@@ -123,7 +123,6 @@ const Pages = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Page created!" });
       setShowCreate(false);
       setCreateName("");
       setCreateDesc("");

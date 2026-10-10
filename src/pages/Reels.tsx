@@ -104,12 +104,10 @@ export default function Reels() {
       await supabase.from("friendships").delete()
         .or(`and(user_id.eq.${user.id},friend_id.eq.${targetUserId}),and(user_id.eq.${targetUserId},friend_id.eq.${user.id})`);
       setPendingIds(prev => { const n = new Set(prev); n.delete(targetUserId); return n; });
-      toast({ title: "Request cancelled" });
     } else {
       const { error } = await supabase.from("friendships").insert({ user_id: user.id, friend_id: targetUserId, status: "pending" });
       if (!error) {
         setPendingIds(prev => new Set(prev).add(targetUserId));
-        toast({ title: "Friend request sent!" });
       }
     }
   };
@@ -234,14 +232,14 @@ export default function Reels() {
     if (!user || !uploadVideoUrl) return;
     const { error } = await supabase.from("reels").insert({ user_id: user.id, video_url: uploadVideoUrl, caption: uploadCaption.trim() || null });
     if (error) { toast({ title: "Error uploading reel", variant: "destructive" }); }
-    else { toast({ title: "Reel uploaded!" }); setShowUpload(false); setUploadCaption(""); setUploadVideoUrl(""); loadReels(); }
+    else { setShowUpload(false); setUploadCaption(""); setUploadVideoUrl(""); loadReels(); }
   };
 
   const handleDeleteReel = async (reelId: string) => {
     setPendingDelete(null);
     const { error } = await supabase.from("reels").delete().eq("id", reelId);
     if (error) { toast({ title: "Error deleting reel", variant: "destructive" }); }
-    else { toast({ title: "Reel deleted" }); setReels(prev => prev.filter(r => r.id !== reelId)); }
+    else { setReels(prev => prev.filter(r => r.id !== reelId)); }
   };
 
   const handleScroll = () => {
@@ -279,7 +277,8 @@ export default function Reels() {
     containerRef.current?.scrollTo({ top: 0 });
   };
 
-  const tabSwitch = (
+  // Drawn twice (phone and desktop bars), so each copy gets its own sliding pill.
+  const tabSwitch = (where: string) => (
     <div role="tablist" aria-label="Which reels" className="relative flex rounded-full border border-white/15 bg-black/25 p-1 backdrop-blur-md">
       {(["for-you", "friends"] as const).map((t) => (
         <button
@@ -289,7 +288,7 @@ export default function Reels() {
           onClick={() => pickTab(t)}
           className={cn("relative z-[1] rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors", tab === t ? "text-black" : "text-white/80")}
         >
-          {tab === t && <motion.span layoutId="reels-tab" className="absolute inset-0 -z-[1] rounded-full bg-white" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
+          {tab === t && <motion.span layoutId={`reels-tab-${where}`} className="absolute inset-0 -z-[1] rounded-full bg-white" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
           {t === "for-you" ? "For you" : "Friends"}
         </button>
       ))}
@@ -314,7 +313,7 @@ export default function Reels() {
           </button>
           <h1 className="text-white font-display font-bold text-xl">Reels</h1>
         </div>
-        {tabSwitch}
+        {tabSwitch("desktop")}
         <div className="flex items-center gap-4">
           <button onClick={() => navigate("/")} className="text-white/70 hover:text-white transition-colors flex items-center gap-1.5 text-sm">
             <Home className="h-4 w-4" /> Home
@@ -333,7 +332,7 @@ export default function Reels() {
         <button onClick={() => navigate("/")} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur-md" aria-label="Back to home">
           <ArrowLeft className="h-5 w-5" />
         </button>
-        {tabSwitch}
+        {tabSwitch("phone")}
         <button onClick={() => setShowUpload(true)} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur-md" aria-label="Create reel">
           <Plus className="h-5 w-5" />
         </button>

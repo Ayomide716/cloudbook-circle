@@ -96,9 +96,6 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
       setPreview(publicUrl);
       onUploadComplete(publicUrl);
 
-      toast({
-        title: "Video uploaded successfully",
-      });
     } catch (error) {
       toast({
         title: "Upload failed",

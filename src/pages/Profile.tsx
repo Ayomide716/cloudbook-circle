@@ -313,7 +313,6 @@ const Profile = () => {
     if (error) {
       toast({ title: "Error creating album", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Album created!" });
       setNewAlbumName("");
       setNewAlbumDesc("");
       setCreateAlbumOpen(false);
@@ -327,7 +326,6 @@ const Profile = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Album deleted" });
       setSelectedAlbum(null);
       loadAlbums();
     }
@@ -348,7 +346,6 @@ const Profile = () => {
         image_url: urlData.publicUrl
       });
       if (insertError) throw insertError;
-      toast({ title: "Photo added!" });
       loadAlbums();
     } catch (error) {
       toast({ title: "Upload failed", description: getErrorMessage(error), variant: "destructive" });
@@ -361,7 +358,6 @@ const Profile = () => {
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: "Photo removed" });
       loadAlbums();
     }
   };
@@ -378,7 +374,6 @@ const Profile = () => {
     const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", profile.id);
     if (error) {toast({ title: "Error", description: error.message, variant: "destructive" });return;}
     setProfile({ ...profile, avatar_url: url });
-    toast({ title: "Avatar updated" });
   };
 
   const handleCoverUpload = async (url: string) => {
@@ -386,7 +381,6 @@ const Profile = () => {
     const { error } = await supabase.from("profiles").update({ cover_url: url }).eq("id", profile.id);
     if (error) {toast({ title: "Error", description: error.message, variant: "destructive" });return;}
     setProfile({ ...profile, cover_url: url });
-    toast({ title: "Cover photo updated" });
   };
 
   const startMessage = () => {

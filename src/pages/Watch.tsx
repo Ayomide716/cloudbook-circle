@@ -336,7 +336,6 @@ const Watch = () => {
       .filter((p): p is string => !!p);
     if (paths.length) supabase.storage.from("watch-videos").remove(paths);
     setVideos((prev) => prev.filter((v) => v.id !== video.id));
-    toast({ title: "Video deleted" });
   };
 
   return (

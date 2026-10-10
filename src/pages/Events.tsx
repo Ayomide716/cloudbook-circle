@@ -230,7 +230,6 @@ const Events = () => {
       toast({ title: "Couldn't create the event", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Event created!" });
     setShowCreateDialog(false);
     setNewEvent(emptyForm);
     setCover(null);
@@ -245,7 +244,6 @@ const Events = () => {
       return;
     }
     setEvents((prev) => prev.filter((e) => e.id !== event.id));
-    toast({ title: "Event deleted" });
   };
 
   const visible = events.filter((e) =>

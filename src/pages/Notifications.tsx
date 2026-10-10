@@ -131,9 +131,6 @@ const Notifications = () => {
       .eq("read", false);
 
     loadNotifications();
-    toast({
-      title: "All notifications marked as read",
-    });
   };
 
   const handleNotificationClick = async (notification: NotificationRow) => {

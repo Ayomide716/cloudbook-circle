@@ -759,7 +759,7 @@ const Messages = () => {
                     {showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "No group chats yet. Tap the new-message button to start one." : "No conversations yet"}
                   </p>
                 ) : (
-                  <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
+                  <div className="flat-list divide-y">
                     {chatRows.map((row) =>
                       row.kind === "group" ? (
                         <GroupChatRow

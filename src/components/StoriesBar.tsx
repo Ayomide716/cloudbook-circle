@@ -174,7 +174,6 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       .insert({ user_id: currentUserId, media_url: storyImage, media_type: "image", caption: storyCaption || null });
 
     if (error) { toast({ title: "Error creating story", description: error.message, variant: "destructive" }); return; }
-    toast({ title: "Story created!" });
     setIsCreating(false);
     setStoryImage("");
     setStoryCaption("");
@@ -211,7 +210,6 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       setActiveStoryIndex((idx) => Math.min(idx, remaining.length - 1));
       setIsPaused(false);
     }
-    toast({ title: "Story deleted" });
   };
 
   const goNext = useCallback(() => {
@@ -303,7 +301,6 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       receiver_id: activeStory.user_id,
       content: `${emoji} Reacted to your story`,
     });
-    toast({ title: "Reaction sent!" });
   };
 
   return (

@@ -61,7 +61,6 @@ const Auth = () => {
       if (isLogin) {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        toast({ title: "Welcome back!" });
       } else {
         const { data, error } = await supabase.auth.signUp({
           email,
@@ -73,9 +72,7 @@ const Auth = () => {
         });
         if (error) throw error;
         // With email confirmation on (as it should be when live), there's no session until the link is opened.
-        if (data.session) {
-          toast({ title: "Account created!", description: "Welcome to Ember!" });
-        } else {
+        if (!data.session) {
           toast({ title: "Check your email", description: `We sent a confirmation link to ${email}. Open it to finish signing up.` });
         }
       }

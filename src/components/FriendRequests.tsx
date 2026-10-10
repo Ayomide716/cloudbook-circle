@@ -103,9 +103,6 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
       return;
     }
 
-    toast({
-      title: "Friend request accepted",
-    });
     loadRequests();
   };
 
@@ -124,9 +121,6 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
       return;
     }
 
-    toast({
-      title: "Friend request declined",
-    });
     loadRequests();
   };
 

@@ -186,7 +186,6 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    toast({ title: "Logged out successfully" });
     navigate("/auth");
   };
 

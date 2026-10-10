@@ -296,9 +296,6 @@ const GroupDetail = () => {
       return;
     }
 
-    toast({
-      title: "Joined group successfully",
-    });
     await checkMembership();
     loadMembers();
     loadPosts();
@@ -364,9 +361,6 @@ const GroupDetail = () => {
 
     setPostContent("");
     setPostImage("");
-    toast({
-      title: "Post created successfully",
-    });
     // Don't wait on realtime to show your own post.
     loadPosts();
   };

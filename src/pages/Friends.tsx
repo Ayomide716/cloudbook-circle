@@ -240,7 +240,6 @@ const Friends = () => {
       return;
     }
 
-    toast({ title: "Friend request accepted!" });
     loadData();
   };
 
@@ -259,7 +258,6 @@ const Friends = () => {
       return;
     }
 
-    toast({ title: "Friend request declined" });
     loadData();
   };
 
@@ -307,7 +305,6 @@ const Friends = () => {
                 next.delete(userId);
                 return next;
               });
-              toast({ title: "Request cancelled" });
               loadData();
             }
           }}
@@ -334,7 +331,6 @@ const Friends = () => {
       return;
     }
 
-    toast({ title: "Friend request cancelled" });
     loadData();
   };
 
@@ -470,7 +466,7 @@ const Friends = () => {
           </TabsList>
 
           <TabsContent value="requests">
-            <Card className="feed-section">
+            <Card className="feed-section flat-list">
               {pendingRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -531,7 +527,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="sent">
-            <Card className="feed-section">
+            <Card className="feed-section flat-list">
               {sentRequests.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -581,7 +577,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="friends">
-            <Card className="feed-section">
+            <Card className="feed-section flat-list">
               {friends.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <UserCheck className="h-16 w-16 text-muted-foreground/30 mb-4" />
@@ -636,7 +632,7 @@ const Friends = () => {
           </TabsContent>
 
           <TabsContent value="suggestions">
-            <Card className="feed-section">
+            <Card className="feed-section flat-list">
               {suggestions.filter(s => !hiddenSuggestions.has(s.id)).length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
