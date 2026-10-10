@@ -3,7 +3,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
-import GroupChat from "@/components/GroupChat";
 import VoiceRooms from "@/components/VoiceRooms";
 import EditGroupModal from "@/components/EditGroupModal";
 import { useCalls } from "@/hooks/use-calls";
@@ -536,7 +535,14 @@ const GroupDetail = () => {
 
           <TabsContent value="chat">
             {isMember ? (
-              <GroupChat groupId={groupId!} currentUserId={currentUserId!} />
+              // The group's chat lives in Messages with your other chats, as on WhatsApp.
+              <Card className="feed-section p-10 text-center">
+                <MessageCircle className="mx-auto mb-3 h-10 w-10 text-primary" />
+                <p className="mb-4 text-muted-foreground">Chat with the group alongside your other conversations.</p>
+                <Button className="rounded-full" onClick={() => navigate(`/messages?group=${groupId}`)}>
+                  <MessageCircle className="mr-2 h-4 w-4" /> Open group chat
+                </Button>
+              </Card>
             ) : (
               <Card className="feed-section p-12 text-center">
                 <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />

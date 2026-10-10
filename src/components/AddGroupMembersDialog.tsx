@@ -24,13 +24,18 @@ interface AddGroupMembersDialogProps {
   onAdded: () => void;
 }
 
-/** "Add people": your friends, with a search box and an Add button each, as on Facebook. */
+/**
+ * "Add people": your friends, with a search box and an Invite button each. They join once
+ * they accept (as on WhatsApp), from Messages or their notifications.
+ */
 const AddGroupMembersDialog = ({ open, onOpenChange, groupId, groupName, currentUserId, memberIds, onAdded }: AddGroupMembersDialogProps) => {
   const { toast } = useToast();
   const [friends, setFriends] = useState<Friend[] | null>(null);
   const [query, setQuery] = useState("");
   const [adding, setAdding] = useState<string | null>(null);
   const [added, setAdded] = useState<Set<string>>(new Set());
+  // Invites already waiting for an answer (the people you invited).
+  const [pending, setPending] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (!open) return;
@@ -42,12 +47,14 @@ const AddGroupMembersDialog = ({ open, onOpenChange, groupId, groupName, current
         .eq("status", "accepted")
         .or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`);
       const ids = (links ?? []).map((f) => (f.user_id === currentUserId ? f.friend_id : f.user_id));
+      const { data: invites } = await supabase.from("group_invites").select("user_id").eq("group_id", groupId);
+      if (!cancelled) setPending(new Set((invites ?? []).map((i) => i.user_id)));
       if (ids.length === 0) { if (!cancelled) setFriends([]); return; }
       const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids);
       if (!cancelled) setFriends((profiles ?? []).sort((a, b) => (a.full_name ?? "").localeCompare(b.full_name ?? "")));
     })();
     return () => { cancelled = true; };
-  }, [open, currentUserId]);
+  }, [open, currentUserId, groupId]);
 
   const shown = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -61,7 +68,7 @@ const AddGroupMembersDialog = ({ open, onOpenChange, groupId, groupName, current
     if (error) {
       const missing = /function .*add_group_member|Could not find the function/i.test(error.message);
       toast({
-        title: `Couldn't add ${friend.full_name || "them"}`,
+        title: `Couldn't invite ${friend.full_name || "them"}`,
         description: missing ? "Adding people needs the latest database update." : error.message,
         variant: "destructive",
       });
@@ -76,6 +83,7 @@ const AddGroupMembersDialog = ({ open, onOpenChange, groupId, groupName, current
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Add people to {groupName}</DialogTitle>
+          <p className="text-sm text-muted-foreground">They'll get an invite and join once they accept.</p>
         </DialogHeader>
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -90,7 +98,8 @@ const AddGroupMembersDialog = ({ open, onOpenChange, groupId, groupName, current
             </p>
           ) : (
             shown.map((f) => {
-              const inGroup = memberIds.includes(f.id) || added.has(f.id);
+              const inGroup = memberIds.includes(f.id);
+              const invited = added.has(f.id) || pending.has(f.id);
               return (
                 <div key={f.id} className="flex items-center gap-3 rounded-xl px-2 py-2">
                   <Avatar className="h-10 w-10">
@@ -99,10 +108,12 @@ const AddGroupMembersDialog = ({ open, onOpenChange, groupId, groupName, current
                   </Avatar>
                   <p className="min-w-0 flex-1 truncate font-medium">{f.full_name || "Anonymous"}</p>
                   {inGroup ? (
-                    <span className="flex items-center gap-1 text-sm text-muted-foreground"><Check className="h-4 w-4" /> {added.has(f.id) ? "Added" : "Member"}</span>
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground"><Check className="h-4 w-4" /> Member</span>
+                  ) : invited ? (
+                    <span className="flex items-center gap-1 text-sm text-muted-foreground"><Check className="h-4 w-4" /> Invited</span>
                   ) : (
-                    <Button size="sm" className="h-8 rounded-full" disabled={adding === f.id} onClick={() => add(f)} aria-label={`Add ${f.full_name || "friend"}`}>
-                      {adding === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserPlus className="mr-1 h-4 w-4" /> Add</>}
+                    <Button size="sm" className="h-8 rounded-full" disabled={adding === f.id} onClick={() => add(f)} aria-label={`Invite ${f.full_name || "friend"}`}>
+                      {adding === f.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserPlus className="mr-1 h-4 w-4" /> Invite</>}
                     </Button>
                   )}
                 </div>

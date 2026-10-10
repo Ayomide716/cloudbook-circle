@@ -26,6 +26,9 @@ import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
 import { useChatPrefs } from "@/lib/chat-prefs";
+import { groupActivity, useGroupChats, type GroupChatSummary } from "@/lib/group-chats";
+import GroupConversation from "@/components/groups/GroupConversation";
+import { GroupChatRow, GroupInviteCards } from "@/components/groups/GroupListItems";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -84,12 +87,31 @@ const Messages = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const { prefs: chatPrefs, toggle: toggleChatPref } = useChatPrefs(currentUserId);
   const [showArchived, setShowArchived] = useState(false);
+  // Groups are chats too (as on WhatsApp), with their invites at the top of the list.
+  const { groups: groupChats, invites: groupInvites, reload: reloadGroups, markSeen: markGroupSeen } = useGroupChats(currentUserId);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const selectedGroup = groupChats.find((g) => g.group.id === selectedGroupId)?.group ?? null;
+  const [chatFilter, setChatFilter] = useState<"all" | "unread" | "groups">("all");
+  const openPerson = (profile: Profile) => { setSelectedGroupId(null); setShowAIChat(false); setSelectedConversation(profile); };
+  const openGroup = (groupId: string) => { setSelectedConversation(null); setShowAIChat(false); setSelectedGroupId(groupId); };
   // Pinned chats first (then newest first, as loaded); archived ones in their own list.
   const listedConversations = useMemo(() => {
     const inView = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id) === showArchived);
     return [...inView].sort((a, b) => Number(chatPrefs.pinned.includes(b.profile.id)) - Number(chatPrefs.pinned.includes(a.profile.id)));
   }, [conversations, chatPrefs, showArchived]);
   const archivedCount = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id)).length;
+  // People and groups together, newest first (pinned people stay on top).
+  type ChatRowItem = { kind: "dm"; conv: Conversation } | { kind: "group"; chat: GroupChatSummary };
+  const unreadChats = conversations.filter((c) => c.unreadCount > 0 && !chatPrefs.archived.includes(c.profile.id)).length + groupChats.filter((g) => g.unread > 0).length;
+  const chatRows: ChatRowItem[] = (() => {
+    if (showArchived) return listedConversations.map((conv) => ({ kind: "dm" as const, conv }));
+    const people = chatFilter === "groups" ? [] : listedConversations.filter((c) => chatFilter !== "unread" || c.unreadCount > 0);
+    const groups = groupChats.filter((g) => chatFilter !== "unread" || g.unread > 0);
+    const time = (row: ChatRowItem) => (row.kind === "group" ? groupActivity(row.chat) : row.conv.lastMessage?.created_at ?? "");
+    const pinned = (row: ChatRowItem) => row.kind === "dm" && chatPrefs.pinned.includes(row.conv.profile.id);
+    return [...people.map((conv) => ({ kind: "dm" as const, conv })), ...groups.map((chat) => ({ kind: "group" as const, chat }))]
+      .sort((a, b) => Number(pinned(b)) - Number(pinned(a)) || time(b).localeCompare(time(a)));
+  })();
   const [selectedConversation, setSelectedConversation] = useState<Profile | null>(null);
   const [showAIChat, setShowAIChat] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -297,6 +319,14 @@ const Messages = () => {
   useEffect(() => {
     if (currentUserId && targetUserId && targetUserId !== currentUserId) openRequestedChat(targetUserId);
   }, [currentUserId, targetUserId, openRequestedChat]);
+
+  // /messages?group=<id> opens that group's chat (from group pages and notifications).
+  const targetGroupId = searchParams.get("group");
+  useEffect(() => {
+    if (!targetGroupId || !groupChats.some((g) => g.group.id === targetGroupId)) return;
+    openGroup(targetGroupId);
+    setSearchParams({}, { replace: true });
+  }, [targetGroupId, groupChats, setSearchParams]);
 
   const setupTypingChannel = useEffectEvent(() => {
     if (!selectedConversation || !currentUserId) return;
@@ -514,21 +544,21 @@ const Messages = () => {
     <div className={cn(
       "fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background",
       // Phones: an open chat takes the whole screen, as in WhatsApp.
-      (selectedConversation || showAIChat) && "max-md:top-0"
+      (selectedConversation || showAIChat || selectedGroup) && "max-md:top-0"
     )}>
-      <Navigation currentUserId={currentUserId || undefined} hideMobileTopBar={!!(selectedConversation || showAIChat)} />
+      <Navigation currentUserId={currentUserId || undefined} hideMobileTopBar={!!(selectedConversation || showAIChat || selectedGroup)} />
       <div className="flex-1 flex overflow-hidden">
         <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] gap-0 sm:gap-4 flex-1 overflow-hidden">
             {/* Conversations List */}
-            <Card className={cn("min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (selectedConversation || showAIChat) ? "hidden md:flex" : "flex")}>
+            <Card className={cn("min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (selectedConversation || showAIChat || selectedGroup) ? "hidden md:flex" : "flex")}>
               <div className="px-3 pt-3 pb-2.5 sm:p-4 md:border-b flex-shrink-0">
                 <div className="flex items-center gap-1.5">
                   <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 -ml-1 [&_svg]:size-5" onClick={() => navigate("/")} aria-label="Back">
                     <ArrowLeft />
                   </Button>
                   <h2 className="flex-1 font-display text-[22px] sm:text-xl font-bold tracking-tight">Messages</h2>
-                  <NewConversation currentUserId={currentUserId!} onSelectUser={setSelectedConversation} />
+                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} />
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto max-md:px-3 max-md:pb-3">
@@ -539,7 +569,7 @@ const Messages = () => {
                     "flex items-center gap-3 p-3 sm:p-4 cursor-pointer transition-all duration-200 active:scale-[0.98] border-b",
                     showAIChat ? "bg-accent" : "hover:bg-accent/50"
                   )}
-                  onClick={() => { setShowAIChat(true); setSelectedConversation(null); }}
+                  onClick={() => { setShowAIChat(true); setSelectedConversation(null); setSelectedGroupId(null); }}
                 >
                   <Avatar className="h-12 w-12 flex-shrink-0 gradient-brand">
                     <AvatarFallback className="gradient-brand text-primary-foreground">
@@ -556,56 +586,104 @@ const Messages = () => {
                   <div className="h-3 w-3 rounded-full bg-green-500 flex-shrink-0" />
                 </div>
                 )}
-                {conversations.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No conversations yet</p>
-                ) : (
-                  <>
-                    {showArchived ? (
-                      <button type="button" onClick={() => setShowArchived(false)} className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-primary">
-                        <ArrowLeft className="h-4 w-4" /> Archived chats
-                      </button>
-                    ) : archivedCount > 0 && (
+                {/* All · Unread · Groups, as on WhatsApp */}
+                {!showArchived && (
+                  <div role="group" aria-label="Show" className="mb-3 flex gap-2 overflow-x-auto scrollbar-hide">
+                    {([
+                      { value: "all", label: "All" },
+                      { value: "unread", label: "Unread", count: unreadChats },
+                      { value: "groups", label: "Groups", count: groupChats.length },
+                    ] as const).map((chip) => (
                       <button
+                        key={chip.value}
                         type="button"
-                        onClick={() => setShowArchived(true)}
-                        className="mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-accent/50"
+                        aria-pressed={chatFilter === chip.value}
+                        onClick={() => setChatFilter(chip.value)}
+                        className={cn(
+                          "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors",
+                          chatFilter === chip.value
+                            ? "border-primary/60 bg-primary/15 text-primary shadow-[0_0_14px_-2px_hsl(var(--primary)/0.45)]"
+                            : "border-border bg-card text-foreground hover:bg-secondary"
+                        )}
                       >
-                        <Archive className="h-5 w-5 text-muted-foreground" />
-                        <span className="flex-1">Archived</span>
-                        <span className="text-xs text-muted-foreground">{archivedCount}</span>
+                        {chip.label}
+                        {"count" in chip && chip.count > 0 && <span className="text-muted-foreground">{chip.count}</span>}
                       </button>
-                    )}
-                    {listedConversations.length === 0 ? (
-                      <p className="text-center text-muted-foreground py-8">No archived chats</p>
-                    ) : (
-                  <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
-                    {listedConversations.map((conv) => (
-                      <ConversationRow
-                        key={conv.profile.id}
-                        profile={conv.profile}
-                        lastMessage={conv.lastMessage}
-                        unreadCount={conv.unreadCount}
-                        currentUserId={currentUserId!}
-                        selected={selectedConversation?.id === conv.profile.id}
-                        pinned={chatPrefs.pinned.includes(conv.profile.id)}
-                        muted={chatPrefs.muted.includes(conv.profile.id)}
-                        archived={chatPrefs.archived.includes(conv.profile.id)}
-                        time={conv.lastMessage ? shortTime(conv.lastMessage.created_at) : undefined}
-                        onOpen={() => setSelectedConversation(conv.profile)}
-                        onToggle={(list) => toggleChatPref(list, conv.profile.id)}
-                      />
                     ))}
                   </div>
+                )}
+                {!showArchived && groupInvites.length > 0 && (
+                  <GroupInviteCards
+                    invites={groupInvites}
+                    onAnswered={(groupId, accepted) => { void reloadGroups(); if (accepted) openGroup(groupId); }}
+                  />
+                )}
+                {showArchived ? (
+                  <button type="button" onClick={() => setShowArchived(false)} className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-primary">
+                    <ArrowLeft className="h-4 w-4" /> Archived chats
+                  </button>
+                ) : archivedCount > 0 && chatFilter === "all" && (
+                  <button
+                    type="button"
+                    onClick={() => setShowArchived(true)}
+                    className="mb-2 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-accent/50"
+                  >
+                    <Archive className="h-5 w-5 text-muted-foreground" />
+                    <span className="flex-1">Archived</span>
+                    <span className="text-xs text-muted-foreground">{archivedCount}</span>
+                  </button>
+                )}
+                {chatRows.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    {showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "You're not in any groups yet" : "No conversations yet"}
+                  </p>
+                ) : (
+                  <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
+                    {chatRows.map((row) =>
+                      row.kind === "group" ? (
+                        <GroupChatRow
+                          key={`g-${row.chat.group.id}`}
+                          chat={row.chat}
+                          currentUserId={currentUserId!}
+                          selected={selectedGroupId === row.chat.group.id}
+                          time={shortTime(groupActivity(row.chat))}
+                          onOpen={() => openGroup(row.chat.group.id)}
+                        />
+                      ) : (
+                        <ConversationRow
+                          key={row.conv.profile.id}
+                          profile={row.conv.profile}
+                          lastMessage={row.conv.lastMessage}
+                          unreadCount={row.conv.unreadCount}
+                          currentUserId={currentUserId!}
+                          selected={selectedConversation?.id === row.conv.profile.id}
+                          pinned={chatPrefs.pinned.includes(row.conv.profile.id)}
+                          muted={chatPrefs.muted.includes(row.conv.profile.id)}
+                          archived={chatPrefs.archived.includes(row.conv.profile.id)}
+                          time={row.conv.lastMessage ? shortTime(row.conv.lastMessage.created_at) : undefined}
+                          onOpen={() => openPerson(row.conv.profile)}
+                          onToggle={(list) => toggleChatPref(list, row.conv.profile.id)}
+                        />
+                      )
                     )}
-                  </>
+                  </div>
                 )}
               </div>
             </Card>
 
             {/* Chat Area — AI or regular conversation */}
-            <Card className={cn("min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (!selectedConversation && !showAIChat) ? "hidden md:flex" : "flex")}>
+            <Card className={cn("min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (!selectedConversation && !showAIChat && !selectedGroup) ? "hidden md:flex" : "flex")}>
               {features.cloudBuddy && showAIChat ? (
                 <AIChatCompanion onBack={() => { setShowAIChat(false); }} />
+              ) : selectedGroup && currentUserId ? (
+                <GroupConversation
+                  key={selectedGroup.id}
+                  group={selectedGroup}
+                  currentUserId={currentUserId}
+                  onBack={() => setSelectedGroupId(null)}
+                  onSeen={() => markGroupSeen(selectedGroup.id)}
+                  onLeft={() => { setSelectedGroupId(null); void reloadGroups(); }}
+                />
               ) : selectedConversation ? (
                 <>
                   {/* Chat Header */}
