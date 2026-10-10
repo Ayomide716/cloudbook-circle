@@ -18,7 +18,7 @@ import PeopleYouMayKnow from "@/components/feed/PeopleYouMayKnow";
 import { GroupsRow, OnThisDay, ReelsRow } from "@/components/feed/FeedRows";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, UserPlus, Users } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLoginStreak } from "@/hooks/use-login-streak";
 import { isFilteredOut } from "@/lib/hidden-posts";
@@ -297,13 +297,36 @@ const Index = () => {
               </div>
 
               {allPosts.length === 0 ? (
+                // Nothing to show yet (new here, or no friends' posts): a welcome with ways in,
+                // then people to add, reels and groups, so the feed is never just blank.
                 <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
+                  initial={{ opacity: 0, scale: 0.97 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ type: "spring", stiffness: 300, damping: 25 }}
-                  className="text-center py-16"
+                  className="space-y-2 sm:space-y-4"
                 >
-                  <p className="text-muted-foreground text-lg">No posts yet. Be the first to share! ✨</p>
+                  <section className="feed-section rounded-[1.125rem] border bg-card px-5 py-6 text-center">
+                    <p className="text-3xl" aria-hidden="true">👋</p>
+                    <h2 className="mt-2 text-lg font-semibold">
+                      {feedTab === "friends" ? "No posts from friends yet" : `Welcome to CloudBook${currentUser.full_name ? `, ${currentUser.full_name.split(" ")[0]}` : ""}!`}
+                    </h2>
+                    <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+                      {feedTab === "friends"
+                        ? "Add some friends and their posts will show up here."
+                        : "Add friends, join groups and share your first post. Your feed fills up as people you know post."}
+                    </p>
+                    <div className="mt-4 flex flex-wrap justify-center gap-2">
+                      <Button className="rounded-full" onClick={() => navigate("/friends")}><UserPlus className="mr-1.5 h-4 w-4" /> Find friends</Button>
+                      {feedTab === "friends" ? (
+                        <Button variant="secondary" className="rounded-full" onClick={() => chooseTab("foryou")}>See For you</Button>
+                      ) : (
+                        <Button variant="secondary" className="rounded-full" onClick={() => navigate("/groups")}><Users className="mr-1.5 h-4 w-4" /> Explore groups</Button>
+                      )}
+                    </div>
+                  </section>
+                  <PeopleYouMayKnow currentUserId={currentUser.id} />
+                  <ReelsRow />
+                  <GroupsRow currentUserId={currentUser.id} />
                 </motion.div>
               ) : (
                 <>
@@ -373,6 +396,15 @@ const Index = () => {
                       );
                     })}
                   </div>
+
+                  {/* A short feed never reaches the rows that sit between posts: show them after it. */}
+                  {!hasNextPage && allPosts.length <= 12 && (
+                    <div className="mt-2 space-y-2 sm:mt-4 sm:space-y-4">
+                      {allPosts.length <= 3 && <PeopleYouMayKnow currentUserId={currentUser.id} />}
+                      {allPosts.length <= 7 && <ReelsRow />}
+                      <GroupsRow currentUserId={currentUser.id} />
+                    </div>
+                  )}
 
                   {/* Infinite scroll sentinel */}
                   <div ref={sentinelRef} className="py-4 flex justify-center">
