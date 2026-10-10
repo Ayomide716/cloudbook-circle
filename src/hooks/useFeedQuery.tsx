@@ -5,6 +5,9 @@ import type { PostComment } from "@/components/PostCard";
 
 const PAGE_SIZE = 10;
 
+/** "foryou": everyone's posts, best first; "friends": friends and you, newest first. */
+export type FeedFilter = "all" | "friends" | "digest" | "foryou";
+
 interface FeedPost {
   id: string;
   content: string;
@@ -12,6 +15,7 @@ interface FeedPost {
   image_urls: string[] | null;
   video_url: string | null;
   location?: string | null;
+  background?: string | null;
   created_at: string;
   user_id: string;
   profiles: {
@@ -34,7 +38,7 @@ interface FeedPage {
 
 async function fetchFeedPage(
   userId: string,
-  feedFilter: "all" | "friends" | "digest",
+  feedFilter: FeedFilter,
   cursor: { score: number; id: string } | null
 ): Promise<FeedPage> {
   const isDigest = feedFilter === "digest";
@@ -63,6 +67,7 @@ async function fetchFeedPage(
       is_verified: r.profile_is_verified,
     },
     engagement_score: r.engagement_score,
+    background: (r as { background?: string | null }).background ?? null,
     poll: null,
   }));
 
@@ -130,7 +135,7 @@ export function dedupeFeedPages<D extends { pages: { posts: { id: string }[] }[]
   };
 }
 
-export function useFeedQuery(userId: string | null, feedFilter: "all" | "friends" | "digest") {
+export function useFeedQuery(userId: string | null, feedFilter: FeedFilter) {
   return useInfiniteQuery({
     queryKey: ["feed", userId, feedFilter],
     queryFn: ({ pageParam }) => fetchFeedPage(userId!, feedFilter, pageParam),

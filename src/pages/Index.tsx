@@ -15,7 +15,10 @@ import FeedSidebar from "@/components/FeedSidebar";
 import ContactsSidebar from "@/components/ContactsSidebar";
 import SponsoredPost from "@/components/SponsoredPost";
 import PeopleYouMayKnow from "@/components/feed/PeopleYouMayKnow";
-import { Loader2 } from "lucide-react";
+import { GroupsRow, OnThisDay, ReelsRow } from "@/components/feed/FeedRows";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { Check, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLoginStreak } from "@/hooks/use-login-streak";
 import { isFilteredOut } from "@/lib/hidden-posts";
@@ -36,6 +39,8 @@ interface Profile {
 }
 
 const FEED_SCROLL_KEY = "cloudbook_feed_scroll";
+const FEED_TAB_KEY = "cloudbook_feed_tab";
+const FEED_VISIT_KEY = "cloudbook_feed_last_visit";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -53,6 +58,26 @@ const Index = () => {
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const sentinelRef = useRef<HTMLDivElement>(null);
   const [lastFetchTime, setLastFetchTime] = useState(new Date());
+  // "For you" (everyone, best first) or "Friends" (friends and you, newest first), remembered.
+  const [feedTab, setFeedTab] = useState<"foryou" | "friends">(() => {
+    try { return localStorage.getItem(FEED_TAB_KEY) === "friends" ? "friends" : "foryou"; } catch { return "foryou"; }
+  });
+  const chooseTab = (tab: "foryou" | "friends") => {
+    setFeedTab(tab);
+    try { localStorage.setItem(FEED_TAB_KEY, tab); } catch { /* fine */ }
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+  // When you last opened the feed: posts older than that sit below "You're all caught up".
+  const [previousVisit] = useState(() => {
+    try { return localStorage.getItem(FEED_VISIT_KEY); } catch { return null; }
+  });
+  useEffect(() => {
+    // Counts as a visit once you've been here a few seconds.
+    const t = window.setTimeout(() => {
+      try { localStorage.setItem(FEED_VISIT_KEY, new Date().toISOString()); } catch { /* fine */ }
+    }, 5000);
+    return () => window.clearTimeout(t);
+  }, []);
 
   const {
     data,
@@ -61,7 +86,7 @@ const Index = () => {
     isFetchingNextPage,
     isLoading,
     refetch,
-  } = useFeedQuery(currentUser?.id ?? null, "all");
+  } = useFeedQuery(currentUser?.id ?? null, feedTab);
 
   const { fetchReactions, fetchComments } = useFeedReactions(currentUser?.id ?? null);
   const { getAdForPosition } = useAds();
@@ -95,6 +120,12 @@ const Index = () => {
   const restored = useRef(false);
 
   const allPosts = useMemo(() => (data?.pages.flatMap((page) => page.posts) ?? []).filter((p) => !isFilteredOut(p)), [data]);
+  // The first post older than your last visit (only marked when there were newer ones above it).
+  const caughtUpIndex = useMemo(() => {
+    if (!previousVisit) return -1;
+    const i = allPosts.findIndex((p) => p.created_at < previousVisit);
+    return i > 0 ? i : -1;
+  }, [allPosts, previousVisit]);
 
   // Reload reactions/comments whenever the set of visible posts changes (not just their count,
   // which stays the same when switching feed filters).
@@ -223,7 +254,7 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
-      <NewPostsBanner onRefresh={handleRefresh} lastFetchTime={lastFetchTime} />
+      <NewPostsBanner onRefresh={handleRefresh} lastFetchTime={lastFetchTime} currentUserId={currentUser?.id} />
 
       <PullToRefresh onRefresh={handleRefresh} className="flex-1">
         <div className="max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-6 pt-0 pb-4 sm:py-6 mb-20 md:mb-24 lg:mb-6">
@@ -235,7 +266,7 @@ const Index = () => {
             <main className="feed-flush space-y-5 max-sm:space-y-2 min-w-0 w-full max-w-[680px] mx-auto">
               <CreatePost
                 currentUser={currentUser}
-                onPostCreated={() => refetch()}
+                onPostCreated={() => void handleRefresh()}
               />
 
               <Suspense fallback={<div className="h-24" />}>
@@ -243,6 +274,27 @@ const Index = () => {
               </Suspense>
 
               <ProfileCompletionPrompt userId={currentUser.id} />
+
+              <OnThisDay currentUserId={currentUser.id} name={currentUser.full_name} avatarUrl={currentUser.avatar_url} />
+
+              {/* For you · Friends, as on Instagram and Threads */}
+              <div role="tablist" aria-label="Feed" className="flex gap-1 rounded-full border border-border bg-card p-1 shine-card">
+                {([["foryou", "For you"], ["friends", "Friends"]] as const).map(([value, label]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    role="tab"
+                    aria-selected={feedTab === value}
+                    onClick={() => chooseTab(value)}
+                    className={cn(
+                      "h-9 flex-1 rounded-full text-[14px] font-semibold transition-colors",
+                      feedTab === value ? "bg-primary/15 text-primary shadow-[0_0_14px_-4px_hsl(var(--primary)/0.6)]" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
 
               {allPosts.length === 0 ? (
                 <motion.div
@@ -279,10 +331,30 @@ const Index = () => {
                               <SponsoredPost campaign={ad} currentUserId={currentUser.id} />
                             </div>
                           )}
-                          {/* After the first few posts, as on Facebook */}
+                          {/* Friends: posts you've already seen sit below a checkpoint, as on Instagram. */}
+                          {feedTab === "friends" && index === caughtUpIndex && (
+                            <div className="mb-2 flex flex-col items-center gap-1 py-5 text-center sm:mb-4" role="note">
+                              <span className="flex h-12 w-12 items-center justify-center rounded-full border-2 border-primary text-primary shadow-[0_0_18px_-4px_hsl(var(--primary)/0.7)]">
+                                <Check className="h-6 w-6" strokeWidth={3} />
+                              </span>
+                              <p className="mt-1 font-semibold">You're all caught up</p>
+                              <p className="text-sm text-muted-foreground">You've seen all new posts from your friends. Older posts are below.</p>
+                            </div>
+                          )}
+                          {/* Rows between posts, as on Facebook */}
                           {index === 3 && (
                             <div className="mb-2 sm:mb-4">
                               <PeopleYouMayKnow currentUserId={currentUser.id} />
+                            </div>
+                          )}
+                          {index === 7 && (
+                            <div className="mb-2 sm:mb-4">
+                              <ReelsRow />
+                            </div>
+                          )}
+                          {index === 12 && (
+                            <div className="mb-2 sm:mb-4">
+                              <GroupsRow currentUserId={currentUser.id} />
                             </div>
                           )}
                           <PostCard
@@ -308,7 +380,14 @@ const Index = () => {
                       <Loader2 className="h-6 w-6 animate-spin text-primary" />
                     )}
                     {!hasNextPage && allPosts.length > 0 && (
-                      <p className="text-sm text-muted-foreground">You're all caught up! 🎉</p>
+                      feedTab === "friends" ? (
+                        <div className="flex flex-col items-center gap-2 text-center">
+                          <p className="text-sm text-muted-foreground">That's everything from your friends.</p>
+                          <Button variant="secondary" className="rounded-full" onClick={() => chooseTab("foryou")}>See more in For you</Button>
+                        </div>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">You're all caught up! 🎉</p>
+                      )
                     )}
                   </div>
                 </>

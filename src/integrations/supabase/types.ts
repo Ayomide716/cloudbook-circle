@@ -1462,6 +1462,7 @@ export type Database = {
       }
       posts: {
         Row: {
+          background: string | null
           location: string | null
           content: string
           created_at: string | null
@@ -1473,6 +1474,7 @@ export type Database = {
           video_url: string | null
         }
         Insert: {
+          background?: string | null
           location?: string | null
           content: string
           created_at?: string | null
@@ -1484,6 +1486,7 @@ export type Database = {
           video_url?: string | null
         }
         Update: {
+          background?: string | null
           location?: string | null
           content?: string
           created_at?: string | null
@@ -2268,6 +2271,7 @@ export type Database = {
           reaction_count: number
           user_id: string
           video_url: string
+          background: string | null
         }[]
       }
       has_role: {

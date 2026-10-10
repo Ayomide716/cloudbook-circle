@@ -6,16 +6,19 @@ import { motion, AnimatePresence } from "framer-motion";
 interface NewPostsBannerProps {
   onRefresh: () => void;
   lastFetchTime: Date;
+  /** Your own new posts are already at the top, so they don't count. */
+  currentUserId?: string;
 }
 
-const NewPostsBanner = ({ onRefresh, lastFetchTime }: NewPostsBannerProps) => {
+const NewPostsBanner = ({ onRefresh, lastFetchTime, currentUserId }: NewPostsBannerProps) => {
   const [newCount, setNewCount] = useState(0);
   const countRef = useRef(0);
 
   useEffect(() => {
     const channel = supabase
       .channel("new-posts-banner")
-      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, () => {
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload) => {
+        if ((payload.new as { user_id?: string }).user_id === currentUserId) return;
         countRef.current += 1;
         setNewCount(countRef.current);
       })
@@ -24,7 +27,7 @@ const NewPostsBanner = ({ onRefresh, lastFetchTime }: NewPostsBannerProps) => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [currentUserId]);
 
   // Reset count when lastFetchTime changes (user refreshed)
   useEffect(() => {

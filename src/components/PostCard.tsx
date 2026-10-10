@@ -26,6 +26,7 @@ import { CommentThread } from "./comments/CommentThread";
 import CommentsSheet from "./comments/CommentsSheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { firstLink } from "@/lib/links";
+import { backgroundCss } from "@/lib/post-backgrounds";
 import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import PollDisplay from "./PollDisplay";
 import PostContent from "./PostContent";
@@ -69,6 +70,8 @@ export interface PostCardProps {
     user_id: string;
     /** Where it was posted, shown as "Lekki, Lagos · 2h". */
     location?: string | null;
+    /** A coloured background for a short text post (see lib/post-backgrounds). */
+    background?: string | null;
      poll?: {
        id: string;
        question: string;
@@ -125,6 +128,7 @@ const PostCard = ({
   const photos = postImages(post);
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const postBackground = !post.image_url && !post.video_url && !post.poll ? backgroundCss(post.background) : null;
   const postLink = useMemo(() => firstLink(post.content ?? ""), [post.content]);
   const [showReactions, setShowReactions] = useState(false);
   const likeAreaRef = useRef<HTMLDivElement>(null);
@@ -612,7 +616,17 @@ const PostCard = ({
             </div>
           </div>
         ) : (
-          <PostContent content={post.content} />
+          postBackground ? (
+            // Short text on a colour, big and centred, as on Facebook.
+            <div
+              className="mt-2.5 flex min-h-[230px] items-center justify-center rounded-2xl px-6 py-8 text-center"
+              style={{ backgroundImage: postBackground }}
+            >
+              <p className="whitespace-pre-wrap break-words text-2xl font-bold leading-snug text-white drop-shadow-sm">{post.content}</p>
+            </div>
+          ) : (
+            <PostContent content={post.content} />
+          )
         )}
       </div>
 
