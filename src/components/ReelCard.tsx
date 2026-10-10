@@ -49,6 +49,11 @@ export default function ReelCard({
   onNavigateToProfile, onFollow, isFollowing, isPending,
 }: ReelCardProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const backdropRef = useRef<HTMLCanvasElement>(null);
+  // Tall videos fill the screen; wider ones (landscape, square) show whole, over a blurred
+  // copy of their first frame, so nothing important gets cropped off.
+  const [fit, setFit] = useState<"cover" | "contain">("cover");
+  const backdropPainted = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -106,6 +111,28 @@ export default function ReelCard({
     animFrameRef.current = requestAnimationFrame(update);
     return () => cancelAnimationFrame(animFrameRef.current);
   }, [isVisible, isActive]);
+
+  const onMetadata = () => {
+    const video = videoRef.current;
+    const box = containerRef.current?.firstElementChild as HTMLElement | null;
+    if (!video?.videoWidth || !video.videoHeight || !box?.clientHeight) return;
+    const videoRatio = video.videoWidth / video.videoHeight;
+    const boxRatio = box.clientWidth / box.clientHeight;
+    // Cover only when cropping would cut off less than about a fifth of the picture.
+    setFit(videoRatio <= boxRatio * 1.25 ? "cover" : "contain");
+  };
+
+  // The blurred backdrop: one tiny frame drawn into a canvas (cheap; no second video).
+  const paintBackdrop = () => {
+    const video = videoRef.current, canvas = backdropRef.current;
+    if (!video || !canvas || fit !== "contain") return;
+    try {
+      canvas.getContext("2d")?.drawImage(video, 0, 0, canvas.width, canvas.height);
+    } catch {
+      // Not ready yet: the plain dark background shows instead.
+    }
+  };
+  useEffect(paintBackdrop, [fit]);
 
   const togglePlayPause = useCallback(() => {
     const video = videoRef.current;
@@ -165,17 +192,26 @@ export default function ReelCard({
         {canPlayInline ? (
           <>
             {isVisible && (
+              <>
+              {fit === "contain" && (
+                <canvas ref={backdropRef} width={24} height={42} aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 opacity-70 blur-2xl" />
+              )}
               <video
                 ref={videoRef}
                 src={reel.video_url}
-                className="absolute inset-0 w-full h-full object-cover"
+                onLoadedMetadata={onMetadata}
+                onLoadedData={paintBackdrop}
+                className={cn("absolute inset-0 h-full w-full", fit === "cover" ? "object-cover" : "object-contain")}
                 loop
                 playsInline
                 muted={isMuted}
                 preload="metadata"
                 onError={() => onVideoError(reel.id)}
                 onClick={handleTap}
+                // First frames are often black: repaint the backdrop once it's a second in.
+                onTimeUpdate={(e) => { if (!backdropPainted.current && e.currentTarget.currentTime > 1) { backdropPainted.current = true; paintBackdrop(); } }}
               />
+              </>
             )}
 
             {!isVisible && <div className="absolute inset-0 bg-black" />}
