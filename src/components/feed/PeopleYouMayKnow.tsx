@@ -19,8 +19,9 @@ const readDismissed = (): string[] => {
 };
 
 /**
- * "People you may know" between posts, as on Facebook: swipe through friends of friends and
- * add them (or ✕ to stop suggesting someone). Hidden when there's no one to suggest.
+ * "People you may know" between posts, as on Facebook: swipe through friends of friends (or,
+ * when you're new, other people on CloudBook) and add them (or ✕ to stop suggesting someone).
+ * Hidden when there's no one to suggest.
  */
 const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
   const { toast } = useToast();
@@ -31,21 +32,38 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const { data: ranked, error } = await supabase.rpc("friend_suggestions", { _limit: 15 });
-      if (error || !ranked?.length) { if (!cancelled) setPeople([]); return; }
       const dismissed = new Set(readDismissed());
-      const ids = ranked.map((r) => r.user_id).filter((id) => !dismissed.has(id));
-      if (!ids.length) { if (!cancelled) setPeople([]); return; }
-      const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids);
-      if (cancelled) return;
-      setPeople(
-        ranked
-          .filter((r) => ids.includes(r.user_id))
-          .map((r) => {
-            const p = profiles?.find((x) => x.id === r.user_id);
-            return { id: r.user_id, full_name: p?.full_name ?? null, avatar_url: p?.avatar_url ?? null, mutual: Number(r.mutual_count) };
-          })
-      );
+      const { data: ranked } = await supabase.rpc("friend_suggestions", { _limit: 15 });
+      const fromFriends = (ranked ?? []).filter((r) => !dismissed.has(r.user_id));
+      let list: Suggestion[] = [];
+      if (fromFriends.length) {
+        const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", fromFriends.map((r) => r.user_id));
+        list = fromFriends.map((r) => {
+          const p = profiles?.find((x) => x.id === r.user_id);
+          return { id: r.user_id, full_name: p?.full_name ?? null, avatar_url: p?.avatar_url ?? null, mutual: Number(r.mutual_count) };
+        });
+      }
+      // New here (no friends, so no friends of friends): suggest other people on CloudBook,
+      // newest first, leaving out anyone you're already connected with or have blocked.
+      if (list.length < 6) {
+        const [{ data: links }, { data: blocks }, { data: recent }] = await Promise.all([
+          supabase.from("friendships").select("user_id, friend_id").or(`user_id.eq.${currentUserId},friend_id.eq.${currentUserId}`),
+          supabase.from("blocks").select("blocker_id, blocked_id").or(`blocker_id.eq.${currentUserId},blocked_id.eq.${currentUserId}`),
+          supabase.from("profiles").select("id, full_name, avatar_url").neq("id", currentUserId).not("full_name", "is", null).order("created_at", { ascending: false }).limit(40),
+        ]);
+        const skip = new Set([
+          currentUserId,
+          ...list.map((p) => p.id),
+          ...dismissed,
+          ...(links ?? []).flatMap((f) => [f.user_id, f.friend_id]),
+          ...(blocks ?? []).flatMap((b) => [b.blocker_id, b.blocked_id]),
+        ]);
+        list = [
+          ...list,
+          ...(recent ?? []).filter((p) => !skip.has(p.id)).slice(0, 15 - list.length).map((p) => ({ ...p, mutual: 0 })),
+        ];
+      }
+      if (!cancelled) setPeople(list);
     })();
     return () => { cancelled = true; };
   }, [currentUserId]);
@@ -93,7 +111,7 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
             </Link>
             <div className="p-2.5">
               <Link to={`/profile/${p.id}`} className="block truncate text-[14px] font-semibold hover:underline">{p.full_name || "Someone"}</Link>
-              <p className="truncate text-xs text-muted-foreground">{p.mutual} mutual {p.mutual === 1 ? "friend" : "friends"}</p>
+              <p className="truncate text-xs text-muted-foreground">{p.mutual > 0 ? `${p.mutual} mutual ${p.mutual === 1 ? "friend" : "friends"}` : "On CloudBook"}</p>
               {sent.has(p.id) ? (
                 <Button size="sm" variant="secondary" disabled className="mt-2 h-8 w-full rounded-lg">
                   <Check className="mr-1 h-4 w-4" /> Requested
