@@ -8,14 +8,10 @@ import { Button } from "@/components/ui/button";
 import type { User } from "@supabase/supabase-js";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { Plus, Send, Film, ChevronUp, ChevronDown, ArrowLeft, Home, MessageCircle } from "lucide-react";
-import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import VideoUpload from "@/components/VideoUpload";
 // Navigation removed - Reels uses its own minimal top bar
 import ReelCard from "@/components/ReelCard";
-import {
-  Sheet, SheetContent, SheetHeader, SheetTitle,
-} from "@/components/ui/sheet";
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
 } from "@/components/ui/dialog";
@@ -24,8 +20,11 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { formatDistanceToNow } from "date-fns";
 import { useMyProfile } from "@/hooks/use-my-profile";
+import { CommentThread } from "@/components/comments/CommentThread";
+import CommentsSheet from "@/components/comments/CommentsSheet";
+import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
+import { playSound } from "@/lib/sounds";
 
 interface Reel {
   id: string;
@@ -41,6 +40,8 @@ interface Reel {
   reel_likes: { user_id: string }[];
   reel_comments: Array<{
     id: string; content: string; user_id: string; created_at: string | null;
+    /** Missing until the database update for replies has been run. */
+    parent_id?: string | null;
     profiles: { full_name: string | null; avatar_url: string | null };
   }>;
 }
@@ -56,6 +57,10 @@ export default function Reels() {
   const [activeReelId, setActiveReelId] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [replyTo, setReplyTo] = useState<{ id: string; name: string } | null>(null);
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
+  const reelCommentBox = useRef<HTMLTextAreaElement>(null);
+  useAutoGrow(reelCommentBox, commentText, 110);
   const [showUpload, setShowUpload] = useState(false);
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploadVideoUrl, setUploadVideoUrl] = useState("");
@@ -115,7 +120,7 @@ export default function Reels() {
     setLoading(true);
     const { data, error } = await supabase
       .from("reels")
-      .select(`*, profiles (full_name, avatar_url), reel_likes (user_id), reel_comments (id, content, user_id, created_at, profiles (full_name, avatar_url))`)
+      .select(`*, profiles (full_name, avatar_url), reel_likes (user_id), reel_comments (*, profiles (full_name, avatar_url))`)
       .order("created_at", { ascending: false })
       .limit(40);
     if (error) {
@@ -178,13 +183,27 @@ export default function Reels() {
     if (!user || !commentText.trim() || !activeReelId) return;
     const { data, error } = await supabase.from("reel_comments").insert({
       reel_id: activeReelId, user_id: user.id, content: commentText.trim(),
+      ...(replyTo ? { parent_id: replyTo.id } : {}),
     }).select(`*, profiles (full_name, avatar_url)`).single();
     if (error) {
-      toast({ title: "Error posting comment", variant: "destructive" });
+      toast({
+        title: "Couldn't post your comment",
+        description: replyTo && /parent_id/.test(error.message) ? "Replies need the latest database update." : undefined,
+        variant: "destructive",
+      });
     } else if (data) {
       setReels(prev => prev.map(r => r.id === activeReelId ? { ...r, reel_comments: [...r.reel_comments, data] } : r));
+      if (replyTo) setOpenThreadId(replyTo.id);
       setCommentText("");
+      setReplyTo(null);
+      playSound("comment");
     }
+  };
+
+  const startReply = (parent: Reel["reel_comments"][number], mention: string | null) => {
+    setReplyTo({ id: parent.id, name: parent.profiles.full_name || "User" });
+    setCommentText(mention ? `@${mention.replace(/\s+/g, "")} ` : "");
+    requestAnimationFrame(() => reelCommentBox.current?.focus());
   };
 
   const handleShare = async (reelId: string) => {
@@ -338,48 +357,54 @@ export default function Reels() {
         </div>
       )}
 
-      {/* Comments Sheet */}
-      <Sheet open={showComments} onOpenChange={setShowComments}>
-        <SheetContent side="bottom" className="h-[70dvh] rounded-t-3xl">
-          <SheetHeader className="border-b pb-3">
-            <SheetTitle className="text-center">{activeReel?.reel_comments.length || 0} Comments</SheetTitle>
-          </SheetHeader>
-          <div className="flex-1 overflow-y-auto py-4 space-y-4 max-h-[calc(70dvh-140px)]">
-            {activeReel?.reel_comments.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">No comments yet. Be the first!</p>
-            ) : (
-              activeReel?.reel_comments.map((comment) => (
-                <div key={comment.id} className="flex gap-3">
-                  <Avatar className="h-9 w-9">
-                    <AvatarImage src={comment.profiles.avatar_url || ""} />
-                    <AvatarFallback>{comment.profiles.full_name?.[0] || "U"}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold">{comment.profiles.full_name || "User"}</p>
-                    <p className="text-sm text-foreground/80 break-words">{comment.content}</p>
-                    <p className="text-[11px] text-muted-foreground mt-0.5 flex gap-3">
-                      {comment.created_at && formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                      {comment.user_id === user?.id && (
-                        <button className="hover:text-destructive" onClick={() => handleDeleteComment(comment.id)}>Delete</button>
-                      )}
-                    </p>
-                  </div>
-                </div>
-              ))
+      {/* Comments: a sheet you can pull up, with replies folded under each comment. */}
+      <CommentsSheet
+        open={showComments}
+        onOpenChange={(open) => { setShowComments(open); if (!open) setReplyTo(null); }}
+        title={`${activeReel?.reel_comments.length || 0} ${activeReel?.reel_comments.length === 1 ? "comment" : "comments"}`}
+        footer={
+          <form onSubmit={(e) => { e.preventDefault(); handleComment(); }} className="flex flex-col gap-1.5">
+            {replyTo && (
+              <div className="ml-11 flex items-center gap-2 text-xs text-muted-foreground">
+                <span>Replying to <strong>{replyTo.name}</strong></span>
+                <button type="button" className="text-primary hover:underline" onClick={() => { setReplyTo(null); setCommentText(""); }}>Cancel</button>
+              </div>
             )}
-          </div>
-          <div className="absolute bottom-0 left-0 right-0 p-4 bg-card border-t">
-            <div className="flex gap-2">
-              <Avatar className="h-9 w-9">
+            <div className="flex items-end gap-2">
+              <Avatar className="mb-0.5 h-9 w-9">
                 <AvatarImage src={myProfile?.avatar_url || undefined} alt="" />
                 <AvatarFallback>{myProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
               </Avatar>
-              <Input aria-label="Add a comment" placeholder="Add a comment..." value={commentText} onChange={(e) => setCommentText(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleComment()} className="flex-1 rounded-full" />
-              <Button size="icon" className="rounded-full" onClick={handleComment} disabled={!commentText.trim()} aria-label="Post comment"><Send className="h-4 w-4" /></Button>
+              <textarea
+                ref={reelCommentBox}
+                rows={1}
+                aria-label={replyTo ? "Write a reply" : "Add a comment"}
+                placeholder={replyTo ? `Reply to ${replyTo.name}...` : "Add a comment..."}
+                value={commentText}
+                onChange={(e) => setCommentText(e.target.value)}
+                onKeyDown={sendOnEnter}
+                className="min-h-10 flex-1 resize-none rounded-[20px] bg-secondary px-4 py-2.5 text-[15px] leading-5 outline-none placeholder:text-muted-foreground"
+              />
+              <Button type="submit" size="icon" className="h-10 w-10 shrink-0 rounded-full" disabled={!commentText.trim()} aria-label="Post comment">
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
-          </div>
-        </SheetContent>
-      </Sheet>
+          </form>
+        }
+      >
+        {!activeReel || activeReel.reel_comments.length === 0 ? (
+          <p className="py-10 text-center text-sm text-muted-foreground">No comments yet. Be the first!</p>
+        ) : (
+          <CommentThread
+            comments={activeReel.reel_comments}
+            currentUserId={user?.id}
+            onReply={startReply}
+            onDelete={handleDeleteComment}
+            initialCount={20}
+            openThreadId={openThreadId}
+          />
+        )}
+      </CommentsSheet>
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <AlertDialogContent>

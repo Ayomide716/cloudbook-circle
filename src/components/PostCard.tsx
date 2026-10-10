@@ -21,6 +21,10 @@ import { cn, toDate } from "@/lib/utils";
 import SharePostDialog from "./SharePostDialog";
 import LinkPreview from "./LinkPreview";
 import HeartBurst from "./HeartBurst";
+import FeedVideo from "./FeedVideo";
+import { CommentThread } from "./comments/CommentThread";
+import CommentsSheet from "./comments/CommentsSheet";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { firstLink } from "@/lib/links";
 import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import PollDisplay from "./PollDisplay";
@@ -141,21 +145,20 @@ const PostCard = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(post.content);
   const [editLoading, setEditLoading] = useState(false);
-  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
-  const [editCommentContent, setEditCommentContent] = useState("");
+  // The thread you just replied in stays open.
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
+  const isPhone = useIsMobile();
   const { toast } = useToast();
 
-  const handleEditComment = async (commentId: string) => {
-    if (!editCommentContent.trim()) return;
+  const handleEditComment = async (commentId: string, text: string) => {
+    if (!text.trim()) return;
     const { error } = await supabase
       .from("comments")
-      .update({ content: editCommentContent.trim() })
+      .update({ content: text.trim() })
       .eq("id", commentId);
     if (error) {
-      toast({ title: "Error updating comment", variant: "destructive" });
+      toast({ title: "Couldn't update the comment", variant: "destructive" });
     } else {
-      setEditingCommentId(null);
-      toast({ title: "Comment updated" });
       onCommentAdded();
     }
   };
@@ -188,6 +191,13 @@ const PostCard = ({
        toast({ title: "Post saved!" });
      }
    };
+
+  /** Double tap on a photo or video: likes (never un-likes), with the heart popping over it. */
+  const likeWithHeart = () => {
+    if (!userReaction) handleReaction("like");
+    else haptic(12);
+    setHeartBurst((n) => n + 1);
+  };
 
   // One reaction change at a time: a fast double tap (or a tap during a long press) would
   // otherwise race two writes for the same post.
@@ -302,6 +312,7 @@ const PostCard = ({
 
     // Optimistic: show comment instantly
     setCommentContent("");
+    if (replyingTo) setOpenThreadId(replyingTo.id);
     setReplyingTo(null);
     setShowComments(true);
 
@@ -335,6 +346,60 @@ const PostCard = ({
     // Refresh real data from server
     onCommentAdded();
   };
+
+  // Replying to a reply stays in the same thread, starting with "@Name" (as on Instagram).
+  const startReply = (parent: PostComment, mention: string | null) => {
+    setReplyingTo(parent);
+    setCommentContent(mention ? `@${mention.replace(/\s+/g, "")} ` : "");
+    setShowComments(true);
+    requestAnimationFrame(() => commentBoxRef.current?.focus());
+  };
+
+  const commentForm = (
+    <form onSubmit={handleComment} className="flex flex-col gap-1.5">
+      {replyingTo && (
+        <div className="ml-10 flex items-center gap-2 text-xs text-muted-foreground">
+          <span>Replying to <strong>{replyingTo.profiles.full_name || "Anonymous"}</strong></span>
+          <button type="button" onClick={() => { setReplyingTo(null); setCommentContent(""); }} className="text-primary hover:underline">
+            Cancel
+          </button>
+        </div>
+      )}
+      <div className="flex items-end gap-2">
+        <Avatar className="mb-0.5 h-8 w-8 flex-shrink-0">
+          <AvatarImage src={myProfile?.avatar_url || undefined} alt="" />
+          <AvatarFallback className="bg-secondary text-xs">{myProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+        </Avatar>
+        <Textarea
+          placeholder={replyingTo ? `Reply to ${replyingTo.profiles.full_name || "Anonymous"}...` : "Write a comment..."}
+          value={commentContent}
+          ref={commentBoxRef}
+          onChange={(e) => setCommentContent(e.target.value)}
+          // Phones: Enter adds a line. Keyboards: Enter sends, Shift+Enter adds a line.
+          onKeyDown={sendOnEnter}
+          aria-label={replyingTo ? "Write a reply" : "Write a comment"}
+          className="min-h-[36px] flex-1 resize-none rounded-[18px] border-0 bg-secondary py-2 leading-5"
+          disabled={isSubmitting}
+          rows={1}
+        />
+        <Button type="submit" size="sm" disabled={isSubmitting || !commentContent.trim()} className="h-9 rounded-full px-4">
+          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
+        </Button>
+      </div>
+    </form>
+  );
+
+  const commentList = (initialCount: number) => (
+    <CommentThread
+      comments={comments}
+      currentUserId={currentUserId}
+      onReply={startReply}
+      onDelete={handleDeleteComment}
+      onEdit={(id, text) => handleEditComment(id, text)}
+      initialCount={initialCount}
+      openThreadId={openThreadId}
+    />
+  );
 
   const totalReactions = Object.values(reactions).reduce((a, b) => a + b, 0);
   const currentReaction = REACTION_TYPES.find(r => r.type === userReaction);
@@ -547,17 +612,8 @@ const PostCard = ({
       {/* Media */}
       {post.video_url && (
         <div className="relative mx-2.5 overflow-hidden rounded-2xl bg-black">
-          <video
-            // "#t=0.1" makes phones (iOS especially) show the first frame instead of a black box.
-            src={post.video_url.includes("#") ? post.video_url : `${post.video_url}#t=0.1`}
-            controls
-            playsInline
-            preload="metadata"
-            crossOrigin="anonymous"
-            onError={() => console.log("Post video failed to load:", post.video_url)}
-            className="w-full max-h-[600px] object-contain"
-            style={{ aspectRatio: '16/9' }}
-          />
+          <FeedVideo src={post.video_url} onDoubleTap={likeWithHeart} />
+          {heartBurst > 0 && <HeartBurst key={heartBurst} />}
         </div>
       )}
       {!post.video_url && photos.length > 0 && (
@@ -567,11 +623,7 @@ const PostCard = ({
               images={photos}
               onOpen={setViewerIndex}
               // Double-tap likes (never un-likes), with a heart that pops over the photo.
-              onDoubleTap={() => {
-                if (!userReaction) handleReaction("like");
-                else haptic(12);
-                setHeartBurst((n) => n + 1);
-              }}
+              onDoubleTap={likeWithHeart}
             />
             {heartBurst > 0 && <HeartBurst key={heartBurst} />}
           </div>
@@ -727,166 +779,27 @@ const PostCard = ({
          currentUserId={currentUserId}
        />
 
-      {/* Comments Section */}
-      {showComments && (
-        <div className="p-3 sm:p-4 space-y-3 bg-accent/30">
-          {/* Comment Input */}
-          <form onSubmit={handleComment} className="flex flex-col gap-2">
-            {replyingTo && (
-              <div className="flex items-center gap-2 ml-10 text-xs text-muted-foreground">
-                <span>Replying to <strong>{replyingTo.profiles.full_name || "Anonymous"}</strong></span>
-                <button
-                  type="button"
-                  onClick={() => { setReplyingTo(null); setCommentContent(""); }}
-                  className="text-primary hover:underline"
-                >
-                  Cancel
-                </button>
-              </div>
-            )}
-            <div className="flex gap-2">
-              <Avatar className="h-8 w-8 flex-shrink-0">
-                <AvatarImage src={myProfile?.avatar_url || undefined} alt="" />
-                <AvatarFallback className="bg-secondary text-xs">{myProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-              </Avatar>
-              <div className="flex-1 flex gap-2">
-                <Textarea
-                  placeholder={replyingTo ? `Reply to ${replyingTo.profiles.full_name || "Anonymous"}...` : "Write a comment..."}
-                  value={commentContent}
-                  ref={commentBoxRef}
-                  onChange={(e) => setCommentContent(e.target.value)}
-                  // Phones: Enter adds a line. Keyboards: Enter sends, Shift+Enter adds a line.
-                  onKeyDown={sendOnEnter}
-                  aria-label={replyingTo ? "Write a reply" : "Write a comment"}
-                  className="min-h-[36px] py-2 resize-none rounded-[18px] bg-secondary border-0 leading-5"
-                  disabled={isSubmitting}
-                  rows={1}
-                />
-                <Button
-                  type="submit"
-                  size="sm"
-                  disabled={isSubmitting || !commentContent.trim()}
-                  className="rounded-full px-4"
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    "Post"
-                  )}
-                </Button>
-              </div>
-            </div>
-          </form>
-
-          {/* Comments List - Top-level comments */}
-          {comments.filter(c => !c.parent_id).map((comment) => {
-            const replies = comments.filter(c => c.parent_id === comment.id);
-            return (
-              <div key={comment.id}>
-                {/* Parent comment */}
-                <div className="flex gap-2">
-                  <Link to={`/profile/${comment.profiles.id}`}>
-                    <Avatar className="h-8 w-8 flex-shrink-0">
-                      <AvatarImage src={comment.profiles.avatar_url || undefined} />
-                      <AvatarFallback className="bg-secondary text-xs">
-                        {comment.profiles.full_name?.[0]?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                  </Link>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="bg-secondary rounded-2xl px-3 py-2 relative group inline-block max-w-full">
-                      <Link to={`/profile/${comment.profiles.id}`}>
-                        <p className="font-semibold text-xs sm:text-sm hover:underline">
-                          {comment.profiles.full_name || "Anonymous"}
-                        </p>
-                      </Link>
-                      {editingCommentId === comment.id ? (
-                        <div className="mt-1">
-                          <Textarea
-                            value={editCommentContent}
-                            onChange={(e) => setEditCommentContent(e.target.value)}
-                            className="min-h-[36px] h-9 py-1 text-sm resize-none"
-                            autoFocus
-                          />
-                          <div className="flex gap-1 mt-1">
-                            <Button size="sm" className="h-6 text-xs px-2" disabled={!editCommentContent.trim()} onClick={() => handleEditComment(comment.id)}>Save</Button>
-                            <Button size="sm" variant="ghost" className="h-6 text-xs px-2" onClick={() => setEditingCommentId(null)}>Cancel</Button>
-                          </div>
-                        </div>
-                      ) : (
-                        <p className="text-sm break-words">{comment.content}</p>
-                      )}
-                      {comment.profiles.id === currentUserId && editingCommentId !== comment.id && (
-                        <div className="absolute -right-16 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity flex gap-0.5">
-                          <Button variant="ghost" size="icon" onClick={() => { setEditingCommentId(comment.id); setEditCommentContent(comment.content); }} className="h-6 w-6">
-                            <Pencil className="h-3 w-3 text-muted-foreground" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => handleDeleteComment(comment.id)} className="h-6 w-6">
-                            <Trash2 className="h-3 w-3 text-muted-foreground" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-3 mt-1 ml-3">
-                      <p className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(toDate(comment.created_at), { addSuffix: true })}
-                      </p>
-                      <button
-                        onClick={() => { setReplyingTo(comment); setCommentContent(""); }}
-                        className="text-xs font-semibold text-muted-foreground hover:text-foreground"
-                      >
-                        Reply
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Replies */}
-                {replies.length > 0 && (
-                  <div className="ml-10 mt-2 space-y-2 border-l-2 border-border pl-3">
-                    {replies.map((reply) => (
-                      <div key={reply.id} className="flex gap-2">
-                        <Link to={`/profile/${reply.profiles.id}`}>
-                          <Avatar className="h-7 w-7 flex-shrink-0">
-                            <AvatarImage src={reply.profiles.avatar_url || undefined} />
-                            <AvatarFallback className="bg-secondary text-[10px]">
-                              {reply.profiles.full_name?.[0]?.toUpperCase() || "U"}
-                            </AvatarFallback>
-                          </Avatar>
-                        </Link>
-                        
-                        <div className="flex-1 min-w-0">
-                          <div className="bg-secondary rounded-2xl px-3 py-2 relative group inline-block max-w-full">
-                            <Link to={`/profile/${reply.profiles.id}`}>
-                              <p className="font-semibold text-xs hover:underline">
-                                {reply.profiles.full_name || "Anonymous"}
-                              </p>
-                            </Link>
-                            <p className="text-sm break-words">{reply.content}</p>
-                            {reply.profiles.id === currentUserId && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => handleDeleteComment(reply.id)}
-                                className="absolute -right-8 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                              >
-                                <Trash2 className="h-3 w-3 text-muted-foreground" />
-                              </Button>
-                            )}
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-1 ml-3">
-                            {formatDistanceToNow(toDate(reply.created_at), { addSuffix: true })}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            );
-          })}
-        </div>
+      {/* Comments: under the post on bigger screens; on phones a sheet you can pull up. */}
+      {isPhone ? (
+        <CommentsSheet
+          open={showComments}
+          onOpenChange={setShowComments}
+          title={comments.length ? `${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : "Comments"}
+          footer={commentForm}
+        >
+          {comments.length === 0 ? (
+            <p className="py-10 text-center text-sm text-muted-foreground">No comments yet. Be the first to comment.</p>
+          ) : (
+            commentList(20)
+          )}
+        </CommentsSheet>
+      ) : (
+        showComments && (
+          <div className="space-y-3 bg-accent/30 p-3 sm:p-4">
+            {commentForm}
+            {commentList(3)}
+          </div>
+        )
       )}
       {currentUserId !== post.user_id && (
         <ReportDialog reportedType="post" reportedId={post.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />
