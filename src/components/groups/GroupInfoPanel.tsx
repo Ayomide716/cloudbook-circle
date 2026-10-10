@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, BellOff, ExternalLink, LogOut, Pencil, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "lucide-react";
+import { ArrowLeft, BellOff, ChevronRight, ExternalLink, Image as ImageIcon, LogOut, Pencil, Star, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,13 +32,15 @@ interface GroupInfoPanelProps {
   muted?: boolean;
   onToggleMute?: () => void;
   onGroupUpdated?: () => void;
+  /** Opens the group's media, links and voice notes, or its starred messages. */
+  onOpenGallery?: (tab: "media" | "starred") => void;
 }
 
 const managementError = (error: { message: string }) =>
   /Could not find the function|function .*group_/i.test(error.message) ? "This needs the latest database update." : error.message;
 
 /** The group's info, as on WhatsApp: picture, name, members (admins marked) and the actions. */
-const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onCall, onLeft, muted = false, onToggleMute, onGroupUpdated }: GroupInfoPanelProps) => {
+const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onCall, onLeft, muted = false, onToggleMute, onGroupUpdated, onOpenGallery }: GroupInfoPanelProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [query, setQuery] = useState("");
@@ -126,6 +128,21 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
           <p className="mt-2 text-sm text-muted-foreground">
             Created by {creator?.id === currentUserId ? "you" : creator?.full_name || "someone"}, {format(new Date(group.created_at), "dd/MM/yyyy")}
           </p>
+        </div>
+      )}
+
+      {onOpenGallery && (
+        <div className="border-t border-border py-1">
+          {([
+            { tab: "media", icon: ImageIcon, label: "Media, links and voice" },
+            { tab: "starred", icon: Star, label: "Starred messages" },
+          ] as const).map(({ tab, icon: Icon, label }) => (
+            <button key={tab} type="button" onClick={() => onOpenGallery(tab)} className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-secondary">
+              <Icon className="h-5 w-5 text-muted-foreground" />
+              <span className="flex-1 text-[15px] font-medium">{label}</span>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </button>
+          ))}
         </div>
       )}
 

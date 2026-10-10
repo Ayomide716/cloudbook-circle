@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import { format } from "date-fns";
-import { Copy, CornerUpLeft, MoreHorizontal, Pencil, SmilePlus, Trash2 } from "lucide-react";
+import { Copy, CornerUpLeft, Forward, MoreHorizontal, Pencil, SmilePlus, Star, StarOff, Trash2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import VoiceMessagePlayer from "@/components/VoiceMessagePlayer";
 import MessageActionSheet, { type MessageAction } from "@/components/chat/MessageActionSheet";
@@ -29,6 +29,11 @@ interface GroupMessageBubbleProps {
   onEdit: (message: GroupMessage) => void;
   onDelete: (message: GroupMessage) => void;
   onOpenPhoto: (url: string) => void;
+  starred?: boolean;
+  onToggleStar?: (message: GroupMessage) => void;
+  onForward?: (message: GroupMessage) => void;
+  /** Briefly marks the message (after jumping to it from Starred or the gallery). */
+  highlighted?: boolean;
 }
 
 /**
@@ -38,7 +43,7 @@ interface GroupMessageBubbleProps {
  */
 const GroupMessageBubble = ({
   message: m, mine, firstInRun, senderName, senderAvatar, quoted, quotedName, reactions, currentUserId, nameOf,
-  onReact, onReply, onEdit, onDelete, onOpenPhoto,
+  onReact, onReply, onEdit, onDelete, onOpenPhoto, starred = false, onToggleStar, onForward, highlighted = false,
 }: GroupMessageBubbleProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pending = m.id.startsWith("temp-");
@@ -53,6 +58,8 @@ const GroupMessageBubble = ({
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(m) },
+    ...(onForward ? [{ label: "Forward", icon: <Forward className="mr-2 h-4 w-4" />, onSelect: () => onForward(m) }] : []),
+    ...(onToggleStar ? [{ label: starred ? "Unstar" : "Star", icon: starred ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />, onSelect: () => onToggleStar(m) }] : []),
     ...(showText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(m.content) }] : []),
     ...(mine && !m.image_url ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(m) }] : []),
     ...(mine ? [{ label: "Delete", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onDelete(m), destructive: true }] : []),
@@ -113,7 +120,8 @@ const GroupMessageBubble = ({
             mine ? "bg-primary text-primary-foreground dark:bg-[#0b5d53] dark:text-white" : "bg-card text-foreground dark:bg-[#22262d]",
             firstInRun && (mine ? "rounded-tr-none" : "rounded-tl-none"),
             pending && "opacity-70",
-            menuOpen && "ring-2 ring-primary/40"
+            (menuOpen || highlighted) && "ring-2 ring-primary/40",
+            highlighted && "animate-pulse"
           )}
           {...longPress.handlers}
           onClickCapture={(e) => {
@@ -131,6 +139,9 @@ const GroupMessageBubble = ({
             align={mine ? "end" : "start"}
           />
           {!mine && firstInRun && <p className={cn("text-[13px] font-semibold", nameColour(m.user_id))}>{senderName}</p>}
+          {m.forwarded && (
+            <p className="flex items-center gap-1 text-[12px] italic opacity-75"><Forward className="h-3 w-3" /> Forwarded</p>
+          )}
           {m.reply_to && (
             <div className={cn(
               "my-1 min-w-[160px] rounded-md border-l-4 px-2 py-1 text-[13px] leading-snug",
@@ -155,10 +166,11 @@ const GroupMessageBubble = ({
             <p className={cn("whitespace-pre-wrap break-words text-[15px] leading-snug", m.image_url && "mt-1")}>
               {m.content}
               {/* Room for the time, which sits in the bottom corner. */}
-              <span className={cn("ml-2 inline-block", m.edited_at ? "w-[4.5rem]" : "w-9")} aria-hidden="true" />
+              <span className={cn("ml-2 inline-block", m.edited_at ? "w-[4.5rem]" : "w-9", starred && "pl-4")} aria-hidden="true" />
             </p>
           )}
           <p className={cn("text-right text-[10.5px] leading-none", showText ? "-mt-3.5" : "mt-1", mine ? "text-white/70" : "text-muted-foreground")}>
+            {starred && <Star className="mr-1 inline h-3 w-3 -translate-y-px fill-current" aria-label="Starred" />}
             {m.edited_at && <span className="mr-1">edited</span>}
             {time}
           </p>

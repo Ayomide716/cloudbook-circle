@@ -17,6 +17,9 @@ import { mediaKind, quoteText, type GroupMessage } from "@/lib/group-messages";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import type { ChatReaction } from "@/lib/chat-reactions";
 import { useDraft } from "@/lib/chat-drafts";
+import { useStarred } from "@/lib/starred";
+import ForwardDialog from "@/components/chat/ForwardDialog";
+import ChatMediaPanel, { type GalleryTab } from "@/components/chat/ChatMediaPanel";
 import { enterMakesNewLine, sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import type { GroupInfo } from "@/lib/group-chats";
 import { playSound } from "@/lib/sounds";
@@ -38,6 +41,8 @@ interface GroupConversationProps {
   onToggleMute?: () => void;
   /** The group's name, description or picture changed. */
   onGroupUpdated?: () => void;
+  /** Open at this message (from Starred messages). */
+  focusMessageId?: string | null;
 }
 
 const PAGE = 50;
@@ -54,7 +59,7 @@ const dayLabel = (d: Date) => {
  * at the top (tap for the group's info), names in colour above other people's messages, and
  * the same message box as one-to-one chats.
  */
-const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embedded = false, muted = false, onToggleMute, onGroupUpdated }: GroupConversationProps) => {
+const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embedded = false, muted = false, onToggleMute, onGroupUpdated, focusMessageId }: GroupConversationProps) => {
   const { toast } = useToast();
   const { startGroupCall } = useCalls();
   const [messages, setMessages] = useState<GroupMessage[]>([]);
@@ -75,6 +80,11 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
   const [editing, setEditing] = useState<GroupMessage | null>(null);
   const [deleting, setDeleting] = useState<GroupMessage | null>(null);
   const [reactions, setReactions] = useState<ChatReaction[]>([]);
+  // Forwarding, starring, the media gallery, and a message being jumped to.
+  const { isStarred, toggle: toggleStar, version: starVersion } = useStarred(currentUserId);
+  const [forwarding, setForwarding] = useState<GroupMessage | null>(null);
+  const [gallery, setGallery] = useState<GalleryTab | null>(null);
+  const [highlightId, setHighlightId] = useState<string | null>(null);
   const [typing, setTyping] = useState<{ id: string; name: string }[]>([]);
   const typingChannel = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const typingTimer = useRef<number>();
@@ -140,6 +150,28 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     setLoading(false);
     void loadReactions(page.map((m) => m.id));
   }, [group.id, loadReactions]);
+
+  /** Scrolls to a message and marks it for a moment, loading back to it if it's older. */
+  const jumpTo = useCallback(async (id: string) => {
+    if (!messageIds.current.has(id)) {
+      const { data: target } = await supabase.from("group_messages").select("created_at").eq("id", id).maybeSingle();
+      if (!target) return toast({ title: "That message is no longer here" });
+      const { data } = await supabase.from("group_messages").select("*").eq("group_id", group.id).gte("created_at", target.created_at).order("created_at", { ascending: true }).limit(1000);
+      setMessages((data ?? []) as GroupMessage[]);
+      setHasMore(true);
+      void loadReactions((data ?? []).map((m) => m.id));
+    }
+    setHighlightId(id);
+    window.setTimeout(() => setHighlightId((h) => (h === id ? null : h)), 2500);
+  }, [group.id, loadReactions, toast]);
+
+  const focused = useRef<string | null>(null);
+  useEffect(() => {
+    if (!loading && focusMessageId && focused.current !== focusMessageId) {
+      focused.current = focusMessageId;
+      void jumpTo(focusMessageId);
+    }
+  }, [loading, focusMessageId, jumpTo]);
 
   useEffect(() => {
     setLoading(true);
@@ -245,6 +277,12 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     requestAnimationFrame(() => boxRef.current?.focus());
   }, []);
 
+  const starMessage = useCallback(async (m: GroupMessage) => {
+    haptic(8);
+    const error = await toggleStar(m.id, "group");
+    if (error) toast({ title: "Couldn't star the message", description: error, variant: "destructive" });
+  }, [toggleStar, toast]);
+
   const deleteMessage = async (m: GroupMessage) => {
     const { error } = await supabase.from("group_messages").delete().eq("id", m.id);
     if (error) return toast({ title: "Couldn't delete the message", description: error.message, variant: "destructive" });
@@ -335,11 +373,15 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
           onEdit={startEdit}
           onDelete={setDeleting}
           onOpenPhoto={(url) => setViewer({ url })}
+          starred={isStarred(m.id)}
+          onToggleStar={starMessage}
+          onForward={setForwarding}
+          highlighted={highlightId === m.id}
         />
       </>
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps -- memberById is rebuilt from members
-  }, [messages, currentUserId, members, reactions, nameOf, react, startReply, startEdit]);
+  }, [messages, currentUserId, members, reactions, nameOf, react, startReply, startEdit, starVersion, highlightId]);
 
   const others = members.filter((m) => m.id !== currentUserId);
   const typingLine = typing.length === 0 ? null
@@ -397,6 +439,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
           estimatedItemSize={64}
           className="chat-wallpaper flex-1 overflow-hidden"
           renderItem={renderMessage}
+          scrollToIndex={highlightId ? messages.findIndex((m) => m.id === highlightId) : undefined}
           onLoadMore={async () => {
             if (loadingMore || !hasMore || !messages[0]) return;
             setLoadingMore(true);
@@ -496,6 +539,18 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
           muted={muted}
           onToggleMute={onToggleMute}
           onGroupUpdated={onGroupUpdated}
+          onOpenGallery={(tab) => { setShowInfo(false); setGallery(tab); }}
+        />
+      )}
+
+      <ForwardDialog message={forwarding} currentUserId={currentUserId} onOpenChange={(open) => { if (!open) setForwarding(null); }} />
+      {gallery && (
+        <ChatMediaPanel
+          scope={{ kind: "group", groupId: group.id }}
+          currentUserId={currentUserId}
+          initialTab={gallery}
+          onClose={() => setGallery(null)}
+          onJump={(item) => { setGallery(null); void jumpTo(item.id); }}
         />
       )}
 

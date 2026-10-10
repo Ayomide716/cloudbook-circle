@@ -723,6 +723,7 @@ export type Database = {
           content: string
           created_at: string
           edited_at: string | null
+          forwarded: boolean
           group_id: string
           id: string
           image_url: string | null
@@ -733,6 +734,7 @@ export type Database = {
           content: string
           created_at?: string
           edited_at?: string | null
+          forwarded?: boolean
           group_id: string
           id?: string
           image_url?: string | null
@@ -743,6 +745,7 @@ export type Database = {
           content?: string
           created_at?: string
           edited_at?: string | null
+          forwarded?: boolean
           group_id?: string
           id?: string
           image_url?: string | null
@@ -1004,6 +1007,7 @@ export type Database = {
           deleted_at: string | null
           edited: boolean
           expires_at: string | null
+          forwarded: boolean
           id: string
           image_url: string | null
           read: boolean | null
@@ -1017,6 +1021,7 @@ export type Database = {
           deleted_at?: string | null
           edited?: boolean
           expires_at?: string | null
+          forwarded?: boolean
           id?: string
           image_url?: string | null
           read?: boolean | null
@@ -1030,6 +1035,7 @@ export type Database = {
           deleted_at?: string | null
           edited?: boolean
           expires_at?: string | null
+          forwarded?: boolean
           id?: string
           image_url?: string | null
           read?: boolean | null
@@ -1882,6 +1888,27 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      starred_messages: {
+        Row: {
+          chat_kind: string
+          created_at: string
+          message_id: string
+          user_id: string
+        }
+        Insert: {
+          chat_kind: string
+          created_at?: string
+          message_id: string
+          user_id: string
+        }
+        Update: {
+          chat_kind?: string
+          created_at?: string
+          message_id?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       stories: {
         Row: {

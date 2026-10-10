@@ -8,6 +8,7 @@ export interface GroupMessage {
   created_at: string;
   reply_to?: string | null;
   edited_at?: string | null;
+  forwarded?: boolean;
 }
 
 // Text saved with media that has no caption (it's what the chat list shows).
