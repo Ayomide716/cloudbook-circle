@@ -1,6 +1,6 @@
-import { useEffect, useState, lazy, Suspense, useCallback, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useState, lazy, Suspense, useCallback, useMemo, useRef } from "react";
 import { usePostInteractions } from "@/hooks/use-post-interactions";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate, useNavigationType, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
@@ -14,6 +14,7 @@ import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
 import FeedSidebar from "@/components/FeedSidebar";
 import ContactsSidebar from "@/components/ContactsSidebar";
 import SponsoredPost from "@/components/SponsoredPost";
+import PeopleYouMayKnow from "@/components/feed/PeopleYouMayKnow";
 import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useLoginStreak } from "@/hooks/use-login-streak";
@@ -33,6 +34,8 @@ interface Profile {
   full_name: string | null;
   avatar_url: string | null;
 }
+
+const FEED_SCROLL_KEY = "cloudbook_feed_scroll";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -65,6 +68,32 @@ const Index = () => {
 
   // Posts you hid or people you snoozed are left out when the feed loads. A post hidden
   // just now stays in place showing its "Why aren't you interested?" panel until the next load.
+  // Keep your place: coming back to the feed (Back, or from a post or profile) puts you where
+  // you were, as Facebook does, instead of at the top.
+  const navigationType = useNavigationType();
+  useEffect(() => {
+    let frame = 0;
+    const save = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() => {
+        // Only while the feed is showing (the next page jumping to its top doesn't count).
+        if (window.location.pathname !== "/") return;
+        // Remember the post at the top of the screen and how far into it you were, so photos
+        // and stories loading above it don't move you.
+        const posts = document.querySelectorAll<HTMLElement>("[data-feed-post]");
+        let anchor: { id: string; offset: number } | null = null;
+        for (const el of posts) {
+          const top = el.getBoundingClientRect().top;
+          if (top + el.offsetHeight > 60) { anchor = { id: el.dataset.feedPost!, offset: top }; break; }
+        }
+        try { sessionStorage.setItem(FEED_SCROLL_KEY, JSON.stringify({ y: window.scrollY, anchor })); } catch { /* fine */ }
+      });
+    };
+    window.addEventListener("scroll", save, { passive: true });
+    return () => { cancelAnimationFrame(frame); window.removeEventListener("scroll", save); };
+  }, []);
+  const restored = useRef(false);
+
   const allPosts = useMemo(() => (data?.pages.flatMap((page) => page.posts) ?? []).filter((p) => !isFilteredOut(p)), [data]);
 
   // Reload reactions/comments whenever the set of visible posts changes (not just their count,
@@ -139,6 +168,25 @@ const Index = () => {
     return cleanup;
   }, [navigate, checkAuth, setupRealtimeSubscription]);
 
+
+  useLayoutEffect(() => {
+    if (restored.current || allPosts.length === 0) return;
+    restored.current = true;
+    let saved: { y: number; anchor: { id: string; offset: number } | null } | null = null;
+    try { saved = JSON.parse(sessionStorage.getItem(FEED_SCROLL_KEY) ?? "null"); } catch { /* fine */ }
+    if (navigationType !== "POP" || !saved || saved.y <= 0) return;
+    const place = () => {
+      const el = saved!.anchor && document.querySelector<HTMLElement>(`[data-feed-post="${saved!.anchor.id}"]`);
+      if (el) window.scrollTo(0, window.scrollY + el.getBoundingClientRect().top - saved!.anchor!.offset);
+      else window.scrollTo(0, saved!.y);
+    };
+    place();
+    // Again as photos and stories take their space.
+    const timers = [100, 400, 900].map((ms) => window.setTimeout(place, ms));
+    const stop = () => timers.forEach(clearTimeout);
+    window.addEventListener("touchstart", stop, { once: true, passive: true });
+    window.addEventListener("wheel", stop, { once: true, passive: true });
+  }, [allPosts.length, navigationType]);
 
   const handleRefresh = useCallback(async () => {
     await refetch();
@@ -215,6 +263,7 @@ const Index = () => {
                       return (
                         <motion.div
                           key={post.id}
+                          data-feed-post={post.id}
                           initial={{ opacity: 0, y: 20, scale: 0.97 }}
                           animate={{ opacity: 1, y: 0, scale: 1 }}
                           transition={{
@@ -230,11 +279,18 @@ const Index = () => {
                               <SponsoredPost campaign={ad} currentUserId={currentUser.id} />
                             </div>
                           )}
+                          {/* After the first few posts, as on Facebook */}
+                          {index === 3 && (
+                            <div className="mb-2 sm:mb-4">
+                              <PeopleYouMayKnow currentUserId={currentUser.id} />
+                            </div>
+                          )}
                           <PostCard
                             post={post}
                             currentUserId={currentUser.id}
                             reactions={reactionsData[post.id]?.reactions || {}}
                             userReaction={reactionsData[post.id]?.userReaction || null}
+                            firstReactorName={reactionsData[post.id]?.firstReactor}
                             comments={commentsData[post.id] || []}
                             onReactionToggle={(type) => toggleReaction(post.id, type)}
                             onCommentAdded={() => reloadComments(post.id)}

@@ -240,6 +240,7 @@ const Explore = () => {
                     currentUserId={currentUser.id}
                     reactions={reactionsData[post.id]?.reactions || {}}
                     userReaction={reactionsData[post.id]?.userReaction || null}
+                    firstReactorName={reactionsData[post.id]?.firstReactor}
                     comments={commentsData[post.id] || []}
                     onReactionToggle={(type) => toggleReaction(post.id, type)}
                     onCommentAdded={() => reloadComments(post.id)}
@@ -277,6 +278,7 @@ const Explore = () => {
                   currentUserId={currentUser.id}
                   reactions={reactionsData[post.id]?.reactions || {}}
                   userReaction={reactionsData[post.id]?.userReaction || null}
+                  firstReactorName={reactionsData[post.id]?.firstReactor}
                   comments={commentsData[post.id] || []}
                   onReactionToggle={(type) => toggleReaction(post.id, type)}
                   onCommentAdded={() => reloadComments(post.id)}
@@ -322,6 +324,7 @@ const Explore = () => {
                   currentUserId={currentUser.id}
                   reactions={reactionsData[post.id]?.reactions || {}}
                   userReaction={reactionsData[post.id]?.userReaction || null}
+                  firstReactorName={reactionsData[post.id]?.firstReactor}
                   comments={commentsData[post.id] || []}
                   onReactionToggle={(type) => toggleReaction(post.id, type)}
                   onCommentAdded={() => reloadComments(post.id)}

@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 
 interface PostContentProps {
@@ -5,6 +6,15 @@ interface PostContentProps {
 }
 
 const PostContent = ({ content }: PostContentProps) => {
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflowing, setOverflowing] = useState(false);
+  // Only offer "See more" when the text really is cut off.
+  useLayoutEffect(() => {
+    const el = textRef.current;
+    if (el && !expanded) setOverflowing(el.scrollHeight > el.clientHeight + 2);
+  }, [content, expanded]);
+
   // Parse content and render hashtags and mentions as clickable links
   const parseContent = (text: string) => {
     // Regex patterns for hashtags and mentions
@@ -83,9 +93,25 @@ const PostContent = ({ content }: PostContentProps) => {
   };
 
   return (
-    <p className="mt-2.5 text-[14px] leading-snug sm:text-base whitespace-pre-wrap break-words">
-      {parseContent(content)}
-    </p>
+    <div className="mt-2.5">
+      <p
+        ref={textRef}
+        className="text-[14px] leading-snug sm:text-base whitespace-pre-wrap break-words"
+        // Long posts start folded at 6 lines, as on Facebook.
+        style={expanded ? undefined : { display: "-webkit-box", WebkitLineClamp: 6, WebkitBoxOrient: "vertical", overflow: "hidden" }}
+      >
+        {parseContent(content)}
+      </p>
+      {(overflowing || expanded) && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setExpanded((x) => !x); }}
+          className="mt-0.5 text-[14px] font-semibold text-muted-foreground hover:underline sm:text-base"
+        >
+          {expanded ? "See less" : "See more"}
+        </button>
+      )}
+    </div>
   );
 };
 

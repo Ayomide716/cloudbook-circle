@@ -5,6 +5,8 @@ import type { PostComment } from "@/components/PostCard";
 export interface PostReactions {
   reactions: Record<string, number>;
   userReaction: string | null;
+  /** Someone else who reacted, for "Ada Obi and 12 others" (as on Instagram and Facebook). */
+  firstReactor?: string | null;
 }
 export type ReactionsMap = Record<string, PostReactions>;
 export type CommentsMap = Record<string, PostComment[]>;
@@ -24,6 +26,17 @@ export async function fetchPostInteractions(postIds: string[], userId: string) {
       .order("created_at", { ascending: true }),
   ]);
 
+  // One other person per post to name, all looked up in a single query.
+  const firstOther = new Map<string, string>();
+  for (const r of reactRows ?? []) {
+    if (r.user_id !== userId && !firstOther.has(r.post_id)) firstOther.set(r.post_id, r.user_id);
+  }
+  const otherIds = [...new Set(firstOther.values())];
+  const { data: people } = otherIds.length
+    ? await supabase.from("profiles").select("id, full_name").in("id", otherIds)
+    : { data: [] };
+  const names = new Map((people ?? []).map((p) => [p.id, p.full_name]));
+
   for (const id of postIds) {
     const counts: Record<string, number> = {};
     let mine: string | null = null;
@@ -32,7 +45,8 @@ export async function fetchPostInteractions(postIds: string[], userId: string) {
       counts[r.reaction_type] = (counts[r.reaction_type] || 0) + 1;
       if (r.user_id === userId) mine = r.reaction_type;
     }
-    reactions[id] = { reactions: counts, userReaction: mine };
+    const other = firstOther.get(id);
+    reactions[id] = { reactions: counts, userReaction: mine, firstReactor: other ? names.get(other) ?? null : null };
     comments[id] = (commentRows ?? []).filter((c) => c.post_id === id);
   }
   return { reactions, comments };
@@ -44,7 +58,7 @@ export function applyReactionToggle(entry: PostReactions | undefined, type: stri
   const previous = entry?.userReaction ?? null;
   if (previous) counts[previous] = Math.max(0, (counts[previous] || 1) - 1);
   if (previous !== type) counts[type] = (counts[type] || 0) + 1;
-  return { reactions: counts, userReaction: previous === type ? null : type };
+  return { ...entry, reactions: counts, userReaction: previous === type ? null : type };
 }
 
 /**

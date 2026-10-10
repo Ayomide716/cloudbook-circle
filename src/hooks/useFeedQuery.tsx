@@ -154,7 +154,18 @@ export function useFeedReactions(userId: string | null) {
       .select("post_id, user_id, reaction_type")
       .in("post_id", postIds);
 
-    const reactionsMap: Record<string, { reactions: Record<string, number>; userReaction: string | null }> = {};
+    // One other person per post to name ("Ada Obi and 12 others"), in a single query.
+    const firstOther = new Map<string, string>();
+    for (const r of reactionsData ?? []) {
+      if (r.user_id !== userId && !firstOther.has(r.post_id)) firstOther.set(r.post_id, r.user_id);
+    }
+    const otherIds = [...new Set(firstOther.values())];
+    const { data: people } = otherIds.length
+      ? await supabase.from("profiles").select("id, full_name").in("id", otherIds)
+      : { data: [] };
+    const names = new Map((people ?? []).map((p) => [p.id, p.full_name]));
+
+    const reactionsMap: Record<string, { reactions: Record<string, number>; userReaction: string | null; firstReactor: string | null }> = {};
     postIds.forEach((id) => {
       const postReactions = reactionsData?.filter((r) => r.post_id === id) || [];
       const reactionCounts: Record<string, number> = {};
@@ -162,9 +173,11 @@ export function useFeedReactions(userId: string | null) {
         reactionCounts[r.reaction_type] = (reactionCounts[r.reaction_type] || 0) + 1;
       });
       const userReaction = postReactions.find((r) => r.user_id === userId);
+      const other = firstOther.get(id);
       reactionsMap[id] = {
         reactions: reactionCounts,
         userReaction: userReaction?.reaction_type || null,
+        firstReactor: other ? names.get(other) ?? null : null,
       };
     });
     return reactionsMap;
