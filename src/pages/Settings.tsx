@@ -12,19 +12,12 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, Sun, Moon, Monitor, LogOut, KeyRound, Mail, Trash2, Volume2 } from "lucide-react";
+import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, LogOut, KeyRound, Mail, Trash2, Volume2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
-
-const THEMES = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "Auto", icon: Monitor },
-] as const;
 
 interface NotificationPrefs {
   likes: boolean;
@@ -50,7 +43,6 @@ const Settings = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   useSEO({ title: "Settings", description: "Your Ember account, appearance and notification settings." });
-  const { theme, setTheme } = useTheme();
   const [email, setEmail] = useState<string | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -209,28 +201,6 @@ const Settings = () => {
           </Button>
           <h1 className="text-[22px] sm:text-3xl font-bold font-display tracking-tight">Settings</h1>
         </div>
-
-        {/* Appearance */}
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Appearance</h2>
-        <Card className="p-4 mb-6">
-          <div className="grid grid-cols-3 gap-2" role="radiogroup" aria-label="Theme">
-            {THEMES.map((t) => (
-              <button
-                key={t.value}
-                role="radio"
-                aria-checked={theme === t.value}
-                onClick={() => setTheme(t.value)}
-                className={cn(
-                  "flex flex-col items-center gap-1.5 rounded-xl border p-3 text-sm font-medium transition-colors",
-                  theme === t.value ? "border-primary bg-primary/10 text-foreground" : "border-border text-muted-foreground hover:bg-accent"
-                )}
-              >
-                <t.icon className="h-5 w-5" />
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </Card>
 
         {/* Account */}
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Account</h2>

@@ -4,7 +4,7 @@
   "description": "Your people, closer: friends, groups, chats and reels in one place.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#F8F5F0",
+  "background_color": "#0C0C0E",
   "theme_color": "#F8F5F0",
   "orientation": "portrait-primary",
   "scope": "/",

@@ -1,6 +1,7 @@
 import { Moon, Sun, Monitor } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTheme } from "next-themes";
+import { fadeTheme } from "@/lib/theme-fade";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 const ThemeToggle = () => {
@@ -20,7 +21,7 @@ const ThemeToggle = () => {
         <Button
           variant="ghost"
           size="icon"
-          onClick={cycleTheme}
+          onClick={() => fadeTheme(cycleTheme)}
           className="h-10 w-10 rounded-full bg-secondary/70 hover:bg-secondary transition-all"
         >
           <Sun className="h-[18px] w-[18px] rotate-0 scale-100 transition-all duration-300 dark:-rotate-90 dark:scale-0" />

@@ -143,6 +143,9 @@ export function useFeedQuery(userId: string | null, feedFilter: FeedFilter) {
     initialPageParam: null as { score: number; id: string } | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,
     enabled: !!userId,
+    // Switching For you / Friends keeps the current posts up until the other list arrives,
+    // instead of blanking the page to a loading skeleton.
+    placeholderData: (previous) => previous,
     staleTime: 30_000, // 30s before refetch
     refetchOnWindowFocus: true,
   });

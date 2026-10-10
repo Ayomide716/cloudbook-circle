@@ -87,6 +87,7 @@ const Index = () => {
     hasNextPage,
     isFetchingNextPage,
     isLoading,
+    isPlaceholderData,
     refetch,
   } = useFeedQuery(currentUser?.id ?? null, feedTab);
 
@@ -288,11 +289,14 @@ const Index = () => {
                     aria-selected={feedTab === value}
                     onClick={() => chooseTab(value)}
                     className={cn(
-                      "h-9 flex-1 rounded-full text-[14px] font-semibold transition-colors",
-                      feedTab === value ? "bg-primary/15 text-primary" : "text-muted-foreground hover:text-foreground"
+                      "relative h-9 flex-1 rounded-full text-[14px] font-semibold transition-colors",
+                      feedTab === value ? "text-primary" : "text-muted-foreground hover:text-foreground"
                     )}
                   >
-                    {label}
+                    {feedTab === value && (
+                      <motion.span layoutId="feed-tab-pill" className="absolute inset-0 rounded-full bg-primary/15" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
+                    )}
+                    <span className="relative">{label}</span>
                   </button>
                 ))}
               </div>
@@ -331,8 +335,15 @@ const Index = () => {
                 </motion.div>
               ) : (
                 <>
-                  {/* Bento Grid Layout */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4">
+                  {/* Bento Grid Layout. While the other tab's posts load, the current ones dim
+                      a little; the new list then fades in (keyed by tab). */}
+                  <motion.div
+                    key={feedTab}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: isPlaceholderData ? 0.55 : 1 }}
+                    transition={{ duration: 0.25, ease: "easeOut" }}
+                    className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-4"
+                  >
                     {allPosts.map((post, index) => {
                       const size = getBentoSize(index);
                       const ad = getAdForPosition(index);
@@ -396,7 +407,7 @@ const Index = () => {
                         </motion.div>
                       );
                     })}
-                  </div>
+                  </motion.div>
 
                   {/* A short feed never reaches the rows that sit between posts: show them after it. */}
                   {!hasNextPage && allPosts.length <= 12 && (

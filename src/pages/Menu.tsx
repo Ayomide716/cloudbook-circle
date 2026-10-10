@@ -32,6 +32,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { cn } from "@/lib/utils";
 import { features } from "@/lib/features";
+import { fadeTheme } from "@/lib/theme-fade";
 import { motion } from "framer-motion";
 
 interface Shortcut {
@@ -211,7 +212,7 @@ const Menu = () => {
                   type="button"
                   role="radio"
                   aria-checked={theme === t.value}
-                  onClick={() => setTheme(t.value)}
+                  onClick={() => fadeTheme(() => setTheme(t.value))}
                   className={cn(
                     "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors",
                     theme === t.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"

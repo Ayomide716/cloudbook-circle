@@ -320,6 +320,15 @@
     padding-bottom: 0;
   }
 
+  /* Light / dark switch: every colour eases over for a moment (see lib/theme-fade). */
+  .theme-fade,
+  .theme-fade *,
+  .theme-fade *::before,
+  .theme-fade *::after {
+    transition: background-color 0.4s ease, color 0.4s ease, border-color 0.4s ease, fill 0.4s ease,
+      stroke 0.4s ease, box-shadow 0.4s ease !important;
+  }
+
   /* Lists of people and chats sit flat on the page, as in native apps: no card around them,
      no lines between rows. (After the card rules above so it wins.) */
   .flat-list,
