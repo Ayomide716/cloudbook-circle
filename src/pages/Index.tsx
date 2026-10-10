@@ -29,6 +29,7 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 import { TAB_RESELECT_EVENT } from "@/components/BottomNav";
 import { haptic } from "@/lib/haptics";
 import { playSound } from "@/lib/sounds";
+import { dbChannel } from "@/lib/realtime";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -181,8 +182,7 @@ const Index = () => {
   });
 
   const setupRealtimeSubscription = useEffectEvent(() => {
-    const channel = supabase
-      .channel("posts-changes")
+    const channel = dbChannel("posts-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
         refetch();
       })

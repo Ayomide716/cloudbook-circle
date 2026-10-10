@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { motion } from "framer-motion";
 import { Circle } from "lucide-react";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { dbChannel } from "@/lib/realtime";
 
 interface OnlineFriend {
   id: string;
@@ -57,8 +58,7 @@ const OnlineFriendsWidget = ({ currentUserId }: OnlineFriendsWidgetProps) => {
     loadOnlineFriends();
     const interval = setInterval(loadOnlineFriends, 30000);
 
-    const channel = supabase
-      .channel("online-friends-widget")
+    const channel = dbChannel("online-friends-widget")
       .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => loadOnlineFriends())
       .subscribe();
 

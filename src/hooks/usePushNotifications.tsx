@@ -1,6 +1,7 @@
 import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { dbChannel } from "@/lib/realtime";
 
 export const usePushNotifications = (userId: string | undefined) => {
   const { toast } = useToast();
@@ -50,8 +51,7 @@ export const usePushNotifications = (userId: string | undefined) => {
     requestPermission();
 
     // Listen for new notifications
-    const notificationChannel = supabase
-      .channel("push-notifications")
+    const notificationChannel = dbChannel("push-notifications")
       .on(
         "postgres_changes",
         {
@@ -68,8 +68,7 @@ export const usePushNotifications = (userId: string | undefined) => {
       .subscribe();
 
     // Listen for new messages
-    const messageChannel = supabase
-      .channel("push-messages")
+    const messageChannel = dbChannel("push-messages")
       .on(
         "postgres_changes",
         {

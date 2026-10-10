@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { dbChannel } from "@/lib/realtime";
+import { useResync } from "@/hooks/use-resync";
 
 /**
  * Your groups as chats, for the Messages list (as WhatsApp lists groups with people): each
@@ -126,14 +128,16 @@ export function useGroupChats(userId: string | null) {
     if (!userId) return;
     void load();
     // New group messages (only ones from your groups reach you), joining or leaving, invites.
-    const channel = supabase
-      .channel(`group-chats-${userId}`)
+    const channel = dbChannel(`group-chats-${userId}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "group_messages" }, () => void load())
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members", filter: `user_id=eq.${userId}` }, () => void load())
       .on("postgres_changes", { event: "*", schema: "public", table: "group_invites", filter: `user_id=eq.${userId}` }, () => void load())
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [userId, load]);
+
+  // Back on screen: catch up on anything missed while away.
+  useResync(() => void load(), undefined, !!userId);
 
   const markSeen = useCallback((groupId: string) => {
     if (!userId) return;

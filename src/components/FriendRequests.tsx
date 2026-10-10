@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { dbChannel } from "@/lib/realtime";
 
 interface FriendRequest {
   id: string;
@@ -63,8 +64,7 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
   });
 
   const setupRealtimeSubscription = useEffectEvent(() => {
-    const channel = supabase
-      .channel("friendships-changes")
+    const channel = dbChannel("friendships-changes")
       .on(
         "postgres_changes",
         {

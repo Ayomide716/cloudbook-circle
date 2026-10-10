@@ -1005,6 +1005,7 @@ export type Database = {
           content: string
           created_at: string | null
           deleted_at: string | null
+          delivered_at: string | null
           edited: boolean
           expires_at: string | null
           forwarded: boolean
@@ -1019,6 +1020,7 @@ export type Database = {
           content: string
           created_at?: string | null
           deleted_at?: string | null
+          delivered_at?: string | null
           edited?: boolean
           expires_at?: string | null
           forwarded?: boolean
@@ -1033,6 +1035,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           deleted_at?: string | null
+          delivered_at?: string | null
           edited?: boolean
           expires_at?: string | null
           forwarded?: boolean
@@ -2313,6 +2316,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      mark_messages_delivered: {
+        Args: never
+        Returns: undefined
+      }
       edit_group_message: {
         Args: { _content: string; _id: string }
         Returns: undefined

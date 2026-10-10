@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import type { ChatReaction } from "@/lib/chat-reactions";
+import { dbChannel } from "@/lib/realtime";
 
 /**
  * The reactions on one message in a one-to-one chat, kept live, and a way to set yours
@@ -18,8 +19,7 @@ export function useMessageReactions(messageId: string, currentUserId: string) {
   useEffect(() => {
     if (temp) return;
     void load();
-    const channel = supabase
-      .channel(`message-reactions-${messageId}`)
+    const channel = dbChannel(`message-reactions-${messageId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "message_reactions", filter: `message_id=eq.${messageId}` }, () => void load())
       .subscribe();
     return () => { void supabase.removeChannel(channel); };

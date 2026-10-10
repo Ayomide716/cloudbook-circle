@@ -21,6 +21,7 @@ import ConfirmDialog from "@/components/ConfirmDialog";
 import GroupConversation from "@/components/groups/GroupConversation";
 import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
+import { dbChannel } from "@/lib/realtime";
 
 interface Group {
   id: string;
@@ -94,8 +95,7 @@ const GroupDetail = () => {
   }, [checkAuth]);
 
   const setupRealtimeSubscription = useEffectEvent(() => {
-    const channel = supabase
-      .channel(`group-${groupId}`)
+    const channel = dbChannel(`group-${groupId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "group_posts", filter: `group_id=eq.${groupId}` },

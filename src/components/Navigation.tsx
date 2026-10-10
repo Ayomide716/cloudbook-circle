@@ -33,6 +33,9 @@ import { motion } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
+import { dbChannel } from "@/lib/realtime";
+import { markMessagesDelivered } from "@/lib/delivered";
+import { useResync } from "@/hooks/use-resync";
 
 interface NavigationProps {
   currentUserId?: string;
@@ -121,14 +124,19 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   });
 
   const setupRealtimeSubscriptions = useEffectEvent(() => {
-    const channel = supabase
-      .channel("nav-counts")
+    const channel = dbChannel("nav-counts")
       .on("postgres_changes", { event: "*", schema: "public", table: "notifications" }, () => loadCounts())
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => loadCounts())
-      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${currentUserId}` }, () => loadCounts())
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages", filter: `receiver_id=eq.${currentUserId}` }, (payload) => {
+        if (payload.eventType === "INSERT") markMessagesDelivered();
+        loadCounts();
+      })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   });
+
+  // Back on screen (or online): catch up on counts, and tell senders their messages arrived.
+  useResync(() => { loadCounts(); markMessagesDelivered(); }, undefined, !!currentUserId);
 
   // Muting or unmuting a chat changes the Messages badge straight away.
   useEffect(() => {
@@ -140,6 +148,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   useEffect(() => {
     if (currentUserId) {
       loadCounts();
+      markMessagesDelivered();
       loadUserProfile();
       const cleanupRealtime = setupRealtimeSubscriptions();
       checkAdmin();
