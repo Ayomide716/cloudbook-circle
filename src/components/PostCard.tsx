@@ -78,6 +78,8 @@ export interface PostCardProps {
   currentUserId: string;
   reactions: Record<string, number>;
   userReaction: string | null;
+  /** Someone else who reacted, for "Ada Obi and 12 others". */
+  firstReactorName?: string | null;
   comments: PostComment[];
   onReactionToggle: (reactionType: string) => void;
   onCommentAdded: () => void;
@@ -103,6 +105,7 @@ const PostCard = ({
   currentUserId,
   reactions,
   userReaction,
+  firstReactorName,
   comments,
   onReactionToggle,
   onCommentAdded,
@@ -401,7 +404,16 @@ const PostCard = ({
     />
   );
 
+  const latestComment = [...comments].reverse().find((c) => !c.parent_id && !c.id.startsWith("temp-")) ?? null;
   const totalReactions = Object.values(reactions).reduce((a, b) => a + b, 0);
+  // "You and 12 others", "Ada Obi and 3 others", or just the count, as Facebook shows it.
+  const reactionSummary = (() => {
+    const others = totalReactions - 1;
+    const tail = others > 0 ? ` and ${compactCount(others)} ${others === 1 ? "other" : "others"}` : "";
+    if (userReaction) return `You${tail}`;
+    if (firstReactorName) return `${firstReactorName}${tail}`;
+    return compactCount(totalReactions);
+  })();
   const currentReaction = REACTION_TYPES.find(r => r.type === userReaction);
 
   // Get top 3 reaction types for display
@@ -670,7 +682,7 @@ const PostCard = ({
                   );
                 })}
               </span>
-              {compactCount(totalReactions)}
+              {reactionSummary}
             </span>
           )}
           <span className="ml-auto flex items-center gap-1">
@@ -770,6 +782,23 @@ const PostCard = ({
           </Button>
         </div>
       </div>
+
+      {/* A taste of the conversation, as on Instagram: the latest comment and a link to the rest. */}
+      {latestComment && (isPhone || !showComments) && (
+        <button
+          type="button"
+          onClick={() => setShowComments(true)}
+          className="block w-full px-3.5 pb-3 -mt-0.5 text-left text-[13.5px] leading-snug"
+        >
+          <span className="line-clamp-2">
+            <span className="font-semibold">{latestComment.profiles.full_name || "Someone"}</span>{" "}
+            <span className="text-foreground/85">{latestComment.content}</span>
+          </span>
+          {comments.length > 1 && (
+            <span className="mt-0.5 block text-muted-foreground">View all {compactCount(comments.length)} comments</span>
+          )}
+        </button>
+      )}
 
        {/* Share Dialog */}
        <SharePostDialog

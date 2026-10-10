@@ -26,12 +26,39 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
   const lastTap = useRef(0);
   const hideTimer = useRef<number>();
   const [playing, setPlaying] = useState(false);
-  const [muted, setMuted] = useState(false);
+  // Starts muted so it can play by itself as you scroll (phones only allow that silently).
+  const [muted, setMuted] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Once you pause it yourself, scrolling doesn't start it again.
+  const userPaused = useRef(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showBar, setShowBar] = useState(true);
 
   useEffect(() => () => { window.clearTimeout(tapTimer.current); window.clearTimeout(hideTimer.current); }, []);
+
+  // Plays (muted) while mostly on screen and pauses when scrolled away, as on Facebook and
+  // Instagram. Not on data saver, and not for people who prefer less motion.
+  useEffect(() => {
+    const el = containerRef.current;
+    const v = videoRef.current;
+    if (!el || !v) return;
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+    const lessMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    if (saveData || lessMotion || typeof IntersectionObserver === "undefined") return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting && entry.intersectionRatio >= 0.6) {
+          if (!userPaused.current && v.paused) void v.play().catch(() => {});
+        } else if (!v.paused) {
+          v.pause();
+        }
+      },
+      { threshold: [0, 0.6, 1] }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const pokeBar = () => {
     setShowBar(true);
@@ -42,9 +69,16 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
   const togglePlay = () => {
     const v = videoRef.current;
     if (!v) return;
-    if (v.paused) void v.play().catch(() => {});
-    else v.pause();
+    if (v.paused) { userPaused.current = false; void v.play().catch(() => {}); }
+    else { userPaused.current = true; v.pause(); }
     pokeBar();
+  };
+
+  /** A tap: turns the sound on for a video playing by itself, otherwise plays or pauses. */
+  const tapAction = () => {
+    const v = videoRef.current;
+    if (v && !v.paused && muted) { setMuted(false); pokeBar(); return; }
+    togglePlay();
   };
 
   const onTap = () => {
@@ -57,7 +91,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
     }
     lastTap.current = now;
     window.clearTimeout(tapTimer.current);
-    tapTimer.current = window.setTimeout(togglePlay, DOUBLE_TAP_MS);
+    tapTimer.current = window.setTimeout(tapAction, DOUBLE_TAP_MS);
   };
 
   const fullscreen = () => {
@@ -68,7 +102,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
   };
 
   return (
-    <div className={cn("relative select-none bg-black", className)}>
+    <div ref={containerRef} className={cn("relative select-none bg-black", className)}>
       <video
         ref={videoRef}
         // "#t=0.1" makes phones (iOS especially) show the first frame instead of a black box.
@@ -90,7 +124,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
       {/* The whole picture is the tap target (play / pause, or like on a double tap). */}
       <button
         type="button"
-        aria-label={playing ? "Pause video" : "Play video"}
+        aria-label={playing ? (muted ? "Turn sound on" : "Pause video") : "Play video"}
         className="absolute inset-0 flex items-center justify-center"
         onClick={onTap}
         onDoubleClick={(e) => e.preventDefault()}
@@ -101,6 +135,13 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
           </span>
         )}
       </button>
+
+      {/* Playing silently: a sound-off badge, tap the video for sound. */}
+      {playing && muted && !showBar && (
+        <span className="pointer-events-none absolute bottom-2.5 right-2.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/60 text-white" aria-hidden="true">
+          <VolumeX className="h-4 w-4" />
+        </span>
+      )}
 
       <div
         className={cn(
