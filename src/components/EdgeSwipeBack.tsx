@@ -35,6 +35,8 @@ const EdgeSwipeBack = () => {
       if (idx < 1 || document.querySelector('[role="dialog"], [vaul-drawer]')) return;
       start.current = { x: t.clientX, y: t.clientY, decided: false, horizontal: false };
       armed.current = false;
+      // Listen to the finger only for this touch, so ordinary scrolling never waits on us.
+      document.addEventListener("touchmove", onMove, { passive: false });
     };
 
     const onMove = (e: TouchEvent) => {
@@ -46,7 +48,7 @@ const EdgeSwipeBack = () => {
       if (!s.decided && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
         s.decided = true;
         s.horizontal = dx > 0 && Math.abs(dx) > Math.abs(dy) * 1.2;
-        if (!s.horizontal) { start.current = null; return; }
+        if (!s.horizontal) { start.current = null; document.removeEventListener("touchmove", onMove); return; }
       }
       if (!s.horizontal) return;
       if (e.cancelable) e.preventDefault(); // don't scroll the page while pulling
@@ -58,6 +60,7 @@ const EdgeSwipeBack = () => {
     };
 
     const onEnd = () => {
+      document.removeEventListener("touchmove", onMove);
       const s = start.current;
       start.current = null;
       setPull(null);
@@ -66,7 +69,6 @@ const EdgeSwipeBack = () => {
     };
 
     document.addEventListener("touchstart", onStart, { passive: true });
-    document.addEventListener("touchmove", onMove, { passive: false });
     document.addEventListener("touchend", onEnd, { passive: true });
     document.addEventListener("touchcancel", onEnd, { passive: true });
     return () => {

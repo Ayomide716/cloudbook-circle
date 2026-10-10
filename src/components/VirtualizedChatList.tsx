@@ -112,26 +112,67 @@ const VirtualizedChatList = ({
           // Row may not exist yet if the list re-rendered in between.
         }
       };
+      atBottomRef.current = true;
       requestAnimationFrame(scrollToEnd);
       // Again once new rows have been measured (images/voice players change heights).
-      const settle = setTimeout(scrollToEnd, 150);
-      return () => clearTimeout(settle);
+      const settles = [120, 400].map((ms) => setTimeout(() => {
+        scrollToEnd();
+        const el = listRef.current?.element;
+        if (el && atBottomRef.current) el.scrollTop = el.scrollHeight;
+      }, ms));
+      return () => settles.forEach(clearTimeout);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- lastIsMine is read with the new count
   }, [itemCount, scrollToBottomKey, canLoadMore, firstItemKey, listRef]);
+
+  const hasItems = itemCount > 0;
+  // Stay at the bottom while things grow: photos and voice notes taking their real size, a long
+  // message being measured, the keyboard opening. Only while you're at the bottom; if you've
+  // scrolled up to read, nothing moves you.
+  useEffect(() => {
+    const listEl = listRef.current?.element;
+    if (!listEl || typeof ResizeObserver === "undefined") return;
+    const stick = () => {
+      if (atBottomRef.current) listEl.scrollTop = listEl.scrollHeight;
+    };
+    const observer = new ResizeObserver(stick);
+    observer.observe(listEl);
+    for (const child of Array.from(listEl.children)) observer.observe(child);
+    // Rows are added and removed as you scroll; watch the ones on screen too.
+    const rowsObserver = new MutationObserver(() => {
+      for (const row of Array.from(listEl.querySelectorAll("[data-message-row]"))) observer.observe(row);
+    });
+    rowsObserver.observe(listEl, { childList: true, subtree: true });
+    for (const row of Array.from(listEl.querySelectorAll("[data-message-row]"))) observer.observe(row);
+    return () => { observer.disconnect(); rowsObserver.disconnect(); };
+    // hasItems: the list element only exists once there are messages to show.
+  }, [listRef, hasItems]);
 
   // Track whether the reader is near the bottom, for the ↓ button.
   useEffect(() => {
     const listEl = listRef.current?.element;
     if (!listEl) return;
+    // Only you scrolling up (touch, wheel, keys) leaves the bottom; the list moving because
+    // photos loaded or rows were measured doesn't.
+    let lastUserInput = 0;
+    const markUser = () => { lastUserInput = Date.now(); };
+    listEl.addEventListener("touchmove", markUser, { passive: true });
+    listEl.addEventListener("wheel", markUser, { passive: true });
+    listEl.addEventListener("keydown", markUser);
     const onScroll = () => {
       const fromBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight;
-      atBottomRef.current = fromBottom < 120;
+      if (fromBottom < 80) atBottomRef.current = true;
+      else if (Date.now() - lastUserInput < 1200) atBottomRef.current = false;
       setShowJump(fromBottom > 300);
       if (atBottomRef.current) setUnseen(0);
     };
     listEl.addEventListener("scroll", onScroll, { passive: true });
-    return () => listEl.removeEventListener("scroll", onScroll);
+    return () => {
+      listEl.removeEventListener("scroll", onScroll);
+      listEl.removeEventListener("touchmove", markUser);
+      listEl.removeEventListener("wheel", markUser);
+      listEl.removeEventListener("keydown", markUser);
+    };
   }, [listRef, itemCount]);
 
   const jumpToBottom = () => {
