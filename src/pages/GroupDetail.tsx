@@ -13,12 +13,14 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio, Trash2, Check, Globe } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio, Trash2, Check, Globe, MoreHorizontal, ShieldCheck, ShieldOff, UserMinus } from "lucide-react";
 import { HeaderAction } from "@/components/layout/PageHeader";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
+import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 
 interface Group {
   id: string;
@@ -69,7 +71,9 @@ const GroupDetail = () => {
   // Non-members can't see the member list, so the count comes from the server.
   const [memberCount, setMemberCount] = useState<number | null>(null);
   const [isJoining, setIsJoining] = useState(false);
-  const [confirm, setConfirm] = useState<{ kind: "leave" } | { kind: "post"; id: string } | null>(null);
+  const [confirm, setConfirm] = useState<{ kind: "leave" } | { kind: "post"; id: string } | { kind: "remove"; member: Member } | null>(null);
+  const [showAddPeople, setShowAddPeople] = useState(false);
+  const isAdmin = userRole === "admin";
   const { startGroupCall: startCall, joinGroupCall, activeGroupId } = useCalls();
   const inThisCall = !!groupId && activeGroupId === groupId;
   // Who's in this group's call right now (only watched while you're a member and not in it).
@@ -192,6 +196,33 @@ const GroupDetail = () => {
     }));
 
     setPosts(postsWithProfiles);
+  };
+
+  const managementError = (error: { message: string }) =>
+    /Could not find the function|function .*group_member/i.test(error.message)
+      ? "Managing members needs the latest database update."
+      : error.message;
+
+  const removeMember = async (member: Member) => {
+    if (!groupId) return;
+    const { error } = await supabase.rpc("remove_group_member", { _group: groupId, _user: member.profiles.id });
+    if (error) {
+      toast({ title: "Couldn't remove them", description: managementError(error), variant: "destructive" });
+      return;
+    }
+    toast({ title: `${member.profiles.full_name || "They"} ${member.profiles.full_name ? "was" : "were"} removed from the group` });
+    loadMembers();
+  };
+
+  const changeRole = async (member: Member, role: "admin" | "member") => {
+    if (!groupId) return;
+    const { error } = await supabase.rpc("set_group_member_role", { _group: groupId, _user: member.profiles.id, _role: role });
+    if (error) {
+      toast({ title: "Couldn't change their role", description: managementError(error), variant: "destructive" });
+      return;
+    }
+    toast({ title: role === "admin" ? `${member.profiles.full_name || "They"} can now manage the group` : `${member.profiles.full_name || "They"} is no longer an admin` });
+    loadMembers();
   };
 
   const loadMembers = async () => {
@@ -420,9 +451,14 @@ const GroupDetail = () => {
 
             <div className="flex items-center gap-2">
               {isMember ? (
-                <Button variant="secondary" className="flex-1 sm:flex-none rounded-xl" onClick={() => setConfirm({ kind: "leave" })} aria-label="Joined. Leave group?">
-                  <Check className="mr-2 h-4 w-4" /> Joined
-                </Button>
+                <>
+                  <Button variant="secondary" className="flex-1 sm:flex-none rounded-xl" onClick={() => setConfirm({ kind: "leave" })} aria-label="Joined. Leave group?">
+                    <Check className="mr-2 h-4 w-4" /> Joined
+                  </Button>
+                  <Button className="flex-1 sm:flex-none rounded-xl" onClick={() => setShowAddPeople(true)}>
+                    <UserPlus className="mr-2 h-4 w-4" /> Add people
+                  </Button>
+                </>
               ) : (
                 <Button className="flex-1 sm:flex-none rounded-xl" onClick={handleJoinGroup} disabled={isJoining}>
                   {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
@@ -637,12 +673,17 @@ const GroupDetail = () => {
                 <p className="text-muted-foreground">Join the group to see who's in it</p>
               </Card>
             )}
+            {isMember && (
+              <Button variant="secondary" className="w-full rounded-xl" onClick={() => setShowAddPeople(true)}>
+                <UserPlus className="mr-2 h-4 w-4" /> Add people
+              </Button>
+            )}
             {members.map((member) => (
-              <Card key={member.id} className="feed-section p-0 overflow-hidden">
+              <Card key={member.id} className="feed-section p-0 overflow-hidden flex items-center">
                 <button
                   type="button"
                   onClick={() => navigate(`/profile/${member.profiles.id}`)}
-                  className="w-full p-4 flex items-center gap-3 text-left hover:bg-secondary/50 transition-colors"
+                  className="min-w-0 flex-1 p-4 flex items-center gap-3 text-left hover:bg-secondary/50 transition-colors"
                 >
                   <Avatar>
                     <AvatarImage src={member.profiles.avatar_url || undefined} alt="" />
@@ -655,11 +696,37 @@ const GroupDetail = () => {
                       {member.profiles.full_name || "Anonymous"}
                       {member.profiles.id === currentUserId && <span className="text-muted-foreground font-normal"> (you)</span>}
                     </p>
-                    <p className="text-sm text-muted-foreground capitalize">
-                      {member.role}
+                    <p className="text-sm text-muted-foreground">
+                      {member.profiles.id === group.created_by ? "Creator · admin" : member.role === "admin" ? "Admin" : "Member"}
                     </p>
                   </div>
                 </button>
+                {/* Admins manage others: the creator can't be changed, and only the creator
+                    removes or demotes other admins (the database checks the same rules). */}
+                {isAdmin && member.profiles.id !== currentUserId && member.profiles.id !== group.created_by &&
+                  (member.role !== "admin" || group.created_by === currentUserId) && (
+                  <ActionMenu>
+                    <ActionMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="mr-2 h-9 w-9 shrink-0 rounded-full" aria-label={`Manage ${member.profiles.full_name || "member"}`}>
+                        <MoreHorizontal className="h-5 w-5" />
+                      </Button>
+                    </ActionMenuTrigger>
+                    <ActionMenuContent align="end" title={member.profiles.full_name || "Member"}>
+                      {member.role === "admin" ? (
+                        <ActionMenuItem onSelect={() => changeRole(member, "member")}>
+                          <ShieldOff className="h-4 w-4 mr-2" /> Remove as admin
+                        </ActionMenuItem>
+                      ) : (
+                        <ActionMenuItem onSelect={() => changeRole(member, "admin")}>
+                          <ShieldCheck className="h-4 w-4 mr-2" /> Make admin
+                        </ActionMenuItem>
+                      )}
+                      <ActionMenuItem className="text-destructive focus:text-destructive" onSelect={() => setConfirm({ kind: "remove", member })}>
+                        <UserMinus className="h-4 w-4 mr-2" /> Remove from group
+                      </ActionMenuItem>
+                    </ActionMenuContent>
+                  </ActionMenu>
+                )}
               </Card>
             ))}
           </TabsContent>
@@ -670,21 +737,40 @@ const GroupDetail = () => {
       <ConfirmDialog
         open={!!confirm}
         onOpenChange={(open) => !open && setConfirm(null)}
-        title={confirm?.kind === "leave" ? `Leave ${group.name}?` : "Delete this post?"}
+        title={
+          confirm?.kind === "leave" ? `Leave ${group.name}?`
+            : confirm?.kind === "remove" ? `Remove ${confirm.member.profiles.full_name || "this person"}?`
+            : "Delete this post?"
+        }
         description={
           confirm?.kind === "leave"
             ? group.created_by === currentUserId
               ? "You created this group. You can join again later, and you'll still be able to edit it."
               : "You'll lose access to the chat, voice rooms and posts until you join again."
-            : "This can't be undone."
+            : confirm?.kind === "remove"
+              ? "They'll lose access to the group's posts, chat and voice rooms. They can join again if the group is public."
+              : "This can't be undone."
         }
-        confirmLabel={confirm?.kind === "leave" ? "Leave" : "Delete"}
+        confirmLabel={confirm?.kind === "leave" ? "Leave" : confirm?.kind === "remove" ? "Remove" : "Delete"}
         onConfirm={() => {
           if (confirm?.kind === "leave") handleLeaveGroup();
+          else if (confirm?.kind === "remove") removeMember(confirm.member);
           else if (confirm?.kind === "post") handleDeletePost(confirm.id);
           setConfirm(null);
         }}
       />
+
+      {currentUserId && (
+        <AddGroupMembersDialog
+          open={showAddPeople}
+          onOpenChange={setShowAddPeople}
+          groupId={group.id}
+          groupName={group.name}
+          currentUserId={currentUserId}
+          memberIds={members.map((m) => m.profiles.id)}
+          onAdded={() => loadMembers()}
+        />
+      )}
     </div>
   );
 };

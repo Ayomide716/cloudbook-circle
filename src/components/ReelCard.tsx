@@ -10,6 +10,8 @@ import {
   ActionMenuTrigger,
 } from "@/components/ui/action-menu";
 import { useToast } from "@/hooks/use-toast";
+import HeartBurst from "./HeartBurst";
+import { haptic } from "@/lib/haptics";
 import ReportDialog from "@/components/ReportDialog";
 
 interface ReelCardProps {
@@ -48,7 +50,7 @@ export default function ReelCard({
   const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(0);
   const [buffered, setBuffered] = useState(0);
-  const [doubleTapHeart, setDoubleTapHeart] = useState(false);
+  const [heartBurst, setHeartBurst] = useState(0);
   const [isVisible, setIsVisible] = useState(false);
   const [reportOpen, setReportOpen] = useState(false);
   const lastTapRef = useRef(0);
@@ -118,8 +120,8 @@ export default function ReelCard({
     if (now - lastTapRef.current < 300) {
       clearTimeout(singleTapTimer.current);
       if (!isLiked) onLike(reel.id);
-      setDoubleTapHeart(true);
-      setTimeout(() => setDoubleTapHeart(false), 800);
+      else haptic(12);
+      setHeartBurst((n) => n + 1);
       lastTapRef.current = 0;
       return;
     }
@@ -172,9 +174,9 @@ export default function ReelCard({
               <div className="absolute inset-0 bg-black" />
             )}
 
-            {doubleTapHeart && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                <ThumbsUp className="h-24 w-24 text-white fill-white animate-like-heart drop-shadow-2xl" />
+            {heartBurst > 0 && (
+              <div className="pointer-events-none absolute inset-0 z-30">
+                <HeartBurst key={heartBurst} />
               </div>
             )}
 

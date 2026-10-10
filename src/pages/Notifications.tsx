@@ -155,6 +155,9 @@ const Notifications = () => {
         // Navigate to the friend's profile or friends page
         navigate("/friends");
         break;
+      case "group_added":
+        if (notification.related_id) navigate(`/groups/${notification.related_id}`);
+        break;
       default:
         // Default navigation
         break;
@@ -181,6 +184,12 @@ const Notifications = () => {
         return (
           <div className={`${size} rounded-full bg-green-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
             <UserPlus className={`${iconSize} text-white`} />
+          </div>
+        );
+      case "group_added":
+        return (
+          <div className={`${size} rounded-full bg-sky-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
+            <Users className={`${iconSize} text-white`} />
           </div>
         );
       case "friend_accepted":

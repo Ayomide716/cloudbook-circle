@@ -1572,6 +1572,7 @@ export type Database = {
           content: string
           created_at: string | null
           id: string
+          parent_id: string | null
           reel_id: string
           user_id: string
         }
@@ -1579,6 +1580,7 @@ export type Database = {
           content: string
           created_at?: string | null
           id?: string
+          parent_id?: string | null
           reel_id: string
           user_id: string
         }
@@ -1586,6 +1588,7 @@ export type Database = {
           content?: string
           created_at?: string | null
           id?: string
+          parent_id?: string | null
           reel_id?: string
           user_id?: string
         }
@@ -2247,6 +2250,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      add_group_member: {
+        Args: { _group: string; _user: string }
+        Returns: undefined
+      }
       block_user: {
         Args: { _target: string }
         Returns: undefined
@@ -2258,6 +2265,14 @@ export type Database = {
       is_blocked_with: {
         Args: { _other: string }
         Returns: boolean
+      }
+      remove_group_member: {
+        Args: { _group: string; _user: string }
+        Returns: undefined
+      }
+      set_group_member_role: {
+        Args: { _group: string; _user: string; _role: string }
+        Returns: undefined
       }
       increment_watch_views: {
         Args: { _user_id: string; _video_id: string }

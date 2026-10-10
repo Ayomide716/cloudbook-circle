@@ -746,7 +746,7 @@ const Messages = () => {
                     )}
                     <div className="flex items-end gap-1.5">
                       {!voiceActive && (
-                        <div className="flex-1 min-w-0 flex items-end gap-0.5 rounded-3xl bg-card dark:bg-[#22262d] shadow-sm pl-1 pr-1 min-h-12">
+                        <div className="flex-1 min-w-0 flex items-end gap-0.5 rounded-3xl bg-card dark:bg-[#22262d] shadow-sm px-1 py-1 min-h-12 [&_button]:h-10 [&_button]:w-10 [&_button]:shrink-0 [&_button]:rounded-full [&_button_svg]:!h-[22px] [&_button_svg]:!w-[22px] [&_button_svg]:text-muted-foreground">
                           <GifPicker
                             onSelect={(content) => {
                               if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }
@@ -762,7 +762,7 @@ const Messages = () => {
                             onKeyDown={sendOnEnter}
                             disabled={isSending}
                             enterKeyHint={enterMakesNewLine() ? "enter" : "send"}
-                            className="flex-1 min-w-0 resize-none self-center border-0 bg-transparent px-1 py-2.5 text-[16px] leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-50"
+                            className="flex-1 min-w-0 resize-none border-0 bg-transparent px-1 py-2 text-[16px] leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-50"
                             aria-label="Message"
                           />
                           <ChatImageUpload
