@@ -45,6 +45,7 @@ const Explore = lazy(() => import("./pages/Explore"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const Menu = lazy(() => import("./pages/Menu"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const ForgotPassword = lazy(() => import("./pages/ForgotPassword"));
 
 // Lazy-loaded skeletons
 const FeedSkeleton = lazy(() => import("./components/skeletons/FeedSkeleton"));
@@ -117,7 +118,7 @@ const PageFallback = () => {
 };
 
 // Pages that never show the app's bars: sign-in screens and full-screen Reels.
-const withoutBars = (path: string) => path === "/auth" || path === "/reset-password" || path.startsWith("/reels");
+const withoutBars = (path: string) => path === "/auth" || path === "/forgot-password" || path === "/reset-password" || path.startsWith("/reels");
 
 /**
  * One header and bottom bar for every signed-in page, kept on screen across page changes
@@ -149,6 +150,7 @@ const AppRoutes = () => {
         {/* The marketing landing page was removed; keep old links working. */}
         <Route path="/landing" element={<Navigate to="/auth" replace />} />
         <Route path="/auth" element={<AnimatedPage><Auth /></AnimatedPage>} />
+        <Route path="/forgot-password" element={<AnimatedPage><ForgotPassword /></AnimatedPage>} />
         <Route path="/reset-password" element={<AnimatedPage><ResetPassword /></AnimatedPage>} />
         <Route path="/profile/:userId" element={<Protected><Profile /></Protected>} />
         <Route path="/messages" element={<Protected><Messages /></Protected>} />

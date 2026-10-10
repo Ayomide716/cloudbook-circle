@@ -27,6 +27,7 @@ import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
+import { stickerMessage } from "@/lib/stickers";
 
 interface GroupConversationProps {
   group: GroupInfo;
@@ -514,6 +515,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
                   if (picked.startsWith("http")) setMedia({ url: picked, type: "image" });
                   else setText((t) => t + picked);
                 }}
+                onSticker={(id) => void post(stickerMessage(id), null)}
               />}
               <textarea
                 ref={boxRef}

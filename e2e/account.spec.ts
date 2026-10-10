@@ -43,13 +43,15 @@ test.describe("account", () => {
     const email = `forgetful.${Date.now()}@example.com`;
     await db.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true, user_metadata: { full_name: "Forgetful" } });
 
+    // "Forgot password?" opens its own page, carrying over what's typed in the email field.
     await page.goto("/auth");
-    await page.getByRole("button", { name: "Forgot password?" }).click();
-    await expect(page.getByText("Enter your email first").first()).toBeVisible();
-
     await page.fill('input[type="email"]', email);
-    await page.getByRole("button", { name: "Forgot password?" }).click();
-    await expect(page.getByText(/a password reset link is on its way/).first()).toBeVisible();
+    await page.getByRole("link", { name: "Forgot password?" }).click();
+    await expect(page).toHaveURL(/\/forgot-password$/);
+    await expect(page.getByLabel("Email")).toHaveValue(email);
+    await page.getByRole("button", { name: "Send reset link" }).click();
+    await expect(page.getByRole("heading", { name: "Check your email" })).toBeVisible();
+    await expect(page.getByText(/link to reset your password is on its way/)).toBeVisible();
 
     // Read the email from Mailpit and find the link in it.
     let link = "";

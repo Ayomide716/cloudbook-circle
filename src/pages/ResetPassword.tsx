@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { KeyRound, Loader2 } from "lucide-react";
+import { KeyRound, Loader2, Lock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSEO } from "@/hooks/useSEO";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import logo from "@/assets/logo-mark.png";
+import AuthShell, { AuthBrand } from "@/components/auth/AuthShell";
+import AuthField from "@/components/auth/AuthField";
 
 /**
  * Where the "reset your password" email link lands. Supabase signs the visitor in
@@ -66,50 +64,60 @@ const ResetPassword = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
-      <Card className="w-full max-w-sm p-6">
-        <div className="flex items-center gap-2 mb-5">
-          <img src={logo} alt="" className="h-9 w-9 rounded-xl" />
-          <span className="font-display text-xl font-bold gradient-text">Ember</span>
-        </div>
-        <h1 className="font-display text-2xl font-bold mb-1">Choose a new password</h1>
+    <AuthShell showPanel={false}>
+      <AuthBrand always />
+      <h1 className="font-display text-[28px] font-bold leading-tight tracking-tight">Choose a new password</h1>
 
-        {status === "checking" && (
-          <p className="flex items-center gap-2 text-sm text-muted-foreground py-6" role="status">
-            <Loader2 className="h-4 w-4 animate-spin" /> Checking your reset link…
+      {status === "checking" && (
+        <p className="flex items-center gap-2 py-6 text-[15px] text-muted-foreground" role="status">
+          <Loader2 className="h-4 w-4 animate-spin" /> Checking your reset link…
+        </p>
+      )}
+
+      {status === "invalid" && (
+        <div className="space-y-5 py-3">
+          <p className="text-[15px] leading-relaxed text-muted-foreground">
+            This reset link has expired or was already used. Ask for a new one from the sign-in page.
           </p>
-        )}
+          <Button asChild className="h-[52px] w-full rounded-full text-[15px] font-semibold">
+            <Link to="/auth">Back to sign in</Link>
+          </Button>
+          <Button asChild variant="ghost" className="h-11 w-full rounded-full text-[14px] font-semibold">
+            <Link to="/forgot-password">Send me a new link</Link>
+          </Button>
+        </div>
+      )}
 
-        {status === "invalid" && (
-          <div className="py-4 space-y-4">
-            <p className="text-sm text-muted-foreground">
-              This reset link has expired or was already used. Ask for a new one from the sign-in page.
-            </p>
-            <Button asChild className="w-full rounded-xl">
-              <Link to="/auth">Back to sign in</Link>
-            </Button>
-          </div>
-        )}
-
-        {status === "ready" && (
-          <form onSubmit={save} className="space-y-3 mt-4">
-            <div>
-              <Label htmlFor="new-password">New password</Label>
-              <Input id="new-password" type="password" autoComplete="new-password" className="mt-1" value={password} onChange={(e) => setPassword(e.target.value)} />
-            </div>
-            <div>
-              <Label htmlFor="confirm-password">Confirm new password</Label>
-              <Input id="confirm-password" type="password" autoComplete="new-password" className="mt-1" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
-            </div>
-            {error && <p className="text-xs text-destructive">{error}</p>}
-            <Button type="submit" className="w-full rounded-xl" disabled={saving || !password || !!error || password !== confirm}>
-              {saving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <KeyRound className="h-4 w-4 mr-2" />}
-              Save new password
-            </Button>
-          </form>
-        )}
-      </Card>
-    </div>
+      {status === "ready" && (
+        <form onSubmit={save} className="mt-6 space-y-4">
+          <AuthField
+            id="new-password"
+            label="New password"
+            icon={Lock}
+            type="password"
+            autoComplete="new-password"
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <AuthField
+            id="confirm-password"
+            label="Confirm new password"
+            icon={Lock}
+            type="password"
+            autoComplete="new-password"
+            placeholder="Type it again"
+            value={confirm}
+            onChange={(e) => setConfirm(e.target.value)}
+          />
+          {error && <p className="pl-1 text-[13px] font-medium text-destructive">{error}</p>}
+          <Button type="submit" className="h-[52px] w-full rounded-full text-[15px] font-semibold" disabled={saving || !password || !!error || password !== confirm}>
+            {saving ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
+            Save new password
+          </Button>
+        </form>
+      )}
+    </AuthShell>
   );
 };
 

@@ -78,6 +78,12 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        // A sticker landing in the chat.
+        "sticker-pop": {
+          "0%": { transform: "scale(0.4) rotate(-12deg)", opacity: "0" },
+          "60%": { transform: "scale(1.08) rotate(3deg)", opacity: "1" },
+          "100%": { transform: "scale(1) rotate(0deg)", opacity: "1" },
+        },
         // The welcome wave.
         wave: {
           "0%, 100%": { transform: "rotate(0deg)" },
@@ -161,6 +167,7 @@ export default {
         },
       },
       animation: {
+        "sticker-pop": "sticker-pop 0.45s cubic-bezier(.2,.8,.3,1.2) both",
         marquee: "marquee 9s linear infinite",
         "sound-bar": "sound-bar 0.9s ease-in-out infinite",
         "heart-pop": "heart-pop 1.1s cubic-bezier(.2,.8,.3,1) forwards",

@@ -11,6 +11,7 @@ import type { ChatReaction } from "@/lib/chat-reactions";
 import { nameColour } from "@/lib/group-chats";
 import { MEDIA_PLACEHOLDERS, isVoiceNote, mediaKind, quoteText, voiceSeconds, type GroupMessage } from "@/lib/group-messages";
 import { cn } from "@/lib/utils";
+import { stickerId, stickerName, stickerUrl } from "@/lib/stickers";
 
 interface GroupMessageBubbleProps {
   message: GroupMessage;
@@ -52,7 +53,9 @@ const GroupMessageBubble = ({
 
   const voice = isVoiceNote(m);
   const kind = m.image_url && !voice ? mediaKind(m.image_url) : null;
-  const showText = !voice && !(m.image_url && MEDIA_PLACEHOLDERS.includes(m.content));
+  // A sticker stands on its own: big, with no bubble around it.
+  const sticker = stickerId(m.content);
+  const showText = !voice && !sticker && !(m.image_url && MEDIA_PLACEHOLDERS.includes(m.content));
   const mineReaction = reactions.find((r) => r.user_id === currentUserId)?.reaction_type ?? null;
   const time = format(new Date(m.created_at), "HH:mm");
 
@@ -61,7 +64,7 @@ const GroupMessageBubble = ({
     ...(onForward ? [{ label: "Forward", icon: <Forward className="mr-2 h-4 w-4" />, onSelect: () => onForward(m) }] : []),
     ...(onToggleStar ? [{ label: starred ? "Unstar" : "Star", icon: starred ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />, onSelect: () => onToggleStar(m) }] : []),
     ...(showText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(m.content) }] : []),
-    ...(mine && !m.image_url ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(m) }] : []),
+    ...(mine && !m.image_url && !sticker ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(m) }] : []),
     ...(mine ? [{ label: "Delete", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onDelete(m), destructive: true }] : []),
   ];
 
@@ -116,9 +119,11 @@ const GroupMessageBubble = ({
         <div
           data-message-bubble
           className={cn(
-            "relative w-full rounded-lg px-2.5 pb-1.5 pt-1 shadow-sm [-webkit-touch-callout:none] [@media(hover:none)]:select-none",
-            mine ? "bg-primary text-primary-foreground dark:bg-[#8a3412] dark:text-white" : "bg-card text-foreground dark:bg-[#232327]",
-            firstInRun && (mine ? "rounded-tr-none" : "rounded-tl-none"),
+            "relative w-full rounded-lg px-2.5 pb-1.5 pt-1 [-webkit-touch-callout:none] [@media(hover:none)]:select-none",
+            sticker
+              ? "w-auto bg-transparent px-0 pb-0 text-foreground"
+              : cn("shadow-sm", mine ? "bg-primary text-primary-foreground dark:bg-[#8a3412] dark:text-white" : "bg-card text-foreground dark:bg-[#232327]"),
+            !sticker && firstInRun && (mine ? "rounded-tr-none" : "rounded-tl-none"),
             pending && "opacity-70",
             (menuOpen || highlighted) && "ring-2 ring-primary/40",
             highlighted && "animate-pulse"
@@ -153,7 +158,9 @@ const GroupMessageBubble = ({
               <p className="max-w-[240px] truncate opacity-80">{quoted ? quoteText(quoted).substring(0, 80) : "Scroll up to see it"}</p>
             </div>
           )}
-          {voice ? (
+          {sticker ? (
+            <img src={stickerUrl(sticker)} alt={`${stickerName(sticker)} sticker`} draggable={false} className="block h-32 w-32 select-none object-contain drop-shadow-md animate-sticker-pop" />
+          ) : voice ? (
             <VoiceMessagePlayer audioUrl={m.image_url!} duration={voiceSeconds(m.content)} isOwnMessage={mine} />
           ) : m.image_url && kind === "video" ? (
             <video src={m.image_url} controls playsInline preload="metadata" className="mt-1 max-h-72 w-full rounded-md bg-black" />
@@ -169,7 +176,11 @@ const GroupMessageBubble = ({
               <span className={cn("ml-2 inline-block", m.edited_at ? "w-[4.5rem]" : "w-9", starred && "pl-4")} aria-hidden="true" />
             </p>
           )}
-          <p className={cn("text-right text-[10.5px] leading-none", showText ? "-mt-3.5" : "mt-1", mine ? "text-white/70" : "text-muted-foreground")}>
+          <p className={cn(
+            "text-right text-[10.5px] leading-none",
+            sticker ? "absolute bottom-1 right-1 rounded-full bg-black/55 px-1.5 py-1 text-white" : showText ? "-mt-3.5" : "mt-1",
+            !sticker && (mine ? "text-white/70" : "text-muted-foreground")
+          )}>
             {starred && <Star className="mr-1 inline h-3 w-3 -translate-y-px fill-current" aria-label="Starred" />}
             {m.edited_at && <span className="mr-1">edited</span>}
             {time}

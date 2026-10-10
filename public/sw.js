@@ -1,4 +1,4 @@
-const CACHE_VERSION = "cloudbook-v3";
+const CACHE_VERSION = "ember-v4";
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `images-${CACHE_VERSION}`;
@@ -161,3 +161,45 @@ async function staleWhileRevalidate(request, cacheName) {
   }).catch(() => cached);
   return cached || fetchPromise;
 }
+
+// Push notifications (sent by the send-push function): show them even with the app closed
+// or the phone locked. If Ember is open on screen, the app shows its own badge instead.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { body: event.data ? event.data.text() : "" };
+  }
+  const title = data.title || "Ember";
+  const options = {
+    body: data.body || "",
+    icon: "/icon-192.png",
+    badge: "/icon-maskable-192.png",
+    tag: data.tag || undefined,
+    renotify: !!data.tag,
+    data: { url: data.url || "/" },
+  };
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const onScreen = clients.some((c) => c.visibilityState === "visible" && c.focused);
+      if (onScreen) return undefined;
+      return self.registration.showNotification(title, options);
+    })
+  );
+});
+
+// Tapping a notification opens Ember at the right chat or post (reusing an open window).
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((c) => c.url.startsWith(self.location.origin));
+      if (existing) {
+        return existing.focus().then((c) => (c && "navigate" in c ? c.navigate(target) : undefined));
+      }
+      return self.clients.openWindow(target);
+    })
+  );
+});

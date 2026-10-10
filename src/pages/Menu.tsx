@@ -34,6 +34,7 @@ import { cn } from "@/lib/utils";
 import { features } from "@/lib/features";
 import { fadeTheme } from "@/lib/theme-fade";
 import { motion } from "framer-motion";
+import { disablePush } from "@/lib/web-push";
 
 interface Shortcut {
   icon: LucideIcon;
@@ -113,6 +114,8 @@ const Menu = () => {
   }, [load]);
 
   const handleLogout = async () => {
+    // This phone stops getting the account's alerts once you've logged out.
+    await disablePush();
     await supabase.auth.signOut();
     navigate("/auth");
   };

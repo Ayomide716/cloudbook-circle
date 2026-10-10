@@ -18,6 +18,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
+import { disablePush, enablePush, needsHomeScreenInstall, pushActive } from "@/lib/web-push";
 
 interface NotificationPrefs {
   likes: boolean;
@@ -87,6 +88,7 @@ const Settings = () => {
   };
 
   const signOut = async () => {
+    await disablePush();
     await supabase.auth.signOut();
     navigate("/auth", { replace: true });
   };
@@ -97,6 +99,8 @@ const Settings = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [pushPermission, setPushPermission] = useState<NotificationPermission>("default");
+  // Whether this phone is subscribed (allowed once doesn't mean it's saved for this account).
+  const [pushOn, setPushOn] = useState(pushActive);
 
   useEffect(() => {
     const init = async () => {
@@ -152,26 +156,29 @@ const Settings = () => {
   };
 
   const requestPushPermission = async () => {
-    if (!("Notification" in window)) {
-      toast({ title: "Not supported", description: "Your browser doesn't support push notifications" });
+    if (needsHomeScreenInstall()) {
+      toast({ title: "Add Ember to your Home Screen first", description: "On iPhone, tap Share then \"Add to Home Screen\", open Ember from there, and turn notifications on." });
       return;
     }
     if (Notification.permission === "denied") {
       toast({ title: "Notifications are blocked", description: "Allow them for this site in your browser's settings, then come back." });
       return;
     }
-    const permission = await Notification.requestPermission();
-    setPushPermission(permission);
-    if (permission === "granted") {
-      handleToggle("push_enabled", true);
-      toast({ title: "Push notifications enabled!" });
-    } else {
-      toast({ title: "Permission denied", description: "You can change this in browser settings", variant: "destructive" });
+    try {
+      const result = await enablePush();
+      setPushPermission(Notification.permission);
+      if (result === "on") {
+        setPushOn(true);
+        handleToggle("push_enabled", true);
+      }
+      else if (result === "unsupported") toast({ title: "Not supported", description: "This browser can't show notifications." });
+    } catch {
+      toast({ title: "Couldn't turn on notifications", description: "Try again in a moment.", variant: "destructive" });
     }
   };
 
   const prefItems = [
-    { key: "push_enabled" as const, label: "Push Notifications", desc: "Receive browser push notifications", icon: Smartphone },
+    { key: "push_enabled" as const, label: "Push Notifications", desc: "Alerts on this phone, even when Ember is closed", icon: Smartphone },
     { key: "likes" as const, label: "Likes", desc: "When someone likes your post", icon: Heart },
     { key: "comments" as const, label: "Comments", desc: "When someone comments on your post", icon: MessageCircle },
     { key: "friend_requests" as const, label: "Friend Requests", desc: "When someone sends you a friend request", icon: UserPlus },
@@ -259,7 +266,7 @@ const Settings = () => {
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notifications</h2>
 
         {/* Push Permission Banner */}
-        {pushPermission !== "granted" && (
+        {(pushPermission !== "granted" || !pushOn) && (
           <Card className="p-4 mb-4 border-primary/20 bg-primary/5">
             <div className="flex items-center gap-3">
               <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
