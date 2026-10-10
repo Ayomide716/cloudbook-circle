@@ -156,12 +156,16 @@ const Notifications = () => {
         navigate("/friends");
         break;
       case "group_added":
-        if (notification.related_id) navigate(`/messages?group=${notification.related_id}`);
+        if (notification.related_id) navigate(`/groups/${notification.related_id}`);
         break;
-      case "group_invite":
-        // Invites are answered at the top of Messages.
-        navigate("/messages");
+      case "group_invite": {
+        // Group chat invites are answered in Messages, community invites on the Groups tab.
+        const { data } = notification.related_id
+          ? await supabase.from("groups").select("*").eq("id", notification.related_id).maybeSingle()
+          : { data: null };
+        navigate((data as { is_chat?: boolean } | null)?.is_chat ? "/messages" : "/groups");
         break;
+      }
       default:
         // Default navigation
         break;

@@ -770,6 +770,7 @@ export type Database = {
           description: string | null
           id: string
           image_url: string | null
+          is_chat: boolean
           name: string
           updated_at: string
         }
@@ -779,6 +780,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_chat?: boolean
           name: string
           updated_at?: string
         }
@@ -788,6 +790,7 @@ export type Database = {
           description?: string | null
           id?: string
           image_url?: string | null
+          is_chat?: boolean
           name?: string
           updated_at?: string
         }

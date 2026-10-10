@@ -36,6 +36,8 @@ interface GroupConversationProps {
   onSeen: () => void;
   /** You left the group (or were removed): close the chat. */
   onLeft: () => void;
+  /** Inside a community group's page, which has its own header: just the messages and the bar. */
+  embedded?: boolean;
 }
 
 const PAGE = 50;
@@ -62,7 +64,7 @@ const dayLabel = (d: Date) => {
  * at the top (tap for the group's info), names in colour above other people's messages, and
  * the same message box as one-to-one chats.
  */
-const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft }: GroupConversationProps) => {
+const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embedded = false }: GroupConversationProps) => {
   const { toast } = useToast();
   const { startGroupCall } = useCalls();
   const [messages, setMessages] = useState<GroupMessage[]>([]);
@@ -241,7 +243,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft }: Gro
   return (
     <div className="relative flex h-full min-h-0 flex-col">
       {/* Header: back, picture, name and who's in it (tap for the group's info), calls */}
-      <div className="flex flex-shrink-0 items-center gap-1 border-b bg-card px-1.5 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] sm:px-3">
+      {!embedded && <div className="flex flex-shrink-0 items-center gap-1 border-b bg-card px-1.5 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] sm:px-3">
         <Button variant="ghost" size="icon" className="h-10 w-10 md:hidden [&_svg]:size-6" aria-label="Back to chats" onClick={onBack}>
           <ArrowLeft />
         </Button>
@@ -264,7 +266,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft }: Gro
         <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-[22px]" aria-label="Group info" onClick={() => setShowInfo(true)}>
           <MoreVertical />
         </Button>
-      </div>
+      </div>}
 
       {loading ? (
         <div className="chat-wallpaper flex flex-1 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
@@ -293,7 +295,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft }: Gro
         />
       )}
 
-      <form onSubmit={send} className="chat-wallpaper flex-shrink-0 px-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] pt-1.5">
+      <form onSubmit={send} className={cn("chat-wallpaper flex-shrink-0 px-2 pt-1.5", embedded ? "pb-2" : "pb-[max(0.5rem,env(safe-area-inset-bottom))]")}>
         {media && (
           <div className="relative mb-2 ml-2 inline-block">
             {media.type === "video" ? <video src={media.url} className="h-20 rounded-lg" /> : <img src={media.url} alt="To send" className="h-20 rounded-lg" />}

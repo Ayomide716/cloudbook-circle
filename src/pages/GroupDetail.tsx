@@ -18,6 +18,7 @@ import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import GroupConversation from "@/components/groups/GroupConversation";
 import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 
@@ -27,6 +28,7 @@ interface Group {
   description: string | null;
   image_url: string | null;
   created_by: string;
+  created_at?: string;
 }
 
 interface GroupPost {
@@ -535,14 +537,17 @@ const GroupDetail = () => {
 
           <TabsContent value="chat">
             {isMember ? (
-              // The group's chat lives in Messages with your other chats, as on WhatsApp.
-              <Card className="feed-section p-10 text-center">
-                <MessageCircle className="mx-auto mb-3 h-10 w-10 text-primary" />
-                <p className="mb-4 text-muted-foreground">Chat with the group alongside your other conversations.</p>
-                <Button className="rounded-full" onClick={() => navigate(`/messages?group=${groupId}`)}>
-                  <MessageCircle className="mr-2 h-4 w-4" /> Open group chat
-                </Button>
-              </Card>
+              // The community's own chat, in the same style as Messages (it doesn't go in your chat list).
+              <div className="feed-section h-[calc(100dvh-22rem)] min-h-[420px] overflow-hidden rounded-[1.125rem] border bg-card">
+                <GroupConversation
+                  embedded
+                  group={{ ...group, created_at: group.created_at ?? new Date().toISOString() }}
+                  currentUserId={currentUserId!}
+                  onBack={() => {}}
+                  onSeen={() => {}}
+                  onLeft={() => {}}
+                />
+              </div>
             ) : (
               <Card className="feed-section p-12 text-center">
                 <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
