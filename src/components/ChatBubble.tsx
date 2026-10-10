@@ -28,6 +28,8 @@ interface ChatMessage {
   deleted_at?: string | null;
   expires_at?: string | null;
   forwarded?: boolean;
+  /** When it reached the other person's app (two grey ticks). */
+  delivered_at?: string | null;
 }
 
 interface ChatBubbleProps {
@@ -129,8 +131,11 @@ const ChatBubble = ({
       {message.edited && <span className="mr-0.5">edited</span>}
       {time}
       {isCurrentUser &&
+        // One grey tick: sent. Two grey: delivered to their app. Two blue: read (as on WhatsApp).
         (message.read ? (
           <CheckCheck className="h-3.5 w-3.5 ml-0.5 text-sky-400" strokeWidth={2.5} aria-label="Read" />
+        ) : message.delivered_at ? (
+          <CheckCheck className="h-3.5 w-3.5 ml-0.5 opacity-60" strokeWidth={2.5} aria-label="Delivered" />
         ) : (
           <Check className="h-3.5 w-3.5 ml-0.5 opacity-60" aria-label="Sent" />
         ))}

@@ -13,6 +13,7 @@ import { formatDistanceToNow } from "date-fns";
 import { cn, toDate } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { groupMessage, groupNotifications, type GroupableNotification, type NotificationGroup } from "@/lib/notification-groups";
+import { dbChannel } from "@/lib/realtime";
 
 interface Notification extends GroupableNotification {
   actor_profile?: { full_name: string | null; avatar_url: string | null } | null;
@@ -84,8 +85,7 @@ const Notifications = () => {
   });
 
   const setupRealtimeSubscription = useEffectEvent(() => {
-    const channel = supabase
-      .channel("notifications-page")
+    const channel = dbChannel("notifications-page")
       .on(
         "postgres_changes",
         {

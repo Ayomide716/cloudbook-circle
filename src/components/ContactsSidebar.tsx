@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import OnlineStatusIndicator from "./OnlineStatusIndicator";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { dbChannel } from "@/lib/realtime";
 
 interface Contact {
   id: string;
@@ -63,8 +64,7 @@ const ContactsSidebar = ({ currentUserId }: ContactsSidebarProps) => {
   useEffect(() => {
     fetchContacts();
 
-    const channel = supabase
-      .channel("contacts-status-sync")
+    const channel = dbChannel("contacts-status-sync")
       .on("postgres_changes", { event: "*", schema: "public", table: "user_status" }, () => fetchContacts())
       .on("postgres_changes", { event: "*", schema: "public", table: "friendships" }, () => fetchContacts())
       .subscribe();

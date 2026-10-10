@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { ArrowUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import { dbChannel } from "@/lib/realtime";
 
 interface NewPostsBannerProps {
   onRefresh: () => void;
@@ -15,8 +16,7 @@ const NewPostsBanner = ({ onRefresh, lastFetchTime, currentUserId }: NewPostsBan
   const countRef = useRef(0);
 
   useEffect(() => {
-    const channel = supabase
-      .channel("new-posts-banner")
+    const channel = dbChannel("new-posts-banner")
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "posts" }, (payload) => {
         if ((payload.new as { user_id?: string }).user_id === currentUserId) return;
         countRef.current += 1;

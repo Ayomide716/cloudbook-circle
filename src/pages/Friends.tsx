@@ -26,6 +26,7 @@ import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { toDate } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
+import { dbChannel } from "@/lib/realtime";
 
 
 interface Profile {
@@ -198,8 +199,7 @@ const Friends = () => {
   };
 
   const setupRealtimeSubscription = useEffectEvent(() => {
-    const channel = supabase
-      .channel("friends-page")
+    const channel = dbChannel("friends-page")
       .on(
         "postgres_changes",
         {

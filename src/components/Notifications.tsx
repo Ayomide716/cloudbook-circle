@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { toDate } from "@/lib/utils";
+import { dbChannel } from "@/lib/realtime";
 
 interface Notification {
   id: string;
@@ -53,8 +54,7 @@ const Notifications = ({ userId }: NotificationsProps) => {
   });
 
   const setupRealtimeSubscription = useEffectEvent(() => {
-    const channel = supabase
-      .channel("notifications-changes")
+    const channel = dbChannel("notifications-changes")
       .on(
         "postgres_changes",
         {

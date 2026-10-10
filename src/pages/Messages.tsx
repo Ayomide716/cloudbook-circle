@@ -42,6 +42,8 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 import { explainError } from "@/lib/blocking";
 import { haptic } from "@/lib/haptics";
 import { enterMakesNewLine, sendOnEnter, useAutoGrow } from "@/lib/enter-key";
+import { dbChannel } from "@/lib/realtime";
+import { useResync } from "@/hooks/use-resync";
 
 interface Profile {
   id: string;
@@ -272,13 +274,14 @@ const Messages = () => {
 
   const setupRealtimeSubscription = useCallback(() => {
     if (!currentUserId) return null;
-    const channel = supabase
-      .channel("messages-changes")
+    const channel = dbChannel("messages-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, (payload) => {
         const selected = selectedConversationRef.current;
         if (payload.eventType === "UPDATE") {
           const updated = payload.new as ChatMessage;
           setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+          // Ticks in the chat list (delivered / read) follow too.
+          loadConversations();
           return;
         }
         if (payload.eventType === "INSERT") {
@@ -289,12 +292,16 @@ const Messages = () => {
               (newMessage.sender_id === selected.id && newMessage.receiver_id === currentUserId)
             ) {
               setMessages((prev) => {
-                // Remove temp messages first, then check for duplicates
-                const withoutTemp = prev.filter((m) => !m.id.startsWith("temp-"));
+                // Your own message coming back replaces its placeholder (only that one: others
+                // may still be sending).
+                const withoutTemp = newMessage.sender_id === currentUserId
+                  ? prev.filter((m) => !(m.id.startsWith("temp-") && m.content === newMessage.content))
+                  : prev;
                 if (withoutTemp.some((m) => m.id === newMessage.id)) return withoutTemp;
                 return [...withoutTemp, newMessage];
               });
-              if (newMessage.sender_id === selected.id) {
+              // Read only if you're actually looking; otherwise it's marked read when you come back.
+              if (newMessage.sender_id === selected.id && document.visibilityState === "visible") {
                 // Query builders are lazy: without then() the update was never sent,
                 // so the sender never saw the "read" ticks for messages read in an open chat.
                 supabase.from("messages").update({ read: true }).eq("id", newMessage.id).then(() => loadConversations());
@@ -308,6 +315,45 @@ const Messages = () => {
       .subscribe();
     return channel;
   }, [currentUserId, loadConversations]);
+
+  // Catch up after being away (phones drop the live connection in the background), and every
+  // little while with a chat open in case the live connection quietly stopped: new messages,
+  // and the latest ticks on what you sent.
+  const messagesRef = useRef<ChatMessage[]>([]);
+  messagesRef.current = messages;
+  const catchUp = useCallback(async () => {
+    if (!currentUserId) return;
+    loadConversations();
+    const selected = selectedConversationRef.current;
+    if (!selected) return;
+    const between = `and(sender_id.eq.${currentUserId},receiver_id.eq.${selected.id}),and(sender_id.eq.${selected.id},receiver_id.eq.${currentUserId})`;
+    const saved = messagesRef.current.filter((m) => !m.id.startsWith("temp-"));
+    const last = saved[saved.length - 1];
+    let newer = supabase.from("messages").select("*").or(between).order("created_at", { ascending: true }).limit(200);
+    if (last) newer = newer.gt("created_at", last.created_at);
+    const recentIds = saved.slice(-40).map((m) => m.id);
+    const [{ data: fresh }, { data: recent }] = await Promise.all([
+      newer,
+      recentIds.length ? supabase.from("messages").select("*").in("id", recentIds) : Promise.resolve({ data: [] as ChatMessage[] }),
+    ]);
+    if (selectedConversationRef.current?.id !== selected.id) return;
+    const updates = new Map((recent ?? []).map((m) => [m.id, m as ChatMessage]));
+    setMessages((prev) => {
+      const merged = prev.map((m) => updates.get(m.id) ?? m);
+      const have = new Set(merged.map((m) => m.id));
+      const added = ((fresh ?? []) as ChatMessage[]).filter((m) => !have.has(m.id));
+      if (!added.length) return merged;
+      // A message we just sent arrives here too: drop its placeholder.
+      const sentNow = new Set(added.filter((m) => m.sender_id === currentUserId).map((m) => m.content));
+      return [...merged.filter((m) => !(m.id.startsWith("temp-") && sentNow.has(m.content))), ...added];
+    });
+    // You're looking at the chat: whatever they sent is read now.
+    const unread = [...(fresh ?? []), ...messagesRef.current].some((m) => m.sender_id === selected.id && !m.read);
+    if (unread) {
+      await supabase.from("messages").update({ read: true }).eq("sender_id", selected.id).eq("receiver_id", currentUserId).eq("read", false);
+    }
+  }, [currentUserId, loadConversations]);
+  useResync(() => void catchUp(), selectedConversation ? 15000 : undefined, !!currentUserId);
 
   useEffect(() => {
     if (currentUserId) {

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { dbChannel } from "@/lib/realtime";
 
 interface OnlineStatusIndicatorProps {
   userId: string;
@@ -60,8 +61,7 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
   };
 
   const setupRealtimeSubscription = useEffectEvent(() => {
-    const channel = supabase
-      .channel(`user-status-${userId}`)
+    const channel = dbChannel(`user-status-${userId}`)
       .on(
         "postgres_changes",
         {

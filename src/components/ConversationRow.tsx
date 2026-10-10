@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface ConversationRowProps {
   profile: { id: string; full_name: string | null; avatar_url: string | null };
-  lastMessage?: { sender_id: string; content: string; created_at: string; read: boolean; deleted_at?: string | null };
+  lastMessage?: { sender_id: string; content: string; created_at: string; read: boolean; deleted_at?: string | null; delivered_at?: string | null };
   unreadCount: number;
   currentUserId: string;
   selected: boolean;
@@ -80,7 +80,7 @@ const ConversationRow = ({
         <div className="mt-0.5 flex items-center gap-1">
           {!draft && lastMessage?.sender_id === currentUserId && (
             <span className="flex-shrink-0">
-              {lastMessage.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-400" /> : <Check className="h-3.5 w-3.5 text-muted-foreground" />}
+              {lastMessage.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-400" aria-label="Read" /> : lastMessage.delivered_at ? <CheckCheck className="h-3.5 w-3.5 text-muted-foreground" aria-label="Delivered" /> : <Check className="h-3.5 w-3.5 text-muted-foreground" aria-label="Sent" />}
             </span>
           )}
           <p className={cn("flex-1 truncate text-sm", unread ? "font-medium text-foreground" : "text-muted-foreground")}>

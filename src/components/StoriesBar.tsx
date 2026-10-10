@@ -19,6 +19,7 @@ import { useMyProfile } from "@/hooks/use-my-profile";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { dbChannel } from "@/lib/realtime";
 
 interface Story {
   id: string;
@@ -150,8 +151,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   });
 
   const setupRealtimeSubscription = useEffectEvent(() => {
-    const channel = supabase
-      .channel("stories-changes")
+    const channel = dbChannel("stories-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "stories" }, () => loadStories())
       .subscribe();
     return () => { supabase.removeChannel(channel); };

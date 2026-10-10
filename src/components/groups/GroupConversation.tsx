@@ -25,6 +25,8 @@ import type { GroupInfo } from "@/lib/group-chats";
 import { playSound } from "@/lib/sounds";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
+import { dbChannel } from "@/lib/realtime";
+import { useResync } from "@/hooks/use-resync";
 
 interface GroupConversationProps {
   group: GroupInfo;
@@ -151,6 +153,31 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     void loadReactions(page.map((m) => m.id));
   }, [group.id, loadReactions]);
 
+  // Catch up after being away, and every little while in case the live connection stopped:
+  // messages that arrived meanwhile, plus edits and reactions on the latest ones.
+  const messagesRef = useRef<GroupMessage[]>([]);
+  messagesRef.current = messages;
+  useResync(() => {
+    void (async () => {
+      const saved = messagesRef.current.filter((m) => !m.id.startsWith("temp-"));
+      const last = saved[saved.length - 1];
+      let q = supabase.from("group_messages").select("*").eq("group_id", group.id).order("created_at", { ascending: true }).limit(200);
+      if (last) q = q.gt("created_at", last.created_at);
+      const { data } = await q;
+      const fresh = (data ?? []) as GroupMessage[];
+      if (fresh.length) {
+        setMessages((prev) => {
+          const have = new Set(prev.map((m) => m.id));
+          const added = fresh.filter((m) => !have.has(m.id));
+          const sentNow = new Set(added.filter((m) => m.user_id === currentUserId).map((m) => m.content));
+          return [...prev.filter((m) => !(m.id.startsWith("temp-") && sentNow.has(m.content))), ...added];
+        });
+        onSeenRef.current();
+      }
+      void loadReactions(saved.slice(-40).map((m) => m.id).concat(fresh.map((m) => m.id)));
+    })();
+  }, 15000);
+
   /** Scrolls to a message and marks it for a moment, loading back to it if it's older. */
   const jumpTo = useCallback(async (id: string) => {
     if (!messageIds.current.has(id)) {
@@ -180,8 +207,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     void loadMessages();
     void loadMembers();
     onSeenRef.current();
-    const channel = supabase
-      .channel(`group-conversation-${group.id}`)
+    const channel = dbChannel(`group-conversation-${group.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "group_messages", filter: `group_id=eq.${group.id}` }, (payload) => {
         const m = payload.new as GroupMessage;
         setMessages((prev) => (prev.some((x) => x.id === m.id) ? prev : [...prev.filter((x) => !(x.id.startsWith("temp-") && x.content === m.content && x.user_id === m.user_id)), m]));
