@@ -21,12 +21,15 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, Archive } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, Archive, Image as ImageIcon, Star } from "lucide-react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
 import { useChatPrefs } from "@/lib/chat-prefs";
 import { useChatDrafts, useDraft } from "@/lib/chat-drafts";
+import { useStarred } from "@/lib/starred";
+import ForwardDialog from "@/components/chat/ForwardDialog";
+import ChatMediaPanel, { type GalleryItem, type GalleryScope, type GalleryTab } from "@/components/chat/ChatMediaPanel";
 import { groupActivity, useGroupChats, type GroupChatSummary } from "@/lib/group-chats";
 import GroupConversation from "@/components/groups/GroupConversation";
 import { GroupChatRow, GroupInviteCards } from "@/components/groups/GroupListItems";
@@ -136,6 +139,13 @@ const Messages = () => {
   // What you were typing in each chat stays there when you leave it.
   const drafts = useChatDrafts(currentUserId);
   useDraft(currentUserId, selectedConversation?.id, messageContent, setMessageContent, !!editingMessage);
+  // Starring, forwarding, and the media / starred messages panel.
+  const { isStarred, toggle: toggleStar, version: starVersion } = useStarred(currentUserId);
+  const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  const [gallery, setGallery] = useState<{ scope: GalleryScope; tab: GalleryTab } | null>(null);
+  // A message to show once its chat has opened (from Starred messages).
+  const [pendingJump, setPendingJump] = useState<{ chatId: string; messageId: string } | null>(null);
+  const [groupFocus, setGroupFocus] = useState<string | null>(null);
   const [chatTheme, setChatTheme] = useState("default");
   const [disappearingMinutes, setDisappearingMinutes] = useState<number | null>(null);
   const [showChatSettings, setShowChatSettings] = useState(false);
@@ -471,6 +481,56 @@ const Messages = () => {
     requestAnimationFrame(() => messageBoxRef.current?.focus());
   };
 
+  const handleToggleStar = useCallback(async (message: ChatMessage) => {
+    haptic(8);
+    const error = await toggleStar(message.id, "dm");
+    if (error) toast({ title: "Couldn't star the message", description: error, variant: "destructive" });
+  }, [toggleStar, toast]);
+
+  /** Scrolls to a message in the open chat, loading back to it if it's older than what's shown. */
+  const jumpToMessage = async (messageId: string) => {
+    if (!messages.some((m) => m.id === messageId) && selectedConversation && currentUserId) {
+      const { data: target } = await supabase.from("messages").select("created_at").eq("id", messageId).maybeSingle();
+      if (!target?.created_at) return toast({ title: "That message is no longer here" });
+      const other = selectedConversation.id;
+      const { data } = await supabase
+        .from("messages")
+        .select("*")
+        .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${other}),and(sender_id.eq.${other},receiver_id.eq.${currentUserId})`)
+        .gte("created_at", target.created_at)
+        .order("created_at", { ascending: true })
+        .limit(1000);
+      setMessages((data ?? []) as ChatMessage[]);
+      setHasMoreMessages(true);
+    }
+    setHighlightedMessageId(messageId);
+    window.setTimeout(() => setHighlightedMessageId((h) => (h === messageId ? null : h)), 2500);
+  };
+
+  // Opened a chat from Starred messages: go to the message once the chat has loaded.
+  useEffect(() => {
+    if (!pendingJump || selectedConversation?.id !== pendingJump.chatId) return;
+    if (!messages.some((m) => m.sender_id === pendingJump.chatId || m.receiver_id === pendingJump.chatId)) return;
+    setPendingJump(null);
+    void jumpToMessage(pendingJump.messageId);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs when the chat's messages arrive
+  }, [messages, pendingJump, selectedConversation?.id]);
+
+  /** From Starred messages: open the message's chat at that message. */
+  const openStarred = async (item: GalleryItem) => {
+    setGallery(null);
+    if (item.chatKind === "group") {
+      setGroupFocus(item.id);
+      openGroup(item.chatId);
+      return;
+    }
+    if (selectedConversation?.id === item.chatId) return void jumpToMessage(item.id);
+    const { data: profile } = await supabase.from("profiles").select("*").eq("id", item.chatId).maybeSingle();
+    if (!profile) return;
+    setPendingJump({ chatId: item.chatId, messageId: item.id });
+    openPerson(profile as Profile);
+  };
+
   const handleVoiceMessageSent = async (audioUrl: string, duration: number) => {
     if (!selectedConversation || !currentUserId) return;
     const content = `🎤 Voice message (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, "0")})`;
@@ -539,11 +599,15 @@ const Messages = () => {
           theme={chatTheme}
           isFirstInGroup={isFirstInGroup}
           otherName={selectedConversation?.full_name}
+          starred={isStarred(message.id)}
+          onToggleStar={handleToggleStar}
+          onForward={setForwarding}
         />
       </div>
       </>
     );
-  }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme, getReplyMessage, selectedConversation?.full_name]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- starVersion stands for the starred list
+  }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme, getReplyMessage, selectedConversation?.full_name, starVersion, handleToggleStar]);
 
   if (isLoading) return <MessagesSkeleton />;
 
@@ -566,6 +630,9 @@ const Messages = () => {
                     <ArrowLeft />
                   </Button>
                   <h2 className="flex-1 font-display text-[22px] sm:text-xl font-bold tracking-tight">Messages</h2>
+                  <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full [&_svg]:size-[18px]" aria-label="Starred messages" title="Starred messages" onClick={() => setGallery({ scope: { kind: "starred" }, tab: "starred" })}>
+                    <Star />
+                  </Button>
                   <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} />
                 </div>
               </div>
@@ -700,6 +767,7 @@ const Messages = () => {
                   muted={chatPrefs.muted.includes(selectedGroup.id)}
                   onToggleMute={() => toggleChatPref("muted", selectedGroup.id)}
                   onGroupUpdated={() => void reloadGroups()}
+                  focusMessageId={groupFocus}
                 />
               ) : selectedConversation ? (
                 <>
@@ -742,15 +810,21 @@ const Messages = () => {
                     </Button>
                     <ActionMenu>
                       <ActionMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="sm:hidden h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" aria-label="More options">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6 sm:[&_svg]:size-5" aria-label="More options">
                           <MoreVertical className="h-4 w-4" />
                         </Button>
                       </ActionMenuTrigger>
                       <ActionMenuContent align="end">
-                        <ActionMenuItem onSelect={() => setShowMessageSearch((v) => !v)}>
+                        <ActionMenuItem onSelect={() => setGallery({ scope: { kind: "dm", otherId: selectedConversation.id }, tab: "media" })}>
+                          <ImageIcon className="h-4 w-4 mr-2" /> Media, links and voice
+                        </ActionMenuItem>
+                        <ActionMenuItem onSelect={() => setGallery({ scope: { kind: "dm", otherId: selectedConversation.id }, tab: "starred" })}>
+                          <Star className="h-4 w-4 mr-2" /> Starred messages
+                        </ActionMenuItem>
+                        <ActionMenuItem className="sm:hidden" onSelect={() => setShowMessageSearch((v) => !v)}>
                           <Search className="h-4 w-4 mr-2" /> Search messages
                         </ActionMenuItem>
-                        <ActionMenuItem onSelect={() => setShowChatSettings(true)}>
+                        <ActionMenuItem className="sm:hidden" onSelect={() => setShowChatSettings(true)}>
                           <Settings className="h-4 w-4 mr-2" /> Chat settings
                         </ActionMenuItem>
                       </ActionMenuContent>
@@ -919,6 +993,21 @@ const Messages = () => {
           currentUserId={currentUserId}
           otherUserId={selectedConversation.id}
           onSettingsChanged={(theme, mins) => { setChatTheme(theme); setDisappearingMinutes(mins); }}
+        />
+      )}
+      {currentUserId && (
+        <ForwardDialog message={forwarding} currentUserId={currentUserId} onOpenChange={(open) => { if (!open) setForwarding(null); }} />
+      )}
+      {gallery && currentUserId && (
+        <ChatMediaPanel
+          scope={gallery.scope}
+          currentUserId={currentUserId}
+          initialTab={gallery.tab}
+          onClose={() => setGallery(null)}
+          onJump={(item) => {
+            if (gallery.scope.kind === "dm") { setGallery(null); void jumpToMessage(item.id); }
+            else void openStarred(item);
+          }}
         />
       )}
 

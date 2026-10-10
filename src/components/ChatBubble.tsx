@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { SWIPE_REPLY_THRESHOLD, useSwipeToReply } from "@/hooks/use-swipe-to-reply";
-import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus } from "lucide-react";
+import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus, Forward, Star, StarOff } from "lucide-react";
 import { format, isToday, isYesterday } from "date-fns";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
 import MessageActionSheet, { type MessageAction } from "@/components/chat/MessageActionSheet";
@@ -27,6 +27,7 @@ interface ChatMessage {
   edited?: boolean;
   deleted_at?: string | null;
   expires_at?: string | null;
+  forwarded?: boolean;
 }
 
 interface ChatBubbleProps {
@@ -44,6 +45,9 @@ interface ChatBubbleProps {
   isFirstInGroup?: boolean;
   /** The other person's name, shown on quotes of their messages. */
   otherName?: string | null;
+  starred?: boolean;
+  onToggleStar?: (message: ChatMessage) => void;
+  onForward?: (message: ChatMessage) => void;
 }
 
 const themeColors: Record<string, { sent: string; received: string }> = {
@@ -68,6 +72,9 @@ const ChatBubble = ({
   theme = "default",
   isFirstInGroup = true,
   otherName,
+  starred = false,
+  onToggleStar,
+  onForward,
 }: ChatBubbleProps) => {
   // WhatsApp's message menu: press and hold on phones, the buttons by the message on computers.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -96,6 +103,8 @@ const ChatBubble = ({
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(message) },
+    ...(onForward ? [{ label: "Forward", icon: <Forward className="mr-2 h-4 w-4" />, onSelect: () => onForward(message) }] : []),
+    ...(onToggleStar ? [{ label: starred ? "Unstar" : "Star", icon: starred ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />, onSelect: () => onToggleStar(message) }] : []),
     ...(hasText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(message.content) }] : []),
     ...(isCurrentUser && !isMedia && !isVoice ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(message) }] : []),
     ...(isCurrentUser ? [{ label: "Unsend", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onUnsend(message.id), destructive: true }] : []),
@@ -116,6 +125,7 @@ const ChatBubble = ({
       )}
       title={fullTime}
     >
+      {starred && <Star className="mr-0.5 h-3 w-3 fill-current" aria-label="Starred" />}
       {message.edited && <span className="mr-0.5">edited</span>}
       {time}
       {isCurrentUser &&
@@ -214,6 +224,11 @@ const ChatBubble = ({
                   : cn(colors.received, "-left-2 [clip-path:polygon(0_0,100%_0,100%_100%)]")
               )}
             />
+          )}
+          {message.forwarded && (
+            <p className={cn("flex items-center gap-1 text-[12px] italic opacity-75", isMedia && "px-1.5 pt-0.5")}>
+              <Forward className="h-3 w-3" /> Forwarded
+            </p>
           )}
           {/* The message being replied to, quoted inside the bubble with a coloured bar (as in WhatsApp). */}
           {replyMessage && (
