@@ -26,6 +26,7 @@ import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
 import { useChatPrefs } from "@/lib/chat-prefs";
+import { useChatDrafts, useDraft } from "@/lib/chat-drafts";
 import { groupActivity, useGroupChats, type GroupChatSummary } from "@/lib/group-chats";
 import GroupConversation from "@/components/groups/GroupConversation";
 import { GroupChatRow, GroupInviteCards } from "@/components/groups/GroupListItems";
@@ -103,16 +104,16 @@ const Messages = () => {
     const inView = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id) === showArchived);
     return [...inView].sort((a, b) => Number(chatPrefs.pinned.includes(b.profile.id)) - Number(chatPrefs.pinned.includes(a.profile.id)));
   }, [conversations, chatPrefs, showArchived]);
-  const archivedCount = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id)).length;
+  const archivedCount = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id)).length + groupChats.filter((g) => chatPrefs.archived.includes(g.group.id)).length;
   // People and groups together, newest first (pinned people stay on top).
   type ChatRowItem = { kind: "dm"; conv: Conversation } | { kind: "group"; chat: GroupChatSummary };
-  const unreadChats = conversations.filter((c) => c.unreadCount > 0 && !chatPrefs.archived.includes(c.profile.id)).length + groupChats.filter((g) => g.unread > 0).length;
+  const unreadChats = conversations.filter((c) => c.unreadCount > 0 && !chatPrefs.archived.includes(c.profile.id)).length + groupChats.filter((g) => g.unread > 0 && !chatPrefs.archived.includes(g.group.id)).length;
   const chatRows: ChatRowItem[] = (() => {
-    if (showArchived) return listedConversations.map((conv) => ({ kind: "dm" as const, conv }));
-    const people = chatFilter === "groups" ? [] : listedConversations.filter((c) => chatFilter !== "unread" || c.unreadCount > 0);
-    const groups = groupChats.filter((g) => chatFilter !== "unread" || g.unread > 0);
+    const groupsInView = groupChats.filter((g) => chatPrefs.archived.includes(g.group.id) === showArchived);
+    const people = showArchived ? listedConversations : chatFilter === "groups" ? [] : listedConversations.filter((c) => chatFilter !== "unread" || c.unreadCount > 0);
+    const groups = showArchived ? groupsInView : groupsInView.filter((g) => chatFilter !== "unread" || g.unread > 0);
     const time = (row: ChatRowItem) => (row.kind === "group" ? groupActivity(row.chat) : row.conv.lastMessage?.created_at ?? "");
-    const pinned = (row: ChatRowItem) => row.kind === "dm" && chatPrefs.pinned.includes(row.conv.profile.id);
+    const pinned = (row: ChatRowItem) => chatPrefs.pinned.includes(row.kind === "group" ? row.chat.group.id : row.conv.profile.id);
     return [...people.map((conv) => ({ kind: "dm" as const, conv })), ...groups.map((chat) => ({ kind: "group" as const, chat }))]
       .sort((a, b) => Number(pinned(b)) - Number(pinned(a)) || time(b).localeCompare(time(a)));
   })();
@@ -132,6 +133,9 @@ const Messages = () => {
   // New Messenger features
   const [replyingTo, setReplyingTo] = useState<ChatMessage | null>(null);
   const [editingMessage, setEditingMessage] = useState<ChatMessage | null>(null);
+  // What you were typing in each chat stays there when you leave it.
+  const drafts = useChatDrafts(currentUserId);
+  useDraft(currentUserId, selectedConversation?.id, messageContent, setMessageContent, !!editingMessage);
   const [chatTheme, setChatTheme] = useState("default");
   const [disappearingMinutes, setDisappearingMinutes] = useState<number | null>(null);
   const [showChatSettings, setShowChatSettings] = useState(false);
@@ -652,6 +656,11 @@ const Messages = () => {
                           selected={selectedGroupId === row.chat.group.id}
                           time={shortTime(groupActivity(row.chat))}
                           onOpen={() => openGroup(row.chat.group.id)}
+                          pinned={chatPrefs.pinned.includes(row.chat.group.id)}
+                          muted={chatPrefs.muted.includes(row.chat.group.id)}
+                          archived={chatPrefs.archived.includes(row.chat.group.id)}
+                          onToggle={(list) => toggleChatPref(list, row.chat.group.id)}
+                          draft={selectedGroupId === row.chat.group.id ? undefined : drafts[`g:${row.chat.group.id}`]}
                         />
                       ) : (
                         <ConversationRow
@@ -667,6 +676,7 @@ const Messages = () => {
                           time={row.conv.lastMessage ? shortTime(row.conv.lastMessage.created_at) : undefined}
                           onOpen={() => openPerson(row.conv.profile)}
                           onToggle={(list) => toggleChatPref(list, row.conv.profile.id)}
+                          draft={selectedConversation?.id === row.conv.profile.id ? undefined : drafts[row.conv.profile.id]}
                         />
                       )
                     )}
@@ -687,6 +697,9 @@ const Messages = () => {
                   onBack={() => setSelectedGroupId(null)}
                   onSeen={() => markGroupSeen(selectedGroup.id)}
                   onLeft={() => { setSelectedGroupId(null); void reloadGroups(); }}
+                  muted={chatPrefs.muted.includes(selectedGroup.id)}
+                  onToggleMute={() => toggleChatPref("muted", selectedGroup.id)}
+                  onGroupUpdated={() => void reloadGroups()}
                 />
               ) : selectedConversation ? (
                 <>

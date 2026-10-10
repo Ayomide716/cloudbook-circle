@@ -83,16 +83,23 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
         imageUrl = await uploadImage();
       }
 
-      const { error } = await supabase
-        .from("groups")
-        .update({
-          name,
-          description: description || null,
-          image_url: imageUrl,
-        })
-        .eq("id", group.id);
-
-      if (error) throw error;
+      // Group admins can change these too, not only whoever made the group.
+      const { error } = await supabase.rpc("update_group_details", {
+        _group: group.id,
+        _name: name,
+        _description: description || null,
+        _image_url: imageUrl,
+      });
+      if (error && /Could not find the function/i.test(error.message)) {
+        // Before the database update: the creator can still change it directly.
+        const { error: direct } = await supabase
+          .from("groups")
+          .update({ name, description: description || null, image_url: imageUrl })
+          .eq("id", group.id);
+        if (direct) throw direct;
+      } else if (error) {
+        throw error;
+      }
 
       toast({ title: "Group updated successfully!" });
       onGroupUpdated();

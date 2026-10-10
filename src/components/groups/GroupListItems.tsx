@@ -4,43 +4,44 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import ConversationRow from "@/components/ConversationRow";
+import type { ChatPrefs } from "@/lib/chat-prefs";
 import type { GroupChatSummary, GroupInvite } from "@/lib/group-chats";
 import { cn } from "@/lib/utils";
 
 /** A group in the chat list: picture, name, "Ada: latest message", time and unread count. */
 export const GroupChatRow = ({
-  chat, currentUserId, selected, time, onOpen,
-}: { chat: GroupChatSummary; currentUserId: string; selected: boolean; time?: string; onOpen: () => void }) => {
+  chat, currentUserId, selected, time, onOpen, pinned, muted, archived, onToggle, draft,
+}: {
+  chat: GroupChatSummary;
+  currentUserId: string;
+  selected: boolean;
+  time?: string;
+  onOpen: () => void;
+  pinned: boolean;
+  muted: boolean;
+  archived: boolean;
+  onToggle: (list: keyof ChatPrefs) => void;
+  draft?: string;
+}) => {
   const last = chat.lastMessage;
   const who = last ? (last.user_id === currentUserId ? "You" : last.senderName?.split(" ")[0] || "Someone") : null;
-  const unread = chat.unread > 0;
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      className={cn("flex w-full items-center gap-3 p-3 text-left transition-colors sm:p-4", selected ? "bg-accent" : "hover:bg-accent/50 active:bg-accent/60")}
-    >
-      <Avatar className="h-12 w-12 flex-shrink-0">
-        <AvatarImage src={chat.group.image_url || undefined} className="object-cover" />
-        <AvatarFallback className="bg-secondary"><Users className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
-      </Avatar>
-      <span className="min-w-0 flex-1">
-        <span className="flex items-center justify-between gap-2">
-          <span className="truncate font-semibold">{chat.group.name}</span>
-          {time && <span className={cn("flex-shrink-0 text-[11px]", unread ? "font-semibold text-primary" : "text-muted-foreground")}>{time}</span>}
-        </span>
-        <span className="mt-0.5 flex items-center gap-1">
-          <span className={cn("flex-1 truncate text-sm", unread ? "font-medium text-foreground" : "text-muted-foreground")}>
-            {last ? `${who}: ${last.content}` : "Group created · say hello"}
-          </span>
-          {unread && (
-            <span className="flex h-5 min-w-5 flex-shrink-0 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground" aria-label={`${chat.unread} unread`}>
-              {chat.unread > 99 ? "99+" : chat.unread}
-            </span>
-          )}
-        </span>
-      </span>
-    </button>
+    <ConversationRow
+      profile={{ id: chat.group.id, full_name: chat.group.name, avatar_url: chat.group.image_url }}
+      fallback={<Users className="h-5 w-5 text-muted-foreground" />}
+      preview={last ? `${who}: ${last.content}` : "Group created · say hello"}
+      unreadCount={chat.unread}
+      currentUserId={currentUserId}
+      selected={selected}
+      pinned={pinned}
+      muted={muted}
+      archived={archived}
+      time={time}
+      draft={draft}
+      onOpen={onOpen}
+      onToggle={onToggle}
+    />
   );
 };
 
