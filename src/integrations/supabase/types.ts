@@ -630,6 +630,30 @@ export type Database = {
           },
         ]
       }
+      group_invites: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          invited_by: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          invited_by: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          invited_by?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       group_members: {
         Row: {
           group_id: string
@@ -2249,6 +2273,14 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      accept_group_invite: {
+        Args: { _group: string }
+        Returns: undefined
+      }
+      decline_group_invite: {
+        Args: { _group: string }
+        Returns: undefined
       }
       add_group_member: {
         Args: { _group: string; _user: string }

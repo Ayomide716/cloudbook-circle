@@ -156,7 +156,11 @@ const Notifications = () => {
         navigate("/friends");
         break;
       case "group_added":
-        if (notification.related_id) navigate(`/groups/${notification.related_id}`);
+        if (notification.related_id) navigate(`/messages?group=${notification.related_id}`);
+        break;
+      case "group_invite":
+        // Invites are answered at the top of Messages.
+        navigate("/messages");
         break;
       default:
         // Default navigation
@@ -187,6 +191,7 @@ const Notifications = () => {
           </div>
         );
       case "group_added":
+      case "group_invite":
         return (
           <div className={`${size} rounded-full bg-sky-500 flex items-center justify-center ${small ? "border-2 border-card" : ""}`}>
             <Users className={`${iconSize} text-white`} />
