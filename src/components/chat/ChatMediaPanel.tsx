@@ -10,6 +10,7 @@ import { firstLink } from "@/lib/links";
 import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";
 import { useStarred, type ChatKind } from "@/lib/starred";
 import { cn } from "@/lib/utils";
+import { STICKER_PREFIX } from "@/lib/stickers";
 
 /** A message from either kind of chat, in one shape. */
 export interface GalleryItem {
@@ -42,7 +43,8 @@ interface ChatMediaPanelProps {
 
 const LIMIT = 500;
 const isVoice = (i: GalleryItem) => !!i.imageUrl && i.content.startsWith("🎤");
-const isMedia = (i: GalleryItem) => !!i.imageUrl && !isVoice(i);
+// Stickers are messages of their own, not shared photos.
+const isMedia = (i: GalleryItem) => !!i.imageUrl && !isVoice(i) && !i.content.startsWith(STICKER_PREFIX);
 const isVideo = (url: string) => /\.(mp4|mov|webm)(\?|$)/i.test(url);
 const voiceSeconds = (content: string) => {
   const m = content.match(/\((\d+):(\d{2})\)\s*$/);

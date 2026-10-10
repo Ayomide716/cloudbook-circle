@@ -27,7 +27,7 @@ import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";
 import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
-import { stickerMessage } from "@/lib/stickers";
+import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
 
 interface GroupConversationProps {
   group: GroupInfo;
@@ -516,6 +516,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
                   else setText((t) => t + picked);
                 }}
                 onSticker={(id) => void post(stickerMessage(id), null)}
+                onGiphySticker={(url) => void post(GIPHY_STICKER, url)}
               />}
               <textarea
                 ref={boxRef}

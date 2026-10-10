@@ -45,7 +45,7 @@ import { enterMakesNewLine, sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
 import EnablePushBanner from "@/components/EnablePushBanner";
-import { stickerMessage } from "@/lib/stickers";
+import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
 
 interface Profile {
   id: string;
@@ -580,14 +580,14 @@ const Messages = () => {
   };
 
   // A sticker goes out on its own as soon as it's picked, as on WhatsApp.
-  const sendSticker = async (id: string) => {
+  // `id` is one of Ember's 3D stickers; or pass GIPHY_STICKER with the GIPHY sticker's address.
+  const sendSticker = async (content: string, imageUrl: string | null = null) => {
     if (!selectedConversation || !currentUserId) return;
-    const content = stickerMessage(id);
     const tempId = `temp-sticker-${Date.now()}`;
     const replyTo = replyingTo?.id || null;
     setReplyingTo(null);
-    setMessages((prev) => [...prev, { id: tempId, sender_id: currentUserId, receiver_id: selectedConversation.id, content, image_url: null, created_at: new Date().toISOString(), read: false, reply_to: replyTo }]);
-    const insertObj: TablesInsert<"messages"> = { sender_id: currentUserId, receiver_id: selectedConversation.id, content, reply_to: replyTo };
+    setMessages((prev) => [...prev, { id: tempId, sender_id: currentUserId, receiver_id: selectedConversation.id, content, image_url: imageUrl, created_at: new Date().toISOString(), read: false, reply_to: replyTo }]);
+    const insertObj: TablesInsert<"messages"> = { sender_id: currentUserId, receiver_id: selectedConversation.id, content, image_url: imageUrl, reply_to: replyTo };
     if (disappearingMinutes) insertObj.expires_at = new Date(Date.now() + disappearingMinutes * 60000).toISOString();
     const { data, error } = await supabase.from("messages").insert(insertObj).select().single();
     if (error) {
@@ -991,7 +991,8 @@ const Messages = () => {
                               if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }
                               else setMessageContent((prev) => prev + content);
                             }}
-                            onSticker={editingMessage ? undefined : (id) => void sendSticker(id)}
+                            onSticker={editingMessage ? undefined : (id) => void sendSticker(stickerMessage(id))}
+                            onGiphySticker={editingMessage ? undefined : (url) => void sendSticker(GIPHY_STICKER, url)}
                           />
                           <textarea
                             ref={messageBoxRef}

@@ -11,7 +11,8 @@ import type { ChatReaction } from "@/lib/chat-reactions";
 import { nameColour } from "@/lib/group-chats";
 import { MEDIA_PLACEHOLDERS, isVoiceNote, mediaKind, quoteText, voiceSeconds, type GroupMessage } from "@/lib/group-messages";
 import { cn } from "@/lib/utils";
-import { stickerId, stickerName, stickerUrl } from "@/lib/stickers";
+import { GIPHY_STICKER, stickerId, stickerName, stickerUrl } from "@/lib/stickers";
+import { isGiphyMedia } from "@/lib/giphy";
 
 interface GroupMessageBubbleProps {
   message: GroupMessage;
@@ -52,9 +53,14 @@ const GroupMessageBubble = ({
   const longPress = useLongPress(() => { if (!pending) setMenuOpen(true); });
 
   const voice = isVoiceNote(m);
-  const kind = m.image_url && !voice ? mediaKind(m.image_url) : null;
-  // A sticker stands on its own: big, with no bubble around it.
-  const sticker = stickerId(m.content);
+  // A sticker stands on its own: big, with no bubble around it. One of Ember's 3D ones, or an
+  // animated one from GIPHY (its address is the message's image).
+  const ownSticker = stickerId(m.content);
+  const stickerSrc = ownSticker
+    ? stickerUrl(ownSticker)
+    : m.content === GIPHY_STICKER && isGiphyMedia(m.image_url) ? m.image_url : null;
+  const sticker = !!stickerSrc;
+  const kind = m.image_url && !voice && !sticker ? mediaKind(m.image_url) : null;
   const showText = !voice && !sticker && !(m.image_url && MEDIA_PLACEHOLDERS.includes(m.content));
   const mineReaction = reactions.find((r) => r.user_id === currentUserId)?.reaction_type ?? null;
   const time = format(new Date(m.created_at), "HH:mm");
@@ -113,7 +119,7 @@ const GroupMessageBubble = ({
       )}
 
       <div
-        className={cn("flex min-w-0 max-w-[78%] flex-col", (voice || m.image_url) && "w-[78%] max-w-[300px]", mine ? "items-end" : "items-start", !swipe.swiping && "transition-transform duration-200 ease-out")}
+        className={cn("flex min-w-0 max-w-[78%] flex-col", (voice || (m.image_url && !sticker)) && "w-[78%] max-w-[300px]", mine ? "items-end" : "items-start", !swipe.swiping && "transition-transform duration-200 ease-out")}
         style={swipe.offset ? { transform: `translateX(${swipe.offset}px)` } : undefined}
       >
         <div
@@ -159,7 +165,7 @@ const GroupMessageBubble = ({
             </div>
           )}
           {sticker ? (
-            <img src={stickerUrl(sticker)} alt={`${stickerName(sticker)} sticker`} draggable={false} className="block h-32 w-32 select-none object-contain drop-shadow-md animate-sticker-pop" />
+            <img src={stickerSrc!} alt={ownSticker ? `${stickerName(ownSticker)} sticker` : "Sticker"} draggable={false} className="block h-32 w-32 select-none object-contain drop-shadow-md animate-sticker-pop" />
           ) : voice ? (
             <VoiceMessagePlayer audioUrl={m.image_url!} duration={voiceSeconds(m.content)} isOwnMessage={mine} />
           ) : m.image_url && kind === "video" ? (

@@ -59,6 +59,9 @@ const NAMES = new Map(STICKER_PACKS.flatMap((p) => p.stickers));
 
 export const stickerMessage = (id: string) => `${STICKER_PREFIX}${id}`;
 
+/** An animated GIPHY sticker: this text, with the sticker's GIPHY address as the message's image. */
+export const GIPHY_STICKER = `${STICKER_PREFIX}giphy`;
+
 /** The sticker id in a message, or null if it isn't a (known) sticker. */
 export const stickerId = (content: string | null | undefined): string | null => {
   if (!content?.startsWith(STICKER_PREFIX)) return null;
