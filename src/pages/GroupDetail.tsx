@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Settings, Video, Phone, Radio, Trash2, Check, Globe, MoreHorizontal, ShieldCheck, ShieldOff, UserMinus } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Pencil, Video, Phone, Radio, Trash2, Check, Globe, MoreHorizontal, ShieldCheck, ShieldOff, UserMinus } from "lucide-react";
 import { HeaderAction } from "@/components/layout/PageHeader";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
@@ -401,6 +401,10 @@ const GroupDetail = () => {
     );
   }
 
+  // Only the group's admins (and whoever made it) can change its name, description and photo.
+  // The database checks this too (update_group_details).
+  const canEdit = isMember && (isAdmin || group.created_by === currentUserId);
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
@@ -423,6 +427,16 @@ const GroupDetail = () => {
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
+            {canEdit && (
+              <button
+                type="button"
+                onClick={() => setShowEditModal(true)}
+                className="absolute right-3 top-3 flex h-10 items-center gap-1.5 rounded-full bg-black/45 px-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+                aria-label="Edit group name, description and photo"
+              >
+                <Pencil className="h-4 w-4" /> Edit
+              </button>
+            )}
           </div>
 
           <div className="space-y-3 p-4 sm:p-5">
@@ -475,9 +489,6 @@ const GroupDetail = () => {
                   <HeaderAction icon={Video} label="Start group video call" onClick={() => startGroupCall(false)} />
                 </>
               )}
-              {(userRole === "admin" || group.created_by === currentUserId) && (
-                <HeaderAction icon={Settings} label="Group settings" onClick={() => setShowEditModal(true)} />
-              )}
             </div>
           </div>
         </section>
@@ -515,7 +526,7 @@ const GroupDetail = () => {
         )}
 
         {/* Edit Group Modal */}
-        {group && (
+        {canEdit && (
           <EditGroupModal
             group={group}
             open={showEditModal}
