@@ -25,8 +25,6 @@ import ReactionEmoji from "./reactions/ReactionEmoji";
 import { motion } from "framer-motion";
 import FeedVideo from "./FeedVideo";
 import { CommentThread } from "./comments/CommentThread";
-import CommentsSheet from "./comments/CommentsSheet";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { firstLink } from "@/lib/links";
 import { backgroundCss } from "@/lib/post-backgrounds";
 import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
@@ -159,9 +157,6 @@ const PostCard = ({
   const [editLoading, setEditLoading] = useState(false);
   // The thread you just replied in stays open.
   const [openThreadId, setOpenThreadId] = useState<string | null>(null);
-  const isPhone = useIsMobile();
-  // Phones get comments in a sheet, except on a post's own page, where they sit under it.
-  const commentsInSheet = isPhone && !inlineComments;
   const { toast } = useToast();
 
   const handleEditComment = async (commentId: string, text: string) => {
@@ -367,6 +362,12 @@ const PostCard = ({
     requestAnimationFrame(() => commentBoxRef.current?.focus());
   };
 
+  // Comment opens the comments under the post and puts you in the box, ready to type.
+  const openComments = () => {
+    setShowComments(true);
+    requestAnimationFrame(() => commentBoxRef.current?.focus({ preventScroll: false }));
+  };
+
   const commentForm = (
     <form onSubmit={handleComment} className="flex flex-col gap-1.5">
       {replyingTo && (
@@ -403,6 +404,7 @@ const PostCard = ({
 
   const commentList = (initialCount: number) => (
     <CommentThread
+      latest
       comments={comments}
       currentUserId={currentUserId}
       onReply={startReply}
@@ -700,7 +702,7 @@ const PostCard = ({
           )}
           <span className="ml-auto flex items-center gap-1">
             {comments.length > 0 && (
-              <button type="button" className="hover:underline" onClick={() => setShowComments(true)}>
+              <button type="button" className="hover:underline" onClick={() => setShowComments((v) => !v)}>
                 {compactCount(comments.length)} {comments.length === 1 ? "comment" : "comments"}
               </button>
             )}
@@ -785,7 +787,7 @@ const PostCard = ({
           <Button
             variant="ghost"
             className="h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]"
-            onClick={() => setShowComments(!showComments)}
+            onClick={openComments}
             aria-expanded={showComments}
             aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
           >
@@ -806,7 +808,7 @@ const PostCard = ({
       </div>
 
       {/* A taste of the conversation, as on Instagram: the latest comment and a link to the rest. */}
-      {latestComment && (commentsInSheet || !showComments) && (
+      {latestComment && !showComments && (
         <button
           type="button"
           onClick={() => setShowComments(true)}
@@ -830,31 +832,17 @@ const PostCard = ({
          currentUserId={currentUserId}
        />
 
-      {/* Comments: under the post on bigger screens; on phones a sheet you can pull up. */}
-      {commentsInSheet ? (
-        <CommentsSheet
-          open={showComments}
-          onOpenChange={setShowComments}
-          title={comments.length ? `${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : "Comments"}
-          footer={commentForm}
-        >
+      {/* Comments open right under the post, as on Facebook: the conversation first, then your
+          box at the bottom. "View more comments" brings in more without leaving the feed. */}
+      {showComments && (
+        <div className="space-y-3 border-t border-border/60 px-3 pb-3 pt-2.5 sm:px-4">
           {comments.length === 0 ? (
-            <p className="py-10 text-center text-sm text-muted-foreground">No comments yet. Be the first to comment.</p>
+            <p className="py-1 text-center text-sm text-muted-foreground">No comments yet. Be the first to comment.</p>
           ) : (
-            commentList(20)
+            commentList(inlineComments ? 50 : 3)
           )}
-        </CommentsSheet>
-      ) : (
-        showComments && (
-          <div className="space-y-3 bg-accent/30 p-3 sm:p-4">
-            {commentForm}
-            {comments.length === 0 && inlineComments ? (
-              <p className="py-4 text-center text-sm text-muted-foreground">No comments yet. Be the first to comment.</p>
-            ) : (
-              commentList(inlineComments ? 50 : 3)
-            )}
-          </div>
-        )
+          {commentForm}
+        </div>
       )}
       {currentUserId !== post.user_id && (
         <ReportDialog reportedType="post" reportedId={post.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />

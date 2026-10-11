@@ -26,6 +26,11 @@ interface CommentThreadProps<T extends ThreadComment> {
   initialCount?: number;
   /** A thread to open (e.g. the one you just replied in). */
   openThreadId?: string | null;
+  /**
+   * Show the newest comments (just above the comment box), with "View previous comments" on top,
+   * as under a post in Facebook's feed. Otherwise the oldest show first.
+   */
+  latest?: boolean;
   className?: string;
 }
 
@@ -54,6 +59,7 @@ export function CommentThread<T extends ThreadComment>({
   onEdit,
   initialCount = 3,
   openThreadId,
+  latest = false,
   className,
 }: CommentThreadProps<T>) {
   const { topLevel, repliesOf } = useMemo(() => {
@@ -83,8 +89,20 @@ export function CommentThread<T extends ThreadComment>({
     setShownReplies((s) => ({ ...s, [openThreadId]: Math.max(s[openThreadId] ?? 0, (repliesOf.get(openThreadId)?.length ?? 0)) }));
   }, [openThreadId, repliesOf]);
 
-  const visibleTop = topLevel.slice(0, Math.max(shownTop, 0));
+  const shownCount = Math.max(shownTop, 0);
+  const visibleTop = latest ? topLevel.slice(Math.max(topLevel.length - shownCount, 0)) : topLevel.slice(0, shownCount);
   const hiddenTop = topLevel.length - visibleTop.length;
+  const moreButton = hiddenTop > 0 && (
+    <button
+      type="button"
+      className="text-sm font-semibold text-muted-foreground hover:text-foreground"
+      onClick={() => setShownTop((n) => n + 10)}
+    >
+      {latest
+        ? "View previous comments"
+        : `View ${Math.min(hiddenTop, 10) === hiddenTop ? hiddenTop : 10} more ${hiddenTop === 1 ? "comment" : "comments"}`}
+    </button>
+  );
 
   const renderComment = (c: T, parent: T, isReply: boolean) => {
     const mine = !!currentUserId && authorId(c) === currentUserId;
@@ -160,6 +178,7 @@ export function CommentThread<T extends ThreadComment>({
 
   return (
     <div className={cn("space-y-3", className)}>
+      {latest && moreButton}
       {visibleTop.map((c) => {
         const replies = repliesOf.get(c.id) ?? [];
         const shown = shownReplies[c.id] ?? 0;
@@ -198,15 +217,7 @@ export function CommentThread<T extends ThreadComment>({
           </div>
         );
       })}
-      {hiddenTop > 0 && (
-        <button
-          type="button"
-          className="text-sm font-semibold text-muted-foreground hover:text-foreground"
-          onClick={() => setShownTop((n) => n + 10)}
-        >
-          View {Math.min(hiddenTop, 10) === hiddenTop ? hiddenTop : 10} more {hiddenTop === 1 ? "comment" : "comments"}
-        </button>
-      )}
+      {!latest && moreButton}
     </div>
   );
 }
