@@ -37,3 +37,36 @@ export function watchForUpdates() {
   });
   setInterval(check, 10 * 60_000);
 }
+
+/**
+ * The other half of sw.js: when a new release's service worker takes over, it asks every open
+ * copy of the app to reload. Say "ok" (so it doesn't force it) and reload as soon as nobody is
+ * typing. Also ask the browser to look for a new release whenever the app comes back to the
+ * foreground, instead of waiting up to a day.
+ */
+export function reloadOnNewVersion(registration: ServiceWorkerRegistration) {
+  let pending = false;
+  const reloadWhenIdle = () => {
+    if (!isTyping()) { window.location.reload(); return; }
+    // Typing: wait until the message box loses focus or the app goes to the background.
+    const later = () => {
+      document.removeEventListener("focusout", later);
+      document.removeEventListener("visibilitychange", later);
+      setTimeout(reloadWhenIdle, 300);
+    };
+    document.addEventListener("focusout", later);
+    document.addEventListener("visibilitychange", later);
+  };
+
+  navigator.serviceWorker.addEventListener("message", (event) => {
+    if (event.data?.type !== "ember:new-version") return;
+    (event.source as ServiceWorker | null)?.postMessage({ type: "ember:new-version-ok" });
+    if (pending) return;
+    pending = true;
+    reloadWhenIdle();
+  });
+
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible") registration.update().catch(() => {});
+  });
+}
