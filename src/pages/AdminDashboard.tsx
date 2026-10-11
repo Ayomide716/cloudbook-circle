@@ -158,7 +158,7 @@ const AdminDashboard = () => {
       <div className="max-w-5xl mx-auto px-4 py-6 mb-20 space-y-6">
         <div className="flex items-center gap-3">
           <Shield className="h-7 w-7 text-primary" />
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
+          <h1 className="font-display text-[22px] font-bold tracking-tight sm:text-3xl">Admin Dashboard</h1>
         </div>
 
         {/* Stats */}

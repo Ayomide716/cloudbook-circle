@@ -7,7 +7,9 @@ import type { PostComment } from "@/components/PostCard";
  import Navigation from "@/components/Navigation";
  import PostCard from "@/components/PostCard";
 import { PageHeader } from "@/components/layout/PageHeader";
- import { Loader2, Bookmark } from "lucide-react";
+import EmptyState from "@/components/EmptyState";
+import { Button } from "@/components/ui/button";
+ import { Loader2 } from "lucide-react";
  import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
  import { useEffectEvent } from "@/hooks/use-effect-event";
  
@@ -127,11 +129,12 @@ import { PageHeader } from "@/components/layout/PageHeader";
          <PageHeader title="Saved" subtitle={posts.length > 0 ? `${posts.length} saved ${posts.length === 1 ? "post" : "posts"}` : undefined} className="sm:mb-4" />
  
          {posts.length === 0 ? (
-           <div className="text-center py-12 px-4">
-             <Bookmark className="h-16 w-16 mx-auto text-muted-foreground mb-4" />
-             <p className="text-muted-foreground">No saved posts yet</p>
-             <p className="text-sm text-muted-foreground">Posts you save will appear here</p>
-           </div>
+           <EmptyState
+             emoji="bookmark"
+             title="No saved posts yet"
+             text="Tap ··· on any post and choose Save to keep it here."
+             action={<Button onClick={() => navigate("/")} className="rounded-full px-5">Browse your feed</Button>}
+           />
          ) : (
            <div className="space-y-2 sm:space-y-4 mt-2 sm:mt-0">
              {posts.map((post) => (

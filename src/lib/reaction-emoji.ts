@@ -14,6 +14,15 @@ export const EMOJI_FILES: Record<string, string> = {
   fire: "fire",
   wave: "wave",
   party: "party",
+  // For empty screens.
+  calendar: "calendar",
+  bookmark: "bookmark",
+  bell: "bell",
+  chat: "chat",
+  people: "people",
+  search: "search",
+  mailbox: "mailbox",
+  camera: "camera",
 };
 
 export const hasReactionEmoji = (type: string) => type in EMOJI_FILES;

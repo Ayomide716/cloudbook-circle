@@ -20,13 +20,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, Users, UserPlus, Check, X, UserCheck, Search, UserMinus } from "lucide-react";
+import { Loader2, UserPlus, Check, X, Search, UserMinus } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { toDate } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { dbChannel } from "@/lib/realtime";
+import EmptyState from "@/components/EmptyState";
 
 
 interface Profile {
@@ -468,15 +469,7 @@ const Friends = () => {
           <TabsContent value="requests">
             <Card className="feed-section flat-list">
               {pendingRequests.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground">
-                    No pending requests
-                  </p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
-                    When someone sends you a friend request, it'll appear here
-                  </p>
-                </div>
+                <EmptyState emoji="mailbox" title="No friend requests" text="When someone sends you a friend request, it'll show up here." />
               ) : (
                 <div className="divide-y">
                   {pendingRequests.map((request) => (
@@ -529,15 +522,7 @@ const Friends = () => {
           <TabsContent value="sent">
             <Card className="feed-section flat-list">
               {sentRequests.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <UserPlus className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground">
-                    No sent requests
-                  </p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
-                    Friend requests you've sent will appear here
-                  </p>
-                </div>
+                <EmptyState emoji="mailbox" title="No sent requests" text="Requests you send will wait here until they're answered." action={<Button onClick={() => setActiveTab("suggestions")} className="rounded-full px-5">Find people</Button>} />
               ) : (
                 <div className="divide-y">
                   {sentRequests.map((request) => (
@@ -579,15 +564,7 @@ const Friends = () => {
           <TabsContent value="friends">
             <Card className="feed-section flat-list">
               {friends.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <UserCheck className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground">
-                    No friends yet
-                  </p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
-                    Start connecting with people!
-                  </p>
-                </div>
+                <EmptyState emoji="people" title="No friends yet" text="Add a few people you know and their posts will fill your feed." action={<Button onClick={() => setActiveTab("suggestions")} className="rounded-full px-5">Find people</Button>} />
               ) : (
                 <div className="divide-y">
                   {friends.map((friendship) => (
@@ -634,15 +611,7 @@ const Friends = () => {
           <TabsContent value="suggestions">
             <Card className="feed-section flat-list">
               {suggestions.filter(s => !hiddenSuggestions.has(s.id)).length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-center">
-                  <Users className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                  <p className="text-lg font-medium text-muted-foreground">
-                    No one to suggest right now
-                  </p>
-                  <p className="text-sm text-muted-foreground/70 mt-1">
-                    Try searching for people you know above
-                  </p>
-                </div>
+                <EmptyState emoji="search" title="No one to suggest right now" text="Try searching for people you know by name, above." />
               ) : (
                 <div className="divide-y">
                   {suggestions.filter(s => !hiddenSuggestions.has(s.id)).map((profile) => (
