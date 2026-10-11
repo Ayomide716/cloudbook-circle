@@ -35,6 +35,18 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
+  // Each time it opens, start from the group as it is now (not what was typed last time).
+  const [wasOpen, setWasOpen] = useState(open);
+  if (open !== wasOpen) {
+    setWasOpen(open);
+    if (open) {
+      setName(group.name);
+      setDescription(group.description || "");
+      setImagePreview(group.image_url);
+      setNewImage(null);
+    }
+  }
+
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -118,13 +130,13 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Edit Group</DialogTitle>
+          <DialogTitle>Edit group</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Group Logo */}
           <div className="space-y-2">
-            <Label>Group Logo</Label>
+            <Label>Group photo</Label>
             <input
               type="file"
               ref={fileInputRef}
@@ -132,7 +144,9 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
               onChange={handleImageSelect}
               className="hidden"
             />
-            <div
+            <button
+              type="button"
+              aria-label="Change group photo"
               onClick={() => fileInputRef.current?.click()}
               className="relative h-24 w-24 mx-auto rounded-full border-2 border-dashed border-muted-foreground/30 hover:border-primary/50 transition-colors cursor-pointer overflow-hidden bg-secondary/50 flex items-center justify-center"
             >
@@ -144,16 +158,17 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
                   <span className="text-xs text-muted-foreground">Change</span>
                 </div>
               )}
-            </div>
+            </button>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="name">Group Name</Label>
+            <Label htmlFor="name">Group name</Label>
             <Input
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Enter group name"
+              maxLength={100}
               required
             />
           </div>
@@ -178,9 +193,9 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button type="submit" disabled={isLoading || !name.trim()}>
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-              Save Changes
+              Save
             </Button>
           </div>
         </form>

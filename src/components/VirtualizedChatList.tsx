@@ -62,6 +62,8 @@ const VirtualizedChatList = ({
   const isInitialLoad = useRef(true);
   // Whether the reader is at (or near) the newest message, and how many arrived while they weren't.
   const atBottomRef = useRef(true);
+  // While you're touching, wheeling or flinging the list, nothing scrolls it for you.
+  const userScrollingUntilRef = useRef(0);
   const [showJump, setShowJump] = useState(false);
   const [unseen, setUnseen] = useState(0);
 
@@ -116,9 +118,10 @@ const VirtualizedChatList = ({
       requestAnimationFrame(scrollToEnd);
       // Again once new rows have been measured (images/voice players change heights).
       const settles = [120, 400].map((ms) => setTimeout(() => {
+        if (!atBottomRef.current || Date.now() < userScrollingUntilRef.current) return;
         scrollToEnd();
         const el = listRef.current?.element;
-        if (el && atBottomRef.current) el.scrollTop = el.scrollHeight;
+        if (el) el.scrollTop = el.scrollHeight;
       }, ms));
       return () => settles.forEach(clearTimeout);
     }
@@ -133,7 +136,7 @@ const VirtualizedChatList = ({
     const listEl = listRef.current?.element;
     if (!listEl || typeof ResizeObserver === "undefined") return;
     const stick = () => {
-      if (atBottomRef.current) listEl.scrollTop = listEl.scrollHeight;
+      if (atBottomRef.current && Date.now() >= userScrollingUntilRef.current) listEl.scrollTop = listEl.scrollHeight;
     };
     const observer = new ResizeObserver(stick);
     observer.observe(listEl);
@@ -153,27 +156,84 @@ const VirtualizedChatList = ({
     const listEl = listRef.current?.element;
     if (!listEl) return;
     // Only you scrolling up (touch, wheel, keys) leaves the bottom; the list moving because
-    // photos loaded or rows were measured doesn't.
-    let lastUserInput = 0;
-    const markUser = () => { lastUserInput = Date.now(); };
-    listEl.addEventListener("touchmove", markUser, { passive: true });
-    listEl.addEventListener("wheel", markUser, { passive: true });
-    listEl.addEventListener("keydown", markUser);
+    // photos loaded or rows were measured doesn't. Leaving happens the moment you start, so
+    // rows being measured as they come into view can't pull you back down.
+    let touching = false;
+    let touchY = 0;
+    let lastTop = listEl.scrollTop;
+    const hold = (ms = 900) => {
+      userScrollingUntilRef.current = Math.max(userScrollingUntilRef.current, Date.now() + ms);
+    };
+    const leaveBottom = () => { atBottomRef.current = false; };
+    const onTouchStart = (e: TouchEvent) => {
+      touching = true;
+      touchY = e.touches[0]?.clientY ?? 0;
+      hold(60_000);
+    };
+    const onTouchMove = (e: TouchEvent) => {
+      const y = e.touches[0]?.clientY ?? touchY;
+      // Finger moving down = reading back up.
+      if (y > touchY + 2) leaveBottom();
+      touchY = y;
+    };
+    const onTouchEnd = () => {
+      touching = false;
+      userScrollingUntilRef.current = 0;
+      hold(); // momentum keeps going after the finger lifts
+    };
+    const onWheel = (e: WheelEvent) => {
+      hold();
+      if (e.deltaY < 0) leaveBottom();
+    };
+    // Dragging the scrollbar with a mouse.
+    const onPointerDown = (e: PointerEvent) => {
+      if (e.pointerType === "mouse") { touching = true; hold(60_000); }
+    };
+    const onPointerUp = () => {
+      if (!touching) return;
+      touching = false;
+      userScrollingUntilRef.current = 0;
+      hold(300);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      hold();
+      if (["ArrowUp", "PageUp", "Home"].includes(e.key)) leaveBottom();
+    };
     const onScroll = () => {
-      const fromBottom = listEl.scrollHeight - listEl.scrollTop - listEl.clientHeight;
-      if (fromBottom < 80) atBottomRef.current = true;
-      else if (Date.now() - lastUserInput < 1200) atBottomRef.current = false;
+      const top = listEl.scrollTop;
+      const movedUp = top < lastTop - 1;
+      lastTop = top;
+      const active = touching || Date.now() < userScrollingUntilRef.current;
+      // A fling is still you: keep holding until it stops.
+      if (active && !touching) hold(250);
+      const fromBottom = listEl.scrollHeight - top - listEl.clientHeight;
+      if (active && movedUp) leaveBottom();
+      else if (fromBottom < 80) atBottomRef.current = true;
       setShowJump(fromBottom > 300);
       if (atBottomRef.current) setUnseen(0);
     };
+    listEl.addEventListener("touchstart", onTouchStart, { passive: true });
+    listEl.addEventListener("touchmove", onTouchMove, { passive: true });
+    listEl.addEventListener("touchend", onTouchEnd, { passive: true });
+    listEl.addEventListener("touchcancel", onTouchEnd, { passive: true });
+    listEl.addEventListener("wheel", onWheel, { passive: true });
+    listEl.addEventListener("keydown", onKey);
+    listEl.addEventListener("pointerdown", onPointerDown);
+    window.addEventListener("pointerup", onPointerUp);
     listEl.addEventListener("scroll", onScroll, { passive: true });
     return () => {
+      listEl.removeEventListener("touchstart", onTouchStart);
+      listEl.removeEventListener("touchmove", onTouchMove);
+      listEl.removeEventListener("touchend", onTouchEnd);
+      listEl.removeEventListener("touchcancel", onTouchEnd);
+      listEl.removeEventListener("wheel", onWheel);
+      listEl.removeEventListener("keydown", onKey);
+      listEl.removeEventListener("pointerdown", onPointerDown);
+      window.removeEventListener("pointerup", onPointerUp);
       listEl.removeEventListener("scroll", onScroll);
-      listEl.removeEventListener("touchmove", markUser);
-      listEl.removeEventListener("wheel", markUser);
-      listEl.removeEventListener("keydown", markUser);
     };
-  }, [listRef, itemCount]);
+    // hasItems: the list element only exists once there are messages to show.
+  }, [listRef, hasItems]);
 
   const jumpToBottom = () => {
     setUnseen(0);
@@ -246,7 +306,8 @@ const VirtualizedChatList = ({
         rowComponent={RowComponent}
         rowProps={{ renderItem }}
         overscanCount={10}
-        style={{ height: "100%", overflow: "auto" }}
+        // contain: reaching the top or bottom doesn't drag (bounce) the whole page with it.
+        style={{ height: "100%", overflow: "auto", overscrollBehavior: "contain" }}
       />
       {(showJump || unseen > 0) && itemCount > 0 && (
         <button
