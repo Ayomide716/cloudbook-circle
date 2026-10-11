@@ -12,13 +12,16 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, LogOut, KeyRound, Mail, Trash2, Volume2 } from "lucide-react";
+import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, ChevronRight, KeyRound, Mail, Trash2, Volume2 } from "lucide-react";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { disablePush, enablePush, needsHomeScreenInstall, pushActive } from "@/lib/web-push";
+import { enablePush, needsHomeScreenInstall, pushActive } from "@/lib/web-push";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RowSkeleton } from "@/components/skeletons/parts";
 
 interface NotificationPrefs {
   likes: boolean;
@@ -67,6 +70,7 @@ const Settings = () => {
     toast({ title: "Your account has been deleted" });
     navigate("/auth", { replace: true });
   };
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const passwordError =
     newPassword && newPassword.length < 8 ? "At least 8 characters"
     : confirmPassword && confirmPassword !== newPassword ? "The passwords don't match"
@@ -84,14 +88,10 @@ const Settings = () => {
     }
     setNewPassword("");
     setConfirmPassword("");
+    setPasswordOpen(false);
     toast({ title: "Password changed" });
   };
 
-  const signOut = async () => {
-    await disablePush();
-    await supabase.auth.signOut();
-    navigate("/auth", { replace: true });
-  };
   useSEO({ title: "Settings", description: "Manage your Ember settings." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [sounds, setSounds] = useState(soundsEnabled);
@@ -191,8 +191,17 @@ const Settings = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {/* The page's shape in grey while settings load, instead of a spinner. */}
+        <div className="mx-auto max-w-[600px] space-y-6 px-4 py-4 sm:py-6" aria-busy="true">
+          <h1 className="font-display text-[22px] font-bold tracking-tight sm:text-3xl">Settings</h1>
+          {[3, 1, 6].map((rows, i) => (
+            <div key={i} className="space-y-2">
+              <Skeleton className="h-3 w-24 rounded-full" />
+              <div className="overflow-hidden rounded-2xl border bg-card">
+                {Array.from({ length: rows }, (_, r) => <RowSkeleton key={r} avatar="h-9 w-9" lines={[45, 25]} />)}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -223,28 +232,13 @@ const Settings = () => {
               </div>
             </div>
           )}
-          <form className="p-4 space-y-3" onSubmit={changePassword}>
-            <p className="flex items-center gap-2 text-sm font-medium"><KeyRound className="h-4 w-4" /> Change password</p>
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <Label htmlFor="new-password" className="text-xs">New password</Label>
-                <Input id="new-password" type="password" autoComplete="new-password" className="mt-1" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-              </div>
-              <div>
-                <Label htmlFor="confirm-password" className="text-xs">Confirm it</Label>
-                <Input id="confirm-password" type="password" autoComplete="new-password" className="mt-1" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
-              </div>
+          {/* Change password: one row that opens a small window, instead of an open form. */}
+          <button type="button" onClick={() => setPasswordOpen(true)} className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-accent/60">
+            <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
+              <KeyRound className="h-4 w-4" />
             </div>
-            {passwordError && <p className="text-xs text-destructive" role="alert">{passwordError}</p>}
-            <Button type="submit" size="sm" className="rounded-xl" disabled={savingPassword || !newPassword || !!passwordError || newPassword !== confirmPassword}>
-              {savingPassword && <Loader2 className="h-4 w-4 mr-2 animate-spin" />} Update password
-            </Button>
-          </form>
-          <button onClick={signOut} className="flex w-full items-center gap-3 p-4 text-left text-destructive hover:bg-destructive/5 transition-colors">
-            <div className="h-9 w-9 rounded-full bg-destructive/10 flex items-center justify-center flex-shrink-0">
-              <LogOut className="h-4 w-4" />
-            </div>
-            <span className="text-sm font-medium">Log out</span>
+            <span className="flex-1 text-sm font-medium">Change password</span>
+            <ChevronRight className="h-4 w-4 text-muted-foreground" />
           </button>
         </Card>
 
@@ -327,6 +321,29 @@ const Settings = () => {
             <Trash2 className="h-4 w-4 mr-2" /> Delete my account
           </Button>
         </Card>
+
+        <Dialog open={passwordOpen} onOpenChange={(o) => { setPasswordOpen(o); if (!o) { setNewPassword(""); setConfirmPassword(""); } }}>
+          <DialogContent className="max-w-sm rounded-3xl">
+            <DialogHeader>
+              <DialogTitle>Change password</DialogTitle>
+              <DialogDescription>At least 8 characters. You'll stay signed in on this device.</DialogDescription>
+            </DialogHeader>
+            <form className="space-y-3" onSubmit={changePassword}>
+              <div>
+                <Label htmlFor="new-password" className="text-xs">New password</Label>
+                <Input id="new-password" type="password" autoComplete="new-password" className="mt-1 h-11 rounded-xl" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} autoFocus />
+              </div>
+              <div>
+                <Label htmlFor="confirm-password" className="text-xs">Confirm it</Label>
+                <Input id="confirm-password" type="password" autoComplete="new-password" className="mt-1 h-11 rounded-xl" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+              </div>
+              {passwordError && <p className="text-xs text-destructive" role="alert">{passwordError}</p>}
+              <Button type="submit" className="h-11 w-full rounded-full" disabled={savingPassword || !newPassword || !!passwordError || newPassword !== confirmPassword}>
+                {savingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />} Update password
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
 
         <AlertDialog open={deleteOpen} onOpenChange={(open) => !deleting && setDeleteOpen(open)}>
           <AlertDialogContent>

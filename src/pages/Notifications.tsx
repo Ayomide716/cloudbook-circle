@@ -16,6 +16,7 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 import { groupMessage, groupNotifications, type GroupableNotification, type NotificationGroup } from "@/lib/notification-groups";
 import { dbChannel } from "@/lib/realtime";
 import EnablePushBanner from "@/components/EnablePushBanner";
+import EmptyState from "@/components/EmptyState";
 
 interface Notification extends GroupableNotification {
   actor_profile?: { full_name: string | null; avatar_url: string | null } | null;
@@ -266,19 +267,11 @@ const Notifications = () => {
 
         <Card className="feed-section flat-list overflow-hidden mt-2 sm:mt-0">
           {shown.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center mb-4">
-                <Bell className="h-10 w-10 text-muted-foreground/50" />
-              </div>
-              <p className="text-lg font-medium text-foreground mb-1">
-                {filter === "unread" && notifications.length > 0 ? "You're all caught up" : "No notifications yet"}
-              </p>
-              <p className="text-sm text-muted-foreground max-w-[280px]">
-                {filter === "unread" && notifications.length > 0
-                  ? "Nothing new since you last looked."
-                  : "When someone interacts with your posts or sends you a friend request, you'll see it here"}
-              </p>
-            </div>
+            <EmptyState
+              emoji={filter === "unread" && notifications.length > 0 ? "party" : "bell"}
+              title={filter === "unread" && notifications.length > 0 ? "You're all caught up" : "No notifications yet"}
+              text={filter === "unread" && notifications.length > 0 ? "Nothing new since you last looked." : "Likes, comments and friend requests will show up here."}
+            />
           ) : (
             <div>
               {shown.map((notification) => (

@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 
 // A few of Ember's 3D faces drifting beside the wordmark: a little life on the front door.
 const FLOATERS = [
-  { type: "wave", className: "left-[6%] top-[14%] h-14 w-14 rotate-[-12deg]", delay: 0 },
   { type: "love", className: "right-[8%] top-[22%] h-12 w-12 rotate-[10deg]", delay: 0.6 },
   { type: "haha", className: "left-[14%] bottom-[18%] h-12 w-12 rotate-[8deg]", delay: 1.1 },
   { type: "fire", className: "right-[14%] bottom-[12%] h-14 w-14 rotate-[-6deg]", delay: 0.3 },
@@ -81,18 +80,7 @@ const AuthShell = ({ children, showPanel = true, className }: AuthShellProps) =>
 /** The wordmark and tagline at the top of the form (phones, and forms without the panel). */
 export const AuthBrand = ({ always = false }: { always?: boolean }) => (
   <div className={cn("mb-8 flex flex-col items-center text-center", !always && "lg:hidden")}>
-    <div className="relative">
-      <Wordmark className="text-[52px]" />
-      <motion.div
-        aria-hidden="true"
-        className="absolute -right-9 -top-5 h-9 w-9"
-        initial={{ rotate: -20, scale: 0 }}
-        animate={{ rotate: [0, 14, -8, 14, 0], scale: 1 }}
-        transition={{ scale: { type: "spring", delay: 0.2 }, rotate: { duration: 1.4, delay: 0.5 } }}
-      >
-        <ReactionEmoji type="wave" className="h-full w-full" />
-      </motion.div>
-    </div>
+    <Wordmark className="text-[52px]" />
     <p className="mt-2 text-[15px] text-muted-foreground">{TAGLINE}</p>
   </div>
 );

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useCalls } from "@/hooks/use-calls";
 import { useGroupCallParticipants } from "@/hooks/use-group-call-participants";
 import { roomCallId } from "@/lib/voice-rooms";
@@ -26,36 +25,20 @@ const LiveRoomCard = ({ room }: { room: LiveRoom }) => {
   return (
     <button
       type="button"
-      className="flex-shrink-0 group"
+      className="flex w-[68px] flex-shrink-0 flex-col items-center gap-1"
       onClick={() => joinGroupCall({ id: callId, name: room.title }, true)}
       aria-label={`Join live voice room ${room.title} in ${room.groupName}, ${people.length} listening`}
     >
-      <div className="relative w-[104px] h-[172px] rounded-xl overflow-hidden bg-primary text-primary-foreground p-2.5 flex flex-col justify-between text-left shadow-sm transition-transform duration-200 group-hover:scale-[1.03]">
-        <span className="self-start whitespace-nowrap rounded-md bg-gold px-1.5 py-0.5 text-[10px] font-extrabold tracking-wider text-foreground">
-          LIVE ROOM
-        </span>
-        <div className="flex h-7 items-end gap-[3px]" aria-hidden="true">
-          {[0, 1, 2, 3, 4].map((i) => (
-            <span
-              key={i}
-              className="w-1 rounded-full bg-primary-foreground animate-sound-bar motion-reduce:animate-none"
-              style={{ animationDelay: `${i * 0.15}s` }}
-            />
+      {/* A live room as a story bubble: sound bars in a tangerine circle, with a LIVE tag. */}
+      <span className="relative block h-[66px] w-[66px] rounded-full bg-gradient-to-tr from-amber-400 via-primary to-rose-500 p-[2.5px]">
+        <span className="flex h-full w-full items-end justify-center gap-[3px] rounded-full border-[2.5px] border-background bg-primary pb-4" aria-hidden="true">
+          {[0, 1, 2, 3].map((i) => (
+            <span key={i} className="w-1 rounded-full bg-primary-foreground animate-sound-bar motion-reduce:animate-none" style={{ height: 14, animationDelay: `${i * 0.15}s` }} />
           ))}
-        </div>
-        <div className="min-w-0">
-          <div className="flex -space-x-1.5 mb-1">
-            {people.slice(0, 3).map((p) => (
-              <Avatar key={p.userId} className="h-5 w-5 ring-2 ring-primary">
-                <AvatarImage src={p.avatar || undefined} alt="" />
-                <AvatarFallback className="text-[8px] text-foreground">{p.name?.[0]?.toUpperCase()}</AvatarFallback>
-              </Avatar>
-            ))}
-          </div>
-          <p className="text-xs font-bold leading-tight line-clamp-2">{room.groupName}</p>
-          <p className="text-[10px] opacity-90">{people.length} listening</p>
-        </div>
-      </div>
+        </span>
+        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-md border-2 border-background bg-rose-500 px-1.5 text-[9px] font-extrabold tracking-wider text-white">LIVE</span>
+      </span>
+      <span className="w-full truncate text-center text-[11.5px] font-medium text-foreground/90">{room.groupName}</span>
     </button>
   );
 };

@@ -12,7 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
-  Calendar, CalendarPlus, MapPin, Clock, Users, Plus, Loader2, Check, Star, MoreHorizontal, Trash2, ImagePlus, X,
+  CalendarPlus, MapPin, Clock, Users, Plus, Loader2, Check, Star, MoreHorizontal, Trash2, ImagePlus, X,
 } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -26,6 +26,7 @@ import { cn } from "@/lib/utils";
 import EventsSkeleton from "@/components/skeletons/EventsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { uploadWithProgress } from "@/lib/storage-upload";
+import EmptyState from "@/components/EmptyState";
 
 interface Event {
   id: string;
@@ -352,15 +353,12 @@ const Events = () => {
         </PageHeader>
 
         {visible.length === 0 ? (
-          <div className="text-center py-12 px-4">
-            <Calendar className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
-            <p className="font-medium">
-              {filter === "going" ? "You haven't RSVP'd to anything yet" : filter === "hosting" ? "You aren't hosting any events" : "No upcoming events"}
-            </p>
-            <p className="text-sm text-muted-foreground mt-1">
-              {filter === "upcoming" || filter === "hosting" ? "Create one to get people together." : "Tap “Going” or “Interested” on an event to save it here."}
-            </p>
-          </div>
+          <EmptyState
+            emoji="calendar"
+            title={filter === "going" ? "You haven't RSVP'd to anything yet" : filter === "hosting" ? "You aren't hosting any events" : "No upcoming events"}
+            text={filter === "upcoming" || filter === "hosting" ? "Plan something and get your people together." : "Tap “Going” or “Interested” on an event to save it here."}
+            action={filter !== "going" ? <Button onClick={() => setShowCreateDialog(true)} className="rounded-full px-5">Create an event</Button> : undefined}
+          />
         ) : (
           <div className="grid gap-2 sm:gap-4 md:grid-cols-2 mt-2 sm:mt-0">
             {visible.map((event) => {

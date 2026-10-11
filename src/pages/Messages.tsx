@@ -46,6 +46,7 @@ import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
 import EnablePushBanner from "@/components/EnablePushBanner";
 import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
+import EmptyState from "@/components/EmptyState";
 
 interface Profile {
   id: string;
@@ -779,9 +780,11 @@ const Messages = () => {
                   </button>
                 )}
                 {chatRows.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    {showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "No group chats yet. Tap the new-message button to start one." : "No conversations yet"}
-                  </p>
+                  <EmptyState
+                    emoji="chat"
+                    title={showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "No group chats yet" : "No conversations yet"}
+                    text={showArchived || chatFilter === "unread" ? undefined : "Tap the new-message button at the top to start one."}
+                  />
                 ) : (
                   <div className="flat-list divide-y">
                     {chatRows.map((row) =>

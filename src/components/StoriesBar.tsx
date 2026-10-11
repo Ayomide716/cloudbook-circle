@@ -14,7 +14,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import LiveRoomStories from "./LiveRoomStories";
-import { compactCount, shortTime } from "@/lib/time";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -54,6 +53,7 @@ const STORY_DURATION = 5000; // 5 seconds per story
 const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const myProfile = useMyProfile();
   const [storyGroups, setStoryGroups] = useState<UserStoryGroup[]>([]);
+  const myGroup = storyGroups.find((g) => g.userId === currentUserId);
   const [isCreating, setIsCreating] = useState(false);
   const [storyImage, setStoryImage] = useState("");
   const [storyCaption, setStoryCaption] = useState("");
@@ -305,63 +305,38 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   return (
     <>
+      {/* Stories as round bubbles, as on Instagram: yours first (tap + to add one), a coloured
+          ring on anything you haven't watched, and the name underneath. */}
       <div className="feed-stories sm:mb-4">
-        <div className="flex gap-2 overflow-x-auto py-1 px-0.5 -mx-0.5 scrollbar-hide">
-          {/* Create a story: your photo, a glowing outline and a + */}
-          <button className="flex-shrink-0 group" onClick={() => setIsCreating(true)} aria-label="Create a story">
-            <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden bg-card ring-[1.5px] ring-primary transition-transform duration-200 group-active:scale-[0.98]">
-              {myProfile?.avatar_url ? (
-                <img src={myProfile.avatar_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-              ) : (
-                <div className="absolute inset-0 flex items-center justify-center bg-secondary">
-                  <span className="font-display text-4xl font-bold text-primary">{myProfile?.full_name?.[0]?.toUpperCase() || "+"}</span>
-                </div>
-              )}
-              <div className="absolute inset-x-0 bottom-0 h-[52%] bg-gradient-to-t from-card via-card/90 to-transparent" />
-              <div className="absolute inset-x-0 bottom-2.5 flex flex-col items-center">
-                <span className="mb-1 flex h-7 w-7 items-center justify-center rounded-full bg-primary">
-                  <Plus className="h-4 w-4 text-primary-foreground" strokeWidth={3} />
-                </span>
-                <p className="text-[11.5px] font-semibold leading-tight text-foreground text-center">Create a<br />story</p>
-              </div>
-            </div>
-          </button>
+        <div className="flex gap-3.5 overflow-x-auto px-3 py-2 scrollbar-hide sm:px-1">
+          {!myGroup && (
+            <StoryBubble label="Your story" onClick={() => setIsCreating(true)} ariaLabel="Create a story" ring="none" add>
+              <Avatar className="h-full w-full">
+                <AvatarImage src={myProfile?.avatar_url || undefined} className="object-cover" />
+                <AvatarFallback className="bg-secondary font-display text-xl font-bold text-primary">{myProfile?.full_name?.[0]?.toUpperCase() || "+"}</AvatarFallback>
+              </Avatar>
+            </StoryBubble>
+          )}
 
           {/* Live voice rooms in your groups */}
           <LiveRoomStories currentUserId={currentUserId} />
 
-          {/* Stories (yours first): the person's photo and name, the picture, the caption, time and views */}
           {storyGroups.map((group, index) => {
-            const latest = group.stories[group.stories.length - 1];
-            const when = shortTime(latest.created_at);
+            const mine = group.userId === currentUserId;
             return (
-              <button key={group.userId} className="flex-shrink-0 group" onClick={() => openViewer(index)} aria-label={group.userId === currentUserId ? "Your story" : `${group.profile.full_name || "User"}'s story`}>
-                <div className="relative w-[100px] h-[158px] rounded-2xl overflow-hidden border border-border bg-card transition-transform duration-200 group-active:scale-[0.98]">
-                  <img src={latest.media_url} alt="" className="absolute inset-0 h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent to-black/80" />
-                  <div className="absolute top-2 left-2 right-2 flex items-center gap-1.5">
-                    <div className={cn("shrink-0 rounded-full p-[2px]", group.hasUnviewed ? "bg-primary" : "bg-white/50")}>
-                      <Avatar className="h-7 w-7 border-2 border-black/30">
-                        <AvatarImage src={group.profile.avatar_url || undefined} />
-                        <AvatarFallback className="text-[10px] bg-primary text-primary-foreground">
-                          {group.profile.full_name?.[0]?.toUpperCase() || "U"}
-                        </AvatarFallback>
-                      </Avatar>
-                    </div>
-                    <p className="min-w-0 truncate text-[11px] font-semibold text-white drop-shadow">{group.userId === currentUserId ? "Your story" : group.profile.full_name || "User"}</p>
-                  </div>
-                  {group.stories.length > 1 && (
-                    <span className="absolute top-12 right-2 rounded-full bg-black/50 px-1.5 text-[10px] font-bold text-white">{group.stories.length}</span>
-                  )}
-                  <div className="absolute inset-x-2 bottom-2 text-left">
-                    {latest.caption && <p className="mb-0.5 line-clamp-2 text-[11px] font-semibold leading-tight text-white drop-shadow">{latest.caption}</p>}
-                    <p className="text-[9.5px] text-white/75">
-                      {when === "Just now" ? when : `${when} ago`}
-                      {group.views > 0 && <> · {compactCount(group.views)} {group.views === 1 ? "view" : "views"}</>}
-                    </p>
-                  </div>
-                </div>
-              </button>
+              <StoryBubble
+                key={group.userId}
+                label={mine ? "Your story" : group.profile.full_name?.split(" ")[0] || "User"}
+                ariaLabel={mine ? "Your story" : `${group.profile.full_name || "User"}'s story`}
+                onClick={() => openViewer(index)}
+                ring={group.hasUnviewed ? "new" : "seen"}
+                onAdd={mine ? () => setIsCreating(true) : undefined}
+              >
+                <Avatar className="h-full w-full">
+                  <AvatarImage src={group.profile.avatar_url || undefined} className="object-cover" />
+                  <AvatarFallback className="bg-secondary text-lg font-bold">{group.profile.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                </Avatar>
+              </StoryBubble>
             );
           })}
         </div>
@@ -527,3 +502,46 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 };
 
 export default StoriesBar;
+
+interface StoryBubbleProps {
+  label: string;
+  ariaLabel: string;
+  onClick: () => void;
+  /** "new": a tangerine ring (not watched yet); "seen": a faint ring; "none": no ring. */
+  ring: "new" | "seen" | "none";
+  /** Show the + badge that adds a story (on "Your story" with no story yet). */
+  add?: boolean;
+  /** A + badge that adds another story (on your own bubble when you have one). */
+  onAdd?: () => void;
+  children: React.ReactNode;
+}
+
+/** One round story bubble with the name under it. */
+const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: StoryBubbleProps) => (
+  <div className="flex w-[68px] flex-shrink-0 flex-col items-center gap-1">
+    <div className="relative">
+      <button
+        type="button"
+        onClick={onClick}
+        aria-label={ariaLabel}
+        className={cn(
+          "block h-[66px] w-[66px] rounded-full p-[2.5px] transition-transform active:scale-95",
+          ring === "new" ? "bg-gradient-to-tr from-amber-400 via-primary to-rose-500" : ring === "seen" ? "bg-border" : "bg-transparent"
+        )}
+      >
+        <span className="block h-full w-full overflow-hidden rounded-full border-[2.5px] border-background bg-background">{children}</span>
+      </button>
+      {(add || onAdd) && (
+        <button
+          type="button"
+          onClick={onAdd ?? onClick}
+          aria-label="Add to your story"
+          className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"
+        >
+          <Plus className="h-3.5 w-3.5" strokeWidth={3} />
+        </button>
+      )}
+    </div>
+    <span className="w-full truncate text-center text-[11.5px] font-medium text-foreground/90">{label}</span>
+  </div>
+);

@@ -22,6 +22,8 @@ import GroupConversation from "@/components/groups/GroupConversation";
 import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { dbChannel } from "@/lib/realtime";
+import { Skeleton } from "@/components/ui/skeleton";
+import { RowSkeleton } from "@/components/skeletons/parts";
 
 interface Group {
   id: string;
@@ -369,8 +371,14 @@ const GroupDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
-        <div className="flex items-center justify-center h-[calc(100vh-56px)]">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        {/* The group's shape in grey while it loads, instead of a spinner. */}
+        <div className="mx-auto max-w-2xl" aria-busy="true">
+          <Skeleton className="h-40 w-full rounded-none sm:h-56 sm:rounded-2xl" />
+          <div className="space-y-2 px-4 py-4">
+            <Skeleton className="h-7 w-2/3 rounded-full" />
+            <Skeleton className="h-4 w-1/3 rounded-full" />
+          </div>
+          {[0, 1, 2].map((r) => <RowSkeleton key={r} />)}
         </div>
       </div>
     );

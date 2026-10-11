@@ -52,13 +52,10 @@ import { isBlockedWith, unblockUser } from "@/lib/blocking";
 import { birthdayLabel, relationshipLabel } from "@/lib/profile-details";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
-import LoginStreakBadge from "@/components/LoginStreakBadge";
-import MoodSelector from "@/components/MoodSelector";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { cn, getErrorMessage, toDate } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import ProfileAchievements from "@/components/ProfileAchievements";
 import AnonymousQA from "@/components/AnonymousQA";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
 import type { LucideIcon } from "lucide-react";
@@ -142,17 +139,6 @@ const Profile = () => {
   const [confirm, setConfirm] = useState<{ kind: "album"; id: string } | { kind: "photo"; id: string } | null>(null);
   const [viewPhoto, setViewPhoto] = useState<string | null>(null);
 
-  // Your mood is a personal note kept on this device.
-  const [mood, setMood] = useState<string | null>(() => {
-    try { return localStorage.getItem("cloudbook_mood"); } catch { return null; }
-  });
-  const handleMoodChange = (next: string | null) => {
-    setMood(next);
-    try {
-      if (next) localStorage.setItem("cloudbook_mood", next);
-      else localStorage.removeItem("cloudbook_mood");
-    } catch { /* storage blocked: keep it for this visit only */ }
-  };
 
   // Mutual friends state
   const [mutualFriends, setMutualFriends] = useState<{id: string;full_name: string | null;avatar_url: string | null;}[]>([]);
@@ -516,7 +502,8 @@ const Profile = () => {
           <motion.div style={{ y: coverY, scale: coverScale }} className="absolute inset-0">
             {profile.cover_url ?
             <img src={profile.cover_url} alt="" className="w-full h-full object-cover" /> :
-            <div className="w-full h-full gradient-brand opacity-80" />
+            // No cover yet: soft ember glows on the page colour, calmer than a flat gradient.
+            <div className="h-full w-full bg-[radial-gradient(110%_130%_at_0%_0%,hsl(var(--primary)/0.55),transparent_55%),radial-gradient(90%_120%_at_100%_100%,hsl(340_90%_62%/0.4),transparent_60%),radial-gradient(60%_80%_at_70%_10%,hsl(40_100%_60%/0.35),transparent_60%),linear-gradient(160deg,hsl(var(--secondary)),hsl(var(--background)))]" />
             }
           </motion.div>
           <div className="md:hidden absolute inset-x-0 top-0 z-10 flex items-center justify-between px-2 pt-[max(0.5rem,env(safe-area-inset-top))]">
@@ -679,12 +666,6 @@ const Profile = () => {
           <div className="mt-3">
             <OnlineStatusIndicator userId={userId || ""} showText />
           </div>
-          {isOwnProfile && currentUserId &&
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-              <LoginStreakBadge userId={currentUserId} />
-              <MoodSelector currentMood={mood} onMoodChange={handleMoodChange} />
-            </div>
-          }
         </header>
 
         {/* ─── Tabs: Facebook's pill chips (All, Photos, Videos …), sticky under the top bar ─── */}
@@ -767,14 +748,6 @@ const Profile = () => {
             }
 
               {/* Achievements card */}
-              <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...spring, delay: 0.12 }}
-              className="feed-section bento-card p-4 sm:p-5">
-              
-                <ProfileAchievements userId={userId || ""} isOwnProfile={isOwnProfile} />
-              </motion.div>
 
               {/* Mutual friends card */}
               {!isOwnProfile && mutualFriends.length > 0 &&
