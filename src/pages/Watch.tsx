@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -281,7 +282,9 @@ const Watch = () => {
     if (file && !uploadTitle.trim()) setUploadTitle(file.name.replace(/\.[^.]+$/, "").replace(/[_-]+/g, " "));
   };
 
-  const handleUpload = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleUpload = useSingleFlight();
+  const handleUpload = onceHandleUpload(async () => {
     if (!currentUserId || !uploadFile || !uploadTitle.trim()) return;
     setIsUploading(true);
     setUploadProgress(0);
@@ -321,7 +324,7 @@ const Watch = () => {
       setIsUploading(false);
       setUploadProgress(0);
     }
-  };
+  });
 
   const deleteVideo = async (video: WatchVideo) => {
     setPendingDelete(null);

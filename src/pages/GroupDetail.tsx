@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -333,7 +334,9 @@ const GroupDetail = () => {
     setPosts((prev) => prev.filter((p) => p.id !== postId));
   };
 
-  const handleCreatePost = async (e: React.FormEvent) => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleCreatePost = useSingleFlight();
+  const handleCreatePost = onceHandleCreatePost(async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentUserId || !groupId) return;
@@ -365,7 +368,7 @@ const GroupDetail = () => {
     setPostImage("");
     // Don't wait on realtime to show your own post.
     loadPosts();
-  };
+  });
 
   if (isLoading) {
     return (

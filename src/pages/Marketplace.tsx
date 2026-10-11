@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -124,7 +125,9 @@ const Marketplace = () => {
     setNewCategory("Other"); setNewCondition("Good"); setNewLocation(""); setNewImages([]);
   };
 
-  const handleCreateListing = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleCreateListing = useSingleFlight();
+  const handleCreateListing = onceHandleCreateListing(async () => {
     if (!currentUserId || !newTitle.trim() || !newPrice || priceError) return;
     setSubmitting(true);
 
@@ -164,7 +167,7 @@ const Marketplace = () => {
     setCreateOpen(false);
     resetForm();
     if (data) setListings((prev) => [data as unknown as Listing, ...prev]);
-  };
+  });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files ?? []).filter((f) => f.type.startsWith("image/"));

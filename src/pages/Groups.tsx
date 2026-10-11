@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo, useRef } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { groupColor, groupInitials } from "@/lib/group-tile";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -173,7 +174,9 @@ const Groups = () => {
     return data.publicUrl;
   };
 
-  const handleCreateGroup = async (e: React.FormEvent) => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleCreateGroup = useSingleFlight();
+  const handleCreateGroup = onceHandleCreateGroup(async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (!currentUserId) return;
@@ -239,7 +242,7 @@ const Groups = () => {
     setGroupImagePreview(null);
     setIsUploading(false);
     navigate(`/groups/${groupId}`);
-  };
+  });
 
   const handleJoinGroup = async (e: React.MouseEvent, groupId: string) => {
     e.stopPropagation();

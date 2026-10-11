@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { isRepeatSend } from "@/hooks/use-single-flight";
 import GroupInitials from "@/components/groups/GroupInitials";
 import { ArrowLeft, BellOff, Loader2, MoreVertical, Phone, Send, Users, Video, X } from "lucide-react";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
@@ -94,6 +95,8 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
   const typingTimer = useRef<number>();
   const amTyping = useRef(false);
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  // The last message sent, so a double tap on Send doesn't send it twice.
+  const lastSendRef = useRef<{ text: string; at: number } | null>(null);
   useAutoGrow(boxRef, text, 150);
   useDraft(currentUserId, `g:${group.id}`, text, setText, !!editing);
   const mutedRef = useRef(muted);
@@ -360,6 +363,9 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
       return;
     }
     if ((!caption && !media) || sending || uploading) return;
+    const sendKey = `${caption}|${media?.url ?? ""}`;
+    if (isRepeatSend(lastSendRef.current, sendKey)) return;
+    lastSendRef.current = { text: sendKey, at: Date.now() };
     const attached = media;
     const content = caption || (attached ? (mediaKind(attached.url) === "gif" ? "GIF" : attached.type === "video" ? "🎥 Video" : "📷 Photo") : "");
     setText("");
