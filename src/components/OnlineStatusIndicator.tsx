@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
+import { lastSeen } from "@/lib/time";
 
 interface OnlineStatusIndicatorProps {
   userId: string;
@@ -99,9 +99,9 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
     return (
       <span className="block truncate text-xs sm:text-sm text-muted-foreground">
         {isOnline ? (
-          <span className="text-green-500">● Online</span>
+          <span className="text-green-500">● Active now</span>
         ) : (
-          `Last seen ${formatDistanceToNow(new Date(status.last_seen), { addSuffix: true })}`
+          lastSeen(status.last_seen)
         )}
       </span>
     );

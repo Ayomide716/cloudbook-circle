@@ -268,7 +268,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   "resize-none border-0 focus-visible:ring-0 p-0",
                   bgCss
                     ? "min-h-[80px] w-full bg-transparent text-center text-2xl font-bold text-white placeholder:text-white/70"
-                    : "min-h-[120px] max-sm:min-h-[38dvh] text-lg placeholder:text-muted-foreground/60"
+                    : "min-h-[120px] max-sm:min-h-[22dvh] text-lg placeholder:text-muted-foreground/60"
                 )}
                 disabled={isLoading}
               />
@@ -444,9 +444,10 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
             {/* Stays visible at the bottom of the sheet, even with a long post or the keyboard open. */}
             <div className="sticky -bottom-4 sm:-bottom-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 pt-2 pb-4 sm:pb-6 bg-background border-t border-border/50">
+              {/* Until there's something to post, the button is plainly grey (not a faded orange). */}
               <Button
                 type="submit"
-                className="w-full"
+                className="h-11 w-full rounded-full text-[15px] font-semibold disabled:bg-secondary disabled:text-muted-foreground disabled:opacity-100"
                 disabled={isLoading || (!content.trim() && !pollData)}
               >
                 {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
