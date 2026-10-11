@@ -53,6 +53,7 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
   const [results, setResults] = useState<GifResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   // What the search box and the GIPHY grid are for right now.
   const remote: "gifs" | "stickers" | null =
@@ -77,8 +78,9 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
     return () => {
       controller.abort();
       window.clearTimeout(t);
+      setLoading(false);
     };
-  }, [open, remote, search]);
+  }, [open, remote, search, attempt]);
 
   const close = () => {
     setOpen(false);
@@ -139,9 +141,14 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
         ))}
       </div>
     ) : (
-      <p className="py-10 text-center text-sm text-muted-foreground">
-        {failed ? "Couldn't load right now. Try again in a moment." : search ? "Nothing found" : "Nothing here yet"}
-      </p>
+      <div className="py-10 text-center text-sm text-muted-foreground">
+        <p>{failed ? "Couldn't load. Check your connection." : search ? "Nothing found" : "Nothing here yet"}</p>
+        {failed && (
+          <Button variant="secondary" size="sm" className="mt-3 rounded-full" onClick={() => setAttempt((n) => n + 1)}>
+            Try again
+          </Button>
+        )}
+      </div>
     );
 
   return (

@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image, X, MapPin, Globe, Timer, BarChart3 } from "lucide-react";
+import { Loader2, Image, X, MapPin, Globe, BarChart3 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import PostExpirySelector from "./PostExpirySelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -227,7 +227,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         {/* Phones: a full page, like Facebook's "New post" (✕ on the left, title in the middle);
             bigger screens: a centred window. */}
-        <DialogContent className="sm:max-w-lg max-sm:top-0 max-sm:h-[calc(100dvh-var(--keyboard-inset,0px))] max-sm:max-h-none max-sm:content-start max-sm:rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)] max-sm:[&>button:last-child]:hidden">
+        <DialogContent className="sm:max-w-lg max-sm:top-0 max-sm:h-[calc(100dvh-var(--keyboard-inset,0px))] max-sm:max-h-none max-sm:content-start max-sm:rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)] max-sm:[&>button:last-child]:hidden max-sm:flex max-sm:flex-col max-sm:gap-0 max-sm:overflow-hidden max-sm:pb-0">
           <DialogHeader className="max-sm:-mx-4 max-sm:h-14 max-sm:flex-row max-sm:items-center max-sm:space-y-0 max-sm:border-b max-sm:border-border max-sm:px-2">
             <DialogClose asChild>
               <button type="button" className="sm:hidden flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary" aria-label="Close">
@@ -235,10 +235,21 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </button>
             </DialogClose>
             <DialogTitle className="max-sm:flex-1 max-sm:text-center max-sm:text-[17px]">Create post</DialogTitle>
-            <span className="sm:hidden w-10" aria-hidden="true" />
+            {/* Phones: Post sits top-right, as on Facebook, so the keyboard never hides it. */}
+            <Button
+              type="submit"
+              form="create-post"
+              size="sm"
+              className="sm:hidden h-9 rounded-full px-4 font-semibold disabled:bg-secondary disabled:text-muted-foreground disabled:opacity-100"
+              disabled={isLoading || (!content.trim() && !pollData)}
+            >
+              {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
+            </Button>
           </DialogHeader>
           
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form id="create-post" onSubmit={handleSubmit} className="space-y-4 max-sm:flex max-sm:min-h-0 max-sm:flex-1 max-sm:flex-col max-sm:space-y-0">
+            {/* What you're writing and what's attached; scrolls on its own on phones. */}
+            <div className="space-y-4 max-sm:-mx-4 max-sm:min-h-0 max-sm:flex-1 max-sm:overflow-y-auto max-sm:px-4 max-sm:py-4">
             <div className="flex items-center gap-3">
               <Avatar className="h-10 w-10">
                 <AvatarImage src={currentUser.avatar_url || undefined} />
@@ -249,9 +260,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               <div>
                 <p className="font-semibold leading-tight">{currentUser.full_name || "Anonymous"}</p>
                 {/* Posts on Ember are public; shown as Facebook shows the audience. */}
-                <span className="mt-1 inline-flex items-center gap-1 rounded-md bg-secondary px-2 py-0.5 text-xs font-semibold text-muted-foreground">
-                  <Globe className="h-3 w-3" /> Public
-                </span>
+                <div className="mt-1 flex items-center gap-1.5">
+                  <span className="inline-flex h-6 items-center gap-1 rounded-md bg-secondary px-2 text-xs font-semibold text-muted-foreground">
+                    <Globe className="h-3 w-3" /> Public
+                  </span>
+                  <PostExpirySelector value={postExpiry} onChange={setPostExpiry} />
+                </div>
               </div>
             </div>
 
@@ -268,7 +282,9 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   "resize-none border-0 focus-visible:ring-0 p-0",
                   bgCss
                     ? "min-h-[80px] w-full bg-transparent text-center text-2xl font-bold text-white placeholder:text-white/70"
-                    : "min-h-[120px] max-sm:min-h-[22dvh] text-lg placeholder:text-muted-foreground/60"
+                    : imageUrls.length || videoUrl || pollData
+                      ? "min-h-[56px] text-lg placeholder:text-muted-foreground/60" // the attachment sits right under the words
+                      : "min-h-[120px] max-sm:min-h-[22dvh] text-lg placeholder:text-muted-foreground/60"
                 )}
                 disabled={isLoading}
               />
@@ -301,39 +317,6 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 ))}
               </div>
             )}
-
-            <div className="flex items-center justify-between p-3 border rounded-lg">
-              <span className="text-sm font-medium">Add to your post</span>
-              <div className="flex gap-1">
-                <MultiImageUpload
-                  bucket="post-images"
-                  userId={currentUser.id}
-                  onUploadComplete={(urls) => { setImageUrls(urls); if (urls.length > 0) setVideoUrl(""); }}
-                  currentImages={imageUrls}
-                  showPreview={false}
-                />
-                <VideoUpload
-                  bucket="post-videos"
-                  userId={currentUser.id}
-                  onUploadComplete={(url) => { setVideoUrl(url); if (url) setImageUrls([]); }}
-                  currentVideo={videoUrl}
-                  label="Add video"
-                  showPreview={false}
-                />
-                <PollCreator onCreatePoll={handleCreatePoll} />
-                {features.postLocation && <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={cn("h-9 w-9 rounded-full text-red-500 hover:bg-red-500/10", (showLocation || location) && "bg-red-500/10")}
-                  onClick={() => setShowLocation((v) => !v)}
-                  aria-label="Add location"
-                  aria-expanded={showLocation}
-                >
-                  <MapPin className="h-5 w-5" />
-                </Button>}
-              </div>
-            </div>
 
             {features.postLocation && (showLocation || location) && (
               <div className="relative">
@@ -431,19 +414,44 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </div>
             )}
             
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-1">
-                <PostExpirySelector value={postExpiry} onChange={setPostExpiry} />
+            </div>
+
+            {/* Phones: pinned to the bottom of the screen, above the keyboard. */}
+            <div className="flex items-center justify-between rounded-lg border p-3 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0 max-sm:px-4 max-sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+              <span className="text-sm font-medium">Add to your post</span>
+              <div className="flex gap-1">
+                <MultiImageUpload
+                  bucket="post-images"
+                  userId={currentUser.id}
+                  onUploadComplete={(urls) => { setImageUrls(urls); if (urls.length > 0) setVideoUrl(""); }}
+                  currentImages={imageUrls}
+                  showPreview={false}
+                />
+                <VideoUpload
+                  bucket="post-videos"
+                  userId={currentUser.id}
+                  onUploadComplete={(url) => { setVideoUrl(url); if (url) setImageUrls([]); }}
+                  currentVideo={videoUrl}
+                  label="Add video"
+                  showPreview={false}
+                />
+                <PollCreator onCreatePoll={handleCreatePoll} />
+                {features.postLocation && <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className={cn("h-9 w-9 rounded-full text-red-500 hover:bg-red-500/10", (showLocation || location) && "bg-red-500/10")}
+                  onClick={() => setShowLocation((v) => !v)}
+                  aria-label="Add location"
+                  aria-expanded={showLocation}
+                >
+                  <MapPin className="h-5 w-5" />
+                </Button>}
               </div>
-              {postExpiry && (
-                <span className="text-xs text-muted-foreground">
-                  <Timer className="mr-1 inline h-3.5 w-3.5 align-[-2px]" aria-hidden="true" />Auto-deletes after {postExpiry === "24h" ? "24h" : postExpiry === "7d" ? "7d" : "30d"}
-                </span>
-              )}
             </div>
 
             {/* Stays visible at the bottom of the sheet, even with a long post or the keyboard open. */}
-            <div className="sticky -bottom-4 sm:-bottom-6 -mx-4 sm:-mx-6 -mb-4 sm:-mb-6 px-4 sm:px-6 pt-2 pb-4 sm:pb-6 bg-background border-t border-border/50">
+            <div className="max-sm:hidden sticky -bottom-6 -mx-6 -mb-6 px-6 pt-2 pb-6 bg-background border-t border-border/50">
               {/* Until there's something to post, the button is plainly grey (not a faded orange). */}
               <Button
                 type="submit"

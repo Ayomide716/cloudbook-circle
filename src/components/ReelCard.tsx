@@ -405,7 +405,11 @@ export default function ReelCard({
           <div className="mt-3 flex max-w-[220px] items-center gap-2 overflow-hidden rounded-full bg-white/10 py-1 pl-2.5 pr-3 backdrop-blur-md">
             <MusicNotesSimple className="h-3.5 w-3.5 shrink-0 text-white" weight="bold" />
             <div className="relative min-w-0 flex-1 overflow-hidden">
-              <p className={cn("inline-block whitespace-nowrap text-xs text-white/85", isActive && !isPaused && "animate-marquee")}>{name} · Original audio</p>
+              {/* Still: the start of the name. Playing: two copies drifting, for a seamless loop. */}
+              <p className={cn("flex w-max whitespace-nowrap text-xs text-white/85", isActive && !isPaused && "animate-marquee")}>
+                <span className="pr-8">{name} · Original audio</span>
+                <span className="pr-8" aria-hidden="true">{name} · Original audio</span>
+              </p>
             </div>
           </div>
         </div>
@@ -426,14 +430,14 @@ export default function ReelCard({
                 )}
               </AnimatePresence>
             </motion.span>
-            <span className="mt-1 text-xs font-semibold text-white">{formatCount(reel.reel_likes.length)}</span>
+            <span className="mt-1 text-xs font-semibold text-white">{reel.reel_likes.length ? formatCount(reel.reel_likes.length) : "Like"}</span>
           </button>
 
           <button onClick={() => onComment(reel.id)} className="flex flex-col items-center" aria-label="Comments">
             <motion.span whileTap={{ scale: 0.82 }} className={railButton}>
               <ChatCircle className="h-7 w-7" weight="bold" />
             </motion.span>
-            <span className="mt-1 text-xs font-semibold text-white">{formatCount(reel.reel_comments.length)}</span>
+            <span className="mt-1 text-xs font-semibold text-white">{reel.reel_comments.length ? formatCount(reel.reel_comments.length) : "Comment"}</span>
           </button>
 
           <button onClick={() => onShare(reel.id)} className="flex flex-col items-center" aria-label="Share">
