@@ -90,10 +90,11 @@ export default {
           "20%, 60%": { transform: "rotate(14deg)" },
           "40%, 80%": { transform: "rotate(-8deg)" },
         },
-        // A reel's sound name drifting past in its pill.
+        // A reel's sound name drifting past in its pill: the text is there twice, so moving by
+        // half its width loops without a gap or a cut-off word.
         marquee: {
-          "0%": { transform: "translateX(100%)" },
-          "100%": { transform: "translateX(-100%)" },
+          "0%": { transform: "translateX(0)" },
+          "100%": { transform: "translateX(-50%)" },
         },
         "sound-bar": {
           "0%, 100%": { height: "30%" },

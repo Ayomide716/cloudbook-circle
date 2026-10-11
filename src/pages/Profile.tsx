@@ -663,7 +663,14 @@ const Profile = () => {
         {/* ─── Tabs: Facebook's pill chips (All, Photos, Videos …), sticky under the top bar ─── */}
         <nav aria-label="Profile sections" className="sticky top-0 md:top-[var(--nav-height)] z-30 mb-2 sm:mb-5 border-b border-border bg-card/95 sm:bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:supports-[backdrop-filter]:bg-background/80">
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide px-3 sm:px-0 py-2">
-            {(["posts", "photos", "videos", "albums", "qa"] as const).map((tab) => {
+            {/* Only sections with something in them (yours keeps Albums, to make one). */}
+            {(["posts", "photos", "videos", "albums", "qa"] as const).filter((tab) =>
+              tab === "posts" ||
+              (tab === "photos" && photoPosts.length > 0) ||
+              (tab === "videos" && videoPosts.length > 0) ||
+              (tab === "albums" && (albums.length > 0 || isOwnProfile)) ||
+              (tab === "qa" && features.extras)
+            ).map((tab) => {
               const count = tab === "photos" ? photoPosts.length : tab === "videos" ? videoPosts.length : null;
               return (
                 <button

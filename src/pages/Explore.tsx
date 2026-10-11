@@ -301,7 +301,8 @@ const Explore = () => {
             </section>
           )}
 
-          {groupsToJoin.length > 0 && (
+          {/* One lonely card looks broken; Groups → Discover still lists it. */}
+          {groupsToJoin.length >= 2 && (
             <section className="feed-section bg-card py-3 sm:rounded-2xl sm:border" aria-labelledby="explore-groups">
               <div className="mb-2.5 flex items-center justify-between px-3 sm:px-4">
                 <h2 id="explore-groups" className="text-[15px] font-semibold">Groups to explore</h2>
