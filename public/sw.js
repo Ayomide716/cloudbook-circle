@@ -1,4 +1,5 @@
-const CACHE_VERSION = "ember-v4";
+// Replaced with a new value on every release (vite.config.ts), so each release is a new worker.
+const CACHE_VERSION = "ember-v5";
 const STATIC_CACHE = `static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `images-${CACHE_VERSION}`;
@@ -18,18 +19,35 @@ self.addEventListener("install", (event) => {
   self.skipWaiting();
 });
 
-// Activate: clean up old caches
+// Activate: clean up old caches, take over open pages, and if this is a new release (an older
+// version's caches were here), get every open copy of the app onto it. A copy in the
+// background is reloaded straight away; the one on screen is told, and reloads itself as soon
+// as you're not typing. (Copies still running code from before this existed don't listen for
+// that message, so they're reloaded too: a moment's flash beats being stuck on an old design.)
 self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(
-        keys
-          .filter((key) => !key.includes(CACHE_VERSION))
-          .map((key) => caches.delete(key))
-      )
-    )
-  );
-  self.clients.claim();
+  event.waitUntil((async () => {
+    const keys = await caches.keys();
+    const old = keys.filter((key) => !key.includes(CACHE_VERSION));
+    await Promise.all(old.map((key) => caches.delete(key)));
+    await self.clients.claim();
+    if (old.length === 0) return; // first install: nothing to update
+    const windows = await self.clients.matchAll({ type: "window" });
+    for (const client of windows) {
+      // Old pages never answer; new ones say "ok" and reload themselves when it's safe.
+      const listens = await new Promise((resolve) => {
+        const timer = setTimeout(() => resolve(false), 1500);
+        pendingAcks.set(client.id, () => { clearTimeout(timer); resolve(true); });
+        client.postMessage({ type: "ember:new-version" });
+      });
+      pendingAcks.delete(client.id);
+      if (!listens && "navigate" in client) client.navigate(client.url).catch(() => {});
+    }
+  })());
+});
+
+const pendingAcks = new Map();
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "ember:new-version-ok" && event.source) pendingAcks.get(event.source.id)?.();
 });
 
 // Image optimization: add format/quality/resize params to Supabase storage URLs
