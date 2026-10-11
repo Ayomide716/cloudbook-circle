@@ -54,8 +54,7 @@ import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { cn, getErrorMessage, toDate } from "@/lib/utils";
-import { formatDistanceToNow } from "date-fns";
+import { cn, getErrorMessage } from "@/lib/utils";
 import AnonymousQA from "@/components/AnonymousQA";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
 import type { LucideIcon } from "lucide-react";
@@ -471,15 +470,6 @@ const Profile = () => {
   relationship && { icon: Heart, label: relationship }].
   filter(Boolean) as {icon: LucideIcon;label: string;}[];
 
-  // Build activity timeline
-  const timelineItems = posts.slice(0, 8).map((p) => ({
-    id: p.id,
-    type: postImages(p).length ? "photo" : p.video_url ? "video" : "post",
-    content: p.content.substring(0, 80) + (p.content.length > 80 ? "…" : ""),
-    date: p.created_at,
-    image: postImages(p)[0] ?? null
-  }));
-
   const infoItems = [
   profile.location && { icon: Home, label: profile.location, prefix: "Lives in" },
   profile.hometown && { icon: MapPin, label: profile.hometown, prefix: "From" },
@@ -492,6 +482,7 @@ const Profile = () => {
   // Only http(s) links, so a "javascript:" website can't run code when clicked.
   profile.website && { icon: LinkIcon, label: profile.website, href: safeWebsiteUrl(profile.website) }].
   filter(Boolean) as {icon: LucideIcon;label: string;prefix?: string;href?: string | null;}[];
+  const hasDetails = infoItems.some((item) => item.prefix !== "Joined");
 
   return (
     <div className="min-h-screen bg-background">
@@ -697,7 +688,17 @@ const Profile = () => {
             {/* Left column — Info + Timeline */}
             <div className="lg:col-span-1 space-y-2 sm:space-y-5">
               {/* Personal details, as on Facebook: "Lives in Lagos", "From Ibadan", … */}
-              {infoItems.length > 0 &&
+              {/* Only "Joined" isn't worth a card: others see nothing, you get a nudge to add details. */}
+              {isOwnProfile && !hasDetails &&
+            <section className="feed-section bento-card flex items-center gap-3 p-4 sm:p-5" aria-label="Add personal details">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold">Tell people about yourself</p>
+                    <p className="text-sm text-muted-foreground">Where you live, work and studied, so friends can find you.</p>
+                  </div>
+                  <Button size="sm" variant="secondary" className="shrink-0 rounded-full" onClick={() => setIsEditingProfile(true)}>Add details</Button>
+                </section>
+            }
+              {hasDetails &&
             <section className="feed-section bento-card p-4 sm:p-5" aria-labelledby="personal-details">
                   <div className="flex items-center justify-between mb-3">
                     <h2 id="personal-details" className="text-[17px] font-bold">Personal details</h2>
@@ -786,53 +787,6 @@ const Profile = () => {
                 </motion.div>
             }
 
-              {/* Activity timeline card */}
-              {timelineItems.length > 0 &&
-            <motion.div
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ ...spring, delay: 0.2 }}
-              className="feed-section bento-card p-4 sm:p-5">
-              
-                  <h3 className="text-[17px] font-bold mb-3">Activity</h3>
-                  <div className="relative">
-                    {/* Timeline line */}
-                    <div className="absolute left-[15px] top-2 bottom-2 w-0.5 bg-border" />
-                    <div className="space-y-4">
-                      {timelineItems.map((item, i) =>
-                  <motion.div
-                    key={item.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ ...spring, delay: 0.05 * i }}
-                    className="flex gap-3 relative cursor-pointer rounded-lg hover:bg-accent/40 -mx-1 px-1"
-                    role="link"
-                    tabIndex={0}
-                    onClick={() => navigate(`/post/${item.id}`)}
-                    onKeyDown={(e) => { if (e.key === "Enter") navigate(`/post/${item.id}`); }}>
-                    
-                          <div className={cn(
-                      "w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 relative z-10",
-                      item.type === "photo" ? "bg-gold/15" : "bg-primary/10"
-                    )}>
-                            {item.type === "photo" ?
-                      <ImageIcon className="h-3.5 w-3.5 text-gold" /> :
-
-                      <MessageSquare className="h-3.5 w-3.5 text-primary" />
-                      }
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm truncate">{item.content}</p>
-                            <p className="text-[11px] text-muted-foreground mt-0.5">
-                              {formatDistanceToNow(toDate(item.date), { addSuffix: true })}
-                            </p>
-                          </div>
-                        </motion.div>
-                  )}
-                    </div>
-                  </div>
-                </motion.div>
-            }
             </div>
 
             {/* Right column — Posts feed */}

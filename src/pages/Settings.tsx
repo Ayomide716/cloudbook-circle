@@ -19,7 +19,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { enablePush, needsHomeScreenInstall, pushActive } from "@/lib/web-push";
+import { disablePush, enablePush, needsHomeScreenInstall, pushActive, pushSupported } from "@/lib/web-push";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RowSkeleton } from "@/components/skeletons/parts";
 
@@ -178,7 +178,6 @@ const Settings = () => {
   };
 
   const prefItems = [
-    { key: "push_enabled" as const, label: "Push Notifications", desc: "Alerts on this phone, even when Ember is closed", icon: Smartphone },
     { key: "likes" as const, label: "Likes", desc: "When someone likes your post", icon: Heart },
     { key: "comments" as const, label: "Comments", desc: "When someone comments on your post", icon: MessageCircle },
     { key: "friend_requests" as const, label: "Friend Requests", desc: "When someone sends you a friend request", icon: UserPlus },
@@ -186,6 +185,20 @@ const Settings = () => {
     { key: "messages" as const, label: "Messages", desc: "When you receive a new message", icon: MessageCircle },
     { key: "shares" as const, label: "Shares", desc: "When someone shares your post", icon: Share2 },
   ];
+
+  // Alerts on this device: on only when the browser allows them, this device is signed up, and
+  // you haven't paused them for your account.
+  const canPush = pushSupported() || needsHomeScreenInstall();
+  const deviceOn = canPush && pushPermission === "granted" && pushOn && prefs.push_enabled;
+  const deviceNote = !canPush
+    ? "This browser can't show notifications"
+    : pushPermission === "denied"
+      ? "Blocked. Allow notifications for this site in your browser's settings"
+      : needsHomeScreenInstall()
+        ? "On iPhone, add Ember to your Home Screen first"
+        : deviceOn
+          ? "You'll get alerts even when Ember is closed"
+          : "Off. Turn on to get alerts when Ember is closed";
 
   if (isLoading) {
     return (
@@ -259,25 +272,27 @@ const Settings = () => {
 
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notifications</h2>
 
-        {/* Push Permission Banner */}
-        {(pushPermission !== "granted" || !pushOn) && (
-          <Card className="p-4 mb-4 border-primary/20 bg-primary/5">
-            <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                <Bell className="h-5 w-5 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="font-medium text-sm">{pushPermission === "denied" ? "Notifications are blocked" : "Turn on notifications"}</p>
-                <p className="text-xs text-muted-foreground">
-                  {pushPermission === "denied" ? "Allow them for this site in your browser's settings." : "Get notified even when the app isn't open"}
-                </p>
-              </div>
-              <Button size="sm" variant={pushPermission === "denied" ? "outline" : "default"} onClick={requestPushPermission}>
-                {pushPermission === "denied" ? "How?" : "Turn on"}
-              </Button>
-            </div>
-          </Card>
-        )}
+        {/* One switch for alerts on this phone, showing what's really true: on, off, blocked, or
+            not possible here. The kinds of alert below only matter once it's on. */}
+        <Card className="mb-4 flex items-center gap-3 p-4">
+          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+            <Smartphone className="h-4 w-4 text-foreground" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium">Notifications on this device</p>
+            <p className="text-xs text-muted-foreground">{deviceNote}</p>
+          </div>
+          <Switch
+            checked={deviceOn}
+            onCheckedChange={async (on) => {
+              if (on) { await requestPushPermission(); return; }
+              await disablePush();
+              setPushOn(false);
+            }}
+            aria-label="Notifications on this device"
+            disabled={!canPush || pushPermission === "denied"}
+          />
+        </Card>
 
         <Card className="divide-y divide-border overflow-hidden">
           {prefItems.map((item) => (

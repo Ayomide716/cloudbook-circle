@@ -1,4 +1,5 @@
 import { useState } from "react";
+import GroupInitials from "@/components/groups/GroupInitials";
 import { Check, Loader2, Users, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -30,7 +31,7 @@ export const GroupChatRow = ({
   return (
     <ConversationRow
       profile={{ id: chat.group.id, full_name: chat.group.name, avatar_url: chat.group.image_url }}
-      fallback={<Users className="h-5 w-5 text-muted-foreground" />}
+      fallback={<GroupInitials id={chat.group.id} name={chat.group.name} className="text-[15px]" />}
       preview={last ? `${who}: ${previewText(last.content)}` : "Group created · say hello"}
       unreadCount={chat.unread}
       currentUserId={currentUserId}
@@ -68,7 +69,7 @@ export const GroupInviteCards = ({ invites, onAnswered }: { invites: GroupInvite
         <div key={inv.group.id} className="flex items-center gap-3 rounded-2xl px-3 py-2.5">
           <Avatar className="h-11 w-11 flex-shrink-0">
             <AvatarImage src={inv.group.image_url || undefined} className="object-cover" />
-            <AvatarFallback className="bg-secondary"><Users className="h-5 w-5 text-muted-foreground" /></AvatarFallback>
+            <AvatarFallback><GroupInitials id={inv.group.id} name={inv.group.name} className="text-[15px]" /></AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate font-semibold">{inv.group.name}</p>

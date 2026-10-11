@@ -388,6 +388,40 @@ const Friends = () => {
     );
   }
 
+  const visibleSuggestions = suggestions.filter((p) => !hiddenSuggestions.has(p.id));
+  const suggestionRow = (profile: SuggestedProfile) => (
+    <div key={profile.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
+      <Link to={`/profile/${profile.id}`}>
+        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
+          <AvatarImage src={profile.avatar_url || undefined} />
+          <AvatarFallback>
+            {profile.full_name?.[0]?.toUpperCase() || "U"}
+          </AvatarFallback>
+        </Avatar>
+      </Link>
+      <div className="flex-1 min-w-0">
+        <Link to={`/profile/${profile.id}`}>
+          <p className="font-semibold truncate hover:underline">
+            {profile.full_name || "Anonymous"}
+          </p>
+        </Link>
+        <p className="text-xs text-muted-foreground">
+          {profile.mutualCount > 0
+            ? `${profile.mutualCount} mutual ${profile.mutualCount === 1 ? "friend" : "friends"}`
+            : "New on Ember"}
+        </p>
+      </div>
+      <Button
+        size="sm"
+        onClick={() => handleSendRequest(profile.id)}
+        className="gap-1"
+      >
+        <UserPlus className="h-4 w-4" />
+        Add
+      </Button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
@@ -606,46 +640,25 @@ const Friends = () => {
                 </div>
               )}
             </Card>
+            {/* A short list leaves the page empty; suggest people to add underneath, as Facebook does. */}
+            {friends.length > 0 && friends.length < 5 && visibleSuggestions.length > 0 && (
+              <Card className="feed-section flat-list mt-2 sm:mt-4">
+                <div className="flex items-center justify-between px-4 pt-3">
+                  <h2 className="text-[15px] font-semibold">People you may know</h2>
+                  <button type="button" className="text-sm font-medium text-primary" onClick={() => setActiveTab("suggestions")}>See all</button>
+                </div>
+                <div className="divide-y">{visibleSuggestions.slice(0, 5).map(suggestionRow)}</div>
+              </Card>
+            )}
           </TabsContent>
 
           <TabsContent value="suggestions">
             <Card className="feed-section flat-list">
-              {suggestions.filter(s => !hiddenSuggestions.has(s.id)).length === 0 ? (
+              {visibleSuggestions.length === 0 ? (
                 <EmptyState emoji="search" title="No one to suggest right now" text="Try searching for people you know by name, above." />
               ) : (
                 <div className="divide-y">
-                  {suggestions.filter(s => !hiddenSuggestions.has(s.id)).map((profile) => (
-                    <div key={profile.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-                      <Link to={`/profile/${profile.id}`}>
-                        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
-                          <AvatarImage src={profile.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {profile.full_name?.[0]?.toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Link>
-                      <div className="flex-1 min-w-0">
-                        <Link to={`/profile/${profile.id}`}>
-                          <p className="font-semibold truncate hover:underline">
-                            {profile.full_name || "Anonymous"}
-                          </p>
-                        </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {profile.mutualCount > 0
-                            ? `${profile.mutualCount} mutual ${profile.mutualCount === 1 ? "friend" : "friends"}`
-                            : "New on Ember"}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        onClick={() => handleSendRequest(profile.id)}
-                        className="gap-1"
-                      >
-                        <UserPlus className="h-4 w-4" />
-                        Add
-                      </Button>
-                    </div>
-                  ))}
+                  {visibleSuggestions.map(suggestionRow)}
                 </div>
               )}
             </Card>

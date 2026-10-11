@@ -8,7 +8,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2 } from "lucide-react";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
-import { PageHeader, HeaderAction, Chips } from "@/components/layout/PageHeader";
+import { PageHeader, Chips } from "@/components/layout/PageHeader";
+import { Button } from "@/components/ui/button";
 import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
 import { cn, toDate } from "@/lib/utils";
@@ -249,7 +250,11 @@ const Notifications = () => {
         <PageHeader
           title="Notifications"
           subtitle={unreadCount > 0 ? `${unreadCount} unread` : undefined}
-          actions={unreadCount > 0 ? <HeaderAction icon={CheckCheck} label="Mark all as read" onClick={markAllAsRead} /> : undefined}
+          actions={unreadCount > 0 ? (
+            <Button variant="ghost" size="sm" className="h-8 gap-1.5 rounded-full px-3 text-[13px] font-semibold text-primary hover:text-primary" onClick={markAllAsRead}>
+              <CheckCheck className="h-4 w-4" /> Mark all read
+            </Button>
+          ) : undefined}
           className="sm:mb-4"
         >
           <Chips

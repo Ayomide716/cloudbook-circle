@@ -21,7 +21,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, Archive, Image as ImageIcon, Star, Timer } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer } from "lucide-react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -700,9 +700,22 @@ const Messages = () => {
                     <ArrowLeft />
                   </Button>
                   <h2 className="flex-1 font-display text-[22px] sm:text-xl font-bold tracking-tight">Messages</h2>
-                  <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full [&_svg]:size-[18px]" aria-label="Starred messages" title="Starred messages" onClick={() => setGallery({ scope: { kind: "starred" }, tab: "starred" })}>
-                    <Star />
-                  </Button>
+                  {/* Less-used places live in ⋯, as on WhatsApp, so the header stays clear. */}
+                  <ActionMenu>
+                    <ActionMenuTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-9 w-9 shrink-0 rounded-full [&_svg]:size-5" aria-label="More options">
+                        <MoreHorizontal />
+                      </Button>
+                    </ActionMenuTrigger>
+                    <ActionMenuContent align="end" title="Messages">
+                      <ActionMenuItem onSelect={() => setGallery({ scope: { kind: "starred" }, tab: "starred" })}>
+                        <Star className="mr-2 h-4 w-4" /> Starred messages
+                      </ActionMenuItem>
+                      <ActionMenuItem onSelect={() => setShowArchived((v) => !v)}>
+                        <Archive className="mr-2 h-4 w-4" /> {showArchived ? "Back to chats" : "Archived chats"}
+                      </ActionMenuItem>
+                    </ActionMenuContent>
+                  </ActionMenu>
                   <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} />
                 </div>
               </div>

@@ -7,7 +7,6 @@ import {
   ChevronRight,
   Compass,
   FileText,
-  HelpCircle,
   LogOut,
   MessageCircle,
   Megaphone,
@@ -198,14 +197,24 @@ const Menu = () => {
             <span className="flex-1 font-semibold">Settings &amp; privacy</span>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </button>
-          <div className="flex items-center gap-3 px-4 py-3.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><HelpCircle className="h-5 w-5" /></span>
-            <span className="flex-1 font-semibold">Help &amp; support</span>
-            <span className="flex gap-3 text-sm">
-              <button type="button" onClick={() => navigate("/terms")} className="text-primary hover:underline">Terms</button>
-              <button type="button" onClick={() => navigate("/privacy")} className="text-primary hover:underline">Privacy</button>
-            </span>
-          </div>
+          <button
+            type="button"
+            onClick={() => navigate("/terms")}
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/60"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><FileText className="h-5 w-5" /></span>
+            <span className="flex-1 font-semibold">Terms of service</span>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/privacy")}
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/60"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><Shield className="h-5 w-5" /></span>
+            <span className="flex-1 font-semibold">Privacy policy</span>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
           <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
             <span className="font-semibold">Appearance</span>
             <div className="flex rounded-xl bg-secondary p-1" role="radiogroup" aria-label="Appearance">

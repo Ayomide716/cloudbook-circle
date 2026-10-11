@@ -7,6 +7,18 @@ import { X, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
+// A nudge, not a nag: once you close it, it stays away for a month, and otherwise it shows at
+// most once every three days (so it isn't on the feed every time you open the app).
+const DISMISS_DAYS = 30;
+const EVERY_DAYS = 3;
+const DAY = 24 * 60 * 60 * 1000;
+const read = (key: string) => {
+  try { return Number(localStorage.getItem(key)) || 0; } catch { return 0; }
+};
+const write = (key: string) => {
+  try { localStorage.setItem(key, String(Date.now())); } catch { /* fine */ }
+};
+
 interface ProfileCompletionPromptProps {
   userId: string;
 }
@@ -15,7 +27,15 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
   const navigate = useNavigate();
   const [completion, setCompletion] = useState(100);
   const [nextStep, setNextStep] = useState("");
-  const [dismissed, setDismissed] = useState(false);
+  const dismissKey = `ember_profile_nudge_dismissed_${userId}`;
+  const shownKey = `ember_profile_nudge_shown_${userId}`;
+  const [dismissed, setDismissed] = useState(() => {
+    const now = Date.now();
+    if (now - read(dismissKey) < DISMISS_DAYS * DAY) return true;
+    const shown = read(shownKey);
+    // Shown recently (but not in this visit): skip this time.
+    return shown > 0 && now - shown < EVERY_DAYS * DAY && now - shown > 10 * 60 * 1000;
+  });
 
   const checkCompletion = useEffectEvent(async () => {
     const { data: profile } = await supabase
@@ -48,6 +68,14 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
     checkCompletion();
   }, [userId, checkCompletion]);
 
+  useEffect(() => {
+    if (!dismissed && completion < 100) {
+      const shown = read(shownKey);
+      // Count a visit once; within ten minutes it's the same visit.
+      if (!shown || Date.now() - shown > 10 * 60 * 1000) write(shownKey);
+    }
+  }, [dismissed, completion, shownKey]);
+
   if (completion >= 100 || dismissed) return null;
 
   // One slim row: it's a nudge, not the first thing on the feed.
@@ -76,7 +104,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
           Finish
         </Button>
         <button
-          onClick={() => setDismissed(true)}
+          onClick={() => { write(dismissKey); setDismissed(true); }}
           className="-mr-1 shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label="Dismiss"
         >
