@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff } from "lucide-react";
+import { Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, RotateCcw, RotateCw } from "lucide-react";
 import { ChatCircle, DotsThree, Heart, MusicNotesSimple, ShareFat } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactionEmoji from "./reactions/ReactionEmoji";
@@ -146,13 +146,65 @@ export default function ReelCard({
     singleTapTimer.current = setTimeout(togglePlayPause, 260);
   }, [isLiked, reel.id, onLike, togglePlayPause]);
 
-  const handleSeek = (e: React.MouseEvent<HTMLDivElement>) => {
+  // Going back (or forward) in a reel: drag along the timeline, or the 5-second buttons when paused.
+  const [scrub, setScrub] = useState<number | null>(null);
+  const resumeAfterScrub = useRef(false);
+  const ratioAt = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+  };
+  const seekTo = (ratio: number) => {
     const video = videoRef.current;
     if (!video || !video.duration) return;
-    const rect = e.currentTarget.getBoundingClientRect();
-    const ratio = (e.clientX - rect.left) / rect.width;
     video.currentTime = ratio * video.duration;
+    setProgress(ratio * 100);
   };
+  const startScrub = (e: React.PointerEvent<HTMLDivElement>) => {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    e.stopPropagation();
+    e.currentTarget.setPointerCapture(e.pointerId);
+    resumeAfterScrub.current = !video.paused;
+    video.pause();
+    const ratio = ratioAt(e);
+    setScrub(ratio);
+    seekTo(ratio);
+  };
+  const moveScrub = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (scrub === null) return;
+    const ratio = ratioAt(e);
+    setScrub(ratio);
+    seekTo(ratio);
+  };
+  const endScrub = () => {
+    if (scrub === null) return;
+    setScrub(null);
+    if (resumeAfterScrub.current) {
+      videoRef.current?.play().catch(() => {});
+      setIsPaused(false);
+    }
+  };
+  const skip = (seconds: number) => {
+    const video = videoRef.current;
+    if (!video || !video.duration) return;
+    video.currentTime = Math.min(video.duration, Math.max(0, video.currentTime + seconds));
+    setProgress((video.currentTime / video.duration) * 100);
+    haptic(8);
+  };
+  const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+  const duration = videoRef.current?.duration || 0;
+
+  // Desktop: ← and → go back and forward 5 seconds in the reel on screen.
+  useEffect(() => {
+    if (!isActive) return;
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement).closest("input, textarea, [contenteditable=true]")) return;
+      if (e.key === "ArrowLeft") { e.preventDefault(); skip(-5); }
+      if (e.key === "ArrowRight") { e.preventDefault(); skip(5); }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isActive]);
 
   const handleCopyLink = async () => {
     const url = `${window.location.origin}/reels/${reel.id}`;
@@ -212,14 +264,34 @@ export default function ReelCard({
                   className="absolute inset-0 z-10 flex items-center justify-center bg-black/25"
                   onClick={handleTap}
                 >
-                  <motion.div
-                    initial={{ scale: 1.6 }}
-                    animate={{ scale: 1 }}
-                    transition={{ type: "spring", stiffness: 380, damping: 22 }}
-                    className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/20 bg-white/15 backdrop-blur-md"
-                  >
-                    <Play className="ml-1 h-8 w-8 fill-white text-white" />
-                  </motion.div>
+                  <div className="flex items-center gap-7">
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); skip(-5); }}
+                      aria-label="Back 5 seconds"
+                      className="flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md active:scale-90"
+                    >
+                      <RotateCcw className="h-5 w-5" />
+                      <span className="-mt-0.5 text-[9px] font-bold">5</span>
+                    </button>
+                    <motion.div
+                      initial={{ scale: 1.6 }}
+                      animate={{ scale: 1 }}
+                      transition={{ type: "spring", stiffness: 380, damping: 22 }}
+                      className="flex h-[72px] w-[72px] items-center justify-center rounded-full border border-white/20 bg-white/15 backdrop-blur-md"
+                    >
+                      <Play className="ml-1 h-8 w-8 fill-white text-white" />
+                    </motion.div>
+                    <button
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); skip(5); }}
+                      aria-label="Forward 5 seconds"
+                      className="flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md active:scale-90"
+                    >
+                      <RotateCw className="h-5 w-5" />
+                      <span className="-mt-0.5 text-[9px] font-bold">5</span>
+                    </button>
+                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -232,11 +304,41 @@ export default function ReelCard({
               {isMuted ? <VolumeX className="h-4 w-4 text-white" /> : <Volume2 className="h-4 w-4 text-white" />}
             </button>
 
-            {/* Progress: a hairline that thickens when you touch it to scrub. */}
-            <div className="group absolute inset-x-0 bottom-0 z-20 flex h-4 cursor-pointer items-end" onClick={handleSeek}>
-              <div className="relative h-[3px] w-full bg-white/20 transition-all group-hover:h-[5px]">
+            {/* The time while you drag, big in the middle of the screen. */}
+            {scrub !== null && duration > 0 && (
+              <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center">
+                <span className="rounded-full bg-black/55 px-4 py-1.5 font-display text-xl font-bold tabular-nums text-white backdrop-blur-md">
+                  {clock(scrub * duration)} <span className="text-white/60">/ {clock(duration)}</span>
+                </span>
+              </div>
+            )}
+
+            {/* Timeline: drag along it (or tap) to go back or forward. Thickens with a handle while you drag. */}
+            <div
+              role="slider"
+              aria-label="Reel position"
+              aria-valuemin={0}
+              aria-valuemax={Math.round(duration)}
+              aria-valuenow={Math.round(((scrub ?? progress / 100) || 0) * duration)}
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); skip(-5); }
+                if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); skip(5); }
+              }}
+              onPointerDown={startScrub}
+              onPointerMove={moveScrub}
+              onPointerUp={endScrub}
+              onPointerCancel={endScrub}
+              className="group absolute inset-x-0 bottom-0 z-20 flex h-7 cursor-pointer touch-none items-end"
+            >
+              <div className={cn("relative w-full bg-white/20 transition-[height] duration-150", scrub !== null ? "h-[6px]" : "h-[3px] group-hover:h-[5px]")}>
                 <div className="absolute inset-y-0 left-0 bg-white/30" style={{ width: `${buffered}%` }} />
-                <div className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${progress}%` }} />
+                <div className="absolute inset-y-0 left-0 bg-primary" style={{ width: `${scrub !== null ? scrub * 100 : progress}%` }} />
+                <span
+                  aria-hidden="true"
+                  className={cn("absolute top-1/2 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white shadow-md transition-opacity", scrub !== null ? "opacity-100" : "opacity-0 group-hover:opacity-100")}
+                  style={{ left: `${scrub !== null ? scrub * 100 : progress}%` }}
+                />
               </div>
             </div>
           </>
