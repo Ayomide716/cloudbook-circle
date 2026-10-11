@@ -362,8 +362,10 @@ const PostCard = ({
     requestAnimationFrame(() => commentBoxRef.current?.focus());
   };
 
-  // Comment opens the comments under the post and puts you in the box, ready to type.
-  const openComments = () => {
+  // Comment opens the comments under the post and puts you in the box, ready to type;
+  // tapping it again closes them.
+  const toggleComments = () => {
+    if (showComments) { setShowComments(false); return; }
     setShowComments(true);
     requestAnimationFrame(() => commentBoxRef.current?.focus({ preventScroll: false }));
   };
@@ -702,7 +704,7 @@ const PostCard = ({
           )}
           <span className="ml-auto flex items-center gap-1">
             {comments.length > 0 && (
-              <button type="button" className="hover:underline" onClick={() => setShowComments(true)}>
+              <button type="button" className="hover:underline" onClick={() => setShowComments((v) => !v)} aria-expanded={showComments}>
                 {compactCount(comments.length)} {comments.length === 1 ? "comment" : "comments"}
               </button>
             )}
@@ -787,7 +789,7 @@ const PostCard = ({
           <Button
             variant="ghost"
             className="h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]"
-            onClick={openComments}
+            onClick={toggleComments}
             aria-expanded={showComments}
             aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
           >
