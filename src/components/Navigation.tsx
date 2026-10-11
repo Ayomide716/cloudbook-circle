@@ -37,6 +37,7 @@ import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";
 import { dbChannel } from "@/lib/realtime";
 import { markMessagesDelivered } from "@/lib/delivered";
 import { useResync } from "@/hooks/use-resync";
+import { disablePush } from "@/lib/web-push";
 
 interface NavigationProps {
   currentUserId?: string;
@@ -185,6 +186,8 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   };
 
   const handleLogout = async () => {
+    // This phone stops getting the account's alerts once you've logged out.
+    await disablePush();
     await supabase.auth.signOut();
     navigate("/auth");
   };

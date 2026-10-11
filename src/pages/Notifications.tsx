@@ -15,6 +15,7 @@ import { cn, toDate } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { groupMessage, groupNotifications, type GroupableNotification, type NotificationGroup } from "@/lib/notification-groups";
 import { dbChannel } from "@/lib/realtime";
+import EnablePushBanner from "@/components/EnablePushBanner";
 
 interface Notification extends GroupableNotification {
   actor_profile?: { full_name: string | null; avatar_url: string | null } | null;
@@ -260,6 +261,8 @@ const Notifications = () => {
             ]}
           />
         </PageHeader>
+
+        <EnablePushBanner />
 
         <Card className="feed-section flat-list overflow-hidden mt-2 sm:mt-0">
           {shown.length === 0 ? (

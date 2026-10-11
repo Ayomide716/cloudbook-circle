@@ -1,3 +1,4 @@
+import { previewText } from "@/lib/stickers";
 /** Messages in group chats, and how their media and quotes are described. */
 export interface GroupMessage {
   id: string;
@@ -22,4 +23,4 @@ export const voiceSeconds = (content: string) => {
 };
 
 /** A short line describing a message, for quotes ("📷 Photo", "🎤 Voice message", or its text). */
-export const quoteText = (m: GroupMessage) => (isVoiceNote(m) ? "🎤 Voice message" : m.content);
+export const quoteText = (m: GroupMessage) => (isVoiceNote(m) ? "🎤 Voice message" : previewText(m.content));

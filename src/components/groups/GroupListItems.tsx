@@ -8,6 +8,7 @@ import ConversationRow from "@/components/ConversationRow";
 import type { ChatPrefs } from "@/lib/chat-prefs";
 import type { GroupChatSummary, GroupInvite } from "@/lib/group-chats";
 import { cn } from "@/lib/utils";
+import { previewText } from "@/lib/stickers";
 
 /** A group in the chat list: picture, name, "Ada: latest message", time and unread count. */
 export const GroupChatRow = ({
@@ -30,7 +31,7 @@ export const GroupChatRow = ({
     <ConversationRow
       profile={{ id: chat.group.id, full_name: chat.group.name, avatar_url: chat.group.image_url }}
       fallback={<Users className="h-5 w-5 text-muted-foreground" />}
-      preview={last ? `${who}: ${last.content}` : "Group created · say hello"}
+      preview={last ? `${who}: ${previewText(last.content)}` : "Group created · say hello"}
       unreadCount={chat.unread}
       currentUserId={currentUserId}
       selected={selected}

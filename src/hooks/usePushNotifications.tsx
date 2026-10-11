@@ -2,6 +2,8 @@ import { useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { dbChannel } from "@/lib/realtime";
+import { pushActive, syncPush } from "@/lib/web-push";
+import { previewText } from "@/lib/stickers";
 
 export const usePushNotifications = (userId: string | undefined) => {
   const { toast } = useToast();
@@ -24,7 +26,10 @@ export const usePushNotifications = (userId: string | undefined) => {
     return false;
   }, []);
 
+  // Only a fallback for browsers without push: with push on, the server sends these (and they
+  // arrive even when the app is closed), so showing them here as well would double them.
   const showNotification = useCallback((title: string, body: string, icon?: string) => {
+    if (!("Notification" in window) || pushActive() || document.visibilityState === "visible") return;
     if (Notification.permission === "granted") {
       const notification = new Notification(title, {
         body,
@@ -47,8 +52,9 @@ export const usePushNotifications = (userId: string | undefined) => {
   useEffect(() => {
     if (!userId) return;
 
-    // Request permission on mount
-    requestPermission();
+    // Notifications already allowed on this device: make sure it's saved for whoever is
+    // signed in. (Asking for permission happens from a tap: see EnablePushBanner and Settings.)
+    void syncPush();
 
     // Listen for new notifications
     const notificationChannel = dbChannel("push-notifications")
@@ -89,7 +95,7 @@ export const usePushNotifications = (userId: string | undefined) => {
 
           showNotification(
             sender?.full_name || "New Message",
-            message.content.substring(0, 100),
+            previewText(message.content).substring(0, 100),
             sender?.avatar_url || undefined
           );
         }

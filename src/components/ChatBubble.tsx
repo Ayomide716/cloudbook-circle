@@ -8,6 +8,8 @@ import MessageActionSheet, { type MessageAction } from "@/components/chat/Messag
 import ReactionChips from "@/components/chat/ReactionChips";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { useLongPress } from "@/hooks/use-long-press";
+import { GIPHY_STICKER, previewText, stickerId, stickerName, stickerUrl } from "@/lib/stickers";
+import { isGiphyMedia } from "@/lib/giphy";
 
 /** The length saved in a voice note's text, "🎤 Voice message (1:05)" → 65. */
 const voiceSeconds = (content: string) => {
@@ -98,17 +100,24 @@ const ChatBubble = ({
   }
 
   const isVoice = message.image_url && message.content?.startsWith("🎤");
-  const isMedia = message.image_url && !message.content?.startsWith("🎤");
+  // A sticker stands on its own: big, with no bubble around it. One of Ember's 3D ones, or an
+  // animated one from GIPHY (its address is the message's image).
+  const ownSticker = stickerId(message.content);
+  const stickerSrc = ownSticker
+    ? stickerUrl(ownSticker)
+    : message.content === GIPHY_STICKER && isGiphyMedia(message.image_url) ? message.image_url : null;
+  const stickerAlt = ownSticker ? `${stickerName(ownSticker)} sticker` : "Sticker";
+  const isMedia = message.image_url && !stickerSrc && !message.content?.startsWith("🎤");
   const isVideo = isMedia && (message.image_url?.includes('.mp4') || message.image_url?.includes('.mov') || message.image_url?.includes('.webm'));
   const isGif = isMedia && (message.image_url?.includes('giphy.com') || message.image_url?.includes('tenor.com'));
-  const hasText = !!message.content && message.content !== "Sent an image" && !message.content.startsWith("🎤");
+  const hasText = !stickerSrc && !!message.content && message.content !== "Sent an image" && !message.content.startsWith("🎤");
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(message) },
     ...(onForward ? [{ label: "Forward", icon: <Forward className="mr-2 h-4 w-4" />, onSelect: () => onForward(message) }] : []),
     ...(onToggleStar ? [{ label: starred ? "Unstar" : "Star", icon: starred ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />, onSelect: () => onToggleStar(message) }] : []),
     ...(hasText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(message.content) }] : []),
-    ...(isCurrentUser && !isMedia && !isVoice ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(message) }] : []),
+    ...(isCurrentUser && !isMedia && !isVoice && !stickerSrc ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(message) }] : []),
     ...(isCurrentUser ? [{ label: "Unsend", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onUnsend(message.id), destructive: true }] : []),
   ];
 
@@ -121,7 +130,9 @@ const ChatBubble = ({
     <span
       className={cn(
         "inline-flex items-center gap-0.5 text-[10px] leading-none whitespace-nowrap select-none",
-        isMedia && !hasText
+        stickerSrc
+          ? "absolute bottom-1 right-1 rounded-full bg-black/55 text-white px-1.5 py-1"
+          : isMedia && !hasText
           ? "absolute bottom-2 right-2 rounded-full bg-black/55 text-white px-1.5 py-1"
           : cn("float-right ml-2 mt-1.5 translate-y-0.5", isCurrentUser ? "text-current" : "text-muted-foreground")
       )}
@@ -195,12 +206,11 @@ const ChatBubble = ({
         {/* Message bubble (tap to show actions on touch screens) */}
         <div
           className={cn(
-            "max-w-[80vw] sm:max-w-[420px] relative shadow-sm",
-            isCurrentUser ? colors.sent : colors.received,
-            "rounded-lg",
+            "max-w-[80vw] sm:max-w-[420px] relative",
+            stickerSrc ? "rounded-2xl" : cn("shadow-sm rounded-lg", isCurrentUser ? colors.sent : colors.received),
             // The tail sits at the top corner of the first message in a run.
-            isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
-            isMedia ? "p-1" : "px-2.5 py-1.5",
+            !stickerSrc && isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
+            stickerSrc ? "p-0" : isMedia ? "p-1" : "px-2.5 py-1.5",
             "[@media(hover:none)]:select-none [-webkit-touch-callout:none]",
             menuOpen && "ring-2 ring-primary/40"
           )}
@@ -219,7 +229,7 @@ const ChatBubble = ({
             actions={actions}
             align={isCurrentUser ? "end" : "start"}
           />
-          {isFirstInGroup && (
+          {isFirstInGroup && !stickerSrc && (
             <span
               aria-hidden="true"
               className={cn(
@@ -246,9 +256,18 @@ const ChatBubble = ({
                 {replyMessage.sender_id === currentUserId ? "You" : otherName || "Them"}
               </p>
               <p className="truncate max-w-[240px] opacity-80">
-                {replyMessage.deleted_at ? "Deleted message" : replyMessage.image_url && !replyMessage.content ? "📷 Photo" : replyMessage.content?.substring(0, 80)}
+                {replyMessage.deleted_at ? "Deleted message" : replyMessage.image_url && !replyMessage.content ? "📷 Photo" : previewText(replyMessage.content)?.substring(0, 80)}
               </p>
             </div>
+          )}
+          {/* Sticker */}
+          {stickerSrc && (
+            <img
+              src={stickerSrc}
+              alt={stickerAlt}
+              draggable={false}
+              className="block h-32 w-32 select-none object-contain drop-shadow-md animate-sticker-pop"
+            />
           )}
           {/* Voice */}
           {isVoice && message.image_url && (
