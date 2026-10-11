@@ -7,12 +7,11 @@ import Navigation from "@/components/Navigation";
 import { useToast } from "@/hooks/use-toast";
 import PostCard from "@/components/PostCard";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { TrendingUp, Hash, Users, Compass, Search, Flame, Star, Zap, Check, Loader2 } from "lucide-react";
+import { groupColor, groupInitials } from "@/lib/group-tile";
+import { TrendingUp, Hash, Users, Compass, Search, Flame, Check, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import type { PostCardProps } from "@/components/PostCard";
@@ -40,7 +39,7 @@ const Explore = () => {
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [searchResults, setSearchResults] = useState<{ posts: PostCardProps["post"][]; people: Tables<"profiles">[] } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
-  const [activeTab, setActiveTab] = useState("foryou");
+  const [groupsToJoin, setGroupsToJoin] = useState<(Tables<"groups"> & { member_count?: number })[]>([]);
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
 
   const checkAuth = useEffectEvent(async () => {
@@ -142,6 +141,26 @@ const Explore = () => {
     );
 
     loadSuggestions(userId);
+    loadGroups(userId);
+  };
+
+  // Communities you're not in yet, biggest first.
+  const loadGroups = async (userId: string) => {
+    const [{ data: groups }, { data: mine }] = await Promise.all([
+      supabase.from("groups").select("*").order("created_at", { ascending: false }).limit(40),
+      supabase.from("group_members").select("group_id").eq("user_id", userId),
+    ]);
+    const joined = new Set((mine ?? []).map((m) => m.group_id));
+    const open = (groups ?? []).filter((g) => (g as { is_chat?: boolean }).is_chat !== true && !joined.has(g.id));
+    if (open.length === 0) { setGroupsToJoin([]); return; }
+    const { data: counts, error } = await supabase.rpc("group_member_counts", { _group_ids: open.map((g) => g.id) });
+    const byId = new Map((counts ?? []).map((c) => [c.group_id, Number(c.member_count)]));
+    setGroupsToJoin(
+      open
+        .map((g) => ({ ...g, member_count: error ? undefined : byId.get(g.id) ?? 0 }))
+        .sort((a, b) => (b.member_count ?? 0) - (a.member_count ?? 0))
+        .slice(0, 10)
+    );
   };
 
   const loadSuggestions = async (userId: string) => {
@@ -181,8 +200,8 @@ const Explore = () => {
     setRequested((prev) => new Set(prev).add(userId));
   };
 
-  // "For You": newest first. "Trending": only posts people have engaged with, best first.
-  const rankedPosts = [...trendingPosts].filter((p) => p.score > 0).sort((a, b) => b.score - a.score).slice(0, 10);
+  // The week's posts people liked and talked about most, then the rest by date.
+  const popularPosts = [...trendingPosts].sort((a, b) => b.score - a.score).slice(0, 20);
 
   if (!currentUser) return (
     <div className="min-h-screen bg-background">
@@ -257,135 +276,124 @@ const Explore = () => {
             )}
           </div>
         ) : (
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="feed-section w-full grid grid-cols-3 bg-card sm:bg-transparent mb-2 sm:mb-4">
-            <TabsTrigger value="foryou" className="gap-1.5 text-xs sm:text-sm">
-              <Zap className="h-3.5 w-3.5" /> For You
-            </TabsTrigger>
-            <TabsTrigger value="trending" className="gap-1.5 text-xs sm:text-sm">
-              <Flame className="h-3.5 w-3.5" /> Trending
-            </TabsTrigger>
-            <TabsTrigger value="people" className="gap-1.5 text-xs sm:text-sm">
-              <Users className="h-3.5 w-3.5" /> People
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="foryou" className="space-y-2 sm:space-y-4">
-            {trendingPosts.map((post, i) => (
-              <motion.div key={post.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 5) * 0.05 }}>
-                <PostCard
-                  post={post}
-                  currentUserId={currentUser.id}
-                  reactions={reactionsData[post.id]?.reactions || {}}
-                  userReaction={reactionsData[post.id]?.userReaction || null}
-                  firstReactorName={reactionsData[post.id]?.firstReactor}
-                  comments={commentsData[post.id] || []}
-                  onReactionToggle={(type) => toggleReaction(post.id, type)}
-                  onCommentAdded={() => reloadComments(post.id)}
-                  onDelete={() => setTrendingPosts((prev) => prev.filter((p) => p.id !== post.id))}
-                />
-              </motion.div>
-            ))}
-            {trendingPosts.length === 0 && (
-              <div className="text-center py-16">
-                <Compass className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No content to explore yet. Check back soon!</p>
+        // One page to find new things, instead of the Home feed again: what people are talking
+        // about, groups you're not in yet, people you may know, then this week's most loved posts.
+        <div className="space-y-2 sm:space-y-4">
+          {trendingTopics.length > 0 && (
+            <section className="feed-section bg-card px-3 py-3 sm:rounded-2xl sm:border sm:px-4" aria-labelledby="explore-topics">
+              <h2 id="explore-topics" className="mb-2.5 flex items-center gap-2 text-[15px] font-semibold">
+                <TrendingUp className="h-4 w-4 text-primary" /> Trending topics
+              </h2>
+              <div className="-mx-3 flex gap-2 overflow-x-auto px-3 pb-0.5 scrollbar-hide sm:-mx-4 sm:px-4">
+                {trendingTopics.map((t) => (
+                  <button
+                    key={t.tag}
+                    type="button"
+                    onClick={() => updateSearch(t.tag)}
+                    className="flex shrink-0 items-center gap-1 rounded-full bg-secondary px-3.5 py-2 text-sm font-medium transition-colors hover:bg-secondary/70"
+                  >
+                    <Hash className="h-3.5 w-3.5 text-primary" />
+                    {t.tag.replace("#", "")}
+                    <span className="text-xs text-muted-foreground">· {t.count}</span>
+                  </button>
+                ))}
               </div>
-            )}
-          </TabsContent>
+            </section>
+          )}
 
-          <TabsContent value="trending" className="space-y-2 sm:space-y-4">
-            {trendingTopics.length > 0 && (
-              <Card className="feed-section p-4">
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-primary" /> Trending Topics
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {trendingTopics.map(t => (
-                    <button key={t.tag} type="button" onClick={() => updateSearch(t.tag)} className="rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      <Badge variant="secondary" className="cursor-pointer hover:bg-primary hover:text-primary-foreground transition-colors">
-                        <Hash className="h-3 w-3 mr-1" /> {t.tag.replace("#", "")}
-                        <span className="ml-1.5 text-[10px] opacity-70">{t.count} {t.count === 1 ? "post" : "posts"}</span>
-                      </Badge>
-                    </button>
-                  ))}
-                </div>
-              </Card>
-            )}
-            {rankedPosts.map((post, i) => (
-              <motion.div key={post.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(i, 5) * 0.05 }}>
-                <div className="flex items-start gap-2 mb-1">
-                  <Badge variant="outline" className="text-[10px]">
-                    <Flame className="h-2.5 w-2.5 mr-0.5" /> #{i + 1}
-                  </Badge>
-                </div>
-                <PostCard
-                  post={post}
-                  currentUserId={currentUser.id}
-                  reactions={reactionsData[post.id]?.reactions || {}}
-                  userReaction={reactionsData[post.id]?.userReaction || null}
-                  firstReactorName={reactionsData[post.id]?.firstReactor}
-                  comments={commentsData[post.id] || []}
-                  onReactionToggle={(type) => toggleReaction(post.id, type)}
-                  onCommentAdded={() => reloadComments(post.id)}
-                  onDelete={() => setTrendingPosts((prev) => prev.filter((p) => p.id !== post.id))}
-                />
-              </motion.div>
-            ))}
-            {rankedPosts.length === 0 && trendingTopics.length === 0 && (
-              <div className="text-center py-16">
-                <Flame className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">Nothing is trending this week yet.</p>
+          {groupsToJoin.length > 0 && (
+            <section className="feed-section bg-card py-3 sm:rounded-2xl sm:border" aria-labelledby="explore-groups">
+              <div className="mb-2.5 flex items-center justify-between px-3 sm:px-4">
+                <h2 id="explore-groups" className="text-[15px] font-semibold">Groups to explore</h2>
+                <Link to="/groups" className="text-sm font-medium text-primary">See all</Link>
               </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="people" className="space-y-3 px-3 sm:px-0">
-            <h3 className="font-semibold text-sm flex items-center gap-2 mb-2">
-              <Star className="h-4 w-4 text-gold" /> People you might know
-            </h3>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              {suggestedUsers.map(user => (
-                <Card key={user.id} className="p-4 text-center hover:shadow-md transition-shadow">
-                  <Link to={`/profile/${user.id}`}>
-                    <Avatar className="h-16 w-16 mx-auto mb-2">
-                      <AvatarImage src={user.avatar_url || undefined} alt="" />
-                      <AvatarFallback className="bg-primary/10 text-primary text-lg">{user.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                    </Avatar>
-                    <p className="font-semibold text-sm line-clamp-1 break-all">{user.full_name || "User"}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {user.mutualCount > 0 ? `${user.mutualCount} mutual ${user.mutualCount === 1 ? "friend" : "friends"}` : "New on Ember"}
-                    </p>
-                    {user.bio && <p className="text-xs text-muted-foreground line-clamp-2 mt-1">{user.bio}</p>}
+              <div className="flex gap-3 overflow-x-auto px-3 pb-0.5 scrollbar-hide sm:px-4">
+                {groupsToJoin.map((g) => (
+                  <Link key={g.id} to={`/groups/${g.id}`} className="w-40 shrink-0 overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-md">
+                    <div className="flex h-20 items-center justify-center" style={g.image_url ? undefined : { backgroundImage: groupColor(g.id) }}>
+                      {g.image_url ? (
+                        <img src={g.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
+                      ) : (
+                        <span className="font-display text-2xl font-bold text-white" aria-hidden="true">{groupInitials(g.name)}</span>
+                      )}
+                    </div>
+                    <div className="p-2.5">
+                      <p className="truncate text-sm font-semibold">{g.name}</p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {g.member_count !== undefined ? `${g.member_count} ${g.member_count === 1 ? "member" : "members"}` : "Public group"}
+                      </p>
+                    </div>
                   </Link>
-                  {requested.has(user.id) ? (
-                    <Button size="sm" variant="secondary" className="mt-2 w-full text-xs h-8" disabled>
-                      <Check className="h-3.5 w-3.5 mr-1" /> Requested
-                    </Button>
-                  ) : (
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="mt-2 w-full text-xs h-8"
-                      disabled={addingId === user.id}
-                      onClick={() => sendRequest(user.id)}
-                      aria-label={`Add ${user.full_name || "user"} as a friend`}
-                    >
-                      {addingId === user.id && <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />}
-                      Add Friend
-                    </Button>
-                  )}
-                </Card>
-              ))}
-            </div>
-            {suggestedUsers.length === 0 && (
-              <div className="text-center py-12">
-                <Users className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground text-sm">No suggestions right now</p>
+                ))}
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+            </section>
+          )}
+
+          {suggestedUsers.length > 0 && (
+            <section className="feed-section bg-card py-3 sm:rounded-2xl sm:border" aria-labelledby="explore-people">
+              <div className="mb-2.5 flex items-center justify-between px-3 sm:px-4">
+                <h2 id="explore-people" className="text-[15px] font-semibold">People you may know</h2>
+                <Link to="/friends" className="text-sm font-medium text-primary">See all</Link>
+              </div>
+              <div className="flex gap-3 overflow-x-auto px-3 pb-0.5 scrollbar-hide sm:px-4">
+                {suggestedUsers.map((user) => (
+                  <div key={user.id} className="w-36 shrink-0 rounded-2xl border border-border p-3 text-center">
+                    <Link to={`/profile/${user.id}`}>
+                      <Avatar className="mx-auto mb-2 h-16 w-16">
+                        <AvatarImage src={user.avatar_url || undefined} alt="" />
+                        <AvatarFallback className="bg-primary/10 text-lg text-primary">{user.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                      </Avatar>
+                      <p className="truncate text-sm font-semibold">{user.full_name || "User"}</p>
+                      <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                        {user.mutualCount > 0 ? `${user.mutualCount} mutual ${user.mutualCount === 1 ? "friend" : "friends"}` : "New on Ember"}
+                      </p>
+                    </Link>
+                    {requested.has(user.id) ? (
+                      <Button size="sm" variant="secondary" className="mt-2 h-8 w-full rounded-full text-xs" disabled>
+                        <Check className="mr-1 h-3.5 w-3.5" /> Requested
+                      </Button>
+                    ) : (
+                      <Button
+                        size="sm"
+                        className="mt-2 h-8 w-full rounded-full text-xs"
+                        disabled={addingId === user.id}
+                        onClick={() => sendRequest(user.id)}
+                        aria-label={`Add ${user.full_name || "user"} as a friend`}
+                      >
+                        {addingId === user.id && <Loader2 className="mr-1 h-3.5 w-3.5 animate-spin" />}
+                        Add friend
+                      </Button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
+
+          <h2 className="flex items-center gap-2 px-3 pt-2 text-[15px] font-semibold sm:px-0">
+            <Flame className="h-4 w-4 text-primary" /> Popular this week
+          </h2>
+          {popularPosts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              currentUserId={currentUser.id}
+              reactions={reactionsData[post.id]?.reactions || {}}
+              userReaction={reactionsData[post.id]?.userReaction || null}
+              firstReactorName={reactionsData[post.id]?.firstReactor}
+              comments={commentsData[post.id] || []}
+              onReactionToggle={(type) => toggleReaction(post.id, type)}
+              onCommentAdded={() => reloadComments(post.id)}
+              onDelete={() => setTrendingPosts((prev) => prev.filter((p) => p.id !== post.id))}
+            />
+          ))}
+          {popularPosts.length === 0 && (
+            <div className="py-12 text-center">
+              <Compass className="mx-auto mb-3 h-12 w-12 text-muted-foreground" />
+              <p className="text-muted-foreground">Nothing to explore yet. Check back soon!</p>
+            </div>
+          )}
+        </div>
         )}
       </div>
     </div>

@@ -702,7 +702,7 @@ const PostCard = ({
           )}
           <span className="ml-auto flex items-center gap-1">
             {comments.length > 0 && (
-              <button type="button" className="hover:underline" onClick={() => setShowComments((v) => !v)}>
+              <button type="button" className="hover:underline" onClick={() => setShowComments(true)}>
                 {compactCount(comments.length)} {comments.length === 1 ? "comment" : "comments"}
               </button>
             )}

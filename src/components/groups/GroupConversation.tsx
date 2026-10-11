@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import GroupInitials from "@/components/groups/GroupInitials";
 import { ArrowLeft, BellOff, Loader2, MoreVertical, Phone, Send, Users, Video, X } from "lucide-react";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
@@ -429,7 +430,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
         <button type="button" className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg px-1 py-0.5 text-left" onClick={() => setShowInfo(true)} aria-label={`${group.name}, group info`}>
           <Avatar className="h-10 w-10 flex-shrink-0">
             <AvatarImage src={group.image_url || undefined} />
-            <AvatarFallback className="bg-secondary"><Users className="h-5 w-5" /></AvatarFallback>
+            <AvatarFallback><GroupInitials id={group.id} name={group.name} className="text-sm" /></AvatarFallback>
           </Avatar>
           <span className="min-w-0">
             <span className="flex items-center gap-1 font-semibold">

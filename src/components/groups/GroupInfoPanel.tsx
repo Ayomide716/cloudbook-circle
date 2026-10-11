@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import GroupInitials from "@/components/groups/GroupInitials";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
 import { ArrowLeft, BellOff, ChevronRight, ExternalLink, Image as ImageIcon, LogOut, Pencil, Star, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "lucide-react";
@@ -96,7 +97,7 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
       <div className="flex flex-col items-center px-6 pb-5 text-center">
         <Avatar className="h-32 w-32">
           <AvatarImage src={group.image_url || undefined} className="object-cover" />
-          <AvatarFallback className="bg-secondary"><Users className="h-12 w-12 text-muted-foreground" /></AvatarFallback>
+          <AvatarFallback><GroupInitials id={group.id} name={group.name} className="text-4xl" /></AvatarFallback>
         </Avatar>
         <div className="mt-4 flex max-w-full items-center gap-1">
           <h2 className="min-w-0 break-words font-display text-2xl font-bold leading-tight">{group.name}</h2>
