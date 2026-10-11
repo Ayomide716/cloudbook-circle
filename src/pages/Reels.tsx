@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -182,7 +183,9 @@ export default function Reels() {
     setReels(prev => prev.map(r => ({ ...r, reel_comments: r.reel_comments.filter(c => c.id !== commentId) })));
   };
 
-  const handleComment = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleComment = useSingleFlight();
+  const handleComment = onceHandleComment(async () => {
     if (!user || !commentText.trim() || !activeReelId) return;
     const { data, error } = await supabase.from("reel_comments").insert({
       reel_id: activeReelId, user_id: user.id, content: commentText.trim(),
@@ -201,7 +204,7 @@ export default function Reels() {
       setReplyTo(null);
       playSound("comment");
     }
-  };
+  });
 
   const startReply = (parent: Reel["reel_comments"][number], mention: string | null) => {
     setReplyTo({ id: parent.id, name: parent.profiles.full_name || "User" });
@@ -228,12 +231,14 @@ export default function Reels() {
     }
   };
 
-  const handleUpload = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleUpload = useSingleFlight();
+  const handleUpload = onceHandleUpload(async () => {
     if (!user || !uploadVideoUrl) return;
     const { error } = await supabase.from("reels").insert({ user_id: user.id, video_url: uploadVideoUrl, caption: uploadCaption.trim() || null });
     if (error) { toast({ title: "Error uploading reel", variant: "destructive" }); }
     else { setShowUpload(false); setUploadCaption(""); setUploadVideoUrl(""); loadReels(); }
-  };
+  });
 
   const handleDeleteReel = async (reelId: string) => {
     setPendingDelete(null);

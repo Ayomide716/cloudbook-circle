@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -164,7 +165,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     return cleanup;
   }, [currentUserId, loadStories, setupRealtimeSubscription]);
 
-  const handleCreateStory = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleCreateStory = useSingleFlight();
+  const handleCreateStory = onceHandleCreateStory(async () => {
     if (!storyImage) {
       toast({ title: "Please upload an image", variant: "destructive" });
       return;
@@ -178,7 +181,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     setStoryImage("");
     setStoryCaption("");
     loadStories();
-  };
+  });
 
   // ---- Viewer Logic ----
   const activeGroup = storyGroups[activeGroupIndex];
@@ -277,7 +280,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     setViewerOpen(true);
   };
 
-  const handleSendReply = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleSendReply = useSingleFlight();
+  const handleSendReply = onceHandleSendReply(async () => {
     if (!replyText.trim() || !activeStory) return;
     setIsSendingReply(true);
     await supabase.from("messages").insert({
@@ -288,7 +293,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     setIsSendingReply(false);
     toast({ title: "Reply sent!" });
     setReplyText("");
-  };
+  });
 
   const handleReaction = async (emoji: string, type: string) => {
     if (!activeStory) return;

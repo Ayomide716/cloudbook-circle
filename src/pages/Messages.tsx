@@ -1,4 +1,5 @@
 import { useEffect, useState, useRef, useCallback, useMemo, ReactElement } from "react";
+import { isRepeatSend } from "@/hooks/use-single-flight";
 import { features } from "@/lib/features";
 import { playSound } from "@/lib/sounds";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -158,6 +159,8 @@ const Messages = () => {
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | null>(null);
   
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // The last message sent, so a double tap on Send doesn't send it twice.
+  const lastSendRef = useRef<{ text: string; at: number } | null>(null);
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const presenceIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -467,6 +470,9 @@ const Messages = () => {
     }
 
     const content = messageContent.trim() || (imageUrl ? "Sent an image" : "");
+    const sendKey = `${selectedConversation.id}|${content}|${imageUrl ?? ""}`;
+    if (isRepeatSend(lastSendRef.current, sendKey)) return;
+    lastSendRef.current = { text: sendKey, at: Date.now() };
     const tempId = `temp-${Date.now()}`;
 
     const expiresAt = disappearingMinutes

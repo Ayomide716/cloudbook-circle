@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -205,7 +206,9 @@ const Events = () => {
         ? "The end time must be after the start."
         : null;
 
-  const handleCreateEvent = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleCreateEvent = useSingleFlight();
+  const handleCreateEvent = onceHandleCreateEvent(async () => {
     if (!currentUserId || !newEvent.name.trim() || !start || dateError) return;
     setIsCreating(true);
 
@@ -235,7 +238,7 @@ const Events = () => {
     setNewEvent(emptyForm);
     setCover(null);
     loadEvents(currentUserId);
-  };
+  });
 
   const deleteEvent = async (event: Event) => {
     setPendingDelete(null);

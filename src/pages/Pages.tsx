@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -109,7 +110,9 @@ const Pages = () => {
     }
   };
 
-  const handleCreate = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleCreate = useSingleFlight();
+  const handleCreate = onceHandleCreate(async () => {
     if (!currentUserId || !createName.trim()) return;
     setIsCreating(true);
 
@@ -129,7 +132,7 @@ const Pages = () => {
       navigate(`/pages/${data.id}`);
     }
     setIsCreating(false);
-  };
+  });
 
   const getCategoryLabel = pageCategoryLabel;
 

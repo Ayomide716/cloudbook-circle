@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { haptic } from "@/lib/haptics";
 import { playSound } from "@/lib/sounds";
 import { features } from "@/lib/features";
@@ -298,7 +299,9 @@ const PostCard = ({
     }
   };
 
-  const handleComment = async (e: React.FormEvent) => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleComment = useSingleFlight();
+  const handleComment = onceHandleComment(async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!commentContent.trim()) return;
@@ -352,7 +355,7 @@ const PostCard = ({
 
     // Refresh real data from server
     onCommentAdded();
-  };
+  });
 
   // Replying to a reply stays in the same thread, starting with "@Name" (as on Instagram).
   const startReply = (parent: PostComment, mention: string | null) => {

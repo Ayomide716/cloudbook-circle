@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -62,7 +63,9 @@ const WatchComments = ({ videoId, currentUserId }: WatchCommentsProps) => {
     if (willOpen && comments.length === 0) loadComments();
   };
 
-  const handleSubmit = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandleSubmit = useSingleFlight();
+  const handleSubmit = onceHandleSubmit(async () => {
     if (!newComment.trim()) return;
     setIsSending(true);
     const { error } = await supabase.from("watch_comments").insert({
@@ -76,7 +79,7 @@ const WatchComments = ({ videoId, currentUserId }: WatchCommentsProps) => {
       loadComments();
     }
     setIsSending(false);
-  };
+  });
 
   const handleDelete = async (commentId: string) => {
     await supabase.from("watch_comments").delete().eq("id", commentId);

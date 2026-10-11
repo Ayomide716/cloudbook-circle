@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -185,7 +186,9 @@ const PageDetail = () => {
     }
   };
 
-  const handlePost = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceHandlePost = useSingleFlight();
+  const handlePost = onceHandlePost(async () => {
     if (!currentUserId || !page || (!newPost.trim() && !postImage)) return;
     setIsPosting(true);
     try {
@@ -205,7 +208,7 @@ const PageDetail = () => {
     } finally {
       setIsPosting(false);
     }
-  };
+  });
 
   const deletePost = async (postId: string) => {
     const { error } = await supabase.from("page_posts").delete().eq("id", postId);
@@ -245,7 +248,9 @@ const PageDetail = () => {
     if (isShowing && !commentsMap[postId]) loadComments(postId);
   };
 
-  const submitComment = async (postId: string) => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceSubmitComment = useSingleFlight();
+  const submitComment = onceSubmitComment(async (postId: string) => {
     const content = commentInputs[postId]?.trim();
     if (!currentUserId || !content) return;
     const { error } = await supabase.from("page_post_comments").insert({ post_id: postId, user_id: currentUserId, content });
@@ -256,7 +261,7 @@ const PageDetail = () => {
     setCommentInputs((prev) => ({ ...prev, [postId]: "" }));
     loadComments(postId);
     setPosts((prev) => prev.map((p) => (p.id === postId ? { ...p, comments_count: p.comments_count + 1 } : p)));
-  };
+  });
 
   const deleteComment = async (postId: string, commentId: string) => {
     const { error } = await supabase.from("page_post_comments").delete().eq("id", commentId);

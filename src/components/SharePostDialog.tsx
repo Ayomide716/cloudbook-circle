@@ -1,3 +1,4 @@
+import { useSingleFlight } from "@/hooks/use-single-flight";
  import { useState, useEffect } from "react";
  import { Button } from "@/components/ui/button";
  import { Textarea } from "@/components/ui/textarea";
@@ -80,7 +81,9 @@
      }
    };
 
-   const handleShare = async () => {
+   // Extra taps while this is saving do nothing (no double shares on a slow network).
+   const onceHandleShare = useSingleFlight();
+   const handleShare = onceHandleShare(async () => {
      setIsLoading(true);
  
      const shareData: TablesInsert<"shared_posts"> = {
@@ -107,7 +110,7 @@
        setContent("");
        setShareTarget("profile");
      }
-   };
+   });
  
    return (
      <Dialog open={open} onOpenChange={onOpenChange}>

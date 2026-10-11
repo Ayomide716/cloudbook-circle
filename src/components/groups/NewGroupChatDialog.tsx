@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useSingleFlight } from "@/hooks/use-single-flight";
 import { Camera, Check, Loader2, Search, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -65,7 +66,9 @@ const NewGroupChatDialog = ({ open, onOpenChange, currentUserId, onCreated }: Ne
       return next;
     });
 
-  const create = async () => {
+  // Extra taps while this is saving do nothing (no double posts on a slow network).
+  const onceCreate = useSingleFlight();
+  const create = onceCreate(async () => {
     const title = name.trim();
     if (!title || picked.size === 0) return;
     setCreating(true);
@@ -104,7 +107,7 @@ const NewGroupChatDialog = ({ open, onOpenChange, currentUserId, onCreated }: Ne
     reset();
     onOpenChange(false);
     onCreated(group.id);
-  };
+  });
 
   return (
     <Dialog open={open} onOpenChange={(next) => { onOpenChange(next); if (!next) reset(); }}>
