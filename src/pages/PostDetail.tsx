@@ -107,6 +107,7 @@ const PostDetail = () => {
             onCommentAdded={() => reloadComments(post.id)}
             onDelete={() => navigate("/", { replace: true })}
             defaultShowComments
+            inlineComments
           />
         )}
       </main>

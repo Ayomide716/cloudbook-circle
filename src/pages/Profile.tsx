@@ -483,7 +483,8 @@ const Profile = () => {
   const infoItems = [
   profile.location && { icon: Home, label: profile.location, prefix: "Lives in" },
   profile.hometown && { icon: MapPin, label: profile.hometown, prefix: "From" },
-  profile.work && { icon: Briefcase, label: profile.work, prefix: "Works at" },
+  // Work holds a job title or a company ("Frontend Developer", "Paystack"), so it stands alone.
+  profile.work && { icon: Briefcase, label: profile.work },
   profile.education && { icon: GraduationCap, label: profile.education, prefix: "Studied at" },
   birthday && { icon: Cake, label: birthday, prefix: "Birthday" },
   relationship && { icon: Heart, label: relationship },

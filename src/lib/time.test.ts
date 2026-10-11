@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compactCount, shortTime } from "./time";
+import { compactCount, lastSeen, shortTime } from "./time";
 
 const now = new Date("2026-10-05T12:00:00Z");
 const ago = (ms: number) => new Date(now.getTime() - ms);
@@ -36,5 +36,16 @@ describe("compactCount", () => {
     [1_250_000, "1.3M"],
   ])("formats %i as %s", (n, expected) => {
     expect(compactCount(n)).toBe(expected);
+  });
+});
+
+describe("lastSeen", () => {
+  const now = new Date("2026-10-11T12:00:00Z");
+  it("is short enough for a chat header", () => {
+    expect(lastSeen(new Date("2026-10-11T11:59:40Z"), now)).toBe("Active just now");
+    expect(lastSeen(new Date("2026-10-11T11:55:00Z"), now)).toBe("Active 5m ago");
+    expect(lastSeen(new Date("2026-10-11T09:00:00Z"), now)).toBe("Active 3h ago");
+    expect(lastSeen(new Date("2026-10-10T08:00:00Z"), now)).toBe("Last seen yesterday");
+    expect(lastSeen(new Date("2026-10-03T08:00:00Z"), now)).toBe("Last seen Oct 3");
   });
 });

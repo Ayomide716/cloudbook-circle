@@ -1,5 +1,4 @@
 import { useRef, useState, type ReactNode } from "react";
-import { ChevronUp } from "lucide-react";
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +13,7 @@ interface CommentsSheetProps {
 
 /**
  * Comments in a sheet from the bottom, as on TikTok and Instagram: it opens part-way, you pull
- * the top up for the full screen (or tap the arrow), and swipe it down to close.
+ * the top up for the full screen, and swipe it down to close.
  */
 const CommentsSheet = ({ open, onOpenChange, title, children, footer }: CommentsSheetProps) => {
   const [expanded, setExpanded] = useState(false);
@@ -45,16 +44,6 @@ const CommentsSheet = ({ open, onOpenChange, title, children, footer }: Comments
           onTouchEnd={() => { startY.current = null; }}
         >
           <DrawerTitle className="text-[15px] font-semibold">{title}</DrawerTitle>
-          {!expanded && (
-            <button
-              type="button"
-              onClick={() => setExpanded(true)}
-              aria-label="Show comments full screen"
-              className="absolute right-3 flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary"
-            >
-              <ChevronUp className="h-5 w-5" />
-            </button>
-          )}
         </div>
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3" data-vaul-no-drag="">
           {children}

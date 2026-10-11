@@ -1,9 +1,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, ArrowLeft, User, FileText, Users, TrendingUp } from "lucide-react";
+import { Search, X, ArrowLeft, User, FileText, Users, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import EmptyState from "@/components/EmptyState";
 
 interface SearchResult {
   type: "user" | "post" | "group";
@@ -24,6 +24,29 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
+  // Before you type: people you aren't friends with yet, and groups to look at.
+  const [people, setPeople] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[]>([]);
+  const [groups, setGroups] = useState<{ id: string; name: string; image_url: string | null }[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      const me = session?.user.id;
+      if (!me) return;
+      const [friendships, profiles, groupRows] = await Promise.all([
+        supabase.from("friendships").select("user_id, friend_id").or(`user_id.eq.${me},friend_id.eq.${me}`),
+        supabase.from("profiles").select("id, full_name, avatar_url").neq("id", me).order("created_at", { ascending: false }).limit(20),
+        supabase.from("groups").select("id, name, image_url").order("created_at", { ascending: false }).limit(4),
+      ]);
+      if (cancelled) return;
+      const known = new Set((friendships.data ?? []).map((f) => (f.user_id === me ? f.friend_id : f.user_id)));
+      setPeople((profiles.data ?? []).filter((p) => !known.has(p.id)).slice(0, 8));
+      setGroups(groupRows.data ?? []);
+    })();
+    return () => { cancelled = true; };
+  }, [open]);
 
   useEffect(() => {
     if (open) {
@@ -83,6 +106,17 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
     setQuery(term);
   };
 
+  const removeRecent = (term: string) => {
+    const updated = recentSearches.filter((s) => s !== term);
+    setRecentSearches(updated);
+    localStorage.setItem("recent_searches", JSON.stringify(updated));
+  };
+
+  const go = (path: string) => {
+    onClose();
+    navigate(path);
+  };
+
   const clearRecent = () => {
     setRecentSearches([]);
     localStorage.removeItem("recent_searches");
@@ -131,10 +165,7 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
             <p className="text-sm text-muted-foreground">Searching...</p>
           </div>
         ) : query && results.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-2">
-            <Search className="h-12 w-12 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">No results for "{query}"</p>
-          </div>
+          <EmptyState emoji="search" title={`Nothing for “${query}”`} text="Try a different name or word." />
         ) : results.length > 0 ? (
           <div className="py-2">
             {results.map((item) => (
@@ -161,33 +192,64 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
             ))}
           </div>
         ) : (
-          /* Recent searches */
-          <div className="py-4">
+          // Before you type: recent searches, people you may know and groups to explore.
+          <div className="space-y-5 py-4">
             {recentSearches.length > 0 && (
-              <>
-                <div className="flex items-center justify-between px-4 mb-2">
-                  <h3 className="text-sm font-semibold text-foreground">Recent</h3>
-                  <button onClick={clearRecent} className="text-xs text-primary font-medium">Clear all</button>
+              <section>
+                <div className="mb-1 flex items-center justify-between px-4">
+                  <h3 className="text-[15px] font-semibold">Recent</h3>
+                  <button onClick={clearRecent} className="text-xs font-semibold text-primary">Clear all</button>
                 </div>
-                {recentSearches.map((term, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handleRecentClick(term)}
-                    className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-accent active:bg-accent/80 transition-colors text-left"
-                  >
-                    <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center">
-                      <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                    <span className="text-sm truncate">{term}</span>
+                {recentSearches.map((term) => (
+                  <div key={term} className="flex items-center gap-3 px-4 py-1.5 transition-colors hover:bg-accent/60">
+                    <button type="button" onClick={() => handleRecentClick(term)} className="flex min-w-0 flex-1 items-center gap-3 py-1 text-left">
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-secondary">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                      </span>
+                      <span className="truncate text-sm">{term}</span>
+                    </button>
+                    <button type="button" onClick={() => removeRecent(term)} aria-label={`Remove ${term}`} className="rounded-full p-1.5 text-muted-foreground hover:bg-secondary">
+                      <X className="h-4 w-4" />
+                    </button>
+                  </div>
+                ))}
+              </section>
+            )}
+
+            {people.length > 0 && (
+              <section>
+                <h3 className="mb-2 px-4 text-[15px] font-semibold">People you may know</h3>
+                <div className="flex gap-3 overflow-x-auto px-4 pb-1 scrollbar-hide">
+                  {people.map((p) => (
+                    <button key={p.id} type="button" onClick={() => go(`/profile/${p.id}`)} className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
+                      <Avatar className="h-16 w-16">
+                        <AvatarImage src={p.avatar_url || ""} className="object-cover" />
+                        <AvatarFallback className="bg-secondary text-lg font-semibold">{p.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                      </Avatar>
+                      <span className="w-full truncate text-xs font-medium">{p.full_name?.split(" ")[0] || "User"}</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {groups.length > 0 && (
+              <section>
+                <h3 className="mb-1 px-4 text-[15px] font-semibold">Groups to explore</h3>
+                {groups.map((g) => (
+                  <button key={g.id} type="button" onClick={() => go(`/groups/${g.id}`)} className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-accent/60">
+                    <Avatar className="h-11 w-11 rounded-xl">
+                      <AvatarImage src={g.image_url || ""} className="object-cover" />
+                      <AvatarFallback className="rounded-xl bg-primary/15 text-primary"><Users className="h-5 w-5" /></AvatarFallback>
+                    </Avatar>
+                    <span className="truncate text-sm font-medium">{g.name}</span>
                   </button>
                 ))}
-              </>
+              </section>
             )}
-            {recentSearches.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-16 gap-2">
-                <Search className="h-12 w-12 text-muted-foreground/30" />
-                <p className="text-sm text-muted-foreground">Search for people, posts, and groups</p>
-              </div>
+
+            {recentSearches.length === 0 && people.length === 0 && groups.length === 0 && (
+              <EmptyState emoji="search" title="Find people, posts and groups" text="Start typing a name or a word." />
             )}
           </div>
         )}

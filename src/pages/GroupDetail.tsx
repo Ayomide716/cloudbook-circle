@@ -412,7 +412,8 @@ const GroupDetail = () => {
             {group.image_url ? (
               <img src={group.image_url} alt="" className="h-40 w-full object-cover sm:h-56" />
             ) : (
-              <div className="h-24 w-full gradient-brand opacity-80 sm:h-32" />
+              // No photo yet: the same soft ember glow as a profile without a cover.
+              <div className="h-24 w-full bg-[radial-gradient(110%_130%_at_0%_0%,hsl(var(--primary)/0.55),transparent_55%),radial-gradient(90%_120%_at_100%_100%,hsl(340_90%_62%/0.4),transparent_60%),radial-gradient(60%_80%_at_70%_10%,hsl(40_100%_60%/0.35),transparent_60%),linear-gradient(160deg,hsl(var(--secondary)),hsl(var(--background)))] sm:h-32" />
             )}
             <button
               type="button"
@@ -540,7 +541,9 @@ const GroupDetail = () => {
           <TabsContent value="chat">
             {isMember ? (
               // The community's own chat, in the same style as Messages (it doesn't go in your chat list).
-              <div className="feed-section h-[calc(100dvh-22rem)] min-h-[420px] overflow-hidden rounded-[1.125rem] border bg-card">
+              // Phones: as tall as the screen between these tabs and the tab bar (the top bar slides away),
+              // so the message box sits just above the tab bar instead of behind it.
+              <div className="feed-section h-[calc(100dvh-10rem-env(safe-area-inset-bottom,0px))] min-h-[380px] overflow-hidden rounded-[1.125rem] border bg-card md:h-[calc(100dvh-22rem)] md:min-h-[420px]">
                 <GroupConversation
                   embedded
                   group={{ ...group, created_at: group.created_at ?? new Date().toISOString() }}

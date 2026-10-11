@@ -93,6 +93,8 @@ export interface PostCardProps {
   compact?: boolean;
   /** Open the comments straight away (the single post page). */
   defaultShowComments?: boolean;
+  /** Comments always under the post, even on phones (the single post page). */
+  inlineComments?: boolean;
 }
 
 // Facebook's six reactions, each a 3D emoji (see ReactionEmoji) with its label colour.
@@ -116,6 +118,7 @@ const PostCard = ({
   onCommentAdded,
   onDelete,
   defaultShowComments = false,
+  inlineComments = false,
 }: PostCardProps) => {
   const [showComments, setShowComments] = useState(defaultShowComments);
   const myProfile = useMyProfile();
@@ -157,6 +160,8 @@ const PostCard = ({
   // The thread you just replied in stays open.
   const [openThreadId, setOpenThreadId] = useState<string | null>(null);
   const isPhone = useIsMobile();
+  // Phones get comments in a sheet, except on a post's own page, where they sit under it.
+  const commentsInSheet = isPhone && !inlineComments;
   const { toast } = useToast();
 
   const handleEditComment = async (commentId: string, text: string) => {
@@ -801,7 +806,7 @@ const PostCard = ({
       </div>
 
       {/* A taste of the conversation, as on Instagram: the latest comment and a link to the rest. */}
-      {latestComment && (isPhone || !showComments) && (
+      {latestComment && (commentsInSheet || !showComments) && (
         <button
           type="button"
           onClick={() => setShowComments(true)}
@@ -826,7 +831,7 @@ const PostCard = ({
        />
 
       {/* Comments: under the post on bigger screens; on phones a sheet you can pull up. */}
-      {isPhone ? (
+      {commentsInSheet ? (
         <CommentsSheet
           open={showComments}
           onOpenChange={setShowComments}
@@ -843,7 +848,11 @@ const PostCard = ({
         showComments && (
           <div className="space-y-3 bg-accent/30 p-3 sm:p-4">
             {commentForm}
-            {commentList(3)}
+            {comments.length === 0 && inlineComments ? (
+              <p className="py-4 text-center text-sm text-muted-foreground">No comments yet. Be the first to comment.</p>
+            ) : (
+              commentList(inlineComments ? 50 : 3)
+            )}
           </div>
         )
       )}
