@@ -43,40 +43,68 @@ export function updateFor(manifest: unknown, running: string, shellLevel: number
   return url ? { version: m.version, url } : null;
 }
 
+export type UpdateCheck = "up-to-date" | "ready" | "needs-new-app" | "offline";
+
+let busy: Promise<UpdateCheck> | null = null;
+let lastCheck = 0;
+let shellLevel: number | null = null;
+
+/**
+ * Look for a newer version and download it. It switches when you next leave the app, or
+ * straight away with applyNow (the "Check for updates" button in Settings).
+ */
+export function checkForUpdate({ force = false, applyNow = false } = {}): Promise<UpdateCheck> {
+  if (busy) return busy;
+  if (!force && Date.now() - lastCheck < 60_000) return Promise.resolve("up-to-date");
+  lastCheck = Date.now();
+  busy = (async (): Promise<UpdateCheck> => {
+    try {
+      const [{ CapacitorUpdater }, { App }, { CapacitorHttp }] = await Promise.all([
+        import("@capgo/capacitor-updater"),
+        import("@capacitor/app"),
+        import("@capacitor/core"),
+      ]);
+      shellLevel ??= shellLevelFrom((await App.getInfo().catch(() => null))?.version);
+      // Native request: no CORS, and never a cached answer.
+      const res = await CapacitorHttp.get({ url: `${PUBLIC_URL}/ota/manifest.json?t=${Date.now()}`, headers: { "Cache-Control": "no-cache" } });
+      if (res.status !== 200) return "offline";
+      const manifest = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
+      const next = updateFor(manifest, BUNDLE_VERSION, shellLevel);
+      if (!next) {
+        const needsApp = typeof manifest?.nativeLevel === "number" && manifest.nativeLevel > shellLevel && manifest.version !== BUNDLE_VERSION;
+        return needsApp ? "needs-new-app" : "up-to-date";
+      }
+      // Already downloaded earlier (e.g. the app was closed before switching)? Use that copy.
+      const { bundles } = await CapacitorUpdater.list();
+      const ready = bundles.find((b) => b.version === next.version && b.status !== "error");
+      const bundle = ready ?? (await CapacitorUpdater.download({ url: next.url, version: next.version }));
+      if (applyNow) await CapacitorUpdater.set({ id: bundle.id }); // reloads into the new version
+      else await CapacitorUpdater.next({ id: bundle.id }); // switches when the app goes to the background
+      return "ready";
+    } catch {
+      return "offline";
+    } finally {
+      busy = null;
+    }
+  })();
+  return busy;
+}
+
+/** "1.1.3" for the APK, and the short commit of the version running inside it. */
+export async function versionInfo() {
+  const { App } = await import("@capacitor/app");
+  const info = await App.getInfo().catch(() => null);
+  return { app: info?.version ?? "?", web: BUNDLE_VERSION.slice(0, 7) };
+}
+
 export async function startOverTheAirUpdates() {
   const { CapacitorUpdater } = await import("@capgo/capacitor-updater");
   // This version started: keep it (otherwise the updater goes back to the last good one).
   await CapacitorUpdater.notifyAppReady().catch(() => {});
 
-  const [{ App }, { CapacitorHttp }] = await Promise.all([import("@capacitor/app"), import("@capacitor/core")]);
-  const shellLevel = shellLevelFrom((await App.getInfo().catch(() => null))?.version);
-  let busy = false;
-  let lastCheck = 0;
-
-  const check = async () => {
-    if (busy || Date.now() - lastCheck < 60_000) return;
-    busy = true;
-    lastCheck = Date.now();
-    try {
-      // Native request: no CORS, and never a cached answer.
-      const res = await CapacitorHttp.get({ url: `${PUBLIC_URL}/ota/manifest.json?t=${Date.now()}`, headers: { "Cache-Control": "no-cache" } });
-      const next = res.status === 200 ? updateFor(typeof res.data === "string" ? JSON.parse(res.data) : res.data, BUNDLE_VERSION, shellLevel) : null;
-      if (!next) return;
-      // Already downloaded earlier (e.g. the app was closed before switching)? Use that copy.
-      const { bundles } = await CapacitorUpdater.list();
-      const ready = bundles.find((b) => b.version === next.version && b.status !== "error");
-      const bundle = ready ?? (await CapacitorUpdater.download({ url: next.url, version: next.version }));
-      // Switches when the app goes to the background (or is next opened).
-      await CapacitorUpdater.next({ id: bundle.id });
-    } catch {
-      // Offline or the site is down: try again next time the app comes to the front.
-    } finally {
-      busy = false;
-    }
-  };
-
-  check();
+  const { App } = await import("@capacitor/app");
+  checkForUpdate({ force: true });
   App.addListener("appStateChange", ({ isActive }) => {
-    if (isActive) check();
+    if (isActive) checkForUpdate();
   });
 }

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import AppVersionCard from "@/components/AppVersionCard";
 import { isNative } from "@/lib/native/platform";
 import { features } from "@/lib/features";
 import { useNavigate } from "react-router-dom";
@@ -327,6 +328,13 @@ const Settings = () => {
           <>
             <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">Blocked people</h2>
             <BlockedPeople userId={currentUserId} />
+          </>
+        )}
+
+        {isNative && (
+          <>
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">App</h2>
+            <AppVersionCard />
           </>
         )}
 

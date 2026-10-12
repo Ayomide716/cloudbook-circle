@@ -22,8 +22,9 @@ const config: CapacitorConfig = {
     },
     Keyboard: {
       // The page shrinks above the keyboard, as on the website (interactive-widget=resizes-content).
+      // SystemBars already makes room for the keyboard on Android, so Keyboard.resizeOnFullScreen
+      // must stay off: with both, the app was resized twice and sheets could vanish.
       resize: "native",
-      resizeOnFullScreen: true,
     },
     CapacitorUpdater: {
       // Our own updates, from our own site: never Capgo's cloud, and no stats sent anywhere.
