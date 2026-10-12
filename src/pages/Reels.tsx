@@ -1,3 +1,4 @@
+import { publicUrl } from "@/lib/native/platform";
 import { useState, useEffect, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate, useParams } from "react-router-dom";
@@ -213,7 +214,7 @@ export default function Reels() {
   };
 
   const handleShare = async (reelId: string) => {
-    const url = `${window.location.origin}/reels/${reelId}`;
+    const url = publicUrl(`/reels/${reelId}`);
     if (navigator.share) {
       try {
         await navigator.share({ url });

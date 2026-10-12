@@ -1,3 +1,4 @@
+import { publicUrl } from "@/lib/native/platform";
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
@@ -34,7 +35,7 @@ const ForgotPassword = () => {
   const send = async (address: string) => {
     setSending(true);
     const { error } = await supabase.auth.resetPasswordForEmail(address, {
-      redirectTo: `${window.location.origin}/reset-password`,
+      redirectTo: publicUrl("/reset-password"),
     });
     setSending(false);
     if (error) {

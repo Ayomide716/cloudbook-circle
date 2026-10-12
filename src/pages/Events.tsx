@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { isNative } from "@/lib/native/platform";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -64,6 +65,19 @@ const toLocalInput = (d: Date) => format(d, "yyyy-MM-dd'T'HH:mm");
 /** Downloads an .ics file so the event can be added to any calendar app. */
 const downloadCalendarFile = (e: Event) => {
   const stamp = (d: Date) => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+  if (isNative) {
+    // The Android app can't save files from the web view: open Google Calendar's "add event"
+    // page instead (it opens in the Calendar app when it's installed).
+    const q = new URLSearchParams({
+      action: "TEMPLATE",
+      text: e.name,
+      dates: `${stamp(new Date(e.start_date))}/${stamp(eventEnd(e))}`,
+      ...(e.location ? { location: e.location } : {}),
+      ...(e.description ? { details: e.description } : {}),
+    });
+    window.location.href = `https://calendar.google.com/calendar/render?${q}`;
+    return;
+  }
   const escape = (s: string) => s.replace(/\\/g, "\\\\").replace(/[,;]/g, (m) => `\\${m}`).replace(/\n/g, "\\n");
   const lines = [
     "BEGIN:VCALENDAR",

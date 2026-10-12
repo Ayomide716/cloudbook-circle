@@ -1,3 +1,4 @@
+import { publicUrl } from "@/lib/native/platform";
 import { useState, useEffect, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -256,7 +257,7 @@ const Watch = () => {
   };
 
   const shareVideo = async (video: WatchVideo) => {
-    const url = `${window.location.origin}/watch?v=${video.id}`;
+    const url = publicUrl(`/watch?v=${video.id}`);
     if (navigator.share) {
       try {
         await navigator.share({ title: video.title, url });
