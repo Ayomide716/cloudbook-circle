@@ -48,7 +48,8 @@ const CommentsSheet = ({ open, onOpenChange, title, children, footer }: Comments
         <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3" data-vaul-no-drag="">
           {children}
         </div>
-        <div className="border-t border-border bg-card px-3 pb-2 pt-2">{footer}</div>
+        {/* no-drag: tapping the comment box must never start a swipe that closes the sheet. */}
+        <div className="border-t border-border bg-card px-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2" data-vaul-no-drag="">{footer}</div>
       </DrawerContent>
     </Drawer>
   );

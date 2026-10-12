@@ -368,7 +368,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       {viewerOpen && activeGroup && activeStory && createPortal(
         <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] z-[100] bg-black flex items-center justify-center">
           {/* Progress bars */}
-          <div className="absolute top-0 left-0 right-0 z-20 flex gap-0.5 px-2 pt-2 sm:pt-3 sm:px-4">
+          {/* Below the phone's status bar (the Android app and installed apps draw under it). */}
+          <div className="absolute top-0 left-0 right-0 z-20 flex gap-0.5 px-2 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] sm:px-4">
             {activeGroup.stories.map((_, i) => (
               <div key={i} className="flex-1 h-[3px] bg-white/30 rounded-full overflow-hidden">
                 <div
@@ -382,7 +383,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           </div>
 
           {/* Header */}
-          <div className="absolute top-5 sm:top-7 left-0 right-0 z-20 flex items-center justify-between px-3 sm:px-5">
+          <div className="absolute top-[calc(env(safe-area-inset-top,0px)+1.25rem)] sm:top-[calc(env(safe-area-inset-top,0px)+1.75rem)] left-0 right-0 z-20 flex items-center justify-between px-3 sm:px-5">
             <div className="flex items-center gap-2.5">
               <Avatar className="h-9 w-9 border-2 border-white/60">
                 <AvatarImage src={activeGroup.profile.avatar_url || undefined} />
@@ -448,7 +449,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
           {/* Reply & reactions (not own story) */}
           {activeGroup.userId !== currentUserId && (
-            <div className="absolute bottom-0 left-0 right-0 z-20 p-3 sm:p-4 bg-gradient-to-t from-black/80 to-transparent">
+            <div className="absolute bottom-0 left-0 right-0 z-20 p-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] sm:p-4 sm:pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] bg-gradient-to-t from-black/80 to-transparent">
               <div className="flex items-center gap-1.5 justify-center mb-2">
                 {[
                   { emoji: "❤️", type: "love" }, { emoji: "😂", type: "haha" }, { emoji: "😮", type: "wow" },

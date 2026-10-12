@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import { isNative } from "@/lib/native/platform";
 
 const isEditable = (el: Element | null): el is HTMLElement =>
   !!el &&
@@ -23,6 +24,8 @@ export function useKeyboardInset() {
     const root = document.documentElement;
 
     const update = () => {
+      // The Android app gets the keyboard's height from Android itself (lib/native).
+      if (isNative) return;
       const inset = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
       root.style.setProperty("--keyboard-inset", `${inset}px`);
       const typing = coarse.matches && isEditable(document.activeElement);

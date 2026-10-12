@@ -65,6 +65,35 @@ async function handleSignInReturn() {
   });
 }
 
+/**
+ * The keyboard's height straight from Android, as --keyboard-inset (what sheets, the chat box
+ * and the story reply bar sit on). Inside the app the web view's own viewport numbers aren't
+ * reliable for this. If Android already made the app shorter for the keyboard, only the part
+ * it didn't cover is added, so nothing is lifted twice.
+ */
+async function trackKeyboard() {
+  const { Keyboard } = await import("@capacitor/keyboard");
+  const root = document.documentElement;
+  let keyboardUp = false;
+  let fullHeight = window.innerHeight;
+  window.addEventListener("resize", () => {
+    if (!keyboardUp) fullHeight = window.innerHeight; // rotating, split screen…
+  });
+  const apply = (height: number) => {
+    const shrunk = Math.max(0, fullHeight - window.innerHeight);
+    root.style.setProperty("--keyboard-inset", `${Math.max(0, Math.round(height - shrunk))}px`);
+    document.body.classList.toggle("keyboard-open", height > 0);
+  };
+  Keyboard.addListener("keyboardWillShow", ({ keyboardHeight }) => { keyboardUp = true; apply(keyboardHeight); });
+  Keyboard.addListener("keyboardDidShow", ({ keyboardHeight }) => { keyboardUp = true; apply(keyboardHeight); });
+  Keyboard.addListener("keyboardWillHide", () => { keyboardUp = false; apply(0); });
+  Keyboard.addListener("keyboardDidHide", () => {
+    keyboardUp = false;
+    fullHeight = window.innerHeight;
+    apply(0);
+  });
+}
+
 /** The native splash hides once the app's own first screen (index.html's splash) is painted. */
 async function hideSplashWhenPainted() {
   const { SplashScreen } = await import("@capacitor/splash-screen");
@@ -77,5 +106,5 @@ export async function initNative() {
   // First: tell the updater this version started fine (or it rolls back to the last good one).
   const { startOverTheAirUpdates } = await import("./ota");
   await startOverTheAirUpdates();
-  await Promise.all([handleBackButton(), matchSystemBarsToTheme(), provideShareSheet(), handleSignInReturn(), hideSplashWhenPainted()]).catch(() => {});
+  await Promise.all([handleBackButton(), matchSystemBarsToTheme(), provideShareSheet(), handleSignInReturn(), trackKeyboard(), hideSplashWhenPainted()]).catch(() => {});
 }
