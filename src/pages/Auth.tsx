@@ -1,3 +1,4 @@
+import { APP_SCHEME, isNative, publicUrl } from "@/lib/native/platform";
 import { useState, useEffect } from "react";
 import { features } from "@/lib/features";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
@@ -46,7 +47,7 @@ const Auth = () => {
           password,
           options: {
             data: { full_name: fullName },
-            emailRedirectTo: `${window.location.origin}/`,
+            emailRedirectTo: publicUrl("/"),
           },
         });
         if (error) throw error;
@@ -198,10 +199,19 @@ const Auth = () => {
             setIsGoogleLoading(true);
             try {
               // Supabase's own Google sign-in (set up under Authentication → Providers → Google).
-              const { error } = await supabase.auth.signInWithOAuth({
+              // In the Android app, Google won't sign in inside the app's own web view: open the
+              // phone's browser, which comes back to the app through app.ember.social://auth
+              // (src/lib/native/index.ts finishes signing in).
+              const { data, error } = await supabase.auth.signInWithOAuth({
                 provider: "google",
-                options: { redirectTo: `${window.location.origin}${redirectPath}` },
+                options: isNative
+                  ? { redirectTo: `${APP_SCHEME}://auth`, skipBrowserRedirect: true }
+                  : { redirectTo: `${window.location.origin}${redirectPath}` },
               });
+              if (isNative && data?.url) {
+                const { Browser } = await import("@capacitor/browser");
+                await Browser.open({ url: data.url });
+              }
               if (error) {
                 toast({ title: "Google sign in failed", description: error.message, variant: "destructive" });
               }

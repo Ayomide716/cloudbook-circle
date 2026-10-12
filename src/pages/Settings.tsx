@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { isNative } from "@/lib/native/platform";
 import { features } from "@/lib/features";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -190,7 +191,9 @@ const Settings = () => {
   // you haven't paused them for your account.
   const canPush = pushSupported() || needsHomeScreenInstall();
   const deviceOn = canPush && pushPermission === "granted" && pushOn && prefs.push_enabled;
-  const deviceNote = !canPush
+  const deviceNote = isNative
+    ? "Coming soon to the Android app"
+    : !canPush
     ? "This browser can't show notifications"
     : pushPermission === "denied"
       ? "Blocked. Allow notifications for this site in your browser's settings"

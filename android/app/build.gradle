@@ -1,0 +1,84 @@
+apply plugin: 'com.android.application'
+
+// The native level is shared with the web code (src/lib/native/native-level.ts), so an
+// over-the-air update never lands on an APK that's too old for it. Each CI build gets a higher
+// versionCode (EMBER_BUILD_NUMBER), so a new APK installs over the old one.
+def nativeLevel = (file('../../src/lib/native/native-level.ts').text =~ /NATIVE_LEVEL = (\d+)/)[0][1] as Integer
+def buildNumber = (System.getenv('EMBER_BUILD_NUMBER') ?: '1') as Integer
+
+android {
+    namespace = "app.ember.social"
+    compileSdk = rootProject.ext.compileSdkVersion
+    defaultConfig {
+        applicationId "app.ember.social"
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+        versionCode buildNumber
+        // "1.<native level>.<build>": the app reads the native level from here (src/lib/native/ota.ts).
+        versionName "1.${nativeLevel}.${buildNumber}"
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        aaptOptions {
+             // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
+             // Default: https://android.googlesource.com/platform/frameworks/base/+/282e181b58cf72b6ca770dc7ca5f91f135444502/tools/aapt/AaptAssets.cpp#61
+            ignoreAssetsPattern = '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
+        }
+    }
+    signingConfigs {
+        // Test builds (the APKs from GitHub): always the same key, so each new APK installs over
+        // the last one. This key is not a secret and must never be used for the Play Store.
+        test {
+            storeFile file('ember-test.keystore')
+            storePassword 'android'
+            keyAlias 'ember-test'
+            keyPassword 'android'
+        }
+        // Play Store builds: the upload key comes from the environment (see docs/android.md).
+        if (System.getenv('EMBER_UPLOAD_KEYSTORE')) {
+            upload {
+                storeFile file(System.getenv('EMBER_UPLOAD_KEYSTORE'))
+                storePassword System.getenv('EMBER_UPLOAD_STORE_PASSWORD')
+                keyAlias System.getenv('EMBER_UPLOAD_KEY_ALIAS')
+                keyPassword System.getenv('EMBER_UPLOAD_KEY_PASSWORD')
+            }
+        }
+    }
+    buildTypes {
+        debug {
+            signingConfig signingConfigs.test
+        }
+        release {
+            signingConfig System.getenv('EMBER_UPLOAD_KEYSTORE') ? signingConfigs.upload : signingConfigs.test
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+repositories {
+    flatDir{
+        dirs '../capacitor-cordova-android-plugins/src/main/libs', 'libs'
+    }
+}
+
+dependencies {
+    implementation fileTree(include: ['*.jar'], dir: 'libs')
+    implementation "androidx.appcompat:appcompat:$androidxAppCompatVersion"
+    implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
+    implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
+    implementation project(':capacitor-android')
+    testImplementation "junit:junit:$junitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
+    implementation project(':capacitor-cordova-android-plugins')
+}
+
+apply from: 'capacitor.build.gradle'
+
+try {
+    def servicesJSON = file('google-services.json')
+    if (servicesJSON.text) {
+        apply plugin: 'com.google.gms.google-services'
+    }
+} catch(Exception e) {
+    logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}

@@ -1,3 +1,4 @@
+import { publicUrl } from "@/lib/native/platform";
 import { postImages } from "@/lib/post-images";
 import { features } from "@/lib/features";
 import { useEffect, useState, useRef } from "react";
@@ -262,7 +263,7 @@ const Profile = () => {
   };
 
   const shareProfile = async () => {
-    const url = `${window.location.origin}/profile/${userId}`;
+    const url = publicUrl(`/profile/${userId}`);
     try {
       if (navigator.share) { await navigator.share({ title: profile?.full_name || "Ember profile", url }); return; }
       await navigator.clipboard.writeText(url);

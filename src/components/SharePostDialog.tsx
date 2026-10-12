@@ -1,3 +1,4 @@
+import { publicUrl } from "@/lib/native/platform";
 import { useSingleFlight } from "@/hooks/use-single-flight";
  import { useState, useEffect } from "react";
  import { Button } from "@/components/ui/button";
@@ -60,7 +61,7 @@ import { useSingleFlight } from "@/hooks/use-single-flight";
      }
    }, [open, loadUserGroups]);
  
-   const postUrl = `${window.location.origin}/post/${postId}`;
+   const postUrl = publicUrl(`/post/${postId}`);
    const canShareOutside = typeof navigator !== "undefined" && !!navigator.share;
 
    const copyLink = async () => {

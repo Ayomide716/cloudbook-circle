@@ -1,0 +1,94 @@
+name: Android app
+
+# Builds the Android app (an APK you can install) on every change to main, and attaches it to
+# a GitHub release: github.com/<owner>/<repo>/releases/latest always has the newest one.
+# Pull requests that touch the app build it too (no release), so a broken build shows up early.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    paths:
+      - "android/**"
+      - "capacitor.config.ts"
+      - "src/lib/native/**"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    name: Build the APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      # Each build gets a higher version, so a new APK installs over the last one.
+      EMBER_BUILD_NUMBER: ${{ github.run_number }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - run: npm ci
+
+      # The website build, which the app carries inside it (and its update zip).
+      - run: npm run build
+
+      - name: Copy the build into the Android project
+        run: npx cap sync android
+
+      - name: Build the APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Name the APK
+        id: apk
+        run: |
+          version="1.$(grep -oE 'NATIVE_LEVEL = [0-9]+' src/lib/native/native-level.ts | grep -oE '[0-9]+').${EMBER_BUILD_NUMBER}"
+          mkdir -p out
+          cp android/app/build/outputs/apk/release/app-release.apk "out/Ember-${version}.apk"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "file=out/Ember-${version}.apk" >> "$GITHUB_OUTPUT"
+          ls -la out
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Ember-${{ steps.apk.outputs.version }}
+          path: ${{ steps.apk.outputs.file }}
+          retention-days: 30
+
+      - name: Publish it as the latest release
+        if: github.event_name != 'pull_request'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: android-v${{ steps.apk.outputs.version }}
+          name: Ember for Android ${{ steps.apk.outputs.version }}
+          target_commitish: ${{ github.sha }}
+          make_latest: true
+          files: ${{ steps.apk.outputs.file }}
+          body: |
+            Ember for Android, built from ${{ github.sha }}.
+
+            **Install:** open this page on your Android phone, tap the .apk below, and allow
+            installing from your browser when asked. A newer APK installs over this one.
+
+            After installing, the app keeps itself up to date over the air: new versions of
+            the website arrive in the app by themselves.

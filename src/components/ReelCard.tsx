@@ -1,3 +1,4 @@
+import { publicUrl } from "@/lib/native/platform";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -207,7 +208,7 @@ export default function ReelCard({
   }, [isActive]);
 
   const handleCopyLink = async () => {
-    const url = `${window.location.origin}/reels/${reel.id}`;
+    const url = publicUrl(`/reels/${reel.id}`);
     try {
       await navigator.clipboard.writeText(url);
       toast({ title: "Link copied!" });
