@@ -3,8 +3,11 @@ import { Drawer as DrawerPrimitive } from "vaul";
 
 import { cn } from "@/lib/utils";
 
-const Drawer = ({ shouldScaleBackground = true, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
-  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} {...props} />
+// repositionInputs off: the app keeps sheets above the keyboard itself (--keyboard-inset, see
+// use-keyboard-inset and lib/native). Vaul's own resizing fought with that inside the Android app
+// and could shrink a sheet out of sight when its text box was tapped.
+const Drawer = ({ shouldScaleBackground = true, repositionInputs = false, ...props }: React.ComponentProps<typeof DrawerPrimitive.Root>) => (
+  <DrawerPrimitive.Root shouldScaleBackground={shouldScaleBackground} repositionInputs={repositionInputs} {...props} />
 );
 Drawer.displayName = "Drawer";
 
