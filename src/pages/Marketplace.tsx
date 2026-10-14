@@ -1,4 +1,5 @@
-import { LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia } from "@/lib/media-upload";
+import { shrinkImage } from "@/lib/image-compress";
 import { useEffect, useMemo, useState } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate } from "react-router-dom";
@@ -138,12 +139,11 @@ const Marketplace = () => {
       const file = await shrinkImage(picked);
       const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
       const path = `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { error } = await supabase.storage.from("marketplace").upload(path, file, { contentType: file.type, cacheControl: LONG_CACHE });
-      if (error) {
+      try {
+        imageUrls.push(await uploadMedia("marketplace", path, file));
+      } catch {
         failedUploads++;
-        continue;
       }
-      imageUrls.push(supabase.storage.from("marketplace").getPublicUrl(path).data.publicUrl);
     }
 
     const { data, error } = await supabase.from("marketplace_listings").insert({

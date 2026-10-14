@@ -1,4 +1,5 @@
-import { IMAGE_SIZES, LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia } from "@/lib/media-upload";
+import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { Camera, Check, Loader2, Search, Users } from "lucide-react";
@@ -92,11 +93,8 @@ const NewGroupChatDialog = ({ open, onOpenChange, currentUserId, onCreated }: Ne
       // Same place community group photos go.
       const small = await shrinkImage(photo, IMAGE_SIZES.avatar);
       const path = `group-logos/${group.id}-${Date.now()}.${small.name.split(".").pop() || "jpg"}`;
-      const { error: uploadError } = await supabase.storage.from("avatars").upload(path, small, { upsert: true, cacheControl: LONG_CACHE, contentType: small.type });
-      if (!uploadError) {
-        const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-        await supabase.from("groups").update({ image_url: data.publicUrl }).eq("id", group.id);
-      }
+      const imageUrl = await uploadMedia("avatars", path, small).catch(() => null);
+      if (imageUrl) await supabase.from("groups").update({ image_url: imageUrl }).eq("id", group.id);
     }
     // Everyone picked gets an invite; they're in once they accept.
     const results = await Promise.all([...picked].map((id) => supabase.rpc("add_group_member", { _group: group.id, _user: id })));
