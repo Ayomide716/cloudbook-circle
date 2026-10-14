@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { cancelDelete, deleteLater, deleteNow, hideEverywhere, showAgain, useHiddenEverywhere } from "@/lib/pending-deletes";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { haptic } from "@/lib/haptics";
 import { playSound } from "@/lib/sounds";
@@ -249,6 +250,7 @@ const PostCard = ({
       .eq("id", post.id);
 
     if (error) {
+      showAgain(post.id);
       setRemoved(false);
       toast({ title: "Couldn't delete the post", variant: "destructive" });
     } else {
@@ -256,14 +258,19 @@ const PostCard = ({
     }
   };
 
-  // Deleting hides the post at once with "Post deleted · Undo"; it's really deleted 5 seconds
-  // later (or straight away if you leave the page first).
+  // Deleting hides the post at once (on every screen) with "Post deleted · Undo"; it's really
+  // deleted 5 seconds later, or straight away if the card goes away or the app is closed first.
   const [removed, setRemoved] = useState(false);
-  const pendingDelete = useRef<{ timer: number; run: () => void } | null>(null);
-  const deleteWithUndo = () => {
+  const hiddenEverywhere = useHiddenEverywhere(post.id);
+  const deleteWithUndo = async () => {
     setRemoved(true);
-    const run = () => { pendingDelete.current = null; void handleDeletePost(); };
-    pendingDelete.current = { timer: window.setTimeout(run, 5000), run };
+    hideEverywhere(post.id);
+    const { data: { session } } = await supabase.auth.getSession();
+    deleteLater(post.id, 5000, {
+      run: () => void handleDeletePost(),
+      url: `${import.meta.env.VITE_SUPABASE_URL}/rest/v1/posts?id=eq.${encodeURIComponent(post.id)}`,
+      headers: { apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY, Authorization: `Bearer ${session?.access_token ?? ""}` },
+    });
     toast({
       title: "Post deleted",
       duration: 5000,
@@ -271,8 +278,8 @@ const PostCard = ({
         <ToastAction
           altText="Undo delete"
           onClick={() => {
-            if (pendingDelete.current) window.clearTimeout(pendingDelete.current.timer);
-            pendingDelete.current = null;
+            cancelDelete(post.id);
+            showAgain(post.id);
             setRemoved(false);
           }}
         >
@@ -281,10 +288,7 @@ const PostCard = ({
       ),
     });
   };
-  useEffect(() => () => {
-    const pending = pendingDelete.current;
-    if (pending) { window.clearTimeout(pending.timer); pending.run(); }
-  }, []);
+  useEffect(() => () => deleteNow(post.id), [post.id]);
 
   const handleDeleteComment = async (commentId: string) => {
     const { error } = await supabase
@@ -440,7 +444,7 @@ const PostCard = ({
 
   const authorFirstName = post.profiles.full_name?.split(" ")[0] || "them";
 
-  if (blocked || removed) return null;
+  if (blocked || removed || hiddenEverywhere) return null;
 
   if (hidden) {
     const reasons = ["This post", `Too much from ${authorFirstName}`, "Seen it before", "Not relevant to me"];
