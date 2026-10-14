@@ -31,6 +31,8 @@ jobs:
       - run: npm run build
       - name: One-file database setup is up to date with the migrations
         run: ./scripts/build-setup-sql.sh && git diff --exit-code supabase/setup/full-schema.sql
+      - name: The pasteable media-upload function is up to date with its source
+        run: node scripts/bundle-media-upload.mjs && git diff --exit-code supabase/functions/media-upload/dashboard-paste.ts
 
   e2e:
     name: End-to-end (phone)

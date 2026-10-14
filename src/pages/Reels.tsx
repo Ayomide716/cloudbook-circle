@@ -1,4 +1,5 @@
 import { publicUrl } from "@/lib/native/platform";
+import { REEL_MAX_SECONDS } from "@/lib/video-compress";
 import { useState, useEffect, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate, useParams } from "react-router-dom";
@@ -473,7 +474,7 @@ export default function Reels() {
               <label className="text-sm font-medium text-foreground">Video</label>
               <div className="mt-2 flex items-center justify-between rounded-lg border p-3">
                 <p className="text-sm text-muted-foreground">{uploadVideoUrl ? "Video selected" : "Upload from your device"}</p>
-                {user && <VideoUpload bucket="post-videos" userId={user.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" />}
+                {user && <VideoUpload bucket="post-videos" userId={user.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" maxSeconds={REEL_MAX_SECONDS} />}
               </div>
             </div>
             <div>

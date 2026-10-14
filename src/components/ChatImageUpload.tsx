@@ -1,4 +1,6 @@
-import { LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia } from "@/lib/media-upload";
+import { shrinkVideo } from "@/lib/video-compress";
+import { shrinkImage } from "@/lib/image-compress";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -78,19 +80,13 @@ const ChatMediaUpload = ({
         return;
       }
 
-      // Photos are shrunk on the phone first; videos go as they are.
-      const upload = type === "image" ? await shrinkImage(file) : file;
+      // Made smaller on the phone first: photos resized, videos re-encoded to 720p.
+      const upload = type === "image" ? await shrinkImage(file) : await shrinkVideo(file);
       const fileExt = upload.name.split(".").pop();
       const fileName = `${session.user.id}/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from("chat-images")
-        .upload(fileName, upload, { cacheControl: LONG_CACHE, contentType: upload.type });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(fileName);
-      onMediaUploaded(urlData.publicUrl, type);
+      const publicUrl = await uploadMedia("chat-images", fileName, upload);
+      onMediaUploaded(publicUrl, type);
     } catch (error) {
       toast({
         title: "Upload failed",

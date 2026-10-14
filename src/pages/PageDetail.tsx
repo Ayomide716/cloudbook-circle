@@ -1,4 +1,5 @@
-import { IMAGE_SIZES, LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia } from "@/lib/media-upload";
+import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useState, useEffect, useMemo } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useParams, useNavigate, Link } from "react-router-dom";
@@ -72,9 +73,7 @@ const uploadPageImage = async (userId: string, pageId: string, kind: string, pic
   const file = await shrinkImage(picked, kind === "avatar" ? IMAGE_SIZES.avatar : IMAGE_SIZES.photo);
   const ext = file.name.split(".").pop()?.toLowerCase() || "jpg";
   const path = `${userId}/${pageId}/${kind}-${Date.now()}.${ext}`;
-  const { error } = await supabase.storage.from("page-images").upload(path, file, { contentType: file.type, cacheControl: LONG_CACHE });
-  if (error) throw error;
-  return supabase.storage.from("page-images").getPublicUrl(path).data.publicUrl;
+  return uploadMedia("page-images", path, file);
 };
 
 const emptyEdit = { name: "", category: "business", description: "", about: "", website: "", email: "", phone: "", location: "" };

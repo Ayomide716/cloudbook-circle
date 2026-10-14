@@ -1,4 +1,5 @@
-import { IMAGE_SIZES, LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia } from "@/lib/media-upload";
+import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -68,22 +69,17 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
     const fileName = `${group.id}-${Date.now()}.${fileExt}`;
     const filePath = `group-logos/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, small, { upsert: true, cacheControl: LONG_CACHE, contentType: small.type });
-
-    if (uploadError) {
+    try {
+      return await uploadMedia("avatars", filePath, small);
+    } catch (uploadError) {
       console.error("Upload error:", uploadError);
       toast({
         title: "Image upload failed",
-        description: uploadError.message,
+        description: getErrorMessage(uploadError),
         variant: "destructive",
       });
       return group.image_url;
     }
-
-    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
-    return data.publicUrl;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

@@ -1,8 +1,8 @@
-import { LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia, type MediaFolder } from "@/lib/media-upload";
+import { shrinkImage } from "@/lib/image-compress";
 import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Images, Loader2, X } from "lucide-react";
 import { getErrorMessage } from "@/lib/utils";
@@ -59,9 +59,7 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
           const file = await shrinkImage(picked);
           const fileExt = file.name.split(".").pop();
           const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-          const { error } = await supabase.storage.from(bucket).upload(fileName, file, { cacheControl: LONG_CACHE, contentType: file.type });
-          if (error) throw error;
-          return supabase.storage.from(bucket).getPublicUrl(fileName).data.publicUrl;
+          return uploadMedia(bucket as MediaFolder, fileName, file);
         })
       );
 

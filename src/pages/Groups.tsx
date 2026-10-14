@@ -1,4 +1,6 @@
-import { IMAGE_SIZES, LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia } from "@/lib/media-upload";
+import { getErrorMessage } from "@/lib/utils";
+import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { groupColor, groupInitials } from "@/lib/group-tile";
@@ -158,22 +160,17 @@ const Groups = () => {
     const fileName = `${groupId}-${Date.now()}.${fileExt}`;
     const filePath = `group-logos/${fileName}`;
 
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, small, { upsert: true, cacheControl: LONG_CACHE, contentType: small.type });
-
-    if (uploadError) {
+    try {
+      return await uploadMedia("avatars", filePath, small);
+    } catch (uploadError) {
       console.error("Upload error:", uploadError);
       toast({
         title: "Image upload failed",
-        description: uploadError.message,
+        description: getErrorMessage(uploadError),
         variant: "destructive",
       });
       return null;
     }
-
-    const { data } = supabase.storage.from("avatars").getPublicUrl(filePath);
-    return data.publicUrl;
   };
 
   // Extra taps while this is saving do nothing (no double posts on a slow network).

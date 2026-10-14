@@ -1,8 +1,7 @@
-import { LONG_CACHE } from "@/lib/image-compress";
+import { uploadMedia } from "@/lib/media-upload";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, Play, Pause, X } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -117,21 +116,9 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled, onActiveChange, bu
 
     try {
       const fileName = `voice_${Date.now()}_${Math.random().toString(36).substring(7)}.webm`;
-      const { data, error } = await supabase.storage
-        .from("voice-messages")
-        .upload(fileName, audioBlob, {
-          contentType: "audio/webm",
-          upsert: false,
-          cacheControl: LONG_CACHE,
-        });
+      const publicUrl = await uploadMedia("voice-messages", fileName, new File([audioBlob], fileName, { type: "audio/webm" }));
 
-      if (error) throw error;
-
-      const { data: urlData } = supabase.storage
-        .from("voice-messages")
-        .getPublicUrl(fileName);
-
-      onVoiceMessageSent(urlData.publicUrl, recordingDuration);
+      onVoiceMessageSent(publicUrl, recordingDuration);
       cancelRecording();
     } catch (error) {
       console.error("Voice message upload error:", error);

@@ -1,47 +1,8 @@
-import { LONG_CACHE } from "@/lib/image-compress";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia, type MediaFolder } from "@/lib/media-upload";
 
-/**
- * Uploads a file to Supabase Storage with real progress (supabase-js has no progress events).
- * Resolves with the file's public URL.
- */
-export async function uploadWithProgress(
-  bucket: string,
-  path: string,
-  file: Blob,
-  onProgress?: (percent: number) => void
-): Promise<string> {
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Please sign in again.");
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/${bucket}/${path.split("/").map(encodeURIComponent).join("/")}`;
-
-  await new Promise<void>((resolve, reject) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("POST", url);
-    xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
-    xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
-    xhr.setRequestHeader("x-upsert", "false");
-    // Kept by phones for a year: the file never changes, so it's downloaded once per viewer.
-    xhr.setRequestHeader("cache-control", `max-age=${LONG_CACHE}`);
-    if (file.type) xhr.setRequestHeader("Content-Type", file.type);
-    xhr.upload.onprogress = (e) => {
-      if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100));
-    };
-    xhr.onload = () => {
-      if (xhr.status >= 200 && xhr.status < 300) return resolve();
-      let message = `Upload failed (${xhr.status})`;
-      try {
-        message = JSON.parse(xhr.responseText).message || message;
-      } catch {
-        // Keep the generic message.
-      }
-      reject(new Error(message));
-    };
-    xhr.onerror = () => reject(new Error("Network error while uploading."));
-    xhr.send(file);
-  });
-
-  return supabase.storage.from(bucket).getPublicUrl(path).data.publicUrl;
+/** Uploads a file (to Cloudflare R2 when set up, else Supabase Storage) and resolves with its public URL. */
+export function uploadWithProgress(bucket: string, path: string, file: Blob, onProgress?: (percent: number) => void): Promise<string> {
+  return uploadMedia(bucket as MediaFolder, path, file, onProgress);
 }
 
 /** The storage path of a public URL from `bucket`, for deleting the file later. */

@@ -1,9 +1,10 @@
-import { LONG_CACHE } from "@/lib/image-compress";
 import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { supabase } from "@/integrations/supabase/client";
+import { uploadMedia, type MediaFolder } from "@/lib/media-upload";
+import { shrinkVideo } from "@/lib/video-compress";
+import { readVideoInfo } from "@/lib/storage-upload";
 import { useToast } from "@/hooks/use-toast";
 import { Video, Loader2, X } from "lucide-react";
 import { getErrorMessage } from "@/lib/utils";
@@ -16,34 +17,29 @@ interface VideoUploadProps {
   /** Set false when the parent renders its own preview (e.g. the post composer). */
   showPreview?: boolean;
   label?: string;
+  /** Longest video accepted, in seconds (reels: 60). */
+  maxSeconds?: number;
 }
 
-const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "Upload Video", showPreview = true }: VideoUploadProps) => {
+const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "Upload Video", showPreview = true, maxSeconds }: VideoUploadProps) => {
   const inputId = `video-upload-${bucket}-${useId()}`;
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  // "preparing": making the video smaller on the phone; "uploading": sending it.
+  const [phase, setPhase] = useState<"preparing" | "uploading">("uploading");
   const [preview, setPreview] = useState<string | null>(currentVideo || null);
   const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const picked = e.target.files?.[0];
+    e.target.value = "";
+    if (!picked) return;
 
     // Validate file type
-    if (!file.type.startsWith("video/")) {
+    if (!picked.type.startsWith("video/")) {
       toast({
         title: "Invalid file type",
         description: "Please upload a video file",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Validate file size (max 50MB)
-    if (file.size > 50 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Please upload a video smaller than 50MB",
         variant: "destructive",
       });
       return;
@@ -53,48 +49,36 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
     setUploadProgress(0);
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${userId}/${Date.now()}.${fileExt}`;
+      // Reels are short, as on Facebook: check before spending time on it.
+      if (maxSeconds) {
+        const { duration } = await readVideoInfo(picked);
+        if (duration && duration > maxSeconds + 0.5) {
+          toast({
+            title: `Reels can be up to ${maxSeconds} seconds`,
+            description: `This video is ${Math.round(duration)} seconds. Trim it in your gallery, then try again.`,
+            variant: "destructive",
+          });
+          return;
+        }
+      }
 
-      // Use XMLHttpRequest to track upload progress
-      const formData = new FormData();
-      // Kept by phones for a year: the file never changes, so it's downloaded once per viewer.
-      formData.append('cacheControl', LONG_CACHE);
-      formData.append('file', file);
+      // At most 720p, re-encoded on the phone (takes about as long as the video plays).
+      setPhase("preparing");
+      const file = await shrinkVideo(picked, (f) => setUploadProgress(Math.round(f * 100)));
 
-      const { data: sessionData } = await supabase.auth.getSession();
-      const accessToken = sessionData.session?.access_token;
-
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', (event) => {
-          if (event.lengthComputable) {
-            const percent = Math.round((event.loaded / event.total) * 100);
-            setUploadProgress(percent);
-          }
+      if (file.size > 100 * 1024 * 1024) {
+        toast({
+          title: "File too large",
+          description: "Please upload a video smaller than 100MB",
+          variant: "destructive",
         });
+        return;
+      }
 
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            reject(new Error('Upload failed'));
-          }
-        });
-
-        xhr.addEventListener('error', () => reject(new Error('Upload failed')));
-
-        xhr.open('POST', `${supabaseUrl}/storage/v1/object/${bucket}/${fileName}`);
-        xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
-        xhr.send(file);
-      });
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(fileName);
+      setPhase("uploading");
+      setUploadProgress(0);
+      const fileName = `${userId}/${Date.now()}.${file.name.split(".").pop()}`;
+      const publicUrl = await uploadMedia(bucket as MediaFolder, fileName, file, setUploadProgress);
 
       setPreview(publicUrl);
       onUploadComplete(publicUrl);
@@ -166,7 +150,9 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
           {isUploading && (
             <div className="w-full space-y-1">
               <Progress value={uploadProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground text-center">{uploadProgress}%</p>
+              <p className="text-xs text-muted-foreground text-center">
+                {phase === "preparing" ? `Preparing video… ${uploadProgress}%` : `Uploading… ${uploadProgress}%`}
+              </p>
             </div>
           )}
         </div>

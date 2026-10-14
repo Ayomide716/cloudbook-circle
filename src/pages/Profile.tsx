@@ -1,4 +1,5 @@
-import { LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia } from "@/lib/media-upload";
+import { shrinkImage } from "@/lib/image-compress";
 import { publicUrl } from "@/lib/native/platform";
 import { postImages } from "@/lib/post-images";
 import { features } from "@/lib/features";
@@ -325,13 +326,11 @@ const Profile = () => {
       const file = await shrinkImage(picked);
       const fileExt = file.name.split(".").pop();
       const fileName = `${currentUserId}/${Date.now()}.${fileExt}`;
-      const { error: uploadError } = await supabase.storage.from("post-images").upload(fileName, file, { cacheControl: LONG_CACHE, contentType: file.type });
-      if (uploadError) throw uploadError;
-      const { data: urlData } = supabase.storage.from("post-images").getPublicUrl(fileName);
+      const imageUrl = await uploadMedia("post-images", fileName, file);
 
       const { error: insertError } = await supabase.from("album_photos").insert({
         album_id: albumId,
-        image_url: urlData.publicUrl
+        image_url: imageUrl
       });
       if (insertError) throw insertError;
       loadAlbums();

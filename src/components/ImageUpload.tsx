@@ -1,8 +1,8 @@
-import { IMAGE_SIZES, LONG_CACHE, shrinkImage } from "@/lib/image-compress";
+import { uploadMedia, type MediaFolder } from "@/lib/media-upload";
+import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Image, Loader2, X } from "lucide-react";
 import { cn, getErrorMessage } from "@/lib/utils";
@@ -64,15 +64,7 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
       const fileExt = file.name.split(".").pop();
       const fileName = `${userId}/${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, file, { cacheControl: LONG_CACHE, contentType: file.type });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from(bucket)
-        .getPublicUrl(fileName);
+      const publicUrl = await uploadMedia(bucket as MediaFolder, fileName, file);
 
       setPreview(publicUrl);
       onUploadComplete(publicUrl);
