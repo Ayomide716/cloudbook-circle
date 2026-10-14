@@ -35,7 +35,10 @@ Deno.serve(async (req) => {
   const bucket = Deno.env.get("R2_BUCKET");
   const publicUrl = Deno.env.get("R2_PUBLIC_URL")?.replace(/\/$/, "");
   if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
-    return json({ error: "not-configured" }, 503);
+    // Names only (never values), so Settings → Photo storage can say which secret is missing.
+    const missing = Object.entries({ R2_ACCOUNT_ID: accountId, R2_ACCESS_KEY_ID: accessKeyId, R2_SECRET_ACCESS_KEY: secretAccessKey, R2_BUCKET: bucket, R2_PUBLIC_URL: publicUrl })
+      .filter(([, v]) => !v).map(([k]) => k);
+    return json({ error: "not-configured", missing }, 503);
   }
 
   // Only signed-in users can upload.
@@ -54,16 +57,37 @@ Deno.serve(async (req) => {
     return json({ error: "Bad request" }, 400);
   }
 
+  const endpoint = (Deno.env.get("R2_ENDPOINT") ?? `https://${accountId}.r2.cloudflarestorage.com`).replace(/\/$/, "");
+  const r2 = new AwsClient({ accessKeyId, secretAccessKey, service: "s3", region: "auto" });
+
+  // Settings → Photo storage → Test: is the key right? Writes a tiny file from here (no CORS
+  // involved), then hands the app a link to try the same from the phone (that's where CORS counts).
+  if (body.check === true) {
+    if (!/^[0-9a-f-]{36}$/i.test(user.id ?? "")) return json({ error: "Please sign in." }, 401);
+    const key = `_check/${user.id}.txt`;
+    let server: { ok: boolean; status: number; code?: string };
+    try {
+      const res = await r2.fetch(`${endpoint}/${bucket}/${key}`, { method: "PUT", headers: { "Content-Type": "text/plain" }, body: "ok" });
+      const text = await res.text();
+      server = { ok: res.ok, status: res.status, code: text.match(/<Code>([^<]+)<\/Code>/)?.[1] };
+    } catch (e) {
+      server = { ok: false, status: 0, code: e instanceof Error ? e.message.slice(0, 120) : "unreachable" };
+    }
+    const target = new URL(`${endpoint}/${bucket}/_check/${user.id}-app.txt`);
+    target.searchParams.set("X-Amz-Expires", "600");
+    const headers = { "Content-Type": "text/plain", "Cache-Control": "no-store" };
+    const signed = await r2.sign(new Request(target, { method: "PUT", headers }), { aws: { signQuery: true } });
+    return json({ server, bucket, uploadUrl: signed.url, headers, publicUrl: `${publicUrl}/${key}` });
+  }
+
   const plan = planUpload(user.id ?? "", body);
   if (!plan.ok) return json({ error: plan.error }, plan.status);
 
   const contentType = String(body.contentType).toLowerCase();
-  const endpoint = (Deno.env.get("R2_ENDPOINT") ?? `https://${accountId}.r2.cloudflarestorage.com`).replace(/\/$/, "");
   const target = new URL(`${endpoint}/${bucket}/${plan.key}`);
   // The link works once-ish: for 10 minutes, for this file name and these headers only.
   target.searchParams.set("X-Amz-Expires", "600");
 
-  const r2 = new AwsClient({ accessKeyId, secretAccessKey, service: "s3", region: "auto" });
   const headers = { "Content-Type": contentType, "Cache-Control": CACHE_CONTROL };
   const signed = await r2.sign(new Request(target, { method: "PUT", headers }), { aws: { signQuery: true } });
 

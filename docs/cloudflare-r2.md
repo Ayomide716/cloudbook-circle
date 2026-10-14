@@ -71,8 +71,13 @@ or in the dashboard: **Edge Functions → Deploy a new function → Via editor**
 | `R2_BUCKET` | `ember-media` |
 | `R2_PUBLIC_URL` | the r2.dev address from step 1 (no slash at the end) |
 
-That's it. The next photo you post should load from your r2.dev address: long-press it, choose
-**Open image in new tab**, and check the address.
+That's it. To check, open **Settings → App → Photo storage → Test** in the app. It goes through
+each link in turn and says which one is wrong: a missing secret, a wrong key, the CORS policy
+missing your address, or a wrong public address. The card also says where your last upload went
+and, if it wasn't R2, why.
+
+(After changing the function, paste the new `dashboard-paste.ts` again and **Deploy**: the test
+needs the latest version.)
 
 ## Good to know
 
