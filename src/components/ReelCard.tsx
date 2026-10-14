@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import HeartBurst from "./HeartBurst";
 import { haptic } from "@/lib/haptics";
 import ReportDialog from "@/components/ReportDialog";
+import { isUploadedMedia } from "@/lib/media-upload";
 
 interface ReelCardProps {
   reel: {
@@ -66,8 +67,8 @@ export default function ReelCard({
 
   const isLiked = reel.reel_likes.some(l => l.user_id === currentUserId);
   const isTikTokLink = /tiktok\.com|vt\.tiktok\.com/i.test(reel.video_url);
-  const isPublicStorageUrl = reel.video_url.includes("/storage/v1/object/public/");
-  const canPlayInline = !isTikTokLink && isPublicStorageUrl;
+  // Uploaded from a phone (Supabase Storage or Cloudflare R2), not a pasted link.
+  const canPlayInline = !isTikTokLink && isUploadedMedia(reel.video_url);
 
   // Lazy load: only set video src when near viewport
   useEffect(() => {

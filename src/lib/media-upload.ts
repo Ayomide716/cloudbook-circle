@@ -225,3 +225,21 @@ export async function testStorage(): Promise<StorageTest> {
   if (steps.every((s) => s.ok)) r2OffUntil = 0;
   return done();
 }
+
+const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
+const UPLOADED_PATH = new RegExp(`/(post-images|post-videos|avatars|chat-images|voice-messages|marketplace|page-images|watch-videos)/${UUID}/[^/?#]+$`, "i");
+
+/**
+ * True for a file uploaded through the app, wherever it's stored: Supabase Storage, or Cloudflare
+ * R2 (r2.dev or your own domain), which names files `<folder>/<user id>/<name>`. False for links
+ * people paste from elsewhere (TikTok, YouTube, a web page).
+ */
+export function isUploadedMedia(url: string): boolean {
+  try {
+    const u = new URL(url);
+    if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+    return u.pathname.includes("/storage/v1/object/public/") || UPLOADED_PATH.test(u.pathname);
+  } catch {
+    return false;
+  }
+}
