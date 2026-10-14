@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import AppVersionCard from "@/components/AppVersionCard";
+import StorageStatusCard from "@/components/StorageStatusCard";
 import { isNative } from "@/lib/native/platform";
 import { features } from "@/lib/features";
 import { useNavigate } from "react-router-dom";
@@ -331,12 +332,11 @@ const Settings = () => {
           </>
         )}
 
-        {isNative && (
-          <>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">App</h2>
-            <AppVersionCard />
-          </>
-        )}
+        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">App</h2>
+        <div className="space-y-3">
+          {isNative && <AppVersionCard />}
+          <StorageStatusCard />
+        </div>
 
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">Delete account</h2>
         <Card className="p-4 border-destructive/30">
