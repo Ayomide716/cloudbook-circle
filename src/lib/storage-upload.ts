@@ -1,3 +1,4 @@
+import { LONG_CACHE } from "@/lib/image-compress";
 import { supabase } from "@/integrations/supabase/client";
 
 /**
@@ -20,6 +21,8 @@ export async function uploadWithProgress(
     xhr.setRequestHeader("Authorization", `Bearer ${session.access_token}`);
     xhr.setRequestHeader("apikey", import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY);
     xhr.setRequestHeader("x-upsert", "false");
+    // Kept by phones for a year: the file never changes, so it's downloaded once per viewer.
+    xhr.setRequestHeader("cache-control", `max-age=${LONG_CACHE}`);
     if (file.type) xhr.setRequestHeader("Content-Type", file.type);
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress?.(Math.round((e.loaded / e.total) * 100));

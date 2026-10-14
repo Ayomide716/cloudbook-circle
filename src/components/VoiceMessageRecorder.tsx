@@ -1,3 +1,4 @@
+import { LONG_CACHE } from "@/lib/image-compress";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, Play, Pause, X } from "lucide-react";
@@ -121,6 +122,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled, onActiveChange, bu
         .upload(fileName, audioBlob, {
           contentType: "audio/webm",
           upsert: false,
+          cacheControl: LONG_CACHE,
         });
 
       if (error) throw error;

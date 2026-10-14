@@ -1,3 +1,4 @@
+import { IMAGE_SIZES, LONG_CACHE, shrinkImage } from "@/lib/image-compress";
 import { useId, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,8 +33,10 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
   const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    const picked = e.target.files?.[0];
+    if (!picked) return;
+    // Shrunk on the phone first: smaller uploads, and far less to download on every view.
+    const file = await shrinkImage(picked, variant === "avatar" ? IMAGE_SIZES.avatar : IMAGE_SIZES.photo);
 
     // Validate file type
     if (!file.type.startsWith("image/")) {
@@ -63,7 +66,7 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
 
       const { error: uploadError } = await supabase.storage
         .from(bucket)
-        .upload(fileName, file);
+        .upload(fileName, file, { cacheControl: LONG_CACHE, contentType: file.type });
 
       if (uploadError) throw uploadError;
 

@@ -1,3 +1,4 @@
+import { LONG_CACHE, shrinkImage } from "@/lib/image-compress";
 import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,8 +43,9 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
         toast({ title: "Only image files allowed", variant: "destructive" });
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        toast({ title: "Each image must be under 5MB", variant: "destructive" });
+      // Photos are shrunk before upload, so big camera photos are fine.
+      if (file.size > 25 * 1024 * 1024) {
+        toast({ title: "Each image must be under 25MB", variant: "destructive" });
         return;
       }
     }
@@ -53,10 +55,11 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
     try {
       // Upload together, keeping the order the photos were picked in.
       const newUrls = await Promise.all(
-        files.map(async (file) => {
+        files.map(async (picked) => {
+          const file = await shrinkImage(picked);
           const fileExt = file.name.split(".").pop();
           const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-          const { error } = await supabase.storage.from(bucket).upload(fileName, file);
+          const { error } = await supabase.storage.from(bucket).upload(fileName, file, { cacheControl: LONG_CACHE, contentType: file.type });
           if (error) throw error;
           return supabase.storage.from(bucket).getPublicUrl(fileName).data.publicUrl;
         })

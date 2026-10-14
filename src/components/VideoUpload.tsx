@@ -1,3 +1,4 @@
+import { LONG_CACHE } from "@/lib/image-compress";
 import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -57,6 +58,8 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
 
       // Use XMLHttpRequest to track upload progress
       const formData = new FormData();
+      // Kept by phones for a year: the file never changes, so it's downloaded once per viewer.
+      formData.append('cacheControl', LONG_CACHE);
       formData.append('file', file);
 
       const { data: sessionData } = await supabase.auth.getSession();

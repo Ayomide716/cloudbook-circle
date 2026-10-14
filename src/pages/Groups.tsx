@@ -1,3 +1,4 @@
+import { IMAGE_SIZES, LONG_CACHE, shrinkImage } from "@/lib/image-compress";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { groupColor, groupInitials } from "@/lib/group-tile";
@@ -152,13 +153,14 @@ const Groups = () => {
   const uploadGroupImage = async (groupId: string): Promise<string | null> => {
     if (!groupImage) return null;
 
-    const fileExt = groupImage.name.split(".").pop();
+    const small = await shrinkImage(groupImage, IMAGE_SIZES.avatar);
+    const fileExt = small.name.split(".").pop();
     const fileName = `${groupId}-${Date.now()}.${fileExt}`;
     const filePath = `group-logos/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filePath, groupImage, { upsert: true });
+      .upload(filePath, small, { upsert: true, cacheControl: LONG_CACHE, contentType: small.type });
 
     if (uploadError) {
       console.error("Upload error:", uploadError);

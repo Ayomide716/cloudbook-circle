@@ -1,3 +1,4 @@
+import { IMAGE_SIZES, LONG_CACHE, shrinkImage } from "@/lib/image-compress";
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,13 +63,14 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
   const uploadImage = async (): Promise<string | null> => {
     if (!newImage) return group.image_url;
 
-    const fileExt = newImage.name.split(".").pop();
+    const small = await shrinkImage(newImage, IMAGE_SIZES.avatar);
+    const fileExt = small.name.split(".").pop();
     const fileName = `${group.id}-${Date.now()}.${fileExt}`;
     const filePath = `group-logos/${fileName}`;
 
     const { error: uploadError } = await supabase.storage
       .from("avatars")
-      .upload(filePath, newImage, { upsert: true });
+      .upload(filePath, small, { upsert: true, cacheControl: LONG_CACHE, contentType: small.type });
 
     if (uploadError) {
       console.error("Upload error:", uploadError);
