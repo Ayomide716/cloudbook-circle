@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { shrinkImage } from "@/lib/image-compress";
 import { isNative } from "@/lib/native/platform";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate } from "react-router-dom";
@@ -228,8 +229,9 @@ const Events = () => {
 
     let coverUrl: string | null = null;
     if (cover) {
-      const ext = cover.name.split(".").pop()?.toLowerCase() || "jpg";
-      coverUrl = await uploadWithProgress("post-images", `${currentUserId}/events/${Date.now()}.${ext}`, cover).catch(() => null);
+      const small = await shrinkImage(cover);
+      const ext = small.name.split(".").pop()?.toLowerCase() || "jpg";
+      coverUrl = await uploadWithProgress("post-images", `${currentUserId}/events/${Date.now()}.${ext}`, small).catch(() => null);
       if (!coverUrl) toast({ title: "The cover photo couldn't be uploaded", description: "The event was created without it." });
     }
 
