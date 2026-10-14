@@ -182,7 +182,8 @@ export async function testStorage(): Promise<StorageTest> {
     let detail = "";
     try {
       const body = await ctx?.json();
-      if (body?.missing?.length) detail = ` Missing secrets: ${body.missing.join(", ")}.`;
+      if (body?.missing?.length) detail += ` Missing secrets: ${body.missing.join(", ")}.`;
+      if (body?.bad?.length) detail += ` These don't look right: ${body.bad.join(", ")} (the account ID is 32 letters and numbers; the bucket name is lowercase, like ember-media).`;
     } catch {
       // No details.
     }
@@ -200,7 +201,7 @@ export async function testStorage(): Promise<StorageTest> {
     server.ok
       ? { ok: true, text: `The R2 key works (wrote a test file to "${data.bucket}").` }
       : server.status === 0
-        ? { ok: false, text: "The server couldn't reach Cloudflare: check R2_ACCOUNT_ID." }
+        ? { ok: false, text: `The server couldn't reach Cloudflare: check R2_ACCOUNT_ID (the 32-character Account ID on the R2 overview page).${server.code ? ` Error: ${server.code}` : ""}` }
         : { ok: false, text: `${describeR2Failure(server.status)}${server.code ? ` (${server.code})` : ""}` },
   );
   if (!server.ok) return done();

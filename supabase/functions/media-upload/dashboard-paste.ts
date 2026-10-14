@@ -309,6 +309,26 @@ function planUpload(userId, body, now = Date.now(), random = Math.random().toStr
   const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : contentType.split("/")[1].replace(/[^a-z0-9]/g, "").slice(0, 5) || "bin";
   return { ok: true, key: `${folder}/${userId}/${now}-${random}.${ext}` };
 }
+function readR2Settings(env) {
+  const raw = {
+    R2_ACCOUNT_ID: env("R2_ACCOUNT_ID")?.trim() ?? "",
+    R2_ACCESS_KEY_ID: env("R2_ACCESS_KEY_ID")?.trim() ?? "",
+    R2_SECRET_ACCESS_KEY: env("R2_SECRET_ACCESS_KEY")?.trim() ?? "",
+    R2_BUCKET: env("R2_BUCKET")?.trim().replace(/^\/+|\/+$/g, "") ?? "",
+    R2_PUBLIC_URL: env("R2_PUBLIC_URL")?.trim().replace(/\/+$/, "") ?? ""
+  };
+  const missing = Object.entries(raw).filter(([, v]) => !v).map(([k]) => k);
+  const accountId = raw.R2_ACCOUNT_ID.match(/[0-9a-f]{32}/i)?.[0]?.toLowerCase() ?? "";
+  const publicUrl = raw.R2_PUBLIC_URL && !/^https?:\/\//i.test(raw.R2_PUBLIC_URL) ? `https://${raw.R2_PUBLIC_URL}` : raw.R2_PUBLIC_URL;
+  const bad = [];
+  if (raw.R2_ACCOUNT_ID && !accountId) bad.push("R2_ACCOUNT_ID");
+  if (raw.R2_BUCKET && !/^[a-z0-9][a-z0-9-]{1,62}$/.test(raw.R2_BUCKET)) bad.push("R2_BUCKET");
+  if (missing.length || bad.length) return { ok: false, missing, bad };
+  return {
+    ok: true,
+    settings: { accountId, accessKeyId: raw.R2_ACCESS_KEY_ID, secretAccessKey: raw.R2_SECRET_ACCESS_KEY, bucket: raw.R2_BUCKET, publicUrl }
+  };
+}
 
 // supabase/functions/media-upload/index.ts
 var corsHeaders = {
@@ -323,15 +343,11 @@ var CACHE_CONTROL = "public, max-age=31536000, immutable";
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
-  const accountId = Deno.env.get("R2_ACCOUNT_ID");
-  const accessKeyId = Deno.env.get("R2_ACCESS_KEY_ID");
-  const secretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY");
-  const bucket = Deno.env.get("R2_BUCKET");
-  const publicUrl = Deno.env.get("R2_PUBLIC_URL")?.replace(/\/$/, "");
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
-    const missing = Object.entries({ R2_ACCOUNT_ID: accountId, R2_ACCESS_KEY_ID: accessKeyId, R2_SECRET_ACCESS_KEY: secretAccessKey, R2_BUCKET: bucket, R2_PUBLIC_URL: publicUrl }).filter(([, v]) => !v).map(([k]) => k);
-    return json({ error: "not-configured", missing }, 503);
+  const r2Settings = readR2Settings((name) => Deno.env.get(name));
+  if (!r2Settings.ok) {
+    return json({ error: "not-configured", missing: r2Settings.missing, bad: r2Settings.bad }, 503);
   }
+  const { accountId, accessKeyId, secretAccessKey, bucket, publicUrl } = r2Settings.settings;
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return json({ error: "Please sign in." }, 401);
   const userRes = await fetch(`${Deno.env.get("SUPABASE_URL")}/auth/v1/user`, {
