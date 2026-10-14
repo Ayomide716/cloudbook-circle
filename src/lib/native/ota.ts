@@ -22,6 +22,8 @@ export interface OtaManifest {
   version: string;
   /** Where the zip is, relative to the site (or a full https URL). */
   url: string;
+  /** SHA-256 of the zip, in hex: the updater won't download without it. */
+  checksum: string;
   /** The NATIVE_LEVEL this version needs. */
   nativeLevel: number;
 }
@@ -33,17 +35,22 @@ export function shellLevelFrom(versionName: string | undefined): number {
 }
 
 /** The zip to download, or null when there's nothing (safe) to update to. */
-export function updateFor(manifest: unknown, running: string, shellLevel: number, site = PUBLIC_URL): { version: string; url: string } | null {
+export function updateFor(manifest: unknown, running: string, shellLevel: number, site = PUBLIC_URL): { version: string; url: string; checksum: string } | null {
   if (!manifest || typeof manifest !== "object") return null;
   const m = manifest as Partial<OtaManifest>;
   if (typeof m.version !== "string" || !m.version || typeof m.url !== "string") return null;
+  if (typeof m.checksum !== "string" || !/^[0-9a-f]{64}$/.test(m.checksum)) return null;
   if (m.version === running) return null;
   if (typeof m.nativeLevel !== "number" || m.nativeLevel > shellLevel) return null;
   const url = m.url.startsWith("https://") ? m.url : m.url.startsWith("/") ? `${site}${m.url}` : null;
-  return url ? { version: m.version, url } : null;
+  return url ? { version: m.version, url, checksum: m.checksum } : null;
 }
 
-export type UpdateCheck = "up-to-date" | "ready" | "needs-new-app" | "offline";
+export type UpdateCheck = "up-to-date" | "ready" | "needs-new-app" | "offline" | "failed";
+
+/** Why the last check failed, in words (shown under "Check for updates"). */
+let lastError = "";
+export const lastUpdateError = () => lastError;
 
 let busy: Promise<UpdateCheck> | null = null;
 let lastCheck = 0;
@@ -66,8 +73,17 @@ export function checkForUpdate({ force = false, applyNow = false } = {}): Promis
       ]);
       shellLevel ??= shellLevelFrom((await App.getInfo().catch(() => null))?.version);
       // Native request: no CORS, and never a cached answer.
-      const res = await CapacitorHttp.get({ url: `${PUBLIC_URL}/ota/manifest.json?t=${Date.now()}`, headers: { "Cache-Control": "no-cache" } });
-      if (res.status !== 200) return "offline";
+      lastError = "";
+      let res;
+      try {
+        res = await CapacitorHttp.get({ url: `${PUBLIC_URL}/ota/manifest.json?t=${Date.now()}`, headers: { "Cache-Control": "no-cache" } });
+      } catch {
+        return "offline";
+      }
+      if (res.status !== 200) {
+        lastError = `The update list answered ${res.status}.`;
+        return "failed";
+      }
       const manifest = typeof res.data === "string" ? JSON.parse(res.data) : res.data;
       const next = updateFor(manifest, BUNDLE_VERSION, shellLevel);
       if (!next) {
@@ -77,12 +93,14 @@ export function checkForUpdate({ force = false, applyNow = false } = {}): Promis
       // Already downloaded earlier (e.g. the app was closed before switching)? Use that copy.
       const { bundles } = await CapacitorUpdater.list();
       const ready = bundles.find((b) => b.version === next.version && b.status !== "error");
-      const bundle = ready ?? (await CapacitorUpdater.download({ url: next.url, version: next.version }));
+      const bundle = ready ?? (await CapacitorUpdater.download({ url: next.url, version: next.version, checksum: next.checksum }));
       if (applyNow) await CapacitorUpdater.set({ id: bundle.id }); // reloads into the new version
       else await CapacitorUpdater.next({ id: bundle.id }); // switches when the app goes to the background
       return "ready";
-    } catch {
-      return "offline";
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : String(e);
+      console.warn("[ota] update failed:", lastError);
+      return "failed";
     } finally {
       busy = null;
     }

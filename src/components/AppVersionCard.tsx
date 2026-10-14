@@ -2,13 +2,14 @@ import { useEffect, useState } from "react";
 import { Loader2, RefreshCw } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { checkForUpdate, versionInfo, type UpdateCheck } from "@/lib/native/ota";
+import { checkForUpdate, lastUpdateError, versionInfo, type UpdateCheck } from "@/lib/native/ota";
 
 const MESSAGES: Record<UpdateCheck, string> = {
   "up-to-date": "You have the latest version.",
   ready: "Updating…",
   "needs-new-app": "A new version needs the latest app from the download page.",
   offline: "Couldn't check right now. Try again in a moment.",
+  failed: "The update couldn't be downloaded.",
 };
 
 /** Android app only: which version is running, and a way to update right now. */
@@ -37,7 +38,12 @@ const AppVersionCard = () => {
         <p className="text-xs text-muted-foreground">
           {version ? `Version ${version.app} · ${version.web}` : "Version …"}
         </p>
-        {result && <p className="mt-1 text-xs text-muted-foreground" role="status">{MESSAGES[result]}</p>}
+        {result && (
+          <p className="mt-1 text-xs text-muted-foreground" role="status">
+            {MESSAGES[result]}
+            {result === "failed" && lastUpdateError() ? ` (${lastUpdateError()})` : ""}
+          </p>
+        )}
       </div>
       <Button variant="secondary" size="sm" className="shrink-0 rounded-full" onClick={check} disabled={checking}>
         {checking ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-1.5 h-4 w-4" />}

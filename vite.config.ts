@@ -3,6 +3,7 @@ import react from "@vitejs/plugin-react-swc";
 import path from "path";
 import fs from "fs";
 import { execSync } from "child_process";
+import { createHash } from "crypto";
 import { zipSync } from "fflate";
 import type { Plugin } from "vite";
 
@@ -63,10 +64,13 @@ const overTheAirBundle = (): Plugin => {
       walk(outDir);
       const level = Number(fs.readFileSync(path.resolve(__dirname, "src/lib/native/native-level.ts"), "utf8").match(/NATIVE_LEVEL = (\d+)/)?.[1] ?? 1);
       fs.mkdirSync(path.join(outDir, "ota"), { recursive: true });
-      fs.writeFileSync(path.join(outDir, "ota", `${appVersion}.zip`), zipSync(files, { level: 9 }));
+      const zip = zipSync(files, { level: 9 });
+      fs.writeFileSync(path.join(outDir, "ota", `${appVersion}.zip`), zip);
+      // The updater refuses downloads without the zip's SHA-256 (and checks it after download).
+      const checksum = createHash("sha256").update(zip).digest("hex");
       fs.writeFileSync(
         path.join(outDir, "ota", "manifest.json"),
-        JSON.stringify({ version: appVersion, url: `/ota/${appVersion}.zip`, nativeLevel: level, builtAt: new Date().toISOString() }, null, 2),
+        JSON.stringify({ version: appVersion, url: `/ota/${appVersion}.zip`, checksum, nativeLevel: level, builtAt: new Date().toISOString() }, null, 2),
       );
     },
   };
