@@ -9,7 +9,7 @@
 //
 // Until they're set, this answers 503 and the app keeps uploading to Supabase Storage.
 import { AwsClient } from "../_shared/aws4fetch.js";
-import { planUpload } from "../_shared/media-rules.ts";
+import { planUpload, readR2Settings } from "../_shared/media-rules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -29,17 +29,12 @@ Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
-  const accountId = Deno.env.get("R2_ACCOUNT_ID");
-  const accessKeyId = Deno.env.get("R2_ACCESS_KEY_ID");
-  const secretAccessKey = Deno.env.get("R2_SECRET_ACCESS_KEY");
-  const bucket = Deno.env.get("R2_BUCKET");
-  const publicUrl = Deno.env.get("R2_PUBLIC_URL")?.replace(/\/$/, "");
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
-    // Names only (never values), so Settings → Photo storage can say which secret is missing.
-    const missing = Object.entries({ R2_ACCOUNT_ID: accountId, R2_ACCESS_KEY_ID: accessKeyId, R2_SECRET_ACCESS_KEY: secretAccessKey, R2_BUCKET: bucket, R2_PUBLIC_URL: publicUrl })
-      .filter(([, v]) => !v).map(([k]) => k);
-    return json({ error: "not-configured", missing }, 503);
+  const r2Settings = readR2Settings((name) => Deno.env.get(name));
+  if (!r2Settings.ok) {
+    // Names only (never values), so Settings → Photo storage can say which secret to fix.
+    return json({ error: "not-configured", missing: r2Settings.missing, bad: r2Settings.bad }, 503);
   }
+  const { accountId, accessKeyId, secretAccessKey, bucket, publicUrl } = r2Settings.settings;
 
   // Only signed-in users can upload.
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");

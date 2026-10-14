@@ -51,3 +51,39 @@ export function planUpload(
   const ext = /^[a-z0-9]{1,5}$/.test(rawExt) ? rawExt : contentType.split("/")[1].replace(/[^a-z0-9]/g, "").slice(0, 5) || "bin";
   return { ok: true, key: `${folder}/${userId}/${now}-${random}.${ext}` };
 }
+
+export interface R2Settings {
+  accountId: string;
+  accessKeyId: string;
+  secretAccessKey: string;
+  bucket: string;
+  publicUrl: string;
+}
+
+/**
+ * Tidies the R2 secrets the way people tend to paste them: with spaces or a line break, the
+ * account ID inside the whole "https://<id>.r2.cloudflarestorage.com" address, the public
+ * address without "https://" or with a "/" at the end. `missing` and `bad` are secret names only.
+ */
+export function readR2Settings(env: (name: string) => string | undefined):
+  | { ok: true; settings: R2Settings }
+  | { ok: false; missing: string[]; bad: string[] } {
+  const raw = {
+    R2_ACCOUNT_ID: env("R2_ACCOUNT_ID")?.trim() ?? "",
+    R2_ACCESS_KEY_ID: env("R2_ACCESS_KEY_ID")?.trim() ?? "",
+    R2_SECRET_ACCESS_KEY: env("R2_SECRET_ACCESS_KEY")?.trim() ?? "",
+    R2_BUCKET: env("R2_BUCKET")?.trim().replace(/^\/+|\/+$/g, "") ?? "",
+    R2_PUBLIC_URL: env("R2_PUBLIC_URL")?.trim().replace(/\/+$/, "") ?? "",
+  };
+  const missing = Object.entries(raw).filter(([, v]) => !v).map(([k]) => k);
+  const accountId = raw.R2_ACCOUNT_ID.match(/[0-9a-f]{32}/i)?.[0]?.toLowerCase() ?? "";
+  const publicUrl = raw.R2_PUBLIC_URL && !/^https?:\/\//i.test(raw.R2_PUBLIC_URL) ? `https://${raw.R2_PUBLIC_URL}` : raw.R2_PUBLIC_URL;
+  const bad: string[] = [];
+  if (raw.R2_ACCOUNT_ID && !accountId) bad.push("R2_ACCOUNT_ID");
+  if (raw.R2_BUCKET && !/^[a-z0-9][a-z0-9-]{1,62}$/.test(raw.R2_BUCKET)) bad.push("R2_BUCKET");
+  if (missing.length || bad.length) return { ok: false, missing, bad };
+  return {
+    ok: true,
+    settings: { accountId, accessKeyId: raw.R2_ACCESS_KEY_ID, secretAccessKey: raw.R2_SECRET_ACCESS_KEY, bucket: raw.R2_BUCKET, publicUrl },
+  };
+}
