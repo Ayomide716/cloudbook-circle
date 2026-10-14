@@ -1,17 +1,17 @@
 import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import { uploadMedia, type MediaFolder } from "@/lib/media-upload";
-import { shrinkVideo } from "@/lib/video-compress";
+import type { MediaFolder } from "@/lib/media-upload";
+import { cancelVideoJob, isVideoJobRef, startVideoJob, useVideoJob } from "@/lib/video-jobs";
 import { readVideoInfo } from "@/lib/storage-upload";
 import { useToast } from "@/hooks/use-toast";
 import { Video, Loader2, X } from "lucide-react";
-import { getErrorMessage } from "@/lib/utils";
+import VideoJobStatus from "@/components/VideoJobStatus";
 
 interface VideoUploadProps {
   bucket: string;
   userId: string;
+  /** Gets the video's address, or a "videojob:…" reference while it's still being prepared and uploaded (lib/video-jobs). */
   onUploadComplete: (url: string) => void;
   currentVideo?: string;
   /** Set false when the parent renders its own preview (e.g. the post composer). */
@@ -23,11 +23,9 @@ interface VideoUploadProps {
 
 const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "Upload Video", showPreview = true, maxSeconds }: VideoUploadProps) => {
   const inputId = `video-upload-${bucket}-${useId()}`;
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  // "preparing": making the video smaller on the phone; "uploading": sending it.
-  const [phase, setPhase] = useState<"preparing" | "uploading">("uploading");
-  const [preview, setPreview] = useState<string | null>(currentVideo || null);
+  const [checking, setChecking] = useState(false);
+  const job = useVideoJob(currentVideo);
+  const preview = job?.preview ?? (currentVideo || null);
   const { toast } = useToast();
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -35,68 +33,33 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
     e.target.value = "";
     if (!picked) return;
 
-    // Validate file type
     if (!picked.type.startsWith("video/")) {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a video file",
-        variant: "destructive",
-      });
+      toast({ title: "Invalid file type", description: "Please upload a video file", variant: "destructive" });
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      // Reels are short, as on Facebook: check before spending time on it.
-      if (maxSeconds) {
-        const { duration } = await readVideoInfo(picked);
-        if (duration && duration > maxSeconds + 0.5) {
-          toast({
-            title: `Reels can be up to ${maxSeconds} seconds`,
-            description: `This video is ${Math.round(duration)} seconds. Trim it in your gallery, then try again.`,
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
-      // At most 720p, re-encoded on the phone (takes about as long as the video plays).
-      setPhase("preparing");
-      const file = await shrinkVideo(picked, (f) => setUploadProgress(Math.round(f * 100)));
-
-      if (file.size > 100 * 1024 * 1024) {
+    // Reels are short, as on Facebook: check before spending time on it.
+    if (maxSeconds) {
+      setChecking(true);
+      const { duration } = await readVideoInfo(picked);
+      setChecking(false);
+      if (duration && duration > maxSeconds + 0.5) {
         toast({
-          title: "File too large",
-          description: "Please upload a video smaller than 100MB",
+          title: `Reels can be up to ${maxSeconds} seconds`,
+          description: `This video is ${Math.round(duration)} seconds. Trim it in your gallery, then try again.`,
           variant: "destructive",
         });
         return;
       }
-
-      setPhase("uploading");
-      setUploadProgress(0);
-      const fileName = `${userId}/${Date.now()}.${file.name.split(".").pop()}`;
-      const publicUrl = await uploadMedia(bucket as MediaFolder, fileName, file, setUploadProgress);
-
-      setPreview(publicUrl);
-      onUploadComplete(publicUrl);
-
-    } catch (error) {
-      toast({
-        title: "Upload failed",
-        description: getErrorMessage(error),
-        variant: "destructive",
-      });
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
     }
+
+    // Making it smaller and uploading start now, in the background, while you write the caption.
+    if (isVideoJobRef(currentVideo)) cancelVideoJob(currentVideo);
+    onUploadComplete(startVideoJob(picked, bucket as MediaFolder, userId));
   };
 
   const clearVideo = () => {
-    setPreview(null);
+    if (isVideoJobRef(currentVideo)) cancelVideoJob(currentVideo);
     onUploadComplete("");
   };
 
@@ -107,8 +70,10 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
           <video
             src={preview}
             controls
+            playsInline
             className="w-full max-h-64 rounded-lg bg-black"
           />
+          <VideoJobStatus job={job} className="mt-1" />
           <Button
             type="button"
             variant="destructive"
@@ -125,7 +90,7 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
             type="file"
             accept="video/*"
             onChange={handleFileChange}
-            disabled={isUploading}
+            disabled={checking}
             className="hidden"
             id={inputId}
           />
@@ -135,11 +100,11 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
               variant="ghost"
               size="icon"
               className="h-9 w-9 rounded-full text-red-500 hover:bg-red-500/10"
-              disabled={isUploading}
+              disabled={checking}
               asChild
             >
               <span>
-                {isUploading ? (
+                {checking ? (
                   <Loader2 className="h-5 w-5 animate-spin" />
                 ) : (
                   <Video className="h-5 w-5" />
@@ -147,14 +112,6 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
               </span>
             </Button>
           </label>
-          {isUploading && (
-            <div className="w-full space-y-1">
-              <Progress value={uploadProgress} className="h-2" />
-              <p className="text-xs text-muted-foreground text-center">
-                {phase === "preparing" ? `Preparing video… ${uploadProgress}%` : `Uploading… ${uploadProgress}%`}
-              </p>
-            </div>
-          )}
         </div>
       )}
     </div>

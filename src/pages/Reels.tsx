@@ -28,8 +28,9 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import CommentsSheet from "@/components/comments/CommentsSheet";
 import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import { playSound } from "@/lib/sounds";
-import { cn } from "@/lib/utils";
+import { cn, getErrorMessage } from "@/lib/utils";
 import { motion } from "framer-motion";
+import { POSTED_EVENT, isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
 
 interface Reel {
   id: string;
@@ -237,10 +238,39 @@ export default function Reels() {
   const onceHandleUpload = useSingleFlight();
   const handleUpload = onceHandleUpload(async () => {
     if (!user || !uploadVideoUrl) return;
-    const { error } = await supabase.from("reels").insert({ user_id: user.id, video_url: uploadVideoUrl, caption: uploadCaption.trim() || null });
-    if (error) { toast({ title: "Error uploading reel", variant: "destructive" }); }
-    else { setShowUpload(false); setUploadCaption(""); setUploadVideoUrl(""); loadReels(); }
+    const userId = user.id;
+    const caption = uploadCaption.trim() || null;
+    const save = async (videoUrl: string) => {
+      const { error } = await supabase.from("reels").insert({ user_id: userId, video_url: videoUrl, caption });
+      if (error) throw error;
+    };
+    // Still preparing or uploading: it's posted from the background when ready ("Posting…" bar).
+    if (isVideoJobRef(uploadVideoUrl)) {
+      try {
+        postWhenReady(uploadVideoUrl, "reel", save);
+      } catch (e) {
+        toast({ title: "Couldn't post the reel", description: getErrorMessage(e), variant: "destructive" });
+        return;
+      }
+      setShowUpload(false); setUploadCaption(""); setUploadVideoUrl("");
+      return;
+    }
+    try {
+      await save(uploadVideoUrl);
+      setShowUpload(false); setUploadCaption(""); setUploadVideoUrl(""); loadReels();
+    } catch {
+      toast({ title: "Error uploading reel", variant: "destructive" });
+    }
   });
+
+  // A reel finished posting in the background: show it.
+  useEffect(() => {
+    const onPosted = (e: Event) => {
+      if ((e as CustomEvent<{ label?: string }>).detail?.label === "reel") loadReels();
+    };
+    window.addEventListener(POSTED_EVENT, onPosted);
+    return () => window.removeEventListener(POSTED_EVENT, onPosted);
+  }, [loadReels]);
 
   const handleDeleteReel = async (reelId: string) => {
     setPendingDelete(null);
@@ -472,10 +502,16 @@ export default function Reels() {
           <div className="space-y-4">
             <div>
               <label className="text-sm font-medium text-foreground">Video</label>
-              <div className="mt-2 flex items-center justify-between rounded-lg border p-3">
-                <p className="text-sm text-muted-foreground">{uploadVideoUrl ? "Video selected" : "Upload from your device"}</p>
-                {user && <VideoUpload bucket="post-videos" userId={user.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" maxSeconds={REEL_MAX_SECONDS} />}
-              </div>
+              {uploadVideoUrl ? (
+                <div className="mt-2">
+                  {user && <VideoUpload bucket="post-videos" userId={user.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" maxSeconds={REEL_MAX_SECONDS} />}
+                </div>
+              ) : (
+                <div className="mt-2 flex items-center justify-between rounded-lg border p-3">
+                  <p className="text-sm text-muted-foreground">Upload from your device (up to {REEL_MAX_SECONDS} seconds)</p>
+                  {user && <VideoUpload bucket="post-videos" userId={user.id} currentVideo={uploadVideoUrl} onUploadComplete={setUploadVideoUrl} label="" maxSeconds={REEL_MAX_SECONDS} />}
+                </div>
+              )}
             </div>
             <div>
               <label className="text-sm font-medium text-foreground">Caption</label>
