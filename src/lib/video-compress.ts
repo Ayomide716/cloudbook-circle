@@ -3,9 +3,11 @@
  * every upload on its own servers: at most 720p and about 2 Mbit/s. A minute of phone video is
  * often 100+ MB; this way it's around 15 MB, and every view downloads that much less.
  *
- * It replays the video into a canvas and records it (MediaRecorder), so it takes as long as
- * the video plays. Anything that can't be done here (old phones, videos it can't read, the
- * app going to the background) falls back to uploading the original. Never throws.
+ * Fast way (most phones): the phone's own video hardware through WebCodecs (Mediabunny), several
+ * times faster than playing the video. Slow way (older browsers): replay the video into a canvas
+ * and record it (MediaRecorder), which takes as long as the video plays. If neither works (old
+ * phones, videos it can't read, the app going to the background) the original is uploaded.
+ * Never throws.
  */
 import { fitWithin } from "./image-compress";
 
@@ -42,8 +44,70 @@ export function pickRecordingType(isSupported: (type: string) => boolean): strin
 type CanvasWithStream = HTMLCanvasElement & { captureStream?: (fps?: number) => MediaStream };
 type VideoWithFrames = HTMLVideoElement & { requestVideoFrameCallback?: (cb: () => void) => number };
 
-export async function shrinkVideo(file: File, onProgress?: (fraction: number) => void): Promise<File> {
-  if (!file.type.startsWith("video/") || typeof MediaRecorder === "undefined") return file;
+/** The longest video the fast way takes on (it's quick, but a long one is still a big job). */
+const MAX_FAST_SECONDS = 15 * 60;
+
+type FastResult = { file: File } | { keep: true } | null;
+
+/**
+ * The fast way: decode and encode with the phone's video hardware (WebCodecs), not in real time.
+ * `{ keep: true }`: the video is already light, upload it as it is. `null`: couldn't, try the slow way.
+ */
+async function shrinkVideoFast(file: File, onProgress?: (fraction: number) => void, signal?: AbortSignal): Promise<FastResult> {
+  if (typeof VideoEncoder === "undefined" || typeof VideoDecoder === "undefined") return null;
+  try {
+    const mb = await import("mediabunny");
+    if (!(await mb.canEncodeVideo("avc"))) return null;
+    const input = new mb.Input({ source: new mb.BlobSource(file), formats: mb.ALL_FORMATS });
+    const track = await input.getPrimaryVideoTrack();
+    if (!track) return null;
+    const seconds = await input.computeDuration();
+    if (!Number.isFinite(seconds) || seconds <= 0 || seconds > MAX_FAST_SECONDS) return null;
+    if (!needsShrinking(track.displayWidth, track.displayHeight, file.size, seconds)) return { keep: true };
+
+    const size = fitWithin(track.displayWidth, track.displayHeight, VIDEO_MAX_SIDE);
+    const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: "in-memory" }), target: new mb.BufferTarget() });
+    const conversion = await mb.Conversion.init({
+      input,
+      output,
+      showWarnings: false,
+      video: { width: size.width - (size.width % 2), height: size.height - (size.height % 2), fit: "fill", codec: "avc", bitrate: VIDEO_BITS_PER_SECOND },
+      // AAC plays everywhere. Phone videos have it already, so the sound is copied as is (no
+      // bitrate here: setting one would re-encode it, and not every phone can encode AAC).
+      audio: { codec: "aac" },
+    });
+    // A video that would lose its picture or sound here goes the slow way instead.
+    // (Extra tracks some phones add, like a second video angle, can be left out.)
+    const lost = conversion.discardedTracks.some((t) => !t.reason.startsWith("max_track_count"));
+    if (!conversion.isValid || lost) return null;
+    conversion.onProgress = (p) => onProgress?.(Math.min(1, p));
+    const abort = () => void conversion.cancel();
+    signal?.addEventListener("abort", abort);
+    try {
+      await conversion.execute();
+    } finally {
+      signal?.removeEventListener("abort", abort);
+    }
+    const buffer = (output.target as InstanceType<typeof mb.BufferTarget>).buffer;
+    if (!buffer || buffer.byteLength === 0) return null;
+    onProgress?.(1);
+    if (buffer.byteLength >= file.size * 0.9) return { keep: true };
+    return { file: new File([buffer], file.name.replace(/\.[^.]+$/, "") + ".mp4", { type: "video/mp4", lastModified: Date.now() }) };
+  } catch {
+    return null;
+  }
+}
+
+export async function shrinkVideo(file: File, onProgress?: (fraction: number) => void, signal?: AbortSignal): Promise<File> {
+  if (!file.type.startsWith("video/")) return file;
+  const fast = await shrinkVideoFast(file, onProgress, signal);
+  if (signal?.aborted) return file;
+  if (fast) return "keep" in fast ? file : fast.file;
+  return shrinkVideoSlow(file, onProgress);
+}
+
+async function shrinkVideoSlow(file: File, onProgress?: (fraction: number) => void): Promise<File> {
+  if (typeof MediaRecorder === "undefined") return file;
   const canvas = document.createElement("canvas") as CanvasWithStream;
   if (!canvas.captureStream) return file;
 

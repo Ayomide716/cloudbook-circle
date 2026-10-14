@@ -10,6 +10,8 @@ import PostExpirySelector from "./PostExpirySelector";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import VideoUpload from "./VideoUpload";
+import VideoJobStatus from "./VideoJobStatus";
+import { POSTED_EVENT, cancelVideoJob, isVideoJobRef, postWhenReady, useVideoJob } from "@/lib/video-jobs";
 import PollCreator from "./PollCreator";
 import MultiImageUpload from "./MultiImageUpload";
 import MentionInput from "./MentionInput";
@@ -46,6 +48,22 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [location, setLocation] = useState("");
   const [showLocation, setShowLocation] = useState(false);
   const { toast } = useToast();
+  // A picked video is prepared and uploaded in the background (lib/video-jobs).
+  const videoJob = useVideoJob(videoUrl);
+  const removeVideo = () => {
+    if (isVideoJobRef(videoUrl)) cancelVideoJob(videoUrl);
+    setVideoUrl("");
+  };
+  // A post whose video finished in the background: show it in the feed.
+  useEffect(() => {
+    const onPosted = (e: Event) => {
+      if ((e as CustomEvent<{ label?: string }>).detail?.label !== "post") return;
+      playSound("post");
+      onPostCreated();
+    };
+    window.addEventListener(POSTED_EVENT, onPosted);
+    return () => window.removeEventListener(POSTED_EVENT, onPosted);
+  }, [onPostCreated]);
   // The top bar's "+" opens the composer from anywhere (via /?compose=1).
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -95,65 +113,91 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       return;
     }
 
-    submittingRef.current = true;
-    setIsLoading(true);
-
-    // Close the composer at once and show the post going up at the top of the feed, with a
-    // progress bar, instead of making you wait in the composer.
-    const draft = { content, imageUrls, videoUrl, pollData, postExpiry, location, showLocation };
-    setPending({ content: content.trim() || (pollData ? `📊 ${pollData.question}` : ""), image: imageUrls[0] ?? null, video: !!videoUrl, failed: false, draft });
-    setShowDialog(false);
-
     // Calculate expires_at from post expiry setting
     let expiresAt: string | null = null;
     if (postExpiry === "24h") expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString();
     else if (postExpiry === "7d") expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     else if (postExpiry === "30d") expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { data: postData, error } = await supabase
-      .from("posts")
-      .insert({
-        content: content.trim() || (pollData ? `📊 ${pollData.question}` : ""),
-        user_id: currentUser.id,
-        // image_url is the cover (profile photo grids, link previews); image_urls has them all.
-        image_url: imageUrls[0] ?? null,
-        image_urls: imageUrls,
-        ...(bgCss ? { background } : {}),
-        video_url: videoUrl || null,
-        ...(features.postLocation ? { location: location.trim() || null } : {}),
-        expires_at: expiresAt,
-       })
-       .select()
-       .single();
+    const text = content.trim() || (pollData ? `📊 ${pollData.question}` : "");
+    const poll = pollData;
+    const place = location.trim() || null;
+    const bg = bgCss ? background : null;
+    const images = imageUrls;
+    const save = async (finalVideoUrl: string | null) => {
+      const { data: postData, error } = await supabase
+        .from("posts")
+        .insert({
+          content: text,
+          user_id: currentUser.id,
+          // image_url is the cover (profile photo grids, link previews); image_urls has them all.
+          image_url: images[0] ?? null,
+          image_urls: images,
+          ...(bg ? { background: bg } : {}),
+          video_url: finalVideoUrl,
+          ...(features.postLocation ? { location: place } : {}),
+          expires_at: expiresAt,
+        })
+        .select()
+        .single();
+      if (error) throw error;
+      if (postData && poll) {
+        await supabase.from("polls").insert({
+          post_id: postData.id,
+          question: poll.question,
+          options: poll.options,
+          user_id: currentUser.id,
+        });
+      }
+    };
 
-     if (!error && postData && pollData) {
-       // Create the poll
-       await supabase.from("polls").insert({
-         post_id: postData.id,
-         question: pollData.question,
-         options: pollData.options,
-         user_id: currentUser.id,
-       });
-     }
- 
+    const resetComposer = () => {
+      setContent("");
+      setImageUrls([]);
+      setVideoUrl("");
+      setPollData(null);
+      setPostExpiry(null);
+      setBackground(null);
+      setLocation("");
+      setShowLocation(false);
+      setShowDialog(false);
+    };
+
+    // The video is still being prepared or uploaded: post it when it's up, from the background
+    // (the "Posting…" bar shows how it's going), and free the composer now.
+    if (isVideoJobRef(videoUrl) && !videoJob?.url) {
+      postWhenReady(videoUrl, "post", (url) => save(url));
+      resetComposer();
+      return;
+    }
+    const finalVideoUrl = (isVideoJobRef(videoUrl) ? videoJob?.url : videoUrl) || null;
+
+    submittingRef.current = true;
+    setIsLoading(true);
+
+    // Close the composer at once and show the post going up at the top of the feed, with a
+    // progress bar, instead of making you wait in the composer.
+    const draft = { content, imageUrls, videoUrl: finalVideoUrl ?? "", pollData, postExpiry, location, showLocation };
+    setPending({ content: text, image: imageUrls[0] ?? null, video: !!finalVideoUrl, failed: false, draft });
+    setShowDialog(false);
+
+    let failed = false;
+    try {
+      await save(finalVideoUrl);
+    } catch {
+      failed = true;
+    }
+
     setIsLoading(false);
     submittingRef.current = false;
 
-    if (error) {
+    if (failed) {
       setPending((p) => (p ? { ...p, failed: true } : p));
       return;
     }
 
     setPending(null);
-    setContent("");
-    setImageUrls([]);
-    setVideoUrl("");
-    setPollData(null);
-    setPostExpiry(null);
-    setBackground(null);
-    setLocation("");
-    setShowLocation(false);
-    setShowDialog(false);
+    resetComposer();
     playSound("post");
     onPostCreated();
   };
@@ -369,11 +413,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 for several photos, or the video. Each item can be removed. */}
             {videoUrl && (
               <div className="relative rounded-xl overflow-hidden bg-muted">
-                <video src={videoUrl} className="w-full max-h-80 bg-black" controls playsInline preload="metadata" />
+                <video src={videoJob?.preview ?? videoUrl} className="w-full max-h-80 bg-black" controls playsInline preload="metadata" />
+                <VideoJobStatus job={videoJob} className="px-3 py-2" />
                 <button
                   type="button"
                   className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/75 transition-colors"
-                  onClick={() => setVideoUrl("")}
+                  onClick={removeVideo}
                   aria-label="Remove video"
                 >
                   <X className="h-4 w-4" />
@@ -423,7 +468,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 <MultiImageUpload
                   bucket="post-images"
                   userId={currentUser.id}
-                  onUploadComplete={(urls) => { setImageUrls(urls); if (urls.length > 0) setVideoUrl(""); }}
+                  onUploadComplete={(urls) => { setImageUrls(urls); if (urls.length > 0) removeVideo(); }}
                   currentImages={imageUrls}
                   showPreview={false}
                 />

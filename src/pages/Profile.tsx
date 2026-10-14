@@ -59,6 +59,8 @@ import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { cn, getErrorMessage } from "@/lib/utils";
 import AnonymousQA from "@/components/AnonymousQA";
+import ProfileReels, { type ProfileReel } from "@/components/ProfileReels";
+import { POSTED_EVENT } from "@/lib/video-jobs";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
 import type { LucideIcon } from "lucide-react";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -127,7 +129,8 @@ const Profile = () => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const [friendCount, setFriendCount] = useState<number | null>(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "photos" | "videos" | "albums" | "qa">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "photos" | "videos" | "reels" | "albums" | "qa">("posts");
+  const [reels, setReels] = useState<ProfileReel[]>([]);
 
   // Albums state
   const [albums, setAlbums] = useState<Album[]>([]);
@@ -212,8 +215,42 @@ const Profile = () => {
     }
     // Load albums
     loadAlbums();
+    loadReels();
     setIsLoading(false);
   });
+
+  const loadReels = useEffectEvent(async () => {
+    if (!userId) return;
+    const { data } = await supabase
+      .from("reels")
+      .select("id, video_url, thumbnail_url, caption, reel_likes (id)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
+    setReels(
+      ((data ?? []) as unknown as (Omit<ProfileReel, "likes"> & { reel_likes: { id: string }[] | null })[]).map((r) => ({
+        id: r.id, video_url: r.video_url, thumbnail_url: r.thumbnail_url, caption: r.caption, likes: r.reel_likes?.length ?? 0,
+      })),
+    );
+  });
+
+  // A reel posted in the background shows up here too.
+  useEffect(() => {
+    const onPosted = (e: Event) => {
+      if ((e as CustomEvent<{ label?: string }>).detail?.label === "reel") loadReels();
+    };
+    window.addEventListener(POSTED_EVENT, onPosted);
+    return () => window.removeEventListener(POSTED_EVENT, onPosted);
+  }, [loadReels]);
+
+  const deleteReel = async (id: string) => {
+    const { error } = await supabase.from("reels").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Couldn't delete the reel", description: getErrorMessage(error), variant: "destructive" });
+      return;
+    }
+    setReels((prev) => prev.filter((r) => r.id !== id));
+    toast({ title: "Reel deleted" });
+  };
 
   useEffect(() => {
     if (userId && currentUserId) loadProfile();
@@ -666,14 +703,15 @@ const Profile = () => {
         <nav aria-label="Profile sections" className="sticky top-0 md:top-[var(--nav-height)] z-30 mb-2 sm:mb-5 border-b border-border bg-card/95 sm:bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:supports-[backdrop-filter]:bg-background/80">
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide px-3 sm:px-0 py-2">
             {/* Only sections with something in them (yours keeps Albums, to make one). */}
-            {(["posts", "photos", "videos", "albums", "qa"] as const).filter((tab) =>
+            {(["posts", "photos", "videos", "reels", "albums", "qa"] as const).filter((tab) =>
               tab === "posts" ||
               (tab === "photos" && photoPosts.length > 0) ||
               (tab === "videos" && videoPosts.length > 0) ||
+              (tab === "reels" && reels.length > 0) ||
               (tab === "albums" && (albums.length > 0 || isOwnProfile)) ||
               (tab === "qa" && features.extras)
             ).map((tab) => {
-              const count = tab === "photos" ? photoPosts.length : tab === "videos" ? videoPosts.length : null;
+              const count = tab === "photos" ? photoPosts.length : tab === "videos" ? videoPosts.length : tab === "reels" ? reels.length : null;
               return (
                 <button
                   key={tab}
@@ -683,7 +721,7 @@ const Profile = () => {
                     "shrink-0 rounded-full px-4 py-2 text-[15px] font-semibold transition-colors",
                     activeTab === tab ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary"
                   )}>
-                  {{ posts: "All", photos: "Photos", videos: "Videos", albums: "Albums", qa: "Q&A" }[tab]}
+                  {{ posts: "All", photos: "Photos", videos: "Videos", reels: "Reels", albums: "Albums", qa: "Q&A" }[tab]}
                   {count !== null && count > 0 && <span className="ml-1 font-normal opacity-60">{count}</span>}
                 </button>
               );
@@ -856,6 +894,15 @@ const Profile = () => {
                 </button>
           )}
             </div>)
+        }
+
+        {activeTab === "reels" && (
+          reels.length === 0 ?
+          <div className="bento-card p-12 text-center">
+              <Play className="h-8 w-8 text-muted-foreground mx-auto mb-3" aria-hidden="true" />
+              <p className="font-semibold text-lg mb-1">No reels</p>
+            </div> :
+          <ProfileReels reels={reels} isOwn={isOwnProfile} onDelete={deleteReel} />)
         }
 
         {activeTab === "photos" &&
