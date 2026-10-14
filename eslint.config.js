@@ -5,7 +5,8 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  // dashboard-paste.ts is generated (scripts/bundle-media-upload.mjs); CI checks it matches its sources.
+  { ignores: ["dist", "android", "supabase/functions/media-upload/dashboard-paste.ts"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
