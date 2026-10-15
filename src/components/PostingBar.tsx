@@ -16,7 +16,8 @@ const PostingBar = () => {
   useBottomSpace("--posting-space", jobs.length ? barRef : null);
   useEffect(() => {
     const onPosted = (e: Event) => {
-      const label = (e as CustomEvent<{ label?: string }>).detail?.label === "reel" ? "reel" : "post";
+      const raw = (e as CustomEvent<{ label?: string }>).detail?.label;
+      const label = raw === "reel" || raw === "story" ? raw : "post";
       toast({ title: `Your ${label} is live` });
     };
     window.addEventListener(POSTED_EVENT, onPosted);
@@ -26,7 +27,7 @@ const PostingBar = () => {
   return (
     <div ref={barRef} className="pointer-events-none fixed inset-x-3 bottom-[calc(var(--dock-space,0px)+0.5rem+env(safe-area-inset-bottom,0px))] z-50 mx-auto flex max-w-md flex-col gap-2 md:bottom-6">
       {jobs.map((j) => {
-        const what = j.posting?.label === "reel" ? "your reel" : "";
+        const what = j.posting?.label === "reel" ? "your reel" : j.posting?.label === "story" ? "your story" : "";
         const failed = j.posting?.failed;
         return (
           <div key={j.id} role="status" className="pointer-events-auto rounded-2xl border border-border bg-card/95 p-3 shadow-lg backdrop-blur">

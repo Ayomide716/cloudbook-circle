@@ -14,6 +14,9 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
+import VideoUpload from "./VideoUpload";
+import { isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
+import { BLANK_POSTER } from "@/lib/video-poster";
 import LiveRoomStories from "./LiveRoomStories";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { formatDistanceToNow } from "date-fns";
@@ -49,7 +52,9 @@ interface StoriesBarProps {
   currentUserId: string;
 }
 
-const STORY_DURATION = 5000; // 5 seconds per story
+const STORY_DURATION = 5000; // 5 seconds per photo story
+/** Video stories, as on Facebook and WhatsApp status. */
+const STORY_MAX_SECONDS = 60;
 
 const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const myProfile = useMyProfile();
@@ -57,6 +62,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const myGroup = storyGroups.find((g) => g.userId === currentUserId);
   const [isCreating, setIsCreating] = useState(false);
   const [storyImage, setStoryImage] = useState("");
+  // A video story (its address, or a "videojob:…" reference while it's prepared in the background).
+  const [storyVideo, setStoryVideo] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
   const [storyCaption, setStoryCaption] = useState("");
   // "Add to story" on your profile opens this dialog (via /?story=1).
   const [searchParams, setSearchParams] = useSearchParams();
@@ -168,18 +176,29 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   // Extra taps while this is saving do nothing (no double posts on a slow network).
   const onceHandleCreateStory = useSingleFlight();
   const handleCreateStory = onceHandleCreateStory(async () => {
-    if (!storyImage) {
-      toast({ title: "Please upload an image", variant: "destructive" });
+    if (!storyImage && !storyVideo) {
+      toast({ title: "Add a photo or a video", variant: "destructive" });
       return;
     }
-    const { error } = await supabase
-      .from("stories")
-      .insert({ user_id: currentUserId, media_url: storyImage, media_type: "image", caption: storyCaption || null });
-
-    if (error) { toast({ title: "Error creating story", description: error.message, variant: "destructive" }); return; }
-    setIsCreating(false);
-    setStoryImage("");
-    setStoryCaption("");
+    const caption = storyCaption || null;
+    const save = async (mediaUrl: string, type: "image" | "video") => {
+      const { error } = await supabase.from("stories").insert({ user_id: currentUserId, media_url: mediaUrl, media_type: type, caption });
+      if (error) throw error;
+    };
+    const done = () => { setIsCreating(false); setStoryImage(""); setStoryVideo(""); setStoryCaption(""); };
+    // A video still being prepared or uploaded: posted from the background when it's ready.
+    if (isVideoJobRef(storyVideo)) {
+      postWhenReady(storyVideo, "story", (url) => save(url, "video"));
+      done();
+      return;
+    }
+    try {
+      await save(storyVideo || storyImage, storyVideo ? "video" : "image");
+    } catch (e) {
+      toast({ title: "Error creating story", description: (e as Error).message, variant: "destructive" });
+      return;
+    }
+    done();
     loadStories();
   });
 
@@ -229,6 +248,15 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   // Read the latest pause state inside the timer without restarting it (pausing must not reset progress).
   const isPausedRef = useRef(isPaused);
+  const isVideoRef = useRef(false);
+  isVideoRef.current = activeStory?.media_type === "video";
+  // Holding a video story pauses the video too.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    if (isPaused) v.pause();
+    else void v.play().catch(() => {});
+  }, [isPaused, activeStory?.id]);
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
@@ -240,7 +268,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     const interval = 50;
     let elapsed = 0;
     timerRef.current = setInterval(() => {
-      if (isPausedRef.current) return;
+      // A video story moves on when the video ends (its progress comes from the video itself).
+      if (isPausedRef.current || isVideoRef.current) return;
       elapsed += interval;
       setProgress(Math.min((elapsed / STORY_DURATION) * 100, 100));
       if (elapsed >= STORY_DURATION) {
@@ -352,11 +381,21 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         <DialogContent className="sm:max-w-md">
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Create Story</h2>
-            <ImageUpload bucket="post-images" userId={currentUserId} onUploadComplete={setStoryImage} currentImage={storyImage} label="Upload Story Image" />
+            {!storyVideo && (
+              <ImageUpload bucket="post-images" userId={currentUserId} onUploadComplete={setStoryImage} currentImage={storyImage} label="Upload Story Image" />
+            )}
+            {!storyImage && (
+              <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
+                {!storyVideo && <p className="text-sm text-muted-foreground">Or a video (up to {STORY_MAX_SECONDS} seconds)</p>}
+                <div className={storyVideo ? "w-full" : undefined}>
+                  <VideoUpload bucket="post-videos" userId={currentUserId} currentVideo={storyVideo} onUploadComplete={setStoryVideo} label="" maxSeconds={STORY_MAX_SECONDS} />
+                </div>
+              </div>
+            )}
             <Input placeholder="Add a caption..." value={storyCaption} onChange={(e) => setStoryCaption(e.target.value)} />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
-              <Button onClick={handleCreateStory} disabled={!storyImage}>Share Story</Button>
+              <Button onClick={handleCreateStory} disabled={!storyImage && !storyVideo}>Share Story</Button>
             </div>
           </div>
         </DialogContent>
@@ -415,14 +454,33 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             </div>
           </div>
 
-          {/* Story image */}
-          <img
-            src={activeStory.media_url}
-            alt="Story"
-            className="max-w-full max-h-full object-contain select-none"
-            onPointerDown={() => setIsPaused(true)}
-            onPointerUp={() => setIsPaused(false)}
-          />
+          {/* The story: a photo, or a video that plays through once */}
+          {activeStory.media_type === "video" ? (
+            <video
+              key={activeStory.id}
+              ref={videoRef}
+              src={activeStory.media_url}
+              poster={BLANK_POSTER}
+              autoPlay
+              playsInline
+              preload="auto"
+              className="max-w-full max-h-full object-contain select-none"
+              onPlay={(e) => { if (isPausedRef.current) e.currentTarget.pause(); }}
+              onTimeUpdate={(e) => { const v = e.currentTarget; if (v.duration) setProgress(Math.min((v.currentTime / v.duration) * 100, 100)); }}
+              onEnded={() => goNext()}
+              onError={() => goNext()}
+              onPointerDown={() => setIsPaused(true)}
+              onPointerUp={() => setIsPaused(false)}
+            />
+          ) : (
+            <img
+              src={activeStory.media_url}
+              alt="Story"
+              className="max-w-full max-h-full object-contain select-none"
+              onPointerDown={() => setIsPaused(true)}
+              onPointerUp={() => setIsPaused(false)}
+            />
+          )}
 
           {/* Caption */}
           {activeStory.caption && (
