@@ -83,6 +83,10 @@
   </head>
 
   <body>
+    <script>
+      // Inside the Android app or the installed app: no scrollbars, as in native apps (index.css .app-shell).
+      try { if ((window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true || (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) document.documentElement.classList.add("app-shell"); } catch (e) {}
+    </script>
     <div id="splash" hidden aria-hidden="true"><span class="word"><span class="typed"></span><span class="dot">.</span><span class="caret"></span></span></div>
     <script>
       // Only when opened as the installed app (home-screen icon or the Android app), once per launch. ?splash=1 forces it.
@@ -95,14 +99,16 @@
         try { seen = sessionStorage.getItem("ember_splash") === "1"; sessionStorage.setItem("ember_splash", "1"); } catch (e) {}
         if (!forced && (!standalone || seen)) { window.__hideSplash = function () {}; return; }
         el.hidden = false;
+        // In the Android app, lift the dark launch screen now, so the typing is seen from the first letter.
+        try { window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashScreen && window.Capacitor.Plugins.SplashScreen.hide({ fadeOutDuration: 150 }); } catch (e) {}
         var typed = el.querySelector(".typed"), dot = el.querySelector(".dot"), caret = el.querySelector(".caret");
         var word = "ember", done = false, wantHide = false;
         var finish = function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 400); };
         window.__hideSplash = function () { wantHide = true; if (done) finish(); };
         var type = function (i) {
-          if (i <= word.length) { typed.textContent = word.slice(0, i); setTimeout(function () { type(i + 1); }, i === 0 ? 180 : 95); return; }
+          if (i <= word.length) { typed.textContent = word.slice(0, i); setTimeout(function () { type(i + 1); }, i === 0 ? 220 : 130); return; }
           dot.classList.add("on");
-          setTimeout(function () { caret.classList.add("off"); done = true; if (wantHide) setTimeout(finish, 250); }, 380);
+          setTimeout(function () { caret.classList.add("off"); done = true; if (wantHide) setTimeout(finish, 300); }, 450);
         };
         // Wait briefly for the display font so the letters don't change shape mid-way.
         var start = function () { type(0); };
