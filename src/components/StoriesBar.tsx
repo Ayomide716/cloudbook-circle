@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
+import StoryViewers from "@/components/stories/StoryViewers";
 import { POSTED_EVENT, isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
 import { BLANK_POSTER } from "@/lib/video-poster";
 import LiveRoomStories from "./LiveRoomStories";
@@ -512,6 +513,11 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             <button className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm items-center justify-center text-white hover:bg-white/30" onClick={goNext}>
               <ChevronRight className="h-5 w-5" />
             </button>
+          )}
+
+          {/* Your own story: who has seen it */}
+          {activeGroup.userId === currentUserId && (
+            <StoryViewers storyId={activeStory.id} ownerId={currentUserId} onOpenChange={(o) => setIsPaused(o)} />
           )}
 
           {/* Reply & reactions (not own story) */}

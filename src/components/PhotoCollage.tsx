@@ -8,8 +8,21 @@ interface PhotoCollageProps {
   onOpen: (index: number) => void;
   /** Double-tap on a photo, as in Facebook and Instagram (used to like the post). */
   onDoubleTap?: () => void;
+  /** Tiny blurred copies of the photos (same order), shown while the real ones load. */
+  previews?: string[] | null;
   className?: string;
 }
+
+/** A photo's blurred preview, filling its box behind the real photo. */
+const Blur = ({ src, inFlow }: { src?: string; inFlow?: boolean }) =>
+  src ? (
+    <img
+      src={src}
+      alt=""
+      aria-hidden="true"
+      className={cn("pointer-events-none scale-110 object-cover blur-xl", inFlow ? "block max-h-[600px] w-full" : "absolute inset-0 h-full w-full")}
+    />
+  ) : null;
 
 /** Most tiles shown in the post; the last one counts the rest ("+3"). */
 const MAX_TILES = 5;
@@ -21,7 +34,7 @@ const MAX_TILES = 5;
 /** How long to wait for a second tap before treating a tap as "open the photo". */
 const DOUBLE_TAP_MS = 260;
 
-const PhotoCollage = ({ images, onOpen, onDoubleTap, className }: PhotoCollageProps) => {
+const PhotoCollage = ({ images, onOpen, onDoubleTap, previews, className }: PhotoCollageProps) => {
   const pending = useRef<number | null>(null);
   useEffect(() => () => { if (pending.current) window.clearTimeout(pending.current); }, []);
 
@@ -54,7 +67,8 @@ const PhotoCollage = ({ images, onOpen, onDoubleTap, className }: PhotoCollagePr
         className={cn("no-press relative block overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", extraClass)}
         aria-label={hidden > 0 ? `Open photo ${index + 1} of ${count}, ${hidden} more` : `Open photo ${index + 1} of ${count}`}
       >
-        <img src={images[index]} alt="" loading="lazy" {...softImage} className={cn(softImage.className, "h-full w-full object-cover hover:scale-[1.02]")} />
+        <Blur src={previews?.[index]} />
+        <img src={images[index]} alt="" loading="lazy" {...softImage} className={cn(softImage.className, "relative h-full w-full object-cover hover:scale-[1.02]")} />
         {hidden > 0 && (
           <span className="absolute inset-0 flex items-center justify-center bg-black/50 text-3xl font-bold text-white font-display">
             +{hidden}
@@ -69,10 +83,18 @@ const PhotoCollage = ({ images, onOpen, onDoubleTap, className }: PhotoCollagePr
       <button
         type="button"
         onClick={() => tap(0)}
-        className={cn("no-press flex w-full justify-center bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", className)}
+        className={cn("no-press relative flex w-full justify-center overflow-hidden bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", className)}
         aria-label="Open photo"
       >
-        <img src={images[0]} alt="" loading="lazy" {...softImage} className={cn(softImage.className, "w-full max-h-[600px] object-contain")} />
+        {previews?.[0] ? (
+          // The preview holds the photo's shape, so nothing jumps when it arrives.
+          <>
+            <Blur src={previews[0]} inFlow />
+            <img src={images[0]} alt="" loading="lazy" {...softImage} className={cn(softImage.className, "absolute inset-0 h-full w-full object-contain")} />
+          </>
+        ) : (
+          <img src={images[0]} alt="" loading="lazy" {...softImage} className={cn(softImage.className, "w-full max-h-[600px] object-contain")} />
+        )}
       </button>
     );
   }

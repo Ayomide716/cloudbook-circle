@@ -37,6 +37,7 @@ import ReportDialog from "./ReportDialog";
 import BlockDialog from "./BlockDialog";
 import { explainError } from "@/lib/blocking";
 import PhotoCollage from "./PhotoCollage";
+import { usePostTags } from "@/lib/post-tags";
 import PhotoViewer from "./PhotoViewer";
 import { postImages } from "@/lib/post-images";
 import TipButton from "./TipButton";
@@ -61,6 +62,8 @@ export interface PostCardProps {
     content: string;
     image_url: string | null;
     image_urls?: string[] | null;
+    /** Blurred previews of the photos (see lib/photo-previews). */
+    image_previews?: string[] | null;
     video_url?: string | null;
     created_at: string | null;
     profiles: {
@@ -121,6 +124,8 @@ const PostCard = ({
   inlineComments = false,
 }: PostCardProps) => {
   const [showComments, setShowComments] = useState(defaultShowComments);
+  // Friends tagged in the post ("is with Tolu and 2 others").
+  const tags = usePostTags(post.id);
   const myProfile = useMyProfile();
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [heartBurst, setHeartBurst] = useState(0);
@@ -526,6 +531,14 @@ const PostCard = ({
                 {post.profiles.is_verified && <span className="shrink-0"><VerifiedBadge size="sm" /></span>}
               </p>
             </Link>
+            {tags.length > 0 && (
+              <p className="text-[13px] leading-snug text-muted-foreground">
+                is with{" "}
+                <Link to={`/profile/${tags[0].id}`} className="font-semibold text-foreground hover:underline">{tags[0].full_name || "a friend"}</Link>
+                {tags.length === 2 && <> and <Link to={`/profile/${tags[1].id}`} className="font-semibold text-foreground hover:underline">{tags[1].full_name || "a friend"}</Link></>}
+                {tags.length > 2 && <> and <span className="font-semibold text-foreground" title={tags.slice(1).map((t) => t.full_name).join(", ")}>{tags.length - 1} others</span></>}
+              </p>
+            )}
             {/* As in Facebook: "Lekki, Lagos · 2h · 🌐" (Ember posts are public). */}
             <p className="flex items-center gap-1 text-[11.5px] sm:text-[13px] text-muted-foreground min-w-0">
               {post.location && <><span className="truncate">{post.location}</span><span aria-hidden="true">·</span></>}
@@ -663,6 +676,7 @@ const PostCard = ({
           <div className="relative mx-2.5 overflow-hidden rounded-2xl">
             <PhotoCollage
               images={photos}
+              previews={post.image_previews}
               onOpen={setViewerIndex}
               // Double-tap likes (never un-likes), with a heart that pops over the photo.
               onDoubleTap={likeWithHeart}

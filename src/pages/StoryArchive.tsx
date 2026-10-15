@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { Play, Trash2, X } from "lucide-react";
+import { Check, Play, Plus, Trash2, X } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { HeaderAction } from "@/components/layout/PageHeader";
 import Navigation from "@/components/Navigation";
 import { PageHeader } from "@/components/layout/PageHeader";
 import EmptyState from "@/components/EmptyState";
@@ -31,6 +35,29 @@ const StoryArchive = () => {
   const { toast } = useToast();
   const [stories, setStories] = useState<ArchivedStory[] | null>(null);
   const [open, setOpen] = useState<ArchivedStory | null>(null);
+  // Making a highlight: tap stories to pick them, name it, save.
+  const [params, setParams] = useSearchParams();
+  const picking = params.get("highlight") === "1";
+  const [picked, setPicked] = useState<string[]>([]);
+  const [title, setTitle] = useState("");
+  const [saving, setSaving] = useState(false);
+  const navigate = useNavigate();
+  const togglePick = (id: string) => setPicked((p) => (p.includes(id) ? p.filter((x) => x !== id) : [...p, id]));
+
+  const saveHighlight = async () => {
+    if (!userId || !picked.length || !title.trim()) return;
+    setSaving(true);
+    // Oldest first, so the highlight plays in the order things happened.
+    const order = (stories ?? []).filter((s) => picked.includes(s.id)).reverse().map((s) => s.id);
+    const { error } = await supabase.from("story_highlights").insert({ user_id: userId, title: title.trim(), story_ids: order });
+    setSaving(false);
+    if (error) {
+      toast({ title: "Couldn't save the highlight", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Highlight added to your profile" });
+    navigate(`/profile/${userId}`);
+  };
 
   useEffect(() => {
     if (!userId) return;
@@ -57,8 +84,13 @@ const StoryArchive = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={userId} />
-      <div className="page-flush mx-auto max-w-2xl space-y-2 px-0 pb-24 sm:space-y-4 sm:px-4 sm:py-6">
-        <PageHeader back title="Story archive" subtitle="Only you can see your archive." />
+      <div className={`page-flush mx-auto max-w-2xl space-y-2 px-0 sm:space-y-4 sm:px-4 sm:py-6 ${picking ? "pb-44" : "pb-24"}`}>
+        <PageHeader
+          back
+          title={picking ? "New highlight" : "Story archive"}
+          subtitle={picking ? "Pick the stories to keep on your profile." : "Only you can see your archive."}
+          actions={!picking && stories?.length ? <HeaderAction icon={Plus} label="New highlight" onClick={() => setParams({ highlight: "1" })} /> : undefined}
+        />
         {stories === null ? (
           <div className="grid grid-cols-3 gap-0.5 sm:gap-1" aria-busy="true">
             {Array.from({ length: 6 }, (_, i) => <Skeleton key={i} className="aspect-[9/16] rounded-none" />)}
@@ -73,7 +105,8 @@ const StoryArchive = () => {
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => setOpen(s)}
+                  onClick={() => (picking ? togglePick(s.id) : setOpen(s))}
+                  aria-pressed={picking ? picked.includes(s.id) : undefined}
                   aria-label={`Story from ${day(s.created_at)}`}
                   className="no-press relative aspect-[9/16] overflow-hidden bg-muted"
                 >
@@ -86,6 +119,11 @@ const StoryArchive = () => {
                     {day(s.created_at)}
                   </span>
                   {live && <span className="absolute right-1.5 top-1.5 rounded-md bg-primary px-1.5 py-0.5 text-[10px] font-bold text-primary-foreground">Live</span>}
+                  {picking && (
+                    <span className={`absolute bottom-1.5 right-1.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-white ${picked.includes(s.id) ? "bg-primary" : "bg-black/30"}`}>
+                      {picked.includes(s.id) && <Check className="h-4 w-4 text-primary-foreground" />}
+                    </span>
+                  )}
                   {s.media_type === "video" && <Play className="absolute bottom-2 left-2 h-5 w-5 fill-white text-white drop-shadow" aria-hidden="true" />}
                 </button>
               );
@@ -93,6 +131,17 @@ const StoryArchive = () => {
           </div>
         )}
       </div>
+
+      {picking && (
+        <div className="fixed inset-x-0 bottom-[var(--dock-space,0px)] z-40 border-t border-border bg-card p-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)]">
+          <div className="mx-auto flex max-w-2xl items-center gap-2">
+            <Input value={title} onChange={(e) => setTitle(e.target.value.slice(0, 30))} placeholder="Name it, e.g. Lagos 🌴" aria-label="Highlight name" className="h-10 flex-1 rounded-full" />
+            <Button onClick={() => void saveHighlight()} disabled={saving || !picked.length || !title.trim()} className="h-10 rounded-full">
+              Save{picked.length ? ` (${picked.length})` : ""}
+            </Button>
+          </div>
+        </div>
+      )}
 
       <DialogPrimitive.Root open={!!open} onOpenChange={(o) => !o && setOpen(null)}>
         <DialogPrimitive.Portal>
