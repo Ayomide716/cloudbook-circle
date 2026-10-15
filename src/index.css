@@ -632,3 +632,15 @@
     transform: translate(-50%, -50%);
   }
 }
+
+/* Photos come into focus softly when they arrive (see lib/soft-image.ts). */
+.img-soft:not([data-loaded]) {
+  opacity: 0;
+  filter: blur(16px);
+}
+.img-soft {
+  transition: opacity 0.4s ease-out, filter 0.5s ease-out, transform 0.3s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .img-soft { transition: none; filter: none; }
+}
