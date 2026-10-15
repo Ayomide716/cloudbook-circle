@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from "react";
 import { Maximize, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { isDataSaver, useDataSaver } from "@/lib/data-saver";
+import { SEEK_SECONDS, seekBy, seekSideAt } from "@/lib/video-seek";
+import SeekFlash from "@/components/SeekFlash";
 
 interface FeedVideoProps {
   src: string;
@@ -83,11 +85,21 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
     togglePlay();
   };
 
-  const onTap = () => {
+  // Double tap: the left or right side goes back or forward 10 seconds (as on Facebook);
+  // the middle likes the post.
+  const [seekFlash, setSeekFlash] = useState<{ side: -1 | 1; n: number } | null>(null);
+  const onTap = (e: React.MouseEvent<HTMLElement>) => {
     const now = Date.now();
     if (now - lastTap.current < DOUBLE_TAP_MS) {
       window.clearTimeout(tapTimer.current);
       lastTap.current = 0;
+      const side = seekSideAt(e.clientX, e.currentTarget.getBoundingClientRect());
+      if (side !== 0) {
+        seekBy(videoRef.current, side * SEEK_SECONDS);
+        setSeekFlash((f) => ({ side, n: (f?.n ?? 0) + 1 }));
+        pokeBar();
+        return;
+      }
       onDoubleTap?.();
       return;
     }
@@ -138,6 +150,8 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
           </span>
         )}
       </button>
+
+      {seekFlash && <SeekFlash key={seekFlash.n} side={seekFlash.side} />}
 
       {/* Playing silently: a sound-off badge, tap the video for sound. */}
       {playing && muted && !showBar && (
