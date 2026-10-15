@@ -602,7 +602,7 @@ const Profile = () => {
 
       <div className="page-flush max-w-5xl mx-auto px-0 sm:px-6 pb-28 md:pb-10">
         {/* ─── Header, as in Facebook: a white sheet over the cover with the photo, name and stats ─── */}
-        <header className="relative -mt-5 sm:mt-0 rounded-t-3xl sm:rounded-none bg-card sm:bg-transparent px-4 sm:px-0 pt-3 pb-4 mb-2 sm:mb-4">
+        <header className="relative -mt-5 sm:mt-0 rounded-t-3xl sm:rounded-none bg-card sm:bg-transparent px-4 sm:px-0 pt-3 pb-3 sm:pb-4 mb-0 sm:mb-4">
           {/* Phones, as on Facebook: the photo over the cover, then the name across the full width
               underneath (side by side, a long name wrapped into a tall block). */}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
@@ -751,7 +751,9 @@ const Profile = () => {
         </header>
 
         {/* ─── Tabs: Facebook's pill chips (All, Photos, Videos …), sticky under the top bar ─── */}
-        <nav aria-label="Profile sections" className="sticky top-0 md:top-[var(--nav-height)] z-30 mb-2 sm:mb-5 border-b border-border bg-card/95 sm:bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:supports-[backdrop-filter]:bg-background/80">
+        {/* Phones: the tabs are the bottom row of the header's sheet (a thin line above them, a
+            rounded bottom), not a separate box after a gap. */}
+        <nav aria-label="Profile sections" className="sticky top-0 md:top-[var(--nav-height)] z-30 mb-2 sm:mb-5 max-sm:!bg-card max-sm:rounded-b-3xl max-sm:border-t max-sm:border-border/60 sm:border-b sm:border-border bg-card/95 sm:bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:supports-[backdrop-filter]:bg-background/80">
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide px-3 sm:px-0 py-2">
             {/* Only sections with something in them (yours keeps Albums, to make one). */}
             {(["posts", "photos", "videos", "reels", "albums", "qa"] as const).filter((tab) =>
