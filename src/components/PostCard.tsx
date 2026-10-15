@@ -519,10 +519,11 @@ const PostCard = ({
           </Link>
           
           <div className="flex-1 min-w-0">
-            <Link to={`/profile/${post.profiles.id}`}>
-              <p className="font-semibold text-[14px] sm:text-base leading-tight hover:underline inline-flex items-center gap-1">
-                {post.profiles.full_name || "Anonymous"}
-                {post.profiles.is_verified && <VerifiedBadge size="sm" />}
+            <Link to={`/profile/${post.profiles.id}`} className="flex max-w-full">
+              {/* A long name shortens with "…" instead of pushing the menu button off the card. */}
+              <p className="flex min-w-0 items-center gap-1 text-[14px] font-semibold leading-tight hover:underline sm:text-base">
+                <span className="truncate">{post.profiles.full_name || "Anonymous"}</span>
+                {post.profiles.is_verified && <span className="shrink-0"><VerifiedBadge size="sm" /></span>}
               </p>
             </Link>
             {/* As in Facebook: "Lekki, Lagos · 2h · 🌐" (Ember posts are public). */}
@@ -696,7 +697,7 @@ const PostCard = ({
 
       {/* Summary: the reactions people used and how many, then the comment count (as in the mockup). */}
       {(totalReactions > 0 || comments.length > 0) && (
-        <div className="flex items-center gap-2 px-3.5 pt-2 text-[12.5px] text-muted-foreground">
+        <div className="flex min-h-[26px] items-center gap-2 px-3 pt-2 text-[12.5px] text-muted-foreground sm:px-4">
           {totalReactions > 0 && (
             <span className="flex items-center gap-1.5">
               <span className="flex -space-x-1" aria-hidden="true">
@@ -821,7 +822,7 @@ const PostCard = ({
         <button
           type="button"
           onClick={() => setShowComments(true)}
-          className="block w-full px-3.5 pb-3 -mt-0.5 text-left text-[13.5px] leading-snug"
+          className="block w-full px-3 pb-3 -mt-0.5 text-left text-[13.5px] leading-snug sm:px-4"
         >
           <span className="line-clamp-2">
             <span className="font-semibold">{latestComment.profiles.full_name || "Someone"}</span>{" "}

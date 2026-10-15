@@ -1,3 +1,4 @@
+import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
 import { getErrorMessage } from "@/lib/utils";
 import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
@@ -15,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Users, Search, Globe, ImagePlus, Check } from "lucide-react";
+import { Loader2, Plus, Globe, ImagePlus, Check } from "lucide-react";
 import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import GroupsSkeleton from "@/components/skeletons/GroupsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -322,32 +323,30 @@ const Groups = () => {
         )}
 
         {filteredGroups.length === 0 ? (
-          <Card className="feed-section flat-list p-12 text-center">
+          <Card className="feed-section flat-list">
             {searchQuery || view !== "all" ? (
-              <>
-                <Search className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-                <h2 className="text-xl font-semibold mb-2">
-                  {searchQuery ? "No groups found" : view === "mine" ? "You haven't joined any groups yet" : "You've joined every group"}
-                </h2>
-                <p className="text-muted-foreground mb-4">
-                  {searchQuery ? "Try a different search term or create a new group" : "Create one, or look through all groups."}
-                </p>
-                <Button onClick={() => { setSearchQuery(""); setView("all"); }} variant="outline">
-                  {searchQuery ? "Clear search" : "Show all groups"}
-                </Button>
-              </>
+              <EmptyState
+                emoji={searchQuery ? "search" : "people"}
+                title={searchQuery ? "No groups found" : view === "mine" ? "You haven't joined any groups yet" : "You've joined every group"}
+                text={searchQuery ? "Try a different search, or create a new group." : "Create one, or look through all groups."}
+                action={
+                  <Button onClick={() => { setSearchQuery(""); setView("all"); }} variant="outline" className="rounded-full">
+                    {searchQuery ? "Clear search" : "Show all groups"}
+                  </Button>
+                }
+              />
             ) : (
-              <>
-                <Users className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-                <h2 className="text-xl font-semibold mb-2">No groups yet</h2>
-                <p className="text-muted-foreground mb-4">
-                  Create a group to connect with people who share your interests
-                </p>
-                <Button onClick={() => setIsCreating(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Create Your First Group
-                </Button>
-              </>
+              <EmptyState
+                emoji="people"
+                title="No groups yet"
+                text="Create a group to connect with people who share your interests."
+                action={
+                  <Button onClick={() => setIsCreating(true)} className="rounded-full">
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create a group
+                  </Button>
+                }
+              />
             )}
           </Card>
         ) : (

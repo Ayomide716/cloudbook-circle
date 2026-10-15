@@ -1,3 +1,5 @@
+import EmptyState from "@/components/EmptyState";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Coins, TrendingUp, Eye, MousePointerClick, Pause, Play, Trash2, BarChart3, Info, Loader2 } from "lucide-react";
+import { Plus, Coins, Eye, MousePointerClick, Pause, Play, Trash2, BarChart3, Info, Loader2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -287,12 +289,16 @@ const Ads = () => {
       <Navigation currentUserId={currentUserId || undefined} />
 
       <div className="max-w-4xl mx-auto px-4 py-6 pb-28 md:pb-8 space-y-6">
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="font-display text-[22px] font-bold tracking-tight sm:text-3xl">Ad Manager</h1>
-          <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl">
-            <Plus className="h-4 w-4" /> <span className="hidden min-[400px]:inline">New</span> campaign
-          </Button>
-        </div>
+        <PageHeader
+          back
+          title="Ad Manager"
+          className="!mb-0 !pb-0"
+          actions={
+            <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl">
+              <Plus className="h-4 w-4" /> <span className="hidden min-[400px]:inline">New</span> campaign
+            </Button>
+          }
+        />
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -314,11 +320,13 @@ const Ads = () => {
 
           <TabsContent value="campaigns" className="space-y-3 mt-4">
             {campaigns.length === 0 ? (
-              <Card className="p-8 text-center">
-                <TrendingUp className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                <p className="text-lg font-medium mb-1">No campaigns yet</p>
-                <p className="text-sm text-muted-foreground mb-4">Create your first ad to reach more people in their feed.</p>
-                <Button onClick={() => setShowCreate(true)} className="rounded-xl">Create campaign</Button>
+              <Card>
+                <EmptyState
+                  emoji="party"
+                  title="No campaigns yet"
+                  text="Create your first ad to reach more people in their feed."
+                  action={<Button onClick={() => setShowCreate(true)} className="rounded-full">Create campaign</Button>}
+                />
               </Card>
             ) : (
               campaigns.map((c) => {

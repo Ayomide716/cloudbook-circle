@@ -126,7 +126,7 @@ import { Button } from "@/components/ui/button";
        <Navigation currentUserId={currentUserId} />
  
        <div className="page-flush max-w-2xl mx-auto px-0 sm:px-4 pb-6 sm:py-6">
-         <PageHeader title="Saved" subtitle={posts.length > 0 ? `${posts.length} saved ${posts.length === 1 ? "post" : "posts"}` : undefined} className="sm:mb-4" />
+         <PageHeader back title="Saved" subtitle={posts.length > 0 ? `${posts.length} saved ${posts.length === 1 ? "post" : "posts"}` : undefined} className="sm:mb-4" />
  
          {posts.length === 0 ? (
            <EmptyState

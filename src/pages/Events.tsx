@@ -355,6 +355,7 @@ const Events = () => {
           </Dialog>
 
         <PageHeader
+          back
           title="Events"
           actions={<HeaderAction icon={Plus} label="Create event" primary onClick={() => setShowCreateDialog(true)} />}
           className="sm:mb-5"

@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useState } from "react";
 import AppVersionCard from "@/components/AppVersionCard";
 import StorageStatusCard from "@/components/StorageStatusCard";
@@ -15,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "lucide-react";
+import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "lucide-react";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -231,12 +232,7 @@ const Settings = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       <div className="max-w-[600px] mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8">
-        <div className="flex items-center gap-3 mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="rounded-full" aria-label="Back">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <h1 className="text-[22px] sm:text-3xl font-bold font-display tracking-tight">Settings</h1>
-        </div>
+        <PageHeader back title="Settings" className="mb-3 sm:mb-6" />
 
         {/* Account */}
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Account</h2>

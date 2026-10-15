@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
-import { isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
+import { POSTED_EVENT, isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
 import { BLANK_POSTER } from "@/lib/video-poster";
 import LiveRoomStories from "./LiveRoomStories";
 import { useMyProfile } from "@/hooks/use-my-profile";
@@ -172,6 +172,15 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     const cleanup = setupRealtimeSubscription();
     return cleanup;
   }, [currentUserId, loadStories, setupRealtimeSubscription]);
+
+  // A video story finished uploading in the background: show it.
+  useEffect(() => {
+    const onPosted = (e: Event) => {
+      if ((e as CustomEvent<{ label?: string }>).detail?.label === "story") loadStories();
+    };
+    window.addEventListener(POSTED_EVENT, onPosted);
+    return () => window.removeEventListener(POSTED_EVENT, onPosted);
+  }, [loadStories]);
 
   // Extra taps while this is saving do nothing (no double posts on a slow network).
   const onceHandleCreateStory = useSingleFlight();

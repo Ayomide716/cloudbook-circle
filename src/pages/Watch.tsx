@@ -1,3 +1,4 @@
+import EmptyState from "@/components/EmptyState";
 import { publicUrl } from "@/lib/native/platform";
 import { useState, useEffect, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
@@ -412,6 +413,7 @@ const Watch = () => {
             </Dialog>
 
           <PageHeader
+            back
             title="Watch"
             actions={<HeaderAction icon={Plus} label="Upload video" primary onClick={() => setShowUpload(true)} />}
             className="sm:mb-4"
@@ -444,15 +446,14 @@ const Watch = () => {
               ))}
             </div>
           ) : videos.length === 0 ? (
-            <div className="text-center py-16 px-4">
-              <Play className="h-16 w-16 mx-auto text-muted-foreground/40 mb-4" />
-              <p className="text-lg font-medium text-muted-foreground">
-                {activeCategory === "saved" ? "No saved videos yet" :
-                 activeCategory === "following" ? "No videos from your friends yet" :
-                 debouncedSearch ? "No videos match your search" :
-                 "No videos yet. Be the first to upload!"}
-              </p>
-            </div>
+            <EmptyState
+              emoji={debouncedSearch ? "search" : "camera"}
+              title={activeCategory === "saved" ? "No saved videos yet" :
+                activeCategory === "following" ? "No videos from your friends yet" :
+                debouncedSearch ? "No videos match your search" :
+                "No videos yet"}
+              text={!debouncedSearch && activeCategory !== "saved" && activeCategory !== "following" ? "Be the first to upload one!" : undefined}
+            />
           ) : (
             <motion.div
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"

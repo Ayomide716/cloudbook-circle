@@ -128,7 +128,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
       <button
         type="button"
         aria-label={playing ? (muted ? "Turn sound on" : "Pause video") : "Play video"}
-        className="absolute inset-0 flex items-center justify-center"
+        className="no-press absolute inset-0 flex items-center justify-center"
         onClick={onTap}
         onDoubleClick={(e) => e.preventDefault()}
       >

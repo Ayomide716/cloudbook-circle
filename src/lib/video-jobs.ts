@@ -130,6 +130,11 @@ export function usePostingJobs(): VideoJob[] {
   return all.filter((j) => j.posting);
 }
 
+/** Something is still being prepared, uploaded or posted (app updates wait for it). */
+export const videoJobsBusy = () =>
+  [...jobs.values()].some((j) => j.phase === "preparing" || j.phase === "uploading" || (j.posting && !j.posting.failed));
+export const onVideoJobsChange = subscribe;
+
 /** Something was posted in the background: lists showing posts or reels can refresh. */
 export const POSTED_EVENT = "ember:posted";
 
