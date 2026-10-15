@@ -35,6 +35,7 @@ import { fadeTheme } from "@/lib/theme-fade";
 import { motion } from "framer-motion";
 import { disablePush } from "@/lib/web-push";
 import InviteFriends from "@/components/InviteFriends";
+import GroupShortcuts from "@/components/GroupShortcuts";
 
 interface Shortcut {
   icon: LucideIcon;
@@ -165,6 +166,8 @@ const Menu = () => {
             </button>
           </div>
         </section>
+
+        {userId && <GroupShortcuts userId={userId} />}
 
         {/* Shortcuts: rounded app-icon tiles, four to a row, as on a phone's home screen. */}
         <nav aria-label="Shortcuts" className="feed-section grid grid-cols-4 gap-y-4 rounded-2xl border border-border bg-card px-2 py-4">

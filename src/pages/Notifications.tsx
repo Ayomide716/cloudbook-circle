@@ -6,7 +6,9 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2 } from "lucide-react";
+import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2, MoreHorizontal, BellOff, Trash2 } from "lucide-react";
+import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
+import { ToastAction } from "@/components/ui/toast";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import { PageHeader, Chips } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -24,6 +26,9 @@ interface Notification extends GroupableNotification {
 }
 
 type NotificationRow = NotificationGroup<Notification>;
+
+/** What a notification is about, in words: "post", "reel", "group"… */
+const aboutWhat = (type: string) => (type.includes("reel") ? "reel" : type.includes("group") ? "group" : type.includes("story") ? "story" : type.includes("event") ? "event" : "post");
 
 const Notifications = () => {
   const navigate = useNavigate();
@@ -230,6 +235,36 @@ const Notifications = () => {
   };
 
 
+  // ⋯ on a notification, as on Facebook: remove it, or stop notifications about that thing.
+  const removeNotification = async (n: NotificationRow) => {
+    setNotifications((prev) => prev.filter((x) => x.id !== n.id));
+    const { error } = await supabase.from("notifications").delete().in("id", n.memberIds);
+    if (error) {
+      toast({ title: "Couldn't remove it", variant: "destructive" });
+      loadNotifications();
+    } else {
+      toast({ title: "Notification removed" });
+    }
+  };
+
+  const muteAbout = async (n: NotificationRow) => {
+    if (!currentUserId || !n.related_id) return;
+    const relatedId = n.related_id;
+    const { error } = await supabase.from("notification_mutes").upsert({ user_id: currentUserId, related_id: relatedId });
+    if (error) {
+      toast({ title: "Couldn't turn them off", variant: "destructive" });
+      return;
+    }
+    toast({
+      title: `You won't get notifications about this ${aboutWhat(n.type)}`,
+      action: (
+        <ToastAction altText="Undo" onClick={() => void supabase.from("notification_mutes").delete().eq("user_id", currentUserId).eq("related_id", relatedId)}>
+          Undo
+        </ToastAction>
+      ),
+    });
+  };
+
   const unreadCount = notifications.filter((n) => !n.read).length;
   const shown = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
@@ -279,12 +314,18 @@ const Notifications = () => {
             />
           ) : (
             <div>
-              {shown.map((notification) => (
+              {[
+                { title: "New", rows: shown.filter((n) => !n.read) },
+                { title: "Earlier", rows: shown.filter((n) => n.read) },
+              ].filter((sec) => sec.rows.length > 0).map((sec) => (
+                <section key={sec.title} aria-label={sec.title}>
+                  <h2 className="px-4 pb-1 pt-4 text-[15px] font-semibold">{sec.title}</h2>
+                  {sec.rows.map((notification) => (
+                <div key={notification.id} className={cn("flex items-start rounded-2xl", !notification.read && "bg-primary/[0.06]")}>
                 <button
                   type="button"
-                  key={notification.id}
-                  className={cn(
-                    "flex w-full items-start gap-3 rounded-2xl p-4 text-left transition-colors hover:bg-accent/50 active:bg-accent focus-visible:outline-none focus-visible:bg-accent",
+                                    className={cn(
+                    "flex min-w-0 flex-1 items-start gap-3 rounded-2xl p-4 pr-1 text-left transition-colors hover:bg-accent/50 active:bg-accent focus-visible:outline-none focus-visible:bg-accent",
                   )}
                   onClick={() => handleNotificationClick(notification)}
                 >
@@ -345,6 +386,26 @@ const Notifications = () => {
                     </div>
                   )}
                 </button>
+                  <ActionMenu>
+                    <ActionMenuTrigger asChild>
+                      <button type="button" aria-label="Notification options" className="mr-2 mt-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-accent">
+                        <MoreHorizontal className="h-5 w-5" />
+                      </button>
+                    </ActionMenuTrigger>
+                    <ActionMenuContent align="end" className="w-64">
+                      <ActionMenuItem onSelect={() => void removeNotification(notification)}>
+                        <Trash2 className="mr-2 h-4 w-4" /> Remove this notification
+                      </ActionMenuItem>
+                      {notification.related_id && !notification.type.startsWith("friend_") && (
+                        <ActionMenuItem onSelect={() => void muteAbout(notification)}>
+                          <BellOff className="mr-2 h-4 w-4" /> Turn off notifications about this {aboutWhat(notification.type)}
+                        </ActionMenuItem>
+                      )}
+                    </ActionMenuContent>
+                  </ActionMenu>
+                </div>
+                  ))}
+                </section>
               ))}
             </div>
           )}
