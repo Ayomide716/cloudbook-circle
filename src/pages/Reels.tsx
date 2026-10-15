@@ -238,8 +238,8 @@ export default function Reels() {
     if (!user || !uploadVideoUrl) return;
     const userId = user.id;
     const caption = uploadCaption.trim() || null;
-    const save = async (videoUrl: string) => {
-      const { error } = await supabase.from("reels").insert({ user_id: userId, video_url: videoUrl, caption });
+    const save = async (videoUrl: string, thumbnailUrl: string | null = null) => {
+      const { error } = await supabase.from("reels").insert({ user_id: userId, video_url: videoUrl, caption, thumbnail_url: thumbnailUrl });
       if (error) throw error;
     };
     // Still preparing or uploading: it's posted from the background when ready ("Posting…" bar).
@@ -406,11 +406,12 @@ export default function Reels() {
             onScroll={handleScroll}
             className="h-[100dvh] md:h-[calc(100dvh-57px)] w-full md:w-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-contain"
           >
-            {shown.map((reel) => (
+            {shown.map((reel, i) => (
               <ReelCard
                 key={reel.id}
                 reel={reel}
                 isActive={reel.id === activeReelId}
+                isNext={i > 0 && shown[i - 1].id === activeReelId}
                 isMuted={isMuted}
                 currentUserId={user?.id || null}
                 onToggleMute={() => setIsMuted(p => !p)}
