@@ -72,6 +72,39 @@ async function fetchFeedPage(
     poll: null,
   }));
 
+  // Your own posts from the last few hours go first, as on Facebook: a new post has no likes
+  // yet, so the ranking alone could put it below older, busier posts.
+  if (!cursor && !isDigest) {
+    const since = new Date(Date.now() - 3 * 60 * 60 * 1000).toISOString();
+    const [{ data: mine }, { data: me }] = await Promise.all([
+      supabase
+        .from("posts")
+        .select("*")
+        .eq("user_id", userId)
+        .gt("created_at", since)
+        .order("created_at", { ascending: false })
+        .limit(3),
+      supabase.from("profiles").select("id, full_name, avatar_url, is_verified").eq("id", userId).maybeSingle(),
+    ]);
+    const fresh = (mine ?? []).filter((p) => !p.expires_at || new Date(p.expires_at) > new Date());
+    if (fresh.length && me) {
+      const freshIds = new Set(fresh.map((p) => p.id));
+      const own: FeedPost[] = fresh.map((p) => ({
+        id: p.id,
+        content: p.content,
+        image_url: p.image_url,
+        image_urls: null,
+        video_url: p.video_url,
+        created_at: p.created_at ?? new Date().toISOString(),
+        user_id: p.user_id,
+        profiles: me,
+        background: (p as { background?: string | null }).background ?? null,
+        poll: null,
+      }));
+      posts.splice(0, posts.length, ...own, ...posts.filter((p) => !freshIds.has(p.id)));
+    }
+  }
+
   // Photos and place for these posts (the ranking function returns the basics only)
   if (posts.length > 0) {
     const postIds = posts.map((p) => p.id);
