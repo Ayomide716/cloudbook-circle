@@ -51,7 +51,7 @@ const PhotoCollage = ({ images, onOpen, onDoubleTap, className }: PhotoCollagePr
         key={index}
         type="button"
         onClick={() => tap(index)}
-        className={cn("relative block overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", extraClass)}
+        className={cn("no-press relative block overflow-hidden bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", extraClass)}
         aria-label={hidden > 0 ? `Open photo ${index + 1} of ${count}, ${hidden} more` : `Open photo ${index + 1} of ${count}`}
       >
         <img src={images[index]} alt="" loading="lazy" {...softImage} className={cn(softImage.className, "h-full w-full object-cover hover:scale-[1.02]")} />
@@ -69,7 +69,7 @@ const PhotoCollage = ({ images, onOpen, onDoubleTap, className }: PhotoCollagePr
       <button
         type="button"
         onClick={() => tap(0)}
-        className={cn("flex w-full justify-center bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", className)}
+        className={cn("no-press flex w-full justify-center bg-muted/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring", className)}
         aria-label="Open photo"
       >
         <img src={images[0]} alt="" loading="lazy" {...softImage} className={cn(softImage.className, "w-full max-h-[600px] object-contain")} />

@@ -1,3 +1,4 @@
+import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
 import { shrinkImage } from "@/lib/image-compress";
 import { publicUrl } from "@/lib/native/platform";
@@ -28,8 +29,6 @@ import {
   GraduationCap,
   Link as LinkIcon,
   Heart,
-  MessageSquare,
-  Image as ImageIcon,
   Users,
   Plus,
   FolderOpen,
@@ -148,6 +147,8 @@ const Profile = () => {
 
 
   // Mutual friends state
+  // Your own profile: a few friends' faces under the count, as on Facebook.
+  const [friendFaces, setFriendFaces] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[]>([]);
   const [mutualFriends, setMutualFriends] = useState<{id: string;full_name: string | null;avatar_url: string | null;}[]>([]);
   // Someone else's profile: groups you're both in, and the same town or school.
   const [thingsInCommon, setThingsInCommon] = useState<string[]>([]);
@@ -290,6 +291,17 @@ const Profile = () => {
       return;
     }
     setFriendCount(Number(stats.friend_count));
+    if (userId === currentUserId) {
+      const { data: rows } = await supabase
+        .from("friendships")
+        .select("user_id, friend_id")
+        .eq("status", "accepted")
+        .or(`user_id.eq.${userId},friend_id.eq.${userId}`)
+        .limit(6);
+      const ids = (rows ?? []).map((r) => (r.user_id === userId ? r.friend_id : r.user_id));
+      const { data: faces } = ids.length ? await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids) : { data: [] };
+      setFriendFaces(faces ?? []);
+    }
     const mutualIds = stats.mutual_ids ?? [];
     if (!mutualIds.length) { setMutualFriends([]); return; }
     const { data: profiles } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", mutualIds.slice(0, 20));
@@ -611,7 +623,7 @@ const Profile = () => {
             <div className="min-w-0 flex-1 pb-1 sm:pb-3">
               <h1 className="text-[22px] sm:text-3xl font-bold leading-tight flex items-center gap-1.5 [overflow-wrap:anywhere]">
                 {profile.full_name || "Anonymous User"}
-                {profile.is_verified && <VerifiedBadge size="lg" />}
+                {profile.is_verified && <span className="shrink-0"><VerifiedBadge size="lg" /></span>}
               </h1>
               {/* "245 friends · 10 mutual · 153 posts" */}
               <p className="mt-0.5 text-[15px] text-muted-foreground">
@@ -622,6 +634,16 @@ const Profile = () => {
                 {!isOwnProfile && mutualFriends.length > 0 && <> · <strong className="font-semibold text-foreground">{mutualFriends.length}</strong> mutual</>}
                 {" · "}<strong className="font-semibold text-foreground">{posts.length}</strong> {posts.length === 1 ? "post" : "posts"}
               </p>
+              {isOwnProfile && friendFaces.length > 0 &&
+              <button type="button" onClick={() => navigate("/friends")} className="mt-1.5 flex -space-x-1.5" aria-label="See your friends">
+                  {friendFaces.map((f) =>
+                <Avatar key={f.id} className="h-7 w-7 ring-2 ring-card">
+                      <AvatarImage src={f.avatar_url || undefined} alt="" />
+                      <AvatarFallback className="text-[10px]">{f.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                )}
+                </button>
+              }
             </div>
           </div>
 
@@ -665,7 +687,7 @@ const Profile = () => {
             </div>
           }
 
-          <div className={cn("mt-4 grid gap-2 sm:flex sm:max-w-md", isOwnProfile ? "grid-cols-2" : "grid-cols-[1fr_1fr_auto]")}>
+          <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2 sm:flex sm:max-w-md">
             {isOwnProfile ?
             <>
                 <Button onClick={() => navigate("/?story=1")} className="sm:flex-1 rounded-lg">
@@ -674,6 +696,11 @@ const Profile = () => {
                 <Button variant="secondary" onClick={() => setIsEditingProfile(true)} className="sm:flex-1 rounded-lg">
                   <Edit className="h-4 w-4 mr-1.5" /> Edit profile
                 </Button>
+                {profileMenu(
+                <Button variant="secondary" size="icon" className="rounded-lg" aria-label="More options">
+                    <MoreHorizontal className="h-5 w-5" />
+                  </Button>
+                )}
               </> :
             <>
                 <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} className="w-full sm:flex-1 rounded-lg" />
@@ -852,15 +879,7 @@ const Profile = () => {
             {/* Right column — Posts feed */}
             <div className="lg:col-span-2 space-y-2 sm:space-y-5">
               {posts.length === 0 ?
-            <div className="bento-card p-12 text-center">
-                  <div className="w-16 h-16 rounded-2xl gradient-brand-soft flex items-center justify-center mx-auto mb-4">
-                    <MessageSquare className="h-7 w-7 text-primary" />
-                  </div>
-                  <p className="font-display font-semibold text-lg mb-1">No posts yet</p>
-                  <p className="text-sm text-muted-foreground">
-                    {isOwnProfile ? "Share your first thought with the world!" : "This user hasn't posted anything yet."}
-                  </p>
-                </div> :
+            <EmptyState className="bento-card" emoji="chat" title="No posts yet" text={isOwnProfile ? "Share your first thought with the world!" : "Nothing posted here yet."} /> :
 
             posts.map((post, i) =>
             <motion.div
@@ -889,11 +908,7 @@ const Profile = () => {
 
         {activeTab === "videos" && (
         videoPosts.length === 0 ?
-        <div className="bento-card p-12 text-center">
-              <Play className="h-8 w-8 text-muted-foreground mx-auto mb-3" aria-hidden="true" />
-              <p className="font-semibold text-lg mb-1">No videos</p>
-              <p className="text-sm text-muted-foreground">Videos from posts will appear here.</p>
-            </div> :
+        <EmptyState className="bento-card" emoji="camera" title="No videos yet" text="Videos from posts will show up here." /> :
         // Portrait tiles, three across, like Facebook's Videos tab.
         <div className="grid grid-cols-3 gap-0.5 sm:gap-1 sm:rounded-xl overflow-hidden">
               {videoPosts.map((p) =>
@@ -911,10 +926,7 @@ const Profile = () => {
 
         {activeTab === "reels" && (
           reels.length === 0 ?
-          <div className="bento-card p-12 text-center">
-              <Play className="h-8 w-8 text-muted-foreground mx-auto mb-3" aria-hidden="true" />
-              <p className="font-semibold text-lg mb-1">No reels</p>
-            </div> :
+          <EmptyState className="bento-card" emoji="camera" title="No reels yet" text={isOwnProfile ? "Reels you post will show up here." : undefined} /> :
           <ProfileReels reels={reels} isOwn={isOwnProfile} onDelete={deleteReel} />)
         }
 
@@ -925,13 +937,7 @@ const Profile = () => {
           transition={spring}>
           
             {photoPosts.length === 0 ?
-          <div className="bento-card p-12 text-center">
-                <div className="w-16 h-16 rounded-2xl gradient-brand-soft flex items-center justify-center mx-auto mb-4">
-                  <ImageIcon className="h-7 w-7 text-primary" />
-                </div>
-                <p className="font-display font-semibold text-lg mb-1">No photos</p>
-                <p className="text-sm text-muted-foreground">Photos from posts will appear here.</p>
-              </div> :
+          <EmptyState className="bento-card" emoji="camera" title="No photos yet" text="Photos from posts will show up here." /> :
 
           // Instagram-style grid: square tiles edge to edge; a stack icon marks posts with several photos.
           <div className="grid grid-cols-3 gap-0.5 sm:gap-1 sm:rounded-xl overflow-hidden">
@@ -1015,13 +1021,7 @@ const Profile = () => {
               const album = albums.find((a) => a.id === selectedAlbum.id);
               const photos = album?.photos || [];
               return photos.length === 0 ?
-              <div className="bento-card p-12 text-center">
-                      <div className="w-16 h-16 rounded-2xl gradient-brand-soft flex items-center justify-center mx-auto mb-4">
-                        <ImageIcon className="h-7 w-7 text-primary" />
-                      </div>
-                      <p className="font-display font-semibold text-lg mb-1">No photos yet</p>
-                      <p className="text-sm text-muted-foreground">Add photos to this album to get started.</p>
-                    </div> :
+              <EmptyState className="bento-card" emoji="camera" title="No photos yet" text="Add photos to this album to get started." /> :
 
               <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                       {photos.map((photo, i) =>

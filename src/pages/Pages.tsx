@@ -175,6 +175,7 @@ const Pages = () => {
             </Dialog>
 
           <PageHeader
+            back
             title="Pages"
             actions={<HeaderAction icon={Plus} label="Create page" primary onClick={() => setShowCreate(true)} />}
             className="sm:mb-4"

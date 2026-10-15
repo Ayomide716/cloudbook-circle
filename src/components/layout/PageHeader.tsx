@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { LucideIcon } from "lucide-react";
-import { Search } from "lucide-react";
+import { ArrowLeft, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -12,14 +13,32 @@ interface PageHeaderProps {
   actions?: ReactNode;
   /** Search, chips or tabs under the title. */
   children?: ReactNode;
+  /** A page you reach from the menu (not a tab): a back arrow before the title. */
+  back?: boolean;
   className?: string;
 }
+
+/** Back where you came from, or to the menu when the page was opened directly. */
+const BackButton = () => {
+  const navigate = useNavigate();
+  const canGoBack = (window.history.state?.idx ?? 0) > 0;
+  return (
+    <button
+      type="button"
+      onClick={() => (canGoBack ? navigate(-1) : navigate("/menu"))}
+      aria-label="Back"
+      className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-secondary sm:h-10 sm:w-10"
+    >
+      <ArrowLeft className="h-5 w-5" />
+    </button>
+  );
+};
 
 /**
  * The top of a page, as in the redesign: a bold title with round buttons on the right.
  * It sits on the page background, above the page's cards.
  */
-export const PageHeader = ({ title, subtitle, actions, children, className }: PageHeaderProps) => (
+export const PageHeader = ({ title, subtitle, actions, children, back, className }: PageHeaderProps) => (
   <section
     className={cn(
       "px-1 pt-1 pb-3 space-y-3",
@@ -27,8 +46,9 @@ export const PageHeader = ({ title, subtitle, actions, children, className }: Pa
       className
     )}
   >
-    <div className="flex items-center justify-between gap-3">
-      <div className="min-w-0">
+    <div className="flex items-center gap-2">
+      {back && <BackButton />}
+      <div className="min-w-0 flex-1">
         <h1 className="font-display text-[22px] sm:text-3xl font-bold tracking-tight truncate">{title}</h1>
         {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>

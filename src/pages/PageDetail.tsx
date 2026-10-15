@@ -1,3 +1,4 @@
+import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
 import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useState, useEffect, useMemo } from "react";
@@ -496,9 +497,7 @@ const PageDetail = () => {
 
           {/* Posts Feed */}
           {posts.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">{isOwner ? "Write your first post above." : "No posts on this page yet."}</p>
-            </div>
+            <EmptyState emoji="chat" title="No posts yet" text={isOwner ? "Write your first post above." : undefined} />
           ) : (
             <div className="space-y-4">
               {posts.map((post) => (

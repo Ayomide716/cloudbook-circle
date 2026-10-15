@@ -1,3 +1,4 @@
+import { PageHeader } from "@/components/layout/PageHeader";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -157,10 +158,7 @@ const AdminDashboard = () => {
       <Navigation currentUserId={currentUserId || undefined} />
 
       <div className="max-w-5xl mx-auto px-4 py-6 mb-20 space-y-6">
-        <div className="flex items-center gap-3">
-          <Shield className="h-7 w-7 text-primary" />
-          <h1 className="font-display text-[22px] font-bold tracking-tight sm:text-3xl">Admin Dashboard</h1>
-        </div>
+        <PageHeader back title="Admin Dashboard" className="!mb-0 !pb-0" />
 
         <MoveMediaCard />
 

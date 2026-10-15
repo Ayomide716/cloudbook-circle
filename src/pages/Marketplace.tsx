@@ -1,3 +1,4 @@
+import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
 import { shrinkImage } from "@/lib/image-compress";
 import { useEffect, useMemo, useState } from "react";
@@ -310,6 +311,7 @@ const Marketplace = () => {
           </Dialog>
 
         <PageHeader
+          back
           title="Marketplace"
           actions={<HeaderAction icon={Plus} label="Sell item" primary onClick={() => setCreateOpen(true)} />}
           className="sm:mb-4"
@@ -357,13 +359,11 @@ const Marketplace = () => {
             ))}
           </div>
         ) : listings.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
-            <Tag className="h-12 w-12 mx-auto mb-4 opacity-40" />
-            <p className="text-lg font-medium">
-              {debouncedSearch ? "No listings match your search" : view === "mine" ? "You haven't listed anything yet" : "No listings found"}
-            </p>
-            <p className="text-sm mt-1">{view === "mine" ? "Tap “Sell item” to list something." : "Be the first to sell something!"}</p>
-          </div>
+          <EmptyState
+            emoji={debouncedSearch ? "search" : "mailbox"}
+            title={debouncedSearch ? "No listings match your search" : view === "mine" ? "You haven't listed anything yet" : "No listings yet"}
+            text={view === "mine" ? "Tap “Sell item” to list something." : "Be the first to sell something!"}
+          />
         ) : (
           <motion.div layout className={cn("grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 px-2 sm:px-0 sm:gap-4 transition-opacity", loading && "opacity-60")}>
             <AnimatePresence>

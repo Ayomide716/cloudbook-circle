@@ -644,3 +644,14 @@
 @media (prefers-reduced-motion: reduce) {
   .img-soft { transition: none; filter: none; }
 }
+
+/* Press feedback on phones, as in Facebook and Instagram: buttons give a little under your
+   finger, links dim. ("scale" adds to any transform a button already has.) */
+@media (pointer: coarse) and (prefers-reduced-motion: no-preference) {
+  :where(button, [role="button"], [role="tab"], [role="menuitem"]):not(:disabled):not(.no-press):active {
+    scale: 0.96;
+  }
+  :where(a):not(.no-press):active {
+    opacity: 0.7;
+  }
+}

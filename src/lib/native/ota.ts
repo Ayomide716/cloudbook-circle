@@ -12,6 +12,7 @@
  */
 import { PUBLIC_URL } from "./platform";
 import { NATIVE_LEVEL } from "./native-level";
+import { onVideoJobsChange, videoJobsBusy } from "@/lib/video-jobs";
 
 declare const __EMBER_VERSION__: string | undefined;
 
@@ -62,6 +63,8 @@ let shellLevel: number | null = null;
  */
 export function checkForUpdate({ force = false, applyNow = false } = {}): Promise<UpdateCheck> {
   if (busy) return busy;
+  // Switching versions restarts the app, which would lose a video still uploading.
+  if (!applyNow && videoJobsBusy()) return Promise.resolve("up-to-date");
   if (!force && Date.now() - lastCheck < 60_000) return Promise.resolve("up-to-date");
   lastCheck = Date.now();
   busy = (async (): Promise<UpdateCheck> => {
@@ -122,6 +125,19 @@ export async function startOverTheAirUpdates() {
 
   const { App } = await import("@capacitor/app");
   checkForUpdate({ force: true });
+  // A video started uploading: call off a switch queued for when you leave the app, and look
+  // again once it's posted.
+  let held = false;
+  onVideoJobsChange(() => {
+    const working = videoJobsBusy();
+    if (working && !held) {
+      held = true;
+      void CapacitorUpdater.current().then(({ bundle }) => CapacitorUpdater.next({ id: bundle.id })).catch(() => {});
+    } else if (!working && held) {
+      held = false;
+      checkForUpdate({ force: true });
+    }
+  });
   App.addListener("appStateChange", ({ isActive }) => {
     if (isActive) checkForUpdate();
   });

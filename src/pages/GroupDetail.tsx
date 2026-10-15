@@ -1,3 +1,4 @@
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useState } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate, useParams } from "react-router-dom";
@@ -639,13 +640,8 @@ const GroupDetail = () => {
                 <p className="text-muted-foreground">Join the group to see and share posts</p>
               </Card>
             ) : posts.length === 0 ? (
-              <Card className="feed-section p-12 text-center">
-                <p className="text-muted-foreground">No posts yet</p>
-                {isMember && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Be the first to share something!
-                  </p>
-                )}
+              <Card className="feed-section">
+                <EmptyState emoji="chat" title="No posts yet" text={isMember ? "Be the first to share something!" : undefined} />
               </Card>
             ) : (
               posts.map((post) => (

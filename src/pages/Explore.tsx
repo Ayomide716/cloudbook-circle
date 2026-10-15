@@ -1,3 +1,4 @@
+import EmptyState from "@/components/EmptyState";
 import { useEffect, useRef, useState } from "react";
 import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -11,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { groupColor, groupInitials } from "@/lib/group-tile";
-import { TrendingUp, Hash, Users, Compass, Search, Flame, Check, Loader2 } from "lucide-react";
+import { TrendingUp, Hash, Users, Compass, Flame, Check, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { PostCardProps } from "@/components/PostCard";
 import type { Tables } from "@/integrations/supabase/types";
@@ -210,7 +211,7 @@ const Explore = () => {
     <div className="min-h-screen bg-background">
       <Navigation />
       <div className="page-flush max-w-3xl mx-auto w-full px-0 sm:px-4 pb-6 sm:py-6">
-        <PageHeader title="Explore" className="sm:mb-4">
+        <PageHeader back title="Explore" className="sm:mb-4">
           <PageSearch value={searchQuery} onChange={updateSearch} placeholder="Search topics, people, content" label="Search posts and people" />
         </PageHeader>
         <ExploreSkeleton />
@@ -222,7 +223,7 @@ const Explore = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
       <div className="page-flush flex-1 max-w-3xl mx-auto w-full px-0 sm:px-4 pb-6 sm:py-6">
-        <PageHeader title="Explore" className="sm:mb-4">
+        <PageHeader back title="Explore" className="sm:mb-4">
           <PageSearch value={searchQuery} onChange={updateSearch} placeholder="Search topics, people, content" label="Search posts and people" />
         </PageHeader>
 
@@ -275,10 +276,7 @@ const Explore = () => {
               </section>
             )}
             {searchResults && !isSearching && searchResults.people.length === 0 && searchResults.posts.length === 0 && (
-              <div className="text-center py-16">
-                <Search className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                <p className="text-muted-foreground">No results for “{trimmedQuery}”</p>
-              </div>
+              <EmptyState emoji="search" title={`No results for “${trimmedQuery}”`} text="Check the spelling, or try a name or a word from a post." />
             )}
           </div>
         ) : (

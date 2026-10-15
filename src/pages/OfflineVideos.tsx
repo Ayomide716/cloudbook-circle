@@ -42,7 +42,7 @@ const OfflineVideos = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={session?.user.id} />
       <div className="page-flush mx-auto max-w-xl space-y-2 px-0 pb-24 sm:space-y-4 sm:px-4 sm:py-6">
-        <PageHeader title="Offline videos" subtitle={videos.length ? `${videos.length} saved · ${mb(total)} on this phone` : undefined} />
+        <PageHeader back title="Offline videos" subtitle={videos.length ? `${videos.length} saved · ${mb(total)} on this phone` : undefined} />
         {videos.length === 0 ? (
           <EmptyState emoji="bookmark" title="No offline videos yet" text="On a reel, tap ⋯ → Save for offline to watch it later without data." />
         ) : (
