@@ -323,7 +323,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 value={content}
                 onChange={setContent}
                 className={cn(
-                  "resize-none border-0 focus-visible:ring-0 p-0",
+                  // A little room on the sides so the first letter isn't clipped at the edge.
+                  "resize-none border-0 focus-visible:ring-0 px-1 py-0",
                   bgCss
                     ? "min-h-[80px] w-full bg-transparent text-center text-2xl font-bold text-white placeholder:text-white/70"
                     : imageUrls.length || videoUrl || pollData
@@ -336,7 +337,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
             {/* Backgrounds for short text posts, as on Facebook */}
             {canUseBackground && (
-              <div className="-mt-1 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-hide" role="radiogroup" aria-label="Background">
+              // Padding inside the scroller so the selected ring isn't cut off at the edges.
+              <div className="-mx-1 -mt-1 flex items-center gap-2 overflow-x-auto px-1.5 py-1.5 scrollbar-hide" role="radiogroup" aria-label="Background">
                 <button
                   type="button"
                   role="radio"
