@@ -330,6 +330,38 @@ function readR2Settings(env) {
   };
 }
 
+// supabase/functions/_shared/media-migrate.ts
+var MEDIA_COLUMNS = [
+  { table: "profiles", columns: ["avatar_url", "cover_url"] },
+  { table: "posts", columns: ["image_url", "video_url"], arrays: ["image_urls"] },
+  { table: "reels", columns: ["video_url", "thumbnail_url"] },
+  { table: "stories", columns: ["media_url"] },
+  { table: "messages", columns: ["image_url"] },
+  { table: "group_messages", columns: ["image_url"] },
+  { table: "group_posts", columns: ["image_url"] },
+  { table: "groups", columns: ["image_url"] },
+  { table: "album_photos", columns: ["image_url"] },
+  { table: "events", columns: ["cover_image"] },
+  { table: "pages", columns: ["avatar_url", "cover_url"] },
+  { table: "page_posts", columns: ["image_url"] },
+  { table: "marketplace_listings", columns: [], arrays: ["image_urls"] },
+  { table: "watch_videos", columns: ["video_url", "thumbnail_url"] },
+  { table: "ad_campaigns", columns: ["image_url"] }
+];
+var MARKER = "/storage/v1/object/public/";
+function storageKey(url) {
+  if (typeof url !== "string") return null;
+  const i = url.indexOf(MARKER);
+  if (i === -1) return null;
+  const key = decodeURIComponent(url.slice(i + MARKER.length).split(/[?#]/)[0]);
+  return /^[\w-]+\/.+/.test(key) && !key.includes("..") ? key : null;
+}
+function swapUrls(value, moved) {
+  if (typeof value === "string") return moved.get(value) ?? value;
+  if (Array.isArray(value)) return value.map((v) => typeof v === "string" ? moved.get(v) ?? v : v);
+  return value;
+}
+
 // supabase/functions/media-upload/index.ts
 var corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -379,6 +411,63 @@ Deno.serve(async (req) => {
     const headers2 = { "Content-Type": "text/plain", "Cache-Control": "no-store" };
     const signed2 = await r2.sign(new Request(target2, { method: "PUT", headers: headers2 }), { aws: { signQuery: true } });
     return json({ server, bucket, uploadUrl: signed2.url, headers: headers2, publicUrl: `${publicUrl}/${key}` });
+  }
+  if (body.migrate === true) {
+    const base = Deno.env.get("SUPABASE_URL");
+    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const db = (path, init = {}) => fetch(`${base}/rest/v1/${path}`, { ...init, headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json", ...init.headers ?? {} } });
+    const admin = await db(`user_roles?select=user_id&role=eq.admin&user_id=eq.${user.id}`).then((r) => r.ok ? r.json() : []);
+    if (!Array.isArray(admin) || admin.length === 0) return json({ error: "Admins only." }, 403);
+    const uses = /* @__PURE__ */ new Map();
+    for (const t of MEDIA_COLUMNS) {
+      const cols = [...t.columns, ...t.arrays ?? []];
+      for (let from = 0; ; from += 1e3) {
+        const res = await db(`${t.table}?select=id,${cols.join(",")}`, { headers: { Range: `${from}-${from + 999}` } });
+        if (!res.ok) break;
+        const rows = await res.json();
+        for (const row of rows) {
+          for (const c of cols) {
+            const v = row[c];
+            for (const u of Array.isArray(v) ? v : [v]) {
+              if (!storageKey(u)) continue;
+              const list = uses.get(u) ?? [];
+              list.push({ table: t.table, id: String(row.id), column: c, value: v });
+              uses.set(u, list);
+            }
+          }
+        }
+        if (rows.length < 1e3) break;
+      }
+    }
+    const skip = new Set(Array.isArray(body.skip) ? body.skip.map(String) : []);
+    const todo = [...uses.keys()].filter((u) => !skip.has(u));
+    const started = Date.now();
+    const moved = /* @__PURE__ */ new Map();
+    const failed = [];
+    for (const url of todo) {
+      if (moved.size + failed.length >= 25 || Date.now() - started > 4e4) break;
+      const key = storageKey(url);
+      try {
+        const file = await fetch(url);
+        if (!file.ok) throw new Error(`Supabase answered ${file.status}`);
+        const path = key.split("/").map(encodeURIComponent).join("/");
+        const put = await r2.fetch(`${endpoint}/${bucket}/${path}`, {
+          method: "PUT",
+          headers: { "Content-Type": file.headers.get("content-type") ?? "application/octet-stream", "Cache-Control": CACHE_CONTROL },
+          body: await file.arrayBuffer()
+        });
+        if (!put.ok) throw new Error(`Cloudflare answered ${put.status}`);
+        moved.set(url, `${publicUrl}/${path}`);
+      } catch (e) {
+        failed.push({ url, reason: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    const updates = /* @__PURE__ */ new Map();
+    for (const url of moved.keys()) for (const use of uses.get(url)) updates.set(`${use.table}|${use.id}|${use.column}`, use);
+    for (const u of updates.values()) {
+      await db(`${u.table}?id=eq.${encodeURIComponent(u.id)}`, { method: "PATCH", body: JSON.stringify({ [u.column]: swapUrls(u.value, moved) }) });
+    }
+    return json({ moved: moved.size, failed, remaining: todo.length - moved.size });
   }
   const plan = planUpload(user.id ?? "", body);
   if (!plan.ok) return json({ error: plan.error }, plan.status);

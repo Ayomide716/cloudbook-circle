@@ -10,6 +10,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
 import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye, X } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
+import MoveMediaCard from "@/components/MoveMediaCard";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
@@ -160,6 +161,8 @@ const AdminDashboard = () => {
           <Shield className="h-7 w-7 text-primary" />
           <h1 className="font-display text-[22px] font-bold tracking-tight sm:text-3xl">Admin Dashboard</h1>
         </div>
+
+        <MoveMediaCard />
 
         {/* Stats */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
