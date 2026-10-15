@@ -615,3 +615,20 @@
   width: 0;
   height: 0;
 }
+
+/* Touch screens: small icon buttons (24–32 px) get an invisible 44 px tap area, as Apple and
+   Google recommend, without changing how they look. */
+@media (pointer: coarse) {
+  button:where(.h-6, .h-7, .h-8):not(.absolute):not(.fixed):not(.sticky) {
+    position: relative;
+  }
+  button:where(.h-6, .h-7, .h-8)::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    transform: translate(-50%, -50%);
+  }
+}

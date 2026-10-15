@@ -25,6 +25,7 @@ import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from
 import { dbChannel } from "@/lib/realtime";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RowSkeleton } from "@/components/skeletons/parts";
+import { recordGroupVisit } from "@/lib/recent-groups";
 
 interface Group {
   id: string;
@@ -60,6 +61,8 @@ interface Member {
 
 const GroupDetail = () => {
   const { groupId } = useParams();
+  // Menu → Your shortcuts lists the groups you open most first.
+  useEffect(() => { if (groupId) recordGroupVisit(groupId); }, [groupId]);
   const navigate = useNavigate();
   const { toast } = useToast();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);

@@ -1070,6 +1070,24 @@ export type Database = {
           },
         ]
       }
+      notification_mutes: {
+        Row: {
+          created_at: string
+          related_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          related_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          related_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_preferences: {
         Row: {
           comments: boolean
