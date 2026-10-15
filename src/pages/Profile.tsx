@@ -61,6 +61,7 @@ import { cn, getErrorMessage } from "@/lib/utils";
 import AnonymousQA from "@/components/AnonymousQA";
 import ProfileReels, { type ProfileReel } from "@/components/ProfileReels";
 import { POSTED_EVENT } from "@/lib/video-jobs";
+import { deleteWithUndo } from "@/lib/undo-delete";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
 import type { LucideIcon } from "lucide-react";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -242,14 +243,25 @@ const Profile = () => {
     return () => window.removeEventListener(POSTED_EVENT, onPosted);
   }, [loadReels]);
 
-  const deleteReel = async (id: string) => {
-    const { error } = await supabase.from("reels").delete().eq("id", id);
-    if (error) {
-      toast({ title: "Couldn't delete the reel", description: getErrorMessage(error), variant: "destructive" });
-      return;
-    }
-    setReels((prev) => prev.filter((r) => r.id !== id));
-    toast({ title: "Reel deleted" });
+  const deleteReel = (id: string) => {
+    let removed: { reel: ProfileReel; index: number } | null = null;
+    void deleteWithUndo({
+      table: "reels",
+      id,
+      title: "Reel deleted",
+      onHide: () => setReels((prev) => {
+        const index = prev.findIndex((r) => r.id === id);
+        if (index === -1) return prev;
+        removed = { reel: prev[index], index };
+        return prev.filter((r) => r.id !== id);
+      }),
+      onRestore: () => setReels((prev) => {
+        if (!removed || prev.some((r) => r.id === id)) return prev;
+        const next = [...prev];
+        next.splice(Math.min(removed.index, next.length), 0, removed.reel);
+        return next;
+      }),
+    });
   };
 
   useEffect(() => {

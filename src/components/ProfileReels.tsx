@@ -1,7 +1,5 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart, Play, Trash2 } from "lucide-react";
-import ConfirmDialog from "@/components/ConfirmDialog";
 
 export interface ProfileReel {
   id: string;
@@ -11,12 +9,10 @@ export interface ProfileReel {
   likes: number;
 }
 
-/** A person's reels as tall tiles, three across. Yours can be deleted from here. */
+/** A person's reels as tall tiles, three across. Yours can be deleted from here ("Reel deleted · Undo"). */
 const ProfileReels = ({ reels, isOwn, onDelete }: { reels: ProfileReel[]; isOwn: boolean; onDelete: (id: string) => void }) => {
   const navigate = useNavigate();
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   return (
-    <>
       <div className="grid grid-cols-3 gap-0.5 overflow-hidden sm:gap-1 sm:rounded-xl">
         {reels.map((r) => (
           <div key={r.id} className="relative aspect-[9/16] overflow-hidden bg-black">
@@ -45,7 +41,7 @@ const ProfileReels = ({ reels, isOwn, onDelete }: { reels: ProfileReel[]; isOwn:
             {isOwn && (
               <button
                 type="button"
-                onClick={() => setPendingDelete(r.id)}
+                onClick={() => onDelete(r.id)}
                 aria-label="Delete reel"
                 className="absolute right-1.5 top-1.5 flex h-8 w-8 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-sm hover:bg-black/70"
               >
@@ -55,17 +51,6 @@ const ProfileReels = ({ reels, isOwn, onDelete }: { reels: ProfileReel[]; isOwn:
           </div>
         ))}
       </div>
-      <ConfirmDialog
-        open={!!pendingDelete}
-        onOpenChange={(open) => !open && setPendingDelete(null)}
-        title="Delete this reel?"
-        description="It'll be removed for everyone, with its likes and comments. This can't be undone."
-        onConfirm={() => {
-          if (pendingDelete) onDelete(pendingDelete);
-          setPendingDelete(null);
-        }}
-      />
-    </>
   );
 };
 

@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/lib/prefetch";
 import { motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useBottomSpace } from "@/hooks/use-bottom-space";
 
 /** Reels: a rounded screen with a play button, filled when selected. */
 const ReelsIcon = ({ className, weight }: { className?: string; weight?: "fill" | "regular" }) => (
@@ -37,6 +38,9 @@ interface BottomNavProps {
 const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0, avatarUrl, name }: BottomNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
+  // Toasts sit just above the tab bar (phones only; it's hidden on bigger screens).
+  useBottomSpace("--dock-space", typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "5rem" : null);
+
   const tabs = [
     { icon: House, path: "/", label: "Home", badge: 0 },
     { icon: Users, path: "/friends", label: "Friends", badge: friendRequests },
