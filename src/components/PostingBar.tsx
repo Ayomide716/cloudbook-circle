@@ -1,6 +1,7 @@
 import { Loader2, RotateCcw, X } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { useBottomSpace } from "@/hooks/use-bottom-space";
 import { toast } from "@/hooks/use-toast";
 import { POSTED_EVENT, dismissPosting, retryPosting, usePostingJobs } from "@/lib/video-jobs";
 
@@ -10,6 +11,9 @@ import { POSTED_EVENT, dismissPosting, retryPosting, usePostingJobs } from "@/li
  */
 const PostingBar = () => {
   const jobs = usePostingJobs();
+  const barRef = useRef<HTMLDivElement>(null);
+  // Toasts go above this bar while it's showing.
+  useBottomSpace("--posting-space", jobs.length ? barRef : null);
   useEffect(() => {
     const onPosted = (e: Event) => {
       const label = (e as CustomEvent<{ label?: string }>).detail?.label === "reel" ? "reel" : "post";
@@ -20,7 +24,7 @@ const PostingBar = () => {
   }, []);
   if (jobs.length === 0) return null;
   return (
-    <div className="pointer-events-none fixed inset-x-3 bottom-[calc(5.25rem+env(safe-area-inset-bottom,0px))] z-50 mx-auto flex max-w-md flex-col gap-2 md:bottom-6">
+    <div ref={barRef} className="pointer-events-none fixed inset-x-3 bottom-[calc(var(--dock-space,0px)+0.5rem+env(safe-area-inset-bottom,0px))] z-50 mx-auto flex max-w-md flex-col gap-2 md:bottom-6">
       {jobs.map((j) => {
         const what = j.posting?.label === "reel" ? "your reel" : "";
         const failed = j.posting?.failed;

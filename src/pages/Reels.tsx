@@ -20,8 +20,6 @@ import {
 } from "@/components/ui/dialog";
 import { AvatarImage } from "@/components/ui/avatar";
 import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { CommentThread } from "@/components/comments/CommentThread";
@@ -31,6 +29,7 @@ import { playSound } from "@/lib/sounds";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { POSTED_EVENT, isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
+import { deleteWithUndo } from "@/lib/undo-delete";
 
 interface Reel {
   id: string;
@@ -74,7 +73,6 @@ export default function Reels() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
   const myProfile = useMyProfile();
   // "For you" is everyone's reels; "Friends" only your friends' (and yours).
   const [tab, setTab] = useState<"for-you" | "friends">("for-you");
@@ -272,11 +270,26 @@ export default function Reels() {
     return () => window.removeEventListener(POSTED_EVENT, onPosted);
   }, [loadReels]);
 
-  const handleDeleteReel = async (reelId: string) => {
-    setPendingDelete(null);
-    const { error } = await supabase.from("reels").delete().eq("id", reelId);
-    if (error) { toast({ title: "Error deleting reel", variant: "destructive" }); }
-    else { setReels(prev => prev.filter(r => r.id !== reelId)); }
+  // As on Facebook: gone at once with "Reel deleted · Undo", no "Are you sure?" first.
+  const handleDeleteReel = (reelId: string) => {
+    let removed: { reel: (typeof reels)[number]; index: number } | null = null;
+    void deleteWithUndo({
+      table: "reels",
+      id: reelId,
+      title: "Reel deleted",
+      onHide: () => setReels((prev) => {
+        const index = prev.findIndex((r) => r.id === reelId);
+        if (index === -1) return prev;
+        removed = { reel: prev[index], index };
+        return prev.filter((r) => r.id !== reelId);
+      }),
+      onRestore: () => setReels((prev) => {
+        if (!removed || prev.some((r) => r.id === reelId)) return prev;
+        const next = [...prev];
+        next.splice(Math.min(removed.index, next.length), 0, removed.reel);
+        return next;
+      }),
+    });
   };
 
   const handleScroll = () => {
@@ -295,7 +308,7 @@ export default function Reels() {
 
   // Up/down arrow keys move between reels on desktop.
   const onKey = useEffectEvent((e: KeyboardEvent) => {
-    if (showComments || showUpload || pendingDelete) return;
+    if (showComments || showUpload) return;
     const t = e.target as HTMLElement;
     if (t.closest("input, textarea, [contenteditable=true]")) return;
     if (e.key === "ArrowDown" || e.key === "j") { e.preventDefault(); scroll(1); }
@@ -404,7 +417,7 @@ export default function Reels() {
                 onLike={handleLike}
                 onComment={(id) => { setActiveReelId(id); setShowComments(true); }}
                 onShare={handleShare}
-                onDelete={(id) => setPendingDelete(id)}
+                onDelete={handleDeleteReel}
                 onShowUpload={() => setShowUpload(true)}
                 onVideoError={(id) => {
                   if (id === activeReelId) toast({ title: "Video couldn't play", description: "Re-upload from your device.", variant: "destructive" });
@@ -477,23 +490,6 @@ export default function Reels() {
         )}
       </CommentsSheet>
 
-      <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this reel?</AlertDialogTitle>
-            <AlertDialogDescription>It will be removed with its likes and comments.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={() => pendingDelete && handleDeleteReel(pendingDelete)}
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Upload Dialog */}
       <Dialog open={showUpload} onOpenChange={setShowUpload}>
