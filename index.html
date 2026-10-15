@@ -85,10 +85,11 @@
   <body>
     <div id="splash" hidden aria-hidden="true"><span class="word"><span class="typed"></span><span class="dot">.</span><span class="caret"></span></span></div>
     <script>
-      // Only when opened as the installed app (home-screen icon), once per launch. ?splash=1 forces it.
+      // Only when opened as the installed app (home-screen icon or the Android app), once per launch. ?splash=1 forces it.
       (function () {
         var el = document.getElementById("splash");
-        var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true;
+        // The Android app counts too (Capacitor is set up before this runs).
+        var standalone = (window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true || !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
         var forced = /[?&]splash=1/.test(location.search);
         var seen = false;
         try { seen = sessionStorage.getItem("ember_splash") === "1"; sessionStorage.setItem("ember_splash", "1"); } catch (e) {}

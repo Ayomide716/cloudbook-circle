@@ -14,9 +14,11 @@ const config: CapacitorConfig = {
       initialViewportFitValueHint: "cover",
     },
     SplashScreen: {
-      // Hidden by the app once the first screen has painted (src/lib/native/index.ts).
+      // No logo screen: a plain dark one (the colour of the web splash) that gives way to the
+      // app's own "ember." typing splash (index.html) as soon as the app has loaded.
       launchAutoHide: false,
-      backgroundColor: "#F7F3EE",
+      backgroundColor: "#0C0C0E",
+      androidSplashResourceName: "splash_blank",
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
     },
