@@ -1070,6 +1070,48 @@ export type Database = {
           },
         ]
       }
+      post_tags: {
+        Row: {
+          created_at: string
+          post_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          post_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          post_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      story_highlights: {
+        Row: {
+          created_at: string
+          id: string
+          story_ids: string[]
+          title: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          story_ids?: string[]
+          title: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          story_ids?: string[]
+          title?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       notification_mutes: {
         Row: {
           created_at: string
@@ -1561,6 +1603,7 @@ export type Database = {
           expires_at: string | null
           id: string
           image_url: string | null
+          image_previews: string[]
           image_urls: string[] | null
           user_id: string
           video_url: string | null
@@ -1573,6 +1616,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           image_url?: string | null
+          image_previews?: string[]
           image_urls?: string[] | null
           user_id: string
           video_url?: string | null
@@ -1585,6 +1629,7 @@ export type Database = {
           expires_at?: string | null
           id?: string
           image_url?: string | null
+          image_previews?: string[]
           image_urls?: string[] | null
           user_id?: string
           video_url?: string | null

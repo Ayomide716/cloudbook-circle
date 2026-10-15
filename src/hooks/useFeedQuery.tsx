@@ -13,6 +13,7 @@ interface FeedPost {
   content: string;
   image_url: string | null;
   image_urls: string[] | null;
+  image_previews?: string[] | null;
   video_url: string | null;
   location?: string | null;
   background?: string | null;
@@ -79,6 +80,13 @@ async function fetchFeedPage(
       // Without the place column on the live database yet, ask only for photos (place stays empty).
       .select((features.postLocation ? "id, image_urls, location" : "id, image_urls") as "id, image_urls, location")
       .in("id", postIds);
+
+    // Blurred photo previews: asked separately, so a database without them still loads photos.
+    const { data: previewData } = await supabase.from("posts").select("id, image_previews").in("id", postIds);
+    for (const row of previewData ?? []) {
+      const post = posts.find((p) => p.id === row.id);
+      if (post && row.image_previews?.length) post.image_previews = row.image_previews;
+    }
 
     if (postsData) {
       posts.forEach((post) => {

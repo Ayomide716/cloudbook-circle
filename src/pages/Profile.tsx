@@ -1,3 +1,4 @@
+import StoryHighlights from "@/components/stories/StoryHighlights";
 import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
 import { shrinkImage } from "@/lib/image-compress";
@@ -721,6 +722,8 @@ const Profile = () => {
               </>
             }
           </div>
+
+          {userId && <StoryHighlights userId={userId} isOwn={isOwnProfile} />}
 
           {/* Things in common (someone else's profile) */}
           {!isOwnProfile && thingsInCommon.length > 0 &&

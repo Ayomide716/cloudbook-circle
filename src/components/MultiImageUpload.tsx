@@ -1,4 +1,5 @@
 import { uploadMedia, type MediaFolder } from "@/lib/media-upload";
+import { makePreview, rememberPreview } from "@/lib/photo-previews";
 import { shrinkImage } from "@/lib/image-compress";
 import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
@@ -59,7 +60,9 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
           const file = await shrinkImage(picked);
           const fileExt = file.name.split(".").pop();
           const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-          return uploadMedia(bucket as MediaFolder, fileName, file);
+          const [url, preview] = await Promise.all([uploadMedia(bucket as MediaFolder, fileName, file), makePreview(file)]);
+          rememberPreview(url, preview);
+          return url;
         })
       );
 

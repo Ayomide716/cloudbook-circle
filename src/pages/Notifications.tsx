@@ -161,6 +161,7 @@ const Notifications = () => {
     switch (notification.type) {
       case "like":
       case "comment":
+      case "tag":
         // Navigate to the post (related_id is post_id)
         if (notification.related_id) {
           navigate(`/post/${notification.related_id}`);
@@ -202,6 +203,12 @@ const Notifications = () => {
         return (
           <div className={`${size} rounded-full bg-blue-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
             <MessageCircle className={`${iconSize} text-white`} fill="currentColor" />
+          </div>
+        );
+      case "tag":
+        return (
+          <div className={`${size} rounded-full bg-sky-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
+            <UserPlus className={`${iconSize} text-white`} />
           </div>
         );
       case "friend_request":

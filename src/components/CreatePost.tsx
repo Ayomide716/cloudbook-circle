@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, Image, X, MapPin, Globe, BarChart3 } from "lucide-react";
+import TagFriends, { type TaggedFriend } from "@/components/TagFriends";
+import { previewsFor } from "@/lib/photo-previews";
+import { rememberPostTags } from "@/lib/post-tags";
 import { Input } from "@/components/ui/input";
 import PostExpirySelector from "./PostExpirySelector";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,6 +50,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   // "Lekki, Lagos": shown on the post as "Lekki, Lagos · 2h", as on Facebook.
   const [location, setLocation] = useState("");
   const [showLocation, setShowLocation] = useState(false);
+  const [tagged, setTagged] = useState<TaggedFriend[]>([]);
   const { toast } = useToast();
   // A picked video is prepared and uploaded in the background (lib/video-jobs).
   const videoJob = useVideoJob(videoUrl);
@@ -124,6 +128,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     const place = location.trim() || null;
     const bg = bgCss ? background : null;
     const images = imageUrls;
+    const tags = tagged;
     const save = async (finalVideoUrl: string | null) => {
       const { data: postData, error } = await supabase
         .from("posts")
@@ -141,6 +146,15 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
         .select()
         .single();
       if (error) throw error;
+      // Extras saved after the post itself, so a database without them still posts fine.
+      const previews = previewsFor(images);
+      if (postData && previews.some(Boolean)) {
+        await supabase.from("posts").update({ image_previews: previews }).eq("id", postData.id);
+      }
+      if (postData && tags.length) {
+        const { error: tagError } = await supabase.from("post_tags").insert(tags.map((t) => ({ post_id: postData.id, user_id: t.id })));
+        if (!tagError) rememberPostTags(postData.id, tags);
+      }
       if (postData && poll) {
         await supabase.from("polls").insert({
           post_id: postData.id,
@@ -160,6 +174,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       setBackground(null);
       setLocation("");
       setShowLocation(false);
+      setTagged([]);
       setShowDialog(false);
     };
 
@@ -364,6 +379,20 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </div>
             )}
 
+            {tagged.length > 0 && (
+              <div className="flex flex-wrap items-center gap-1.5 text-sm">
+                <span className="text-muted-foreground">with</span>
+                {tagged.map((t) => (
+                  <span key={t.id} className="inline-flex items-center gap-1 rounded-full bg-sky-500/10 py-1 pl-2.5 pr-1 font-medium text-sky-700 dark:text-sky-300">
+                    {t.full_name || "Friend"}
+                    <button type="button" onClick={() => setTagged(tagged.filter((x) => x.id !== t.id))} aria-label={`Untag ${t.full_name || "friend"}`} className="rounded-full p-0.5 hover:bg-sky-500/20">
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  </span>
+                ))}
+              </div>
+            )}
+
             {features.postLocation && (showLocation || location) && (
               <div className="relative">
                 <MapPin className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-red-500" />
@@ -483,6 +512,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   showPreview={false}
                 />
                 <PollCreator onCreatePoll={handleCreatePoll} />
+                <TagFriends userId={currentUser.id} value={tagged} onChange={setTagged} />
                 {features.postLocation && <Button
                   type="button"
                   variant="ghost"

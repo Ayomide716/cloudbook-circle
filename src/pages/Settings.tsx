@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "lucide-react";
+import { Bookmark, Download, History, Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "lucide-react";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -47,6 +47,14 @@ const defaultPrefs: NotificationPrefs = {
   shares: true,
   push_enabled: true,
 };
+
+/** A settings group's heading, as on Facebook: a bold title with a short line under it. */
+const SectionTitle = ({ title, desc, className }: { title: string; desc?: string; className?: string }) => (
+  <div className={cn("mb-2 px-1", className)}>
+    <h2 className="text-[17px] font-bold leading-tight">{title}</h2>
+    {desc && <p className="text-[13px] text-muted-foreground">{desc}</p>}
+  </div>
+);
 
 const Settings = () => {
   const dataSaver = useDataSaver();
@@ -235,8 +243,8 @@ const Settings = () => {
         <PageHeader back title="Settings" className="mb-3 sm:mb-6" />
 
         {/* Account */}
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Account</h2>
-        <Card className="mb-6 divide-y divide-border overflow-hidden">
+        <SectionTitle title="Account" desc="Your sign-in details." />
+        <Card className="mb-6 divide-y divide-border overflow-hidden rounded-2xl">
           {email && (
             <div className="flex items-center gap-3 p-4">
               <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
@@ -258,9 +266,28 @@ const Settings = () => {
           </button>
         </Card>
 
-        <Card className="p-4 mb-6 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-            <Volume2 className="h-5 w-5" />
+        <SectionTitle title="Your activity" desc="Things you've kept on Ember." />
+        <Card className="mb-6 divide-y divide-border overflow-hidden rounded-2xl">
+          {[
+            { to: "/saved", icon: Bookmark, label: "Saved posts" },
+            { to: "/story-archive", icon: History, label: "Story archive" },
+            { to: "/offline-videos", icon: Download, label: "Offline videos" },
+          ].map((row) => (
+            <button key={row.to} type="button" onClick={() => navigate(row.to)} className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-accent/60">
+              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
+                <row.icon className="h-4 w-4" />
+              </div>
+              <span className="flex-1 text-sm font-medium">{row.label}</span>
+              <ChevronRight className="h-4 w-4 text-muted-foreground" />
+            </button>
+          ))}
+        </Card>
+
+        <SectionTitle title="Preferences" desc="How Ember sounds and how much data it uses." />
+        <Card className="mb-6 divide-y divide-border overflow-hidden rounded-2xl">
+        <div className="p-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+            <Volume2 className="h-4 w-4" />
           </div>
           <div className="flex-1">
             <Label htmlFor="in-app-sounds" className="font-medium text-sm">In-app sounds</Label>
@@ -271,24 +298,26 @@ const Settings = () => {
             checked={sounds}
             onCheckedChange={(on) => { setSoundsEnabled(on); setSounds(on); if (on) playSound("like"); }}
           />
-        </Card>
+        </div>
 
-        <Card className="p-4 mb-6 flex items-center gap-3">
-          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
-            <Gauge className="h-5 w-5" />
+        <div className="p-4 flex items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+            <Gauge className="h-4 w-4" />
           </div>
           <div className="flex-1">
             <Label htmlFor="data-saver" className="font-medium text-sm">Data saver</Label>
             <p className="text-xs text-muted-foreground">Videos load only when you tap them, and reels don't load ahead</p>
           </div>
           <Switch id="data-saver" checked={dataSaver} onCheckedChange={setDataSaver} />
+        </div>
         </Card>
 
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notifications</h2>
+        <SectionTitle title="Notifications" desc="Choose what Ember tells you about." />
 
         {/* One switch for alerts on this phone, showing what's really true: on, off, blocked, or
             not possible here. The kinds of alert below only matter once it's on. */}
-        <Card className="mb-4 flex items-center gap-3 p-4">
+        <Card className="divide-y divide-border overflow-hidden rounded-2xl">
+        <div className="flex items-center gap-3 p-4">
           <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
             <Smartphone className="h-4 w-4 text-foreground" />
           </div>
@@ -306,9 +335,7 @@ const Settings = () => {
             aria-label="Notifications on this device"
             disabled={!canPush || pushPermission === "denied"}
           />
-        </Card>
-
-        <Card className="divide-y divide-border overflow-hidden">
+        </div>
           {prefItems.map((item) => (
             <div key={item.key} className="flex items-center gap-3 p-4">
               <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
@@ -336,19 +363,19 @@ const Settings = () => {
 
         {features.blocking && currentUserId && (
           <>
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">Blocked people</h2>
+            <SectionTitle title="Blocked people" desc="They can't see your profile or message you." className="mt-8" />
             <BlockedPeople userId={currentUserId} />
           </>
         )}
 
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">App</h2>
+        <SectionTitle title="App" desc="Version, updates and storage." className="mt-8" />
         <div className="space-y-3">
           {isNative && <AppVersionCard />}
           <StorageStatusCard />
         </div>
 
-        <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 mt-8">Delete account</h2>
-        <Card className="p-4 border-destructive/30">
+        <SectionTitle title="Delete account" className="mt-8" />
+        <Card className="p-4 border-destructive/30 rounded-2xl">
           <p className="text-sm text-muted-foreground mb-3">
             Permanently delete your account, profile, posts, photos, messages and friendships. This can't be undone.
           </p>
