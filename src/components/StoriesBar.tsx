@@ -16,6 +16,8 @@ import { useToast } from "@/hooks/use-toast";
 import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
 import StoryViewers from "@/components/stories/StoryViewers";
+import SeekFlash from "@/components/SeekFlash";
+import { SEEK_SECONDS, seekBy, seekSideAt } from "@/lib/video-seek";
 import { POSTED_EVENT, isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
 import { BLANK_POSTER } from "@/lib/video-poster";
 import LiveRoomStories from "./LiveRoomStories";
@@ -281,14 +283,35 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     window.clearTimeout(holdTimer.current);
     holdTimer.current = window.setTimeout(() => { held.current = true; setIsPaused(true); }, 220);
   };
+  // On a video story, a double tap on the left or right goes back or forward 10 seconds, so a
+  // single tap waits a moment to be sure it isn't the first of two.
+  const tapTimer = useRef<number>();
+  const lastTapAt = useRef(0);
+  const [seekFlash, setSeekFlash] = useState<{ side: -1 | 1; n: number } | null>(null);
+  useEffect(() => () => window.clearTimeout(tapTimer.current), []);
   const onStoryPointerUp = (e: React.PointerEvent<HTMLElement>) => {
     window.clearTimeout(holdTimer.current);
     if (held.current) { held.current = false; setIsPaused(false); return; }
     const box = e.currentTarget.getBoundingClientRect();
     const x = (e.clientX - box.left) / box.width;
-    if (x < 0.3) goPrev();
-    else if (x > 0.7) goNext();
-    else setIsPaused((p) => !p);
+    const singleTap = () => {
+      if (x < 0.3) goPrev();
+      else if (x > 0.7) goNext();
+      else setIsPaused((p) => !p);
+    };
+    if (!isVideoRef.current) { singleTap(); return; }
+    const now = Date.now();
+    const side = seekSideAt(e.clientX, box);
+    if (now - lastTapAt.current < 280 && side !== 0) {
+      window.clearTimeout(tapTimer.current);
+      lastTapAt.current = 0;
+      seekBy(videoRef.current, side * SEEK_SECONDS);
+      setSeekFlash((f) => ({ side, n: (f?.n ?? 0) + 1 }));
+      return;
+    }
+    lastTapAt.current = now;
+    window.clearTimeout(tapTimer.current);
+    tapTimer.current = window.setTimeout(singleTap, side === 0 ? 0 : 280);
   };
   const onStoryPointerCancel = () => {
     window.clearTimeout(holdTimer.current);
@@ -528,6 +551,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             onContextMenu={(e) => e.preventDefault()}
             aria-hidden="true"
           />
+          {seekFlash && <SeekFlash key={seekFlash.n} side={seekFlash.side} />}
           {/* Paused with a tap: a play sign in the middle (tap again to carry on). */}
           {isPaused && !held.current && !confirmDelete && (
             <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white">

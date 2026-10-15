@@ -2,7 +2,9 @@ import { publicUrl } from "@/lib/native/platform";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, RotateCcw, RotateCw, Download } from "lucide-react";
+import SeekFlash from "@/components/SeekFlash";
+import { SEEK_SECONDS, seekBy, seekSideAt } from "@/lib/video-seek";
+import { Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, Download } from "lucide-react";
 import { ChatCircle, DotsThree, Heart, MusicNotesSimple, ShareFat } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactionEmoji from "./reactions/ReactionEmoji";
@@ -138,14 +140,23 @@ export default function ReelCard({
     else { video.pause(); setIsPaused(true); }
   }, []);
 
-  // A single tap pauses; a double tap likes. Wait briefly before pausing so a double tap
+  // A single tap pauses. A double tap on the left or right side goes back or forward 10 seconds
+  // (as on Facebook); in the middle it likes. Wait briefly before pausing so a double tap
   // doesn't also pause the video.
+  const [seekFlash, setSeekFlash] = useState<{ side: -1 | 1; n: number } | null>(null);
   const singleTapTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(singleTapTimer.current), []);
-  const handleTap = useCallback(() => {
+  const handleTap = useCallback((e: React.MouseEvent<HTMLElement>) => {
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
       clearTimeout(singleTapTimer.current);
+      lastTapRef.current = 0;
+      const side = seekSideAt(e.clientX, e.currentTarget.getBoundingClientRect());
+      if (side !== 0) {
+        skip(side * SEEK_SECONDS);
+        setSeekFlash((f) => ({ side, n: (f?.n ?? 0) + 1 }));
+        return;
+      }
       if (!isLiked) onLike(reel.id);
       else haptic(12);
       setHeartBurst((n) => n + 1);
@@ -156,7 +167,7 @@ export default function ReelCard({
     singleTapTimer.current = setTimeout(togglePlayPause, 260);
   }, [isLiked, reel.id, onLike, togglePlayPause]);
 
-  // Going back (or forward) in a reel: drag along the timeline, or the 5-second buttons when paused.
+  // Going back (or forward) in a reel: drag along the timeline, or double-tap a side.
   const [scrub, setScrub] = useState<number | null>(null);
   const resumeAfterScrub = useRef(false);
   const ratioAt = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -197,20 +208,20 @@ export default function ReelCard({
   const skip = (seconds: number) => {
     const video = videoRef.current;
     if (!video || !video.duration) return;
-    video.currentTime = Math.min(video.duration, Math.max(0, video.currentTime + seconds));
+    seekBy(video, seconds);
     setProgress((video.currentTime / video.duration) * 100);
     haptic(8);
   };
   const clock = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
   const duration = videoRef.current?.duration || 0;
 
-  // Desktop: ← and → go back and forward 5 seconds in the reel on screen.
+  // Desktop: ← and → go back and forward 10 seconds in the reel on screen.
   useEffect(() => {
     if (!isActive) return;
     const onKey = (e: KeyboardEvent) => {
       if ((e.target as HTMLElement).closest("input, textarea, [contenteditable=true]")) return;
-      if (e.key === "ArrowLeft") { e.preventDefault(); skip(-5); }
-      if (e.key === "ArrowRight") { e.preventDefault(); skip(5); }
+      if (e.key === "ArrowLeft") { e.preventDefault(); skip(-SEEK_SECONDS); }
+      if (e.key === "ArrowRight") { e.preventDefault(); skip(SEEK_SECONDS); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -291,6 +302,8 @@ export default function ReelCard({
 
             {!isVisible && <div className="absolute inset-0 bg-black" />}
 
+            {seekFlash && <SeekFlash key={seekFlash.n} side={seekFlash.side} />}
+
             {heartBurst > 0 && (
               <div className="pointer-events-none absolute inset-0 z-30">
                 <HeartBurst key={heartBurst} />
@@ -306,17 +319,7 @@ export default function ReelCard({
                   className="absolute inset-0 z-10 flex items-center justify-center bg-black/25"
                   onClick={handleTap}
                 >
-                  <div className="flex items-center gap-7">
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); skip(-5); }}
-                      aria-label="Back 5 seconds"
-                      className="flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md active:scale-90"
-                    >
-                      <RotateCcw className="h-5 w-5" />
-                      <span className="-mt-0.5 text-[9px] font-bold">5</span>
-                    </button>
-                    <motion.div
+                  <motion.div
                       initial={{ scale: 1.6 }}
                       animate={{ scale: 1 }}
                       transition={{ type: "spring", stiffness: 380, damping: 22 }}
@@ -324,16 +327,6 @@ export default function ReelCard({
                     >
                       <Play className="ml-1 h-8 w-8 fill-white text-white" />
                     </motion.div>
-                    <button
-                      type="button"
-                      onClick={(e) => { e.stopPropagation(); skip(5); }}
-                      aria-label="Forward 5 seconds"
-                      className="flex h-12 w-12 flex-col items-center justify-center rounded-full border border-white/20 bg-white/10 text-white backdrop-blur-md active:scale-90"
-                    >
-                      <RotateCw className="h-5 w-5" />
-                      <span className="-mt-0.5 text-[9px] font-bold">5</span>
-                    </button>
-                  </div>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -364,8 +357,8 @@ export default function ReelCard({
               aria-valuenow={Math.round(((scrub ?? progress / 100) || 0) * duration)}
               tabIndex={0}
               onKeyDown={(e) => {
-                if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); skip(-5); }
-                if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); skip(5); }
+                if (e.key === "ArrowLeft") { e.preventDefault(); e.stopPropagation(); skip(-SEEK_SECONDS); }
+                if (e.key === "ArrowRight") { e.preventDefault(); e.stopPropagation(); skip(SEEK_SECONDS); }
               }}
               onPointerDown={startScrub}
               onPointerMove={moveScrub}
