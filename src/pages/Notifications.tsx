@@ -30,6 +30,9 @@ type NotificationRow = NotificationGroup<Notification>;
 /** What a notification is about, in words: "post", "reel", "group"… */
 const aboutWhat = (type: string) => (type.includes("reel") ? "reel" : type.includes("group") ? "group" : type.includes("story") ? "story" : type.includes("event") ? "event" : "post");
 
+/** How many notifications load at a time. */
+const PAGE = 30;
+
 const Notifications = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -38,6 +41,10 @@ const Notifications = () => {
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "unread">("all");
+  // 30 at a time, with "See previous notifications" at the bottom, as Facebook does.
+  const [limit, setLimit] = useState(PAGE);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -59,7 +66,8 @@ const Notifications = () => {
       .from("notifications")
       .select("*")
       .eq("user_id", currentUserId)
-      .order("created_at", { ascending: false });
+      .order("created_at", { ascending: false })
+      .limit(limit + 1);
 
     if (error) {
       toast({
@@ -70,8 +78,10 @@ const Notifications = () => {
       return;
     }
 
-    // Fetch actor profiles for notifications that have actor_id
-    const notifs = data || [];
+    // One extra row tells us whether there are older ones.
+    setHasMore((data?.length ?? 0) > limit);
+    setLoadingMore(false);
+    const notifs = (data || []).slice(0, limit);
     const actorIds = [...new Set(notifs.map(n => n.actor_id).filter((id): id is string => !!id))];
     let actorMap: Record<string, { full_name: string | null; avatar_url: string | null }> = {};
     if (actorIds.length > 0) {
@@ -265,6 +275,15 @@ const Notifications = () => {
     });
   };
 
+  const seeMore = () => {
+    setLoadingMore(true);
+    setLimit((l) => l + PAGE);
+  };
+  // Older notifications, when asked for.
+  useEffect(() => {
+    if (limit > PAGE) loadNotifications();
+  }, [limit, loadNotifications]);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
   const shown = filter === "unread" ? notifications.filter((n) => !n.read) : notifications;
 
@@ -407,6 +426,13 @@ const Notifications = () => {
                   ))}
                 </section>
               ))}
+              {hasMore && filter === "all" && (
+                <div className="p-3">
+                  <Button variant="secondary" className="w-full rounded-xl" onClick={seeMore} disabled={loadingMore}>
+                    {loadingMore ? "Loading…" : "See previous notifications"}
+                  </Button>
+                </div>
+              )}
             </div>
           )}
         </Card>
