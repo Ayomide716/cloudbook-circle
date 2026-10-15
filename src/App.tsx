@@ -44,6 +44,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
 const OfflineVideos = lazy(() => import("./pages/OfflineVideos"));
+const StoryArchive = lazy(() => import("./pages/StoryArchive"));
 const Explore = lazy(() => import("./pages/Explore"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const Menu = lazy(() => import("./pages/Menu"));
@@ -195,6 +196,7 @@ const AppRoutes = () => {
         <Route path="/terms" element={<AnimatedPage><TermsOfService /></AnimatedPage>} />
         <Route path="/privacy" element={<AnimatedPage><PrivacyPolicy /></AnimatedPage>} />
         <Route path="/offline-videos" element={<AnimatedPage><OfflineVideos /></AnimatedPage>} />
+        <Route path="/story-archive" element={<AnimatedPage><StoryArchive /></AnimatedPage>} />
         <Route path="/explore" element={<Protected><Explore /></Protected>} />
         <Route path="/post/:postId" element={<Protected><PostDetail /></Protected>} />
         <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />
