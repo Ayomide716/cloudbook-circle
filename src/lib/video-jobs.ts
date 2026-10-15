@@ -11,6 +11,7 @@
 import { useSyncExternalStore } from "react";
 import { uploadMedia, type MediaFolder } from "./media-upload";
 import { shrinkVideo } from "./video-compress";
+import { readVideoInfo } from "./storage-upload";
 import { getErrorMessage } from "./utils";
 
 export type VideoJobPhase = "preparing" | "uploading" | "done" | "failed";
@@ -23,6 +24,8 @@ export interface VideoJob {
   /** 0–100 within the current phase. */
   progress: number;
   url?: string;
+  /** A still from the video (reels show it while the video loads). */
+  thumbnailUrl?: string;
   error?: string;
   /** Set once Post was tapped: what's being posted, and how it went. */
   posting?: { label: string; failed?: boolean };
@@ -34,7 +37,7 @@ interface Internal extends VideoJob {
   userId: string;
   controller: AbortController;
   result: Promise<string>;
-  save?: (url: string) => Promise<void>;
+  save?: (url: string, thumbnailUrl: string | null) => Promise<void>;
 }
 
 const jobs = new Map<string, Internal>();
@@ -71,7 +74,15 @@ function run(j: Internal): Promise<string> {
     const ext = file.name.split(".").pop() || "mp4";
     const url = await uploadMedia(j.folder, `${j.userId}/${Date.now()}.${ext}`, file, (p) => update(j, { progress: p }));
     if (signal.aborted) throw new Error("cancelled");
-    update(j, { phase: "done", progress: 100, url });
+    // A still for the reel's poster; never holds up the post.
+    let thumbnailUrl: string | undefined;
+    try {
+      const { thumbnail } = await readVideoInfo(j.file);
+      if (thumbnail) thumbnailUrl = await uploadMedia("post-images", `${j.userId}/${Date.now()}-poster.jpg`, new File([thumbnail], "poster.jpg", { type: "image/jpeg" }));
+    } catch {
+      // No poster: the reel shows black until it plays.
+    }
+    update(j, { phase: "done", progress: 100, url, thumbnailUrl });
     return url;
   })().catch((e) => {
     if (!signal.aborted) update(j, { phase: "failed", error: getErrorMessage(e) });
@@ -125,7 +136,7 @@ export const POSTED_EVENT = "ember:posted";
 async function finishPosting(j: Internal) {
   try {
     const url = await j.result;
-    await j.save!(url);
+    await j.save!(url, j.thumbnailUrl ?? null);
     URL.revokeObjectURL(j.preview);
     jobs.delete(j.id);
     emit();
@@ -140,7 +151,7 @@ async function finishPosting(j: Internal) {
  * Tap on Post: saves the post with the video's address as soon as the upload is done (at once if
  * it already is). The composer can close straight away.
  */
-export function postWhenReady(ref: string, label: string, save: (url: string) => Promise<void>) {
+export function postWhenReady(ref: string, label: string, save: (url: string, thumbnailUrl: string | null) => Promise<void>) {
   const j = jobs.get(idOf(ref));
   if (!j) throw new Error("That video is no longer here. Please pick it again.");
   update(j, { save, posting: { label } });

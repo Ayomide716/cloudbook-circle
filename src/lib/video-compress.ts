@@ -63,7 +63,7 @@ async function shrinkVideoFast(file: File, onProgress?: (fraction: number) => vo
     if (!track) return null;
     const seconds = await input.computeDuration();
     if (!Number.isFinite(seconds) || seconds <= 0 || seconds > MAX_FAST_SECONDS) return null;
-    if (!needsShrinking(track.displayWidth, track.displayHeight, file.size, seconds)) return { keep: true };
+    if (!needsShrinking(track.displayWidth, track.displayHeight, file.size, seconds)) return fastStart(mb, input, file);
 
     const size = fitWithin(track.displayWidth, track.displayHeight, VIDEO_MAX_SIDE);
     const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: "in-memory" }), target: new mb.BufferTarget() });
@@ -95,6 +95,26 @@ async function shrinkVideoFast(file: File, onProgress?: (fraction: number) => vo
     return { file: new File([buffer], file.name.replace(/\.[^.]+$/, "") + ".mp4", { type: "video/mp4", lastModified: Date.now() }) };
   } catch {
     return null;
+  }
+}
+
+/**
+ * A light video kept as it is, but rearranged so it can start playing before it has all
+ * downloaded (many phone cameras put the index at the end of the file). Nothing is re-encoded:
+ * the picture and sound are copied, so it takes a moment. Anything unexpected: the original.
+ */
+async function fastStart(mb: typeof import("mediabunny"), input: InstanceType<typeof import("mediabunny").Input>, file: File): Promise<FastResult> {
+  if (!/^video\/(mp4|quicktime)$/.test(file.type)) return { keep: true };
+  try {
+    const output = new mb.Output({ format: new mb.Mp4OutputFormat({ fastStart: "in-memory" }), target: new mb.BufferTarget() });
+    const conversion = await mb.Conversion.init({ input, output, showWarnings: false });
+    if (!conversion.isValid || conversion.discardedTracks.some((t) => !t.reason.startsWith("max_track_count"))) return { keep: true };
+    await conversion.execute();
+    const buffer = (output.target as InstanceType<typeof mb.BufferTarget>).buffer;
+    if (!buffer || buffer.byteLength === 0) return { keep: true };
+    return { file: new File([buffer], file.name.replace(/\.[^.]+$/, "") + ".mp4", { type: "video/mp4", lastModified: Date.now() }) };
+  } catch {
+    return { keep: true };
   }
 }
 

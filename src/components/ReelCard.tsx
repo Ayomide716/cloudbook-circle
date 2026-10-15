@@ -18,11 +18,13 @@ import HeartBurst from "./HeartBurst";
 import { haptic } from "@/lib/haptics";
 import ReportDialog from "@/components/ReportDialog";
 import { isUploadedMedia } from "@/lib/media-upload";
+import { BLANK_POSTER } from "@/lib/video-poster";
 
 interface ReelCardProps {
   reel: {
     id: string;
     video_url: string;
+    thumbnail_url?: string | null;
     caption: string | null;
     user_id: string;
     profiles: { full_name: string | null; avatar_url: string | null };
@@ -30,6 +32,8 @@ interface ReelCardProps {
     reel_comments: { id: string }[];
   };
   isActive: boolean;
+  /** The reel after the one playing: it starts downloading now, so swiping to it plays at once. */
+  isNext?: boolean;
   isMuted: boolean;
   currentUserId: string | null;
   onToggleMute: () => void;
@@ -46,7 +50,7 @@ interface ReelCardProps {
 }
 
 export default function ReelCard({
-  reel, isActive, isMuted, currentUserId,
+  reel, isActive, isNext = false, isMuted, currentUserId,
   onToggleMute, onLike, onComment, onShare, onDelete, onShowUpload, onVideoError,
   onNavigateToProfile, onFollow, isFollowing, isPending,
 }: ReelCardProps) {
@@ -76,7 +80,8 @@ export default function ReelCard({
     if (!el) return;
     const observer = new IntersectionObserver(
       ([entry]) => setIsVisible(entry.isIntersecting),
-      { rootMargin: "200px 0px" }
+      // A screen ahead, so the next reel is ready before you swipe to it.
+      { rootMargin: "100% 0px" }
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -242,7 +247,9 @@ export default function ReelCard({
                 loop
                 playsInline
                 muted={isMuted}
-                preload="metadata"
+                // The reel's picture (or black) instead of the phone's grey placeholder while it loads.
+                poster={reel.thumbnail_url || BLANK_POSTER}
+                preload={isActive || isNext ? "auto" : "metadata"}
                 onError={() => onVideoError(reel.id)}
                 onClick={handleTap}
               />
