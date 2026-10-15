@@ -2,7 +2,7 @@ import { publicUrl } from "@/lib/native/platform";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, RotateCcw, RotateCw } from "lucide-react";
+import { Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, RotateCcw, RotateCw, Download } from "lucide-react";
 import { ChatCircle, DotsThree, Heart, MusicNotesSimple, ShareFat } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactionEmoji from "./reactions/ReactionEmoji";
@@ -19,6 +19,8 @@ import { haptic } from "@/lib/haptics";
 import ReportDialog from "@/components/ReportDialog";
 import { isUploadedMedia } from "@/lib/media-upload";
 import { BLANK_POSTER } from "@/lib/video-poster";
+import { useDataSaver } from "@/lib/data-saver";
+import { offlineObjectUrl, offlineSupported, removeOffline, saveOffline, useOfflineVideos } from "@/lib/offline-videos";
 
 interface ReelCardProps {
   reel: {
@@ -68,6 +70,7 @@ export default function ReelCard({
   const lastTapRef = useRef(0);
   const animFrameRef = useRef<number>(0);
   const { toast } = useToast();
+  const dataSaver = useDataSaver();
 
   const isLiked = reel.reel_likes.some(l => l.user_id === currentUserId);
   const isTikTokLink = /tiktok\.com|vt\.tiktok\.com/i.test(reel.video_url);
@@ -213,6 +216,35 @@ export default function ReelCard({
     return () => window.removeEventListener("keydown", onKey);
   }, [isActive]);
 
+  // Saved for offline: plays from the phone (instant, and without a connection).
+  const offline = useOfflineVideos();
+  const savedOffline = offline.some((v) => v.url === reel.video_url);
+  const [localSrc, setLocalSrc] = useState<string | null>(null);
+  useEffect(() => {
+    if (!savedOffline) { setLocalSrc(null); return; }
+    let url: string | null = null;
+    let cancelled = false;
+    void offlineObjectUrl(reel.video_url).then((u) => { if (cancelled) { if (u) URL.revokeObjectURL(u); } else { url = u; setLocalSrc(u); } });
+    return () => { cancelled = true; if (url) URL.revokeObjectURL(url); };
+  }, [savedOffline, reel.video_url]);
+  const [saving, setSaving] = useState(false);
+  const toggleOffline = async () => {
+    if (savedOffline) {
+      await removeOffline(reel.video_url);
+      toast({ title: "Removed from offline videos" });
+      return;
+    }
+    setSaving(true);
+    toast({ title: "Saving for offline…" });
+    try {
+      await saveOffline(reel.video_url, reel.caption || `${reel.profiles.full_name || "Someone"}'s reel`);
+      toast({ title: "Saved. Watch it any time in Menu → Offline videos" });
+    } catch (e) {
+      toast({ title: "Couldn't save it", description: (e as Error).message, variant: "destructive" });
+    }
+    setSaving(false);
+  };
+
   const handleCopyLink = async () => {
     const url = publicUrl(`/reels/${reel.id}`);
     try {
@@ -241,7 +273,7 @@ export default function ReelCard({
               <>
               <video
                 ref={videoRef}
-                src={reel.video_url}
+                src={localSrc ?? reel.video_url}
                 onLoadedMetadata={onMetadata}
                 className={cn("absolute inset-0 h-full w-full", fit === "cover" ? "object-cover" : "object-contain object-center")}
                 loop
@@ -249,7 +281,8 @@ export default function ReelCard({
                 muted={isMuted}
                 // The reel's picture (or black) instead of the phone's grey placeholder while it loads.
                 poster={reel.thumbnail_url || BLANK_POSTER}
-                preload={isActive || isNext ? "auto" : "metadata"}
+                // Data saver: only the reel you're watching loads.
+                preload={isActive ? "auto" : isNext && !dataSaver ? "auto" : dataSaver ? "none" : "metadata"}
                 onError={() => onVideoError(reel.id)}
                 onClick={handleTap}
               />
@@ -462,7 +495,12 @@ export default function ReelCard({
                 <DotsThree className="h-7 w-7" weight="bold" />
               </button>
             </ActionMenuTrigger>
-            <ActionMenuContent side="left" align="end" className="w-48">
+            <ActionMenuContent side="left" align="end" className="w-56">
+              {offlineSupported() && canPlayInline && (
+                <ActionMenuItem onSelect={() => void toggleOffline()} disabled={saving}>
+                  <Download className="h-4 w-4 mr-2" /> {savedOffline ? "Remove offline copy" : "Save for offline"}
+                </ActionMenuItem>
+              )}
               <ActionMenuItem onClick={handleCopyLink}>
                 <Link2 className="h-4 w-4 mr-2" /> Copy link
               </ActionMenuItem>

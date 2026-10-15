@@ -31,6 +31,7 @@ import { haptic } from "@/lib/haptics";
 import { playSound } from "@/lib/sounds";
 import { dbChannel } from "@/lib/realtime";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
+import BirthdaysCard from "@/components/BirthdaysCard";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -274,6 +275,8 @@ const Index = () => {
               <Suspense fallback={<div className="h-24" />}>
                 <StoriesBar currentUserId={currentUser.id} />
               </Suspense>
+
+              <BirthdaysCard currentUserId={currentUser.id} />
 
               <ProfileCompletionPrompt userId={currentUser.id} />
 

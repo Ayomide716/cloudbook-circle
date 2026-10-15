@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Maximize, Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { isDataSaver, useDataSaver } from "@/lib/data-saver";
 
 interface FeedVideoProps {
   src: string;
@@ -33,6 +34,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
   const userPaused = useRef(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  const dataSaver = useDataSaver();
   const [showBar, setShowBar] = useState(true);
 
   useEffect(() => () => { window.clearTimeout(tapTimer.current); window.clearTimeout(hideTimer.current); }, []);
@@ -43,7 +45,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
     const el = containerRef.current;
     const v = videoRef.current;
     if (!el || !v) return;
-    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection?.saveData;
+    const saveData = isDataSaver();
     const lessMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     if (saveData || lessMotion || typeof IntersectionObserver === "undefined") return;
     const observer = new IntersectionObserver(
@@ -108,7 +110,8 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
         // "#t=0.1" makes phones (iOS especially) show the first frame instead of a black box.
         src={src.includes("#") ? src : `${src}#t=0.1`}
         playsInline
-        preload="metadata"
+        // Data saver: nothing loads until it's tapped.
+        preload={dataSaver ? "none" : "metadata"}
         crossOrigin="anonymous"
         muted={muted}
         onPlay={() => { setPlaying(true); pokeBar(); }}

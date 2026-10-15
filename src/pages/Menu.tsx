@@ -20,6 +20,7 @@ import {
   UserPlus,
   Users,
   type LucideIcon,
+  Download,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -201,6 +202,15 @@ const Menu = () => {
           >
             <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><Settings className="h-5 w-5" /></span>
             <span className="flex-1 font-semibold">Settings &amp; privacy</span>
+            <ChevronRight className="h-5 w-5 text-muted-foreground" />
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/offline-videos")}
+            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/60"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><Download className="h-5 w-5" /></span>
+            <span className="flex-1 font-semibold">Offline videos</span>
             <ChevronRight className="h-5 w-5 text-muted-foreground" />
           </button>
           <button

@@ -21,6 +21,7 @@ import GroupsSkeleton from "@/components/skeletons/GroupsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useGroupChats } from "@/lib/group-chats";
 import { GroupInviteCards } from "@/components/groups/GroupListItems";
+import GroupsHub from "@/components/groups/GroupsHub";
 
 interface Group {
   id: string;
@@ -313,6 +314,11 @@ const Groups = () => {
               onAnswered={(groupId, accepted) => { void reloadInvites(); if (accepted) navigate(`/groups/${groupId}`); }}
             />
           </div>
+        )}
+
+        {/* Facebook's Groups tab: your groups with new-post badges, then their latest posts. */}
+        {view === "all" && !searchQuery && currentUserId && (
+          <GroupsHub groups={groups.filter((g) => g.is_member)} userId={currentUserId} />
         )}
 
         {filteredGroups.length === 0 ? (

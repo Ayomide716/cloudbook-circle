@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, ChevronRight, KeyRound, Mail, Trash2, Volume2 } from "lucide-react";
+import { Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ArrowLeft, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "lucide-react";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -25,6 +25,7 @@ import { cn } from "@/lib/utils";
 import { disablePush, enablePush, needsHomeScreenInstall, pushActive, pushSupported } from "@/lib/web-push";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RowSkeleton } from "@/components/skeletons/parts";
+import { setDataSaver, useDataSaver } from "@/lib/data-saver";
 
 interface NotificationPrefs {
   likes: boolean;
@@ -47,6 +48,7 @@ const defaultPrefs: NotificationPrefs = {
 };
 
 const Settings = () => {
+  const dataSaver = useDataSaver();
   const navigate = useNavigate();
   const { toast } = useToast();
   useSEO({ title: "Settings", description: "Your Ember account, appearance and notification settings." });
@@ -273,6 +275,17 @@ const Settings = () => {
             checked={sounds}
             onCheckedChange={(on) => { setSoundsEnabled(on); setSounds(on); if (on) playSound("like"); }}
           />
+        </Card>
+
+        <Card className="p-4 mb-6 flex items-center gap-3">
+          <div className="h-10 w-10 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+            <Gauge className="h-5 w-5" />
+          </div>
+          <div className="flex-1">
+            <Label htmlFor="data-saver" className="font-medium text-sm">Data saver</Label>
+            <p className="text-xs text-muted-foreground">Videos load only when you tap them, and reels don't load ahead</p>
+          </div>
+          <Switch id="data-saver" checked={dataSaver} onCheckedChange={setDataSaver} />
         </Card>
 
         <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2">Notifications</h2>
