@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import SeekFlash from "@/components/SeekFlash";
 import { SEEK_SECONDS, seekBy, seekSideAt } from "@/lib/video-seek";
-import { Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, Download } from "lucide-react";
+import { FastForward, Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, Download } from "lucide-react";
 import { ChatCircle, DotsThree, Heart, MusicNotesSimple, ShareFat } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactionEmoji from "./reactions/ReactionEmoji";
@@ -146,7 +146,32 @@ export default function ReelCard({
   const [seekFlash, setSeekFlash] = useState<{ side: -1 | 1; n: number } | null>(null);
   const singleTapTimer = useRef<ReturnType<typeof setTimeout>>();
   useEffect(() => () => clearTimeout(singleTapTimer.current), []);
+  // Hold a playing reel to watch at double speed (as on Instagram and Facebook); let go for normal.
+  const [fast, setFast] = useState(false);
+  const fastTimer = useRef<ReturnType<typeof setTimeout>>();
+  const wasFast = useRef(false);
+  useEffect(() => () => clearTimeout(fastTimer.current), []);
+  const startHold = () => {
+    wasFast.current = false;
+    clearTimeout(fastTimer.current);
+    fastTimer.current = setTimeout(() => {
+      const v = videoRef.current;
+      if (!v || v.paused) return;
+      v.playbackRate = 2;
+      wasFast.current = true;
+      setFast(true);
+      haptic(10);
+    }, 400);
+  };
+  const endHold = () => {
+    clearTimeout(fastTimer.current);
+    if (videoRef.current) videoRef.current.playbackRate = 1;
+    setFast(false);
+  };
+
   const handleTap = useCallback((e: React.MouseEvent<HTMLElement>) => {
+    // Letting go after a hold at 2× isn't a tap.
+    if (wasFast.current) { wasFast.current = false; return; }
     const now = Date.now();
     if (now - lastTapRef.current < 300) {
       clearTimeout(singleTapTimer.current);
@@ -296,11 +321,24 @@ export default function ReelCard({
                 preload={isActive ? "auto" : isNext && !dataSaver ? "auto" : dataSaver ? "none" : "metadata"}
                 onError={() => onVideoError(reel.id)}
                 onClick={handleTap}
+                onPointerDown={startHold}
+                onPointerUp={endHold}
+                onPointerCancel={endHold}
+                onPointerLeave={endHold}
+                onContextMenu={(e) => e.preventDefault()}
               />
               </>
             )}
 
             {!isVisible && <div className="absolute inset-0 bg-black" />}
+
+            {fast && (
+              <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top)+4.5rem)] z-30 flex justify-center md:top-6">
+                <span className="flex items-center gap-1 rounded-full bg-black/55 px-3 py-1 text-sm font-semibold text-white backdrop-blur-md">
+                  2× <FastForward className="h-4 w-4 fill-white" />
+                </span>
+              </div>
+            )}
 
             {seekFlash && <SeekFlash key={seekFlash.n} side={seekFlash.side} />}
 
