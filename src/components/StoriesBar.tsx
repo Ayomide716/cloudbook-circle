@@ -272,6 +272,29 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   }, [isPaused]);
   const advanceStory = useEffectEvent(() => goNext());
 
+  // Taps on the story, as on Instagram and Facebook: hold anywhere to pause (let go to play on),
+  // tap the left side for back, the right side for next, and the middle to pause or play.
+  const holdTimer = useRef<number>();
+  const held = useRef(false);
+  const onStoryPointerDown = () => {
+    held.current = false;
+    window.clearTimeout(holdTimer.current);
+    holdTimer.current = window.setTimeout(() => { held.current = true; setIsPaused(true); }, 220);
+  };
+  const onStoryPointerUp = (e: React.PointerEvent<HTMLElement>) => {
+    window.clearTimeout(holdTimer.current);
+    if (held.current) { held.current = false; setIsPaused(false); return; }
+    const box = e.currentTarget.getBoundingClientRect();
+    const x = (e.clientX - box.left) / box.width;
+    if (x < 0.3) goPrev();
+    else if (x > 0.7) goNext();
+    else setIsPaused((p) => !p);
+  };
+  const onStoryPointerCancel = () => {
+    window.clearTimeout(holdTimer.current);
+    if (held.current) { held.current = false; setIsPaused(false); }
+  };
+
   const startTimer = useCallback(() => {
     if (timerRef.current) clearInterval(timerRef.current);
     setProgress(0);
@@ -479,16 +502,12 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               onTimeUpdate={(e) => { const v = e.currentTarget; if (v.duration) setProgress(Math.min((v.currentTime / v.duration) * 100, 100)); }}
               onEnded={() => goNext()}
               onError={() => goNext()}
-              onPointerDown={() => setIsPaused(true)}
-              onPointerUp={() => setIsPaused(false)}
             />
           ) : (
             <img
               src={activeStory.media_url}
               alt="Story"
               className="max-w-full max-h-full object-contain select-none"
-              onPointerDown={() => setIsPaused(true)}
-              onPointerUp={() => setIsPaused(false)}
             />
           )}
 
@@ -500,8 +519,23 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           )}
 
           {/* Tap areas */}
-          <button className="absolute top-0 left-0 w-1/3 h-full z-10" onClick={goPrev} aria-label="Previous" />
-          <button className="absolute top-0 right-0 w-1/3 h-full z-10" onClick={goNext} aria-label="Next" />
+          <div
+            className="absolute inset-0 z-10 select-none [-webkit-touch-callout:none]"
+            onPointerDown={onStoryPointerDown}
+            onPointerUp={onStoryPointerUp}
+            onPointerCancel={onStoryPointerCancel}
+            onPointerLeave={onStoryPointerCancel}
+            onContextMenu={(e) => e.preventDefault()}
+            aria-hidden="true"
+          />
+          {/* Paused with a tap: a play sign in the middle (tap again to carry on). */}
+          {isPaused && !held.current && !confirmDelete && (
+            <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white">
+              <Play className="ml-1 h-8 w-8 fill-white" />
+            </span>
+          )}
+          <button className="sr-only" onClick={goPrev}>Previous story</button>
+          <button className="sr-only" onClick={goNext}>Next story</button>
 
           {/* Nav arrows (desktop) */}
           {activeGroupIndex > 0 && (
