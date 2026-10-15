@@ -1,65 +1,46 @@
-import Navigation from "@/components/Navigation";
-import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { FileText } from "lucide-react";
+import { Link } from "react-router-dom";
+import LegalPage, { LegalList } from "@/components/LegalPage";
 
-const TermsOfService = () => {
-  const [currentUserId, setCurrentUserId] = useState<string | undefined>();
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setCurrentUserId(session?.user?.id);
-    });
-  }, []);
-
-  return (
-    <div className="min-h-screen bg-background">
-      <Navigation currentUserId={currentUserId} />
-      <div className="max-w-3xl mx-auto px-4 py-10 prose dark:prose-invert">
-        <h1>Terms of Service</h1>
-        <p className="text-muted-foreground">Last updated: April 4, 2026</p>
-
-        <h2>1. Acceptance of Terms</h2>
-        <p>By accessing or using Ember ("the Platform"), you agree to be bound by these Terms of Service. If you do not agree, do not use the Platform.</p>
-
-        <h2>2. Account Registration</h2>
-        <p>You must provide accurate information when creating an account. You are responsible for maintaining the security of your account credentials. You must be at least 13 years old to use Ember.</p>
-
-        <h2>3. User Content</h2>
-        <p>You retain ownership of content you post. By posting content, you grant Ember a non-exclusive, worldwide, royalty-free license to use, display, and distribute your content on the Platform. You are solely responsible for your content and must not post illegal, harmful, or infringing material.</p>
-
-        <h2>4. Acceptable Use</h2>
-        <p>You agree not to:</p>
-        <ul>
-          <li>Harass, bully, or threaten other users</li>
-          <li>Post spam, misleading content, or malware</li>
-          <li>Impersonate others or create fake accounts</li>
-          <li>Attempt to gain unauthorized access to systems</li>
-          <li>Use the Platform for illegal activities</li>
-          <li>Scrape or collect user data without consent</li>
-        </ul>
-
-        <h2>5. Advertising & Credits</h2>
-        <p>Ember offers an advertising system using credits. Credits are non-refundable and non-transferable. We reserve the right to reject or remove any ad campaign that violates our policies.</p>
-
-        <h2>6. Privacy</h2>
-        <p>Your use of Ember is also governed by our <a href="/privacy">Privacy Policy</a>. By using the Platform, you consent to the collection and use of your information as described therein.</p>
-
-        <h2>7. Termination</h2>
-        <p>We may suspend or terminate your account at any time for violations of these terms. You may delete your account at any time through your account settings.</p>
-
-        <h2>8. Disclaimers</h2>
-        <p>Ember is provided "as is" without warranties of any kind. We do not guarantee uninterrupted or error-free service.</p>
-
-        <h2>9. Limitation of Liability</h2>
-        <p>Ember shall not be liable for any indirect, incidental, or consequential damages arising from your use of the Platform.</p>
-
-        <h2>10. Changes to Terms</h2>
-        <p>We may update these terms at any time. Continued use of Ember after changes constitutes acceptance of the new terms.</p>
-
-        <h2>11. Contact</h2>
-        <p>For questions about these terms, contact us at support@cloudbook.app.</p>
-      </div>
-    </div>
-  );
-};
+const TermsOfService = () => (
+  <LegalPage
+    icon={FileText}
+    title="Terms of Service"
+    updated="April 4, 2026"
+    summary={[
+      "You must be 13 or older and give accurate details.",
+      "What you post stays yours; you let Ember show it on the app.",
+      "Be kind: no harassment, spam, fake accounts or anything illegal.",
+      "We can remove content or accounts that break these rules, and you can leave any time.",
+    ]}
+    sections={[
+      { id: "acceptance", title: "Accepting these terms", body: <p>By using Ember ("the Platform"), you agree to these Terms of Service. If you don't agree, please don't use Ember.</p> },
+      { id: "account", title: "Your account", body: <p>Give accurate information when you sign up and keep your password safe. You must be at least 13 years old to use Ember.</p> },
+      {
+        id: "content",
+        title: "Your content",
+        body: (
+          <>
+            <p>You own what you post. By posting, you give Ember a non-exclusive, worldwide, royalty-free licence to use, show and distribute it on the Platform.</p>
+            <p>You're responsible for what you post, and it must not be illegal, harmful or infringe anyone's rights.</p>
+          </>
+        ),
+      },
+      {
+        id: "acceptable-use",
+        title: "What's not allowed",
+        body: <LegalList items={["Harassing, bullying or threatening other people", "Spam, misleading content or malware", "Pretending to be someone else or making fake accounts", "Trying to get into systems or accounts you shouldn't", "Using Ember for anything illegal", "Scraping or collecting people's data without consent"]} />,
+      },
+      { id: "ads", title: "Advertising and credits", body: <p>Ember offers advertising paid for with credits. Credits can't be refunded or transferred. We can reject or remove any ad that breaks our policies.</p> },
+      { id: "privacy", title: "Privacy", body: <p>Your use of Ember is also covered by our <Link to="/privacy">Privacy Policy</Link>, which explains what we collect and why.</p> },
+      { id: "termination", title: "Ending your account", body: <p>We may suspend or close accounts that break these terms. You can delete your account at any time in Settings.</p> },
+      { id: "disclaimers", title: "Disclaimers", body: <p>Ember is provided "as is", without warranties of any kind. We don't promise it will always work without interruptions or errors.</p> },
+      { id: "liability", title: "Limitation of liability", body: <p>Ember isn't liable for indirect, incidental or consequential damages that come from using the Platform.</p> },
+      { id: "changes", title: "Changes to these terms", body: <p>We may update these terms. If you keep using Ember after a change, you accept the new terms.</p> },
+    ]}
+    contact={{ email: "support@cloudbook.app", label: "Questions about these terms?" }}
+    other={{ to: "/privacy", label: "Privacy Policy" }}
+  />
+);
 
 export default TermsOfService;
