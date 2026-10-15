@@ -65,6 +65,7 @@ import { deleteWithUndo } from "@/lib/undo-delete";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
 import type { LucideIcon } from "lucide-react";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { softImage } from "@/lib/soft-image";
 
 interface ProfileData {
   id: string;
@@ -544,7 +545,7 @@ const Profile = () => {
         <div ref={coverRef} className="relative h-48 sm:h-72 overflow-hidden bg-muted sm:rounded-b-2xl">
           <motion.div style={{ y: coverY, scale: coverScale }} className="absolute inset-0">
             {profile.cover_url ?
-            <img src={profile.cover_url} alt="" className="w-full h-full object-cover" /> :
+            <img src={profile.cover_url} alt="" {...softImage} className={`${softImage.className} w-full h-full object-cover`} /> :
             // No cover yet: soft ember glows on the page colour, calmer than a flat gradient.
             <div className="h-full w-full bg-[radial-gradient(110%_130%_at_0%_0%,hsl(var(--primary)/0.55),transparent_55%),radial-gradient(90%_120%_at_100%_100%,hsl(340_90%_62%/0.4),transparent_60%),radial-gradient(60%_80%_at_70%_10%,hsl(40_100%_60%/0.35),transparent_60%),linear-gradient(160deg,hsl(var(--secondary)),hsl(var(--background)))]" />
             }
