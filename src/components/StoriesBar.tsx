@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, X, Send, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2 } from "lucide-react";
+import { Plus, X, Send, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -84,6 +84,8 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  // Sound on video stories; stays as you leave it for the next ones.
+  const [storyMuted, setStoryMuted] = useState(false);
   const [progress, setProgress] = useState(0);
   const [replyText, setReplyText] = useState("");
   const [isSendingReply, setIsSendingReply] = useState(false);
@@ -501,6 +503,11 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                   <Trash2 className="h-4 w-4" />
                 </Button>
               )}
+              {activeStory.media_type === "video" && (
+                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setStoryMuted((m) => !m)} aria-label={storyMuted ? "Turn sound on" : "Mute"}>
+                  {storyMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+                </Button>
+              )}
               <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setIsPaused(p => !p)} aria-label={isPaused ? "Play" : "Pause"}>
                 {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               </Button>
@@ -517,6 +524,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               ref={videoRef}
               src={activeStory.media_url}
               poster={BLANK_POSTER}
+              muted={storyMuted}
               autoPlay
               playsInline
               preload="auto"
