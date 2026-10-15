@@ -701,25 +701,25 @@ const Profile = () => {
           <div className="mt-4 grid grid-cols-[1fr_1fr_auto] gap-2 sm:flex sm:max-w-md">
             {isOwnProfile ?
             <>
-                <Button onClick={() => navigate("/?story=1")} className="sm:flex-1 rounded-lg">
+                <Button onClick={() => navigate("/?story=1")} className="h-9 sm:flex-1 rounded-lg text-[14px]">
                   <Plus className="h-4 w-4 mr-1.5" /> Add to story
                 </Button>
-                <Button variant="secondary" onClick={() => setIsEditingProfile(true)} className="sm:flex-1 rounded-lg">
+                <Button variant="secondary" onClick={() => setIsEditingProfile(true)} className="h-9 sm:flex-1 rounded-lg text-[14px]">
                   <Edit className="h-4 w-4 mr-1.5" /> Edit profile
                 </Button>
                 {profileMenu(
-                <Button variant="secondary" size="icon" className="rounded-lg" aria-label="More options">
+                <Button variant="secondary" size="icon" className="h-9 w-9 rounded-lg" aria-label="More options">
                     <MoreHorizontal className="h-5 w-5" />
                   </Button>
                 )}
               </> :
             <>
-                <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} className="w-full sm:flex-1 rounded-lg" />
-                <Button onClick={startMessage} className="sm:flex-1 rounded-lg">
+                <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} className="h-9 w-full sm:flex-1 rounded-lg text-[14px]" />
+                <Button onClick={startMessage} className="h-9 sm:flex-1 rounded-lg text-[14px]">
                   <MessageCircle className="h-4 w-4 mr-1.5" /> Message
                 </Button>
                 {profileMenu(
-                <Button variant="secondary" size="icon" className="rounded-lg" aria-label="More options">
+                <Button variant="secondary" size="icon" className="h-9 w-9 rounded-lg" aria-label="More options">
                     <MoreHorizontal className="h-5 w-5" />
                   </Button>
                 )}
