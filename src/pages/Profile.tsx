@@ -29,6 +29,7 @@ import {
   GraduationCap,
   Link as LinkIcon,
   Heart,
+  History,
   Users,
   Plus,
   FolderOpen,
@@ -506,6 +507,11 @@ const Profile = () => {
         <ActionMenuItem onSelect={shareProfile}>
           <Share2 className="h-4 w-4 mr-2" /> Share profile
         </ActionMenuItem>
+        {isOwnProfile &&
+      <ActionMenuItem onSelect={() => navigate("/story-archive")}>
+            <History className="h-4 w-4 mr-2" /> Story archive
+          </ActionMenuItem>
+      }
         {!isOwnProfile &&
       <>
             <ActionMenuSeparator />
