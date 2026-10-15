@@ -4,6 +4,10 @@ import "./index.css";
 import { reloadOnNewVersion, watchForUpdates } from "./lib/app-updates";
 import { isNative } from "./lib/native/platform";
 import { initNative } from "./lib/native";
+import { captureReferral } from "./lib/referral";
+
+// Opened from someone's invite link (?ref=…): remember who, for after sign-up.
+captureReferral();
 
 if (isNative) {
   // The Android app: its updates come over the air (src/lib/native/ota.ts), not from the

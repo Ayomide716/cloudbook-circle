@@ -34,6 +34,7 @@ import { features } from "@/lib/features";
 import { fadeTheme } from "@/lib/theme-fade";
 import { motion } from "framer-motion";
 import { disablePush } from "@/lib/web-push";
+import InviteFriends from "@/components/InviteFriends";
 
 interface Shortcut {
   icon: LucideIcon;
@@ -185,6 +186,8 @@ const Menu = () => {
             </motion.button>
           ))}
         </nav>
+
+        {userId && <InviteFriends userId={userId} className="feed-section" />}
 
         {/* Settings, help and appearance */}
         <section className="feed-section divide-y divide-border rounded-2xl border border-border bg-card">

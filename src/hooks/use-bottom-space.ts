@@ -5,7 +5,7 @@ import { useEffect, type RefObject } from "react";
  * the screen takes, through a CSS variable on <html>, while it's showing.
  * Pass a size (e.g. "4.75rem") or an element to measure.
  */
-export function useBottomSpace(name: "--dock-space" | "--posting-space", size: string | RefObject<HTMLElement | null> | null) {
+export function useBottomSpace(name: "--dock-space" | "--posting-space" | "--offline-space", size: string | RefObject<HTMLElement | null> | null) {
   useEffect(() => {
     const root = document.documentElement.style;
     if (!size) return;
