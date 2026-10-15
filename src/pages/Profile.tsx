@@ -603,8 +603,10 @@ const Profile = () => {
       <div className="page-flush max-w-5xl mx-auto px-0 sm:px-6 pb-28 md:pb-10">
         {/* ─── Header, as in Facebook: a white sheet over the cover with the photo, name and stats ─── */}
         <header className="relative -mt-5 sm:mt-0 rounded-t-3xl sm:rounded-none bg-card sm:bg-transparent px-4 sm:px-0 pt-3 pb-4 mb-2 sm:mb-4">
-          <div className="flex items-end gap-4">
-            <div className="relative -mt-14 sm:-mt-20 w-fit flex-shrink-0">
+          {/* Phones, as on Facebook: the photo over the cover, then the name across the full width
+              underneath (side by side, a long name wrapped into a tall block). */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:gap-4">
+            <div className="relative -mt-16 sm:-mt-20 w-fit flex-shrink-0">
               <Avatar className="h-28 w-28 sm:h-40 sm:w-40 border-4 border-card sm:border-background shadow-lg">
                 <AvatarImage src={profile.avatar_url || undefined} alt="" />
                 <AvatarFallback className="text-4xl sm:text-5xl font-display gradient-brand text-primary-foreground">
@@ -627,10 +629,11 @@ const Profile = () => {
               }
             </div>
 
-            <div className="min-w-0 flex-1 pb-1 sm:pb-3">
-              <h1 className="text-[22px] sm:text-3xl font-bold leading-tight flex items-center gap-1.5 [overflow-wrap:anywhere]">
+            <div className="min-w-0 flex-1 sm:pb-3">
+              {/* The tick sits right after the last word of the name, wherever it wraps. */}
+              <h1 className="text-[24px] sm:text-3xl font-bold leading-tight [overflow-wrap:anywhere]">
                 {profile.full_name || "Anonymous User"}
-                {profile.is_verified && <span className="shrink-0"><VerifiedBadge size="lg" /></span>}
+                {profile.is_verified && <span className="ml-1.5 inline-flex align-[-2px]"><VerifiedBadge size="md" /></span>}
               </h1>
               {/* "245 friends · 10 mutual · 153 posts" */}
               <p className="mt-0.5 text-[15px] text-muted-foreground">
@@ -659,7 +662,8 @@ const Profile = () => {
           }
 
           {/* Short details line: 📍 Lagos · 🎓 UNILAG · ❤ Single */}
-          {summaryItems.length > 0 &&
+          {/* The All tab lists these in Personal details just below, so they're not repeated here. */}
+          {summaryItems.length > 0 && !(activeTab === "posts" && hasDetails) &&
           <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px]">
               {summaryItems.map((item, i) =>
             <span key={item.label} className="inline-flex items-center gap-1">
@@ -727,10 +731,8 @@ const Profile = () => {
 
           {/* Things in common (someone else's profile) */}
           {!isOwnProfile && thingsInCommon.length > 0 &&
-          <section className="mt-4 rounded-xl border border-border p-3 sm:max-w-md" aria-label="Things in common">
-              <h2 className="flex items-center gap-2 text-[15px] font-semibold mb-1">
-                <Users className="h-5 w-5" /> Things in common
-              </h2>
+          <section className="mt-3 flex items-start gap-2.5 sm:max-w-md" aria-label="Things in common">
+              <Users className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               <p className="text-sm text-muted-foreground leading-snug">
                 {thingsInCommon.map((t, i) =>
               <span key={t}>
