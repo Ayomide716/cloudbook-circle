@@ -10,6 +10,7 @@
 // Until they're set, this answers 503 and the app keeps uploading to Supabase Storage.
 import { AwsClient } from "../_shared/aws4fetch.js";
 import { planUpload, readR2Settings } from "../_shared/media-rules.ts";
+import { MEDIA_COLUMNS, storageKey, swapUrls } from "../_shared/media-migrate.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -73,6 +74,73 @@ Deno.serve(async (req) => {
     const headers = { "Content-Type": "text/plain", "Cache-Control": "no-store" };
     const signed = await r2.sign(new Request(target, { method: "PUT", headers }), { aws: { signQuery: true } });
     return json({ server, bucket, uploadUrl: signed.url, headers, publicUrl: `${publicUrl}/${key}` });
+  }
+
+  // Admin → "Move old media to Cloudflare": moves a batch of files uploaded to Supabase Storage
+  // before R2 and points the database at the new addresses. Call again until remaining is 0.
+  if (body.migrate === true) {
+    const base = Deno.env.get("SUPABASE_URL")!;
+    const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const db = (path: string, init: RequestInit = {}) =>
+      fetch(`${base}/rest/v1/${path}`, { ...init, headers: { apikey: service, Authorization: `Bearer ${service}`, "Content-Type": "application/json", ...(init.headers ?? {}) } });
+    const admin = await db(`user_roles?select=user_id&role=eq.admin&user_id=eq.${user.id}`).then((r) => (r.ok ? r.json() : []));
+    if (!Array.isArray(admin) || admin.length === 0) return json({ error: "Admins only." }, 403);
+
+    // Where each old address is used: url → [{ table, id, column }].
+    const uses = new Map<string, { table: string; id: string; column: string; value: unknown }[]>();
+    for (const t of MEDIA_COLUMNS) {
+      const cols = [...t.columns, ...(t.arrays ?? [])];
+      for (let from = 0; ; from += 1000) {
+        const res = await db(`${t.table}?select=id,${cols.join(",")}`, { headers: { Range: `${from}-${from + 999}` } });
+        if (!res.ok) break; // a table this project doesn't have
+        const rows: Record<string, unknown>[] = await res.json();
+        for (const row of rows) {
+          for (const c of cols) {
+            const v = row[c];
+            for (const u of Array.isArray(v) ? v : [v]) {
+              if (!storageKey(u)) continue;
+              const list = uses.get(u as string) ?? [];
+              list.push({ table: t.table, id: String(row.id), column: c, value: v });
+              uses.set(u as string, list);
+            }
+          }
+        }
+        if (rows.length < 1000) break;
+      }
+    }
+
+    const skip = new Set(Array.isArray(body.skip) ? body.skip.map(String) : []);
+    const todo = [...uses.keys()].filter((u) => !skip.has(u));
+    const started = Date.now();
+    const moved = new Map<string, string>();
+    const failed: { url: string; reason: string }[] = [];
+    for (const url of todo) {
+      if (moved.size + failed.length >= 25 || Date.now() - started > 40_000) break;
+      const key = storageKey(url)!;
+      try {
+        const file = await fetch(url);
+        if (!file.ok) throw new Error(`Supabase answered ${file.status}`);
+        const path = key.split("/").map(encodeURIComponent).join("/");
+        const put = await r2.fetch(`${endpoint}/${bucket}/${path}`, {
+          method: "PUT",
+          headers: { "Content-Type": file.headers.get("content-type") ?? "application/octet-stream", "Cache-Control": CACHE_CONTROL },
+          body: await file.arrayBuffer(),
+        });
+        if (!put.ok) throw new Error(`Cloudflare answered ${put.status}`);
+        moved.set(url, `${publicUrl}/${path}`);
+      } catch (e) {
+        failed.push({ url, reason: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    // Point every row at the new addresses (all of a row's moved addresses at once).
+    const updates = new Map<string, { table: string; id: string; column: string; value: unknown }>();
+    for (const url of moved.keys()) for (const use of uses.get(url)!) updates.set(`${use.table}|${use.id}|${use.column}`, use);
+    for (const u of updates.values()) {
+      await db(`${u.table}?id=eq.${encodeURIComponent(u.id)}`, { method: "PATCH", body: JSON.stringify({ [u.column]: swapUrls(u.value, moved) }) });
+    }
+
+    return json({ moved: moved.size, failed, remaining: todo.length - moved.size });
   }
 
   const plan = planUpload(user.id ?? "", body);

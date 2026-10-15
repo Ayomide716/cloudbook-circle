@@ -85,6 +85,9 @@ needs the latest version.)
   Supabase's secrets.
 - If an upload to R2 fails (for example the CORS policy is missing your website's address), the
   app quietly uploads that file to Supabase instead and tries R2 again 10 minutes later.
+- Files uploaded before R2 was set up: **Admin → Move old media to Cloudflare** copies them to R2
+  and updates the links (needs the latest `media-upload` pasted). Safe to run again; anything it
+  can't move keeps loading from Supabase. The old copies stay in Supabase.
 - Deleting a post doesn't delete its file from R2 yet. Storage is cheap, and old files don't cost
   downloads unless someone views them.
 - Developers: after changing `supabase/functions/media-upload/index.ts` or
