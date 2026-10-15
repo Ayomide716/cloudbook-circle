@@ -123,11 +123,11 @@ const FriendshipButton = ({ currentUserId, profileUserId, className }: Friendshi
   if (friendshipStatus === 'pending_received') {
     return (
       <div className={cn("flex gap-2", className)}>
-        <Button className="flex-1" onClick={acceptRequest} disabled={isLoading}>
+        <Button className="h-full flex-1" onClick={acceptRequest} disabled={isLoading}>
           {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserCheck className="h-4 w-4 mr-2" />}
           Accept
         </Button>
-        <Button variant="secondary" size="icon" onClick={removeFriend} disabled={isLoading} aria-label="Decline friend request">
+        <Button variant="secondary" size="icon" className="h-full w-auto aspect-square" onClick={removeFriend} disabled={isLoading} aria-label="Decline friend request">
           <X className="h-4 w-4" />
         </Button>
       </div>
