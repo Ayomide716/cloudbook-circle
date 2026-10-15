@@ -5,6 +5,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn, toDate } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast";
+import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
 
 export interface ThreadComment {
   id: string;
@@ -62,11 +65,42 @@ export function CommentThread<T extends ThreadComment>({
   latest = false,
   className,
 }: CommentThreadProps<T>) {
+  // Deleting a comment hides it at once with "Comment deleted · Undo" (and its replies with it);
+  // it's really deleted 5 seconds later, or as the app closes.
+  const [hidden, setHidden] = useState<Set<string>>(() => new Set());
+  const deleteWithUndo = onDelete && ((id: string) => {
+    setHidden((prev) => new Set(prev).add(id));
+    deleteLater(`comment:${id}`, 5000, { run: () => onDelete(id) });
+    toast({
+      title: "Comment deleted",
+      duration: 5000,
+      action: (
+        <ToastAction
+          altText="Undo delete"
+          onClick={() => {
+            cancelDelete(`comment:${id}`);
+            setHidden((prev) => {
+              const next = new Set(prev);
+              next.delete(id);
+              return next;
+            });
+          }}
+        >
+          Undo
+        </ToastAction>
+      ),
+    });
+  });
+  const visible = useMemo(
+    () => (hidden.size ? comments.filter((c) => !hidden.has(c.id) && !(c.parent_id && hidden.has(c.parent_id))) : comments),
+    [comments, hidden],
+  );
+
   const { topLevel, repliesOf } = useMemo(() => {
-    const ids = new Set(comments.map((c) => c.id));
+    const ids = new Set(visible.map((c) => c.id));
     const top: T[] = [];
     const replies = new Map<string, T[]>();
-    for (const c of comments) {
+    for (const c of visible) {
       // A reply whose parent is gone (deleted) shows as a normal comment.
       if (c.parent_id && ids.has(c.parent_id)) {
         const list = replies.get(c.parent_id) ?? [];
@@ -77,7 +111,7 @@ export function CommentThread<T extends ThreadComment>({
       }
     }
     return { topLevel: top, repliesOf: replies };
-  }, [comments]);
+  }, [visible]);
 
   const [shownTop, setShownTop] = useState(initialCount);
   // How many replies are showing for each thread (missing = folded).
@@ -165,8 +199,8 @@ export function CommentThread<T extends ThreadComment>({
                 Edit
               </button>
             )}
-            {mine && onDelete && (
-              <button type="button" className="font-semibold hover:text-destructive" onClick={() => onDelete(c.id)}>
+            {mine && deleteWithUndo && (
+              <button type="button" className="font-semibold hover:text-destructive" onClick={() => deleteWithUndo(c.id)}>
                 Delete
               </button>
             )}

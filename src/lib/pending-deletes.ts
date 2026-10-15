@@ -14,9 +14,9 @@ interface Pending {
   timer: number;
   /** The normal delete (supabase-js). */
   run: () => void;
-  /** The same delete as a request that outlives the page. */
-  url: string;
-  headers: Record<string, string>;
+  /** The same delete as a request that outlives the page (else `run` is tried as the page goes). */
+  url?: string;
+  headers?: Record<string, string>;
 }
 
 const pending = new Map<string, Pending>();
@@ -74,6 +74,10 @@ function flushAll() {
   for (const [id, p] of pending) {
     window.clearTimeout(p.timer);
     pending.delete(id);
+    if (!p.url) {
+      p.run();
+      continue;
+    }
     try {
       void fetch(p.url, { method: "DELETE", headers: p.headers, keepalive: true });
     } catch {

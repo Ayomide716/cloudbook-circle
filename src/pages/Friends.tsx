@@ -28,6 +28,7 @@ import { toDate } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { dbChannel } from "@/lib/realtime";
 import EmptyState from "@/components/EmptyState";
+import InviteFriends from "@/components/InviteFriends";
 
 
 interface Profile {
@@ -598,7 +599,10 @@ const Friends = () => {
           <TabsContent value="friends">
             <Card className="feed-section flat-list">
               {friends.length === 0 ? (
-                <EmptyState emoji="people" title="No friends yet" text="Add a few people you know and their posts will fill your feed." action={<Button onClick={() => setActiveTab("suggestions")} className="rounded-full px-5">Find people</Button>} />
+                <>
+                  <EmptyState emoji="people" title="No friends yet" text="Add a few people you know and their posts will fill your feed." action={<Button onClick={() => setActiveTab("suggestions")} className="rounded-full px-5">Find people</Button>} />
+                  {currentUserId && <InviteFriends userId={currentUserId} className="m-4 mt-0" />}
+                </>
               ) : (
                 <div className="divide-y">
                   {friends.map((friendship) => (
@@ -640,6 +644,8 @@ const Friends = () => {
                 </div>
               )}
             </Card>
+            {/* Few friends yet: invite the ones who aren't on Ember. */}
+            {currentUserId && friends.length > 0 && friends.length < 10 && <InviteFriends userId={currentUserId} className="feed-section mt-2 sm:mt-4" />}
             {/* A short list leaves the page empty; suggest people to add underneath, as Facebook does. */}
             {friends.length > 0 && friends.length < 5 && visibleSuggestions.length > 0 && (
               <Card className="feed-section flat-list mt-2 sm:mt-4">

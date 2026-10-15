@@ -22,9 +22,9 @@ const ToastViewport = React.forwardRef<
     ref={ref}
     className={cn(
       "fixed inset-x-0 z-[100] mx-auto flex w-full max-w-md flex-col gap-2 px-3 outline-none",
-      "bottom-[calc(var(--dock-space,0px)+var(--posting-space,0px)+0.5rem+env(safe-area-inset-bottom,0px))]",
+      "bottom-[calc(var(--dock-space,0px)+var(--posting-space,0px)+var(--offline-space,0px)+0.5rem+env(safe-area-inset-bottom,0px))]",
       // Bigger screens: bottom left, as on facebook.com.
-      "md:inset-x-auto md:bottom-[calc(var(--posting-space,0px)+1.5rem)] md:left-6 md:mx-0 md:w-auto md:max-w-sm md:px-0",
+      "md:inset-x-auto md:bottom-[calc(var(--posting-space,0px)+var(--offline-space,0px)+1.5rem)] md:left-6 md:mx-0 md:w-auto md:max-w-sm md:px-0",
       className,
     )}
     {...props}
