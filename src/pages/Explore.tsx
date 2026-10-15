@@ -12,11 +12,11 @@ import { Button } from "@/components/ui/button";
 import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { groupColor, groupInitials } from "@/lib/group-tile";
 import { TrendingUp, Hash, Users, Compass, Search, Flame, Check, Loader2 } from "lucide-react";
-import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import type { PostCardProps } from "@/components/PostCard";
 import type { Tables } from "@/integrations/supabase/types";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import ExploreSkeleton from "@/components/skeletons/ExploreSkeleton";
 
 interface TrendingTopic {
   tag: string;
@@ -39,6 +39,8 @@ const Explore = () => {
   const [searchQuery, setSearchQuery] = useState(() => searchParams.get("q") ?? "");
   const [searchResults, setSearchResults] = useState<{ posts: PostCardProps["post"][]; people: Tables<"profiles">[] } | null>(null);
   const [isSearching, setIsSearching] = useState(false);
+  // Until the first load is in: a skeleton shaped like the page.
+  const [loaded, setLoaded] = useState(false);
   const [groupsToJoin, setGroupsToJoin] = useState<(Tables<"groups"> & { member_count?: number })[]>([]);
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
 
@@ -126,6 +128,7 @@ const Explore = () => {
       return { ...p, score: reactionCount * 2 + (comments[p.id]?.length ?? 0) * 3 };
     });
     setTrendingPosts(scored);
+    setLoaded(true);
     setReactionsData(reactions);
     setCommentsData(comments);
 
@@ -206,8 +209,11 @@ const Explore = () => {
   if (!currentUser) return (
     <div className="min-h-screen bg-background">
       <Navigation />
-      <div className="flex items-center justify-center h-[60vh]">
-        <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-8 h-8 rounded-lg bg-primary" />
+      <div className="page-flush max-w-3xl mx-auto w-full px-0 sm:px-4 pb-6 sm:py-6">
+        <PageHeader title="Explore" className="sm:mb-4">
+          <PageSearch value={searchQuery} onChange={updateSearch} placeholder="Search topics, people, content" label="Search posts and people" />
+        </PageHeader>
+        <ExploreSkeleton />
       </div>
     </div>
   );
@@ -278,6 +284,7 @@ const Explore = () => {
         ) : (
         // One page to find new things, instead of the Home feed again: what people are talking
         // about, groups you're not in yet, people you may know, then this week's most loved posts.
+        !loaded ? <ExploreSkeleton /> :
         <div className="space-y-2 sm:space-y-4">
           {trendingTopics.length > 0 && (
             <section className="feed-section bg-card px-3 py-3 sm:rounded-2xl sm:border sm:px-4" aria-labelledby="explore-topics">

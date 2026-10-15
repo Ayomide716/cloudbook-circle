@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState, type ReactNode } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import PostingBar from "@/components/PostingBar";
 import ConnectionBar from "@/components/ConnectionBar";
@@ -43,6 +43,7 @@ const Ads = lazy(() => import("./pages/Ads"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const TermsOfService = lazy(() => import("./pages/TermsOfService"));
 const PrivacyPolicy = lazy(() => import("./pages/PrivacyPolicy"));
+const OfflineVideos = lazy(() => import("./pages/OfflineVideos"));
 const Explore = lazy(() => import("./pages/Explore"));
 const PostDetail = lazy(() => import("./pages/PostDetail"));
 const Menu = lazy(() => import("./pages/Menu"));
@@ -126,8 +127,27 @@ const withoutBars = (path: string) => path === "/auth" || path === "/forgot-pass
  * One header and bottom bar for every signed-in page, kept on screen across page changes
  * (they used to be drawn by each page, so they vanished and slid back in every time).
  */
+// The main tabs' code, fetched quietly once the app is idle, so switching tabs never waits.
+const preloadTabs = () => {
+  void import("./pages/Friends");
+  void import("./pages/Reels");
+  void import("./pages/Groups");
+  void import("./pages/Notifications");
+  void import("./pages/Menu");
+  void import("./pages/Messages");
+  void import("./pages/Profile");
+  void import("./pages/Explore");
+};
+
 const AppShell = ({ children }: { children: ReactNode }) => {
   const session = useSession();
+  const signedIn = !!session;
+  useEffect(() => {
+    if (!signedIn) return;
+    const idle = (window as Window & { requestIdleCallback?: (cb: () => void) => number }).requestIdleCallback;
+    const id = idle ? idle(preloadTabs) : window.setTimeout(preloadTabs, 2500);
+    return () => { if (!idle) window.clearTimeout(id); };
+  }, [signedIn]);
   const { pathname } = useLocation();
   const [hideMobileTopBar, setHideMobileTopBar] = useState(false);
   const shell = useMemo(() => ({ setHideMobileTopBar }), []);
@@ -174,6 +194,7 @@ const AppRoutes = () => {
         <Route path="/admin" element={<Protected><AdminDashboard /></Protected>} />
         <Route path="/terms" element={<AnimatedPage><TermsOfService /></AnimatedPage>} />
         <Route path="/privacy" element={<AnimatedPage><PrivacyPolicy /></AnimatedPage>} />
+        <Route path="/offline-videos" element={<AnimatedPage><OfflineVideos /></AnimatedPage>} />
         <Route path="/explore" element={<Protected><Explore /></Protected>} />
         <Route path="/post/:postId" element={<Protected><PostDetail /></Protected>} />
         <Route path="*" element={<AnimatedPage><NotFound /></AnimatedPage>} />

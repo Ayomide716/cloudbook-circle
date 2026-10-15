@@ -1,7 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 
 /** One post: name and time, two lines of text, a photo, the Like / Comment / Share row. */
-const PostSkeleton = ({ photo = true }: { photo?: boolean }) => (
+export const PostSkeleton = ({ photo = true }: { photo?: boolean }) => (
   <div className="feed-section bg-card border border-border/60 rounded-2xl overflow-hidden">
     <div className="flex items-center gap-2.5 p-3 sm:p-4">
       <Skeleton className="h-10 w-10 rounded-full shrink-0" />
