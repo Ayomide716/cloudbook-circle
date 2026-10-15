@@ -70,6 +70,25 @@ export default function Reels() {
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploadVideoUrl, setUploadVideoUrl] = useState("");
   const [isMuted, setIsMuted] = useState(true);
+  // Auto scroll, as on Facebook: when a reel ends, the next one comes up. On unless you turn it off.
+  const [autoScroll, setAutoScroll] = useState(() => {
+    try {
+      return localStorage.getItem("ember:reels-autoscroll") !== "off";
+    } catch {
+      return true;
+    }
+  });
+  const toggleAutoScroll = () => {
+    setAutoScroll((on) => {
+      try {
+        localStorage.setItem("ember:reels-autoscroll", on ? "off" : "on");
+      } catch {
+        // Private mode: only this visit remembers.
+      }
+      toast({ title: on ? "Auto scroll off" : "Auto scroll on", description: on ? "Reels play again when they end." : "The next reel comes up when one ends." });
+      return !on;
+    });
+  };
   const containerRef = useRef<HTMLDivElement>(null);
   const [friendIds, setFriendIds] = useState<Set<string>>(new Set());
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
@@ -427,6 +446,9 @@ export default function Reels() {
                 onFollow={handleFollow}
                 isFollowing={friendIds.has(reel.user_id)}
                 isPending={pendingIds.has(reel.user_id)}
+                autoScroll={autoScroll}
+                onToggleAutoScroll={toggleAutoScroll}
+                onEnded={(id) => { if (autoScroll && id === activeReelId) scroll(1); }}
               />
             ))}
           </div>

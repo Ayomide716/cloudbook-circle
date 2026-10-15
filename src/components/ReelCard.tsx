@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import SeekFlash from "@/components/SeekFlash";
 import { SEEK_SECONDS, seekBy, seekSideAt } from "@/lib/video-seek";
-import { FastForward, Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, Download } from "lucide-react";
+import { ChevronsDown, FastForward, Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, Download } from "lucide-react";
 import { ChatCircle, DotsThree, Heart, MusicNotesSimple, ShareFat } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactionEmoji from "./reactions/ReactionEmoji";
@@ -51,10 +51,14 @@ interface ReelCardProps {
   onFollow?: (userId: string) => void;
   isFollowing?: boolean;
   isPending?: boolean;
+  /** Auto scroll on: when the reel ends, the next one comes up (instead of playing it again). */
+  autoScroll?: boolean;
+  onToggleAutoScroll?: () => void;
+  onEnded?: (id: string) => void;
 }
 
 export default function ReelCard({
-  reel, isActive, isNext = false, isMuted, currentUserId,
+  reel, isActive, isNext = false, isMuted, currentUserId, autoScroll = false, onToggleAutoScroll, onEnded,
   onToggleMute, onLike, onComment, onShare, onDelete, onShowUpload, onVideoError,
   onNavigateToProfile, onFollow, isFollowing, isPending,
 }: ReelCardProps) {
@@ -64,6 +68,8 @@ export default function ReelCard({
   const [fit, setFit] = useState<"cover" | "contain">("cover");
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPaused, setIsPaused] = useState(false);
+  const isActiveRef = useRef(isActive);
+  isActiveRef.current = isActive;
   const [progress, setProgress] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [heartBurst, setHeartBurst] = useState(0);
@@ -312,7 +318,15 @@ export default function ReelCard({
                 src={localSrc ?? reel.video_url}
                 onLoadedMetadata={onMetadata}
                 className={cn("absolute inset-0 h-full w-full", fit === "cover" ? "object-cover" : "object-contain object-center")}
-                loop
+                loop={!autoScroll}
+                onEnded={() => {
+                  onEnded?.(reel.id);
+                  // Still here (the last reel): play it again.
+                  setTimeout(() => {
+                    const v = videoRef.current;
+                    if (v && isActiveRef.current && v.ended) { v.currentTime = 0; void v.play().catch(() => {}); }
+                  }, 700);
+                }}
                 playsInline
                 muted={isMuted}
                 // The reel's picture (or black) instead of the phone's grey placeholder while it loads.
@@ -527,6 +541,11 @@ export default function ReelCard({
               </button>
             </ActionMenuTrigger>
             <ActionMenuContent side="left" align="end" className="w-56">
+              {onToggleAutoScroll && (
+                <ActionMenuItem onSelect={onToggleAutoScroll}>
+                  <ChevronsDown className="h-4 w-4 mr-2" /> Auto scroll: {autoScroll ? "On" : "Off"}
+                </ActionMenuItem>
+              )}
               {offlineSupported() && canPlayInline && (
                 <ActionMenuItem onSelect={() => void toggleOffline()} disabled={saving}>
                   <Download className="h-4 w-4 mr-2" /> {savedOffline ? "Remove offline copy" : "Save for offline"}
