@@ -17,14 +17,14 @@ test.describe("feed", () => {
     await expect(bar.getByRole("button", { name: "Friends, 1 new" })).toBeVisible();
     // The bar slides in when the page opens; measure once it has settled.
     const viewport = page.viewportSize()!;
-    // A floating pill: 10px above the bottom edge and 12px in from each side.
+    // Docked to the bottom edge, full width.
     await expect.poll(async () => {
       const box = (await bar.boundingBox())!;
-      return Math.abs(viewport.height - (box.y + box.height) - 10) <= 1;
+      return Math.abs(viewport.height - (box.y + box.height)) <= 1;
     }).toBe(true);
     const box = (await bar.boundingBox())!;
-    expect(Math.round(box.x)).toBe(12);
-    expect(Math.round(box.width)).toBe(viewport.width - 24);
+    expect(Math.round(box.x)).toBe(0);
+    expect(Math.round(box.width)).toBe(viewport.width);
 
     // As in Facebook's app: create, search and Messenger in the top bar; Menu is the last tab.
     await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
