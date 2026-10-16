@@ -99,7 +99,7 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
               type="button"
               variant="ghost"
               size="icon"
-              className="h-9 w-9 rounded-full text-red-500 hover:bg-red-500/10"
+              className="h-9 w-9 rounded-full text-foreground hover:bg-secondary"
               disabled={checking}
               asChild
             >

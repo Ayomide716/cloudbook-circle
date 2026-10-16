@@ -424,7 +424,7 @@ const GroupDetail = () => {
               <img src={group.image_url} alt="" className="h-40 w-full object-cover sm:h-56" />
             ) : (
               // No photo yet: the same soft ember glow as a profile without a cover.
-              <div className="h-24 w-full bg-[radial-gradient(110%_130%_at_0%_0%,hsl(var(--primary)/0.55),transparent_55%),radial-gradient(90%_120%_at_100%_100%,hsl(340_90%_62%/0.4),transparent_60%),radial-gradient(60%_80%_at_70%_10%,hsl(40_100%_60%/0.35),transparent_60%),linear-gradient(160deg,hsl(var(--secondary)),hsl(var(--background)))] sm:h-32" />
+              <div className="h-24 w-full bg-secondary sm:h-32" />
             )}
             <button
               type="button"

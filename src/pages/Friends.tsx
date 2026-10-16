@@ -453,7 +453,7 @@ const Friends = () => {
         <p className="text-xs text-muted-foreground">
           {profile.mutualCount > 0 ? mutualLabel(profile.mutualCount) : "New on Ember"}
         </p>
-        <div className="mt-2 flex items-center gap-2">
+        <div className="mt-2 flex max-w-sm items-center gap-2">
       <Button
         size="sm"
         variant="outline"
@@ -593,7 +593,7 @@ const Friends = () => {
                             {mutual > 0 && `${mutualLabel(mutual)} · `}
                             {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
                           </p>
-                          <div className="mt-2 grid grid-cols-2 gap-2">
+                          <div className="mt-2 grid max-w-sm grid-cols-2 gap-2">
                           <Button
                             size="sm"
                             variant="accent"
