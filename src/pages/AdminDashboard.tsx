@@ -13,6 +13,7 @@ import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye,
 import ConfirmDialog from "@/components/ConfirmDialog";
 import MoveMediaCard from "@/components/MoveMediaCard";
 import StorageStatusCard from "@/components/StorageStatusCard";
+import PushTestCard from "@/components/PushTestCard";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
@@ -163,6 +164,7 @@ const AdminDashboard = () => {
 
         {/* Is uploading to Cloudflare R2 working, and where did the last upload go. */}
         <StorageStatusCard />
+        <PushTestCard />
         <MoveMediaCard />
 
         {/* Stats */}
