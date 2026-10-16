@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Send, Loader2, ArrowLeft, Bot, Sparkles } from "lucide-react";
+import { Send, Loader2, ArrowLeft, Bot, Sparkles } from "@/components/icons";
 import { cn, getErrorMessage } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
@@ -121,7 +121,7 @@ const AIChatCompanion = ({ onBack, mood }: AIChatCompanionProps) => {
         )}
         <div className="relative">
           <Avatar className="h-10 w-10 gradient-brand">
-            <AvatarFallback className="gradient-brand text-primary-foreground">
+            <AvatarFallback className="bg-secondary text-foreground">
               <Bot className="h-5 w-5" />
             </AvatarFallback>
           </Avatar>
@@ -142,7 +142,7 @@ const AIChatCompanion = ({ onBack, mood }: AIChatCompanionProps) => {
           <div key={i} className={cn("flex gap-2", msg.role === "user" ? "justify-end" : "justify-start")}>
             {msg.role === "assistant" && (
               <Avatar className="h-7 w-7 flex-shrink-0 mt-1">
-                <AvatarFallback className="gradient-brand text-primary-foreground text-xs">
+                <AvatarFallback className="bg-secondary text-foreground text-xs">
                   <Bot className="h-3.5 w-3.5" />
                 </AvatarFallback>
               </Avatar>
@@ -166,7 +166,7 @@ const AIChatCompanion = ({ onBack, mood }: AIChatCompanionProps) => {
         {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
           <div className="flex gap-2 items-center">
             <Avatar className="h-7 w-7 flex-shrink-0">
-              <AvatarFallback className="gradient-brand text-primary-foreground text-xs">
+              <AvatarFallback className="bg-secondary text-foreground text-xs">
                 <Bot className="h-3.5 w-3.5" />
               </AvatarFallback>
             </Avatar>

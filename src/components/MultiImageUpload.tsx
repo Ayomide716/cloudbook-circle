@@ -5,7 +5,7 @@ import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Images, Loader2, X } from "lucide-react";
+import { Images, Loader2, X } from "@/components/icons";
 import { getErrorMessage } from "@/lib/utils";
 
 interface MultiImageUploadProps {

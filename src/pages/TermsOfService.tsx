@@ -1,4 +1,4 @@
-import { FileText } from "lucide-react";
+import { FileText } from "@/components/icons";
 import { Link } from "react-router-dom";
 import LegalPage, { LegalList } from "@/components/LegalPage";
 

@@ -4,7 +4,7 @@ import { shrinkImage } from "@/lib/image-compress";
 import { useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { X, Loader2, Paperclip, Camera } from "lucide-react";
+import { X, Loader2, Paperclip, Camera } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { getErrorMessage } from "@/lib/utils";
 

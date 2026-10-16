@@ -20,11 +20,13 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, UserPlus, Check, X, Search, UserMinus } from "lucide-react";
+import { Loader2, UserPlus, Check, UserMinus, MoreHorizontal, EyeOff } from "@/components/icons";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
 import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { useEffectEvent } from "@/hooks/use-effect-event";
-import { toDate } from "@/lib/utils";
+import { cn, toDate } from "@/lib/utils";
+import { lastSeen } from "@/lib/time";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { dbChannel } from "@/lib/realtime";
 import EmptyState from "@/components/EmptyState";
@@ -32,14 +34,35 @@ import InviteFriends from "@/components/InviteFriends";
 
 /** The Requests / Sent / Friends / Suggested tabs as round chips. */
 const FRIEND_CHIP =
-  "h-8 rounded-full border border-border bg-card px-2 py-0 text-[13px] text-foreground hover:bg-secondary data-[state=active]:border-primary/60 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none sm:h-9 sm:text-sm";
+  "h-[34px] rounded-full border-0 bg-secondary px-2 py-0 text-[14px] font-semibold text-foreground hover:bg-secondary/80 data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none sm:h-9 sm:text-sm";
 
 
 interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  is_online?: boolean | null;
+  last_seen?: string | null;
 }
+
+/** Online means seen in the last five minutes, as in chat. */
+const isOnline = (p: Profile) => !!p.is_online && !!p.last_seen && new Date(p.last_seen).getTime() > Date.now() - 5 * 60 * 1000;
+
+const mutualLabel = (n: number) => `${n} mutual ${n === 1 ? "friend" : "friends"}`;
+
+/** A titled card, as Facebook groups requests and suggestions, with "See all" when there's more. */
+const Section = ({ title, count, onSeeAll, children }: { title: string; count?: number; onSeeAll?: () => void; children: React.ReactNode }) => (
+  <Card className="feed-section flat-list overflow-hidden">
+    <div className="flex items-center justify-between px-4 pb-1 pt-3">
+      <h2 className="text-[16px] font-bold">
+        {title}
+        {!!count && <span className="ml-1.5 text-primary">{count}</span>}
+      </h2>
+      {onSeeAll && <button type="button" onClick={onSeeAll} className="text-sm font-semibold text-primary">See all</button>}
+    </div>
+    {children}
+  </Card>
+);
 
 interface SuggestedProfile extends Profile {
   /** 0 for "new on Ember" suggestions. */
@@ -70,6 +93,8 @@ const Friends = () => {
   const [sentRequests, setSentRequests] = useState<FriendRequest[]>([]);
   const [friends, setFriends] = useState<Friendship[]>([]);
   const [suggestions, setSuggestions] = useState<SuggestedProfile[]>([]);
+  /** Mutual friends with each person who sent you a request. */
+  const [requestMutuals, setRequestMutuals] = useState<Record<string, number>>({});
   const [hiddenSuggestions, setHiddenSuggestions] = useState<Set<string>>(new Set());
   const [unfriendTarget, setUnfriendTarget] = useState<Friendship | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -124,6 +149,13 @@ const Friends = () => {
 
     const list = (data as unknown as FriendRequest[]) || [];
     setPendingRequests(list);
+    // Mutual friends for each request (a few at most), so you know who they are.
+    void Promise.all(
+      list.slice(0, 20).map(async (r) => {
+        const { data: stats } = await supabase.rpc("profile_friend_stats", { _user_id: r.user_id });
+        return [r.user_id, stats?.[0]?.mutual_ids?.length ?? 0] as const;
+      })
+    ).then((pairs) => setRequestMutuals(Object.fromEntries(pairs)));
     return list;
   };
 
@@ -159,10 +191,17 @@ const Friends = () => {
     // All friends' profiles in one query rather than one per friend.
     const otherId = (f: { user_id: string; friend_id: string }) => (f.user_id === currentUserId ? f.friend_id : f.user_id);
     const ids = (friendships ?? []).map(otherId);
-    const { data: profiles } = ids.length
-      ? await supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids)
-      : { data: [] as Profile[] };
-    const byId = new Map((profiles ?? []).map((p) => [p.id, p]));
+    const [{ data: profiles }, { data: statuses }] = ids.length
+      ? await Promise.all([
+          supabase.from("profiles").select("id, full_name, avatar_url").in("id", ids),
+          supabase.from("user_status").select("user_id, is_online, last_seen").in("user_id", ids),
+        ])
+      : [{ data: [] as Profile[] }, { data: [] }];
+    // Who's online or was active lately, as in chat.
+    const status = new Map((statuses ?? []).map((st) => [st.user_id, st]));
+    const byId = new Map<string, Profile>(
+      (profiles ?? []).map((p) => [p.id, { ...p, is_online: status.get(p.id)?.is_online, last_seen: status.get(p.id)?.last_seen }])
+    );
     setFriends(
       (friendships ?? [])
         .filter((f) => byId.has(otherId(f)))
@@ -394,10 +433,11 @@ const Friends = () => {
   }
 
   const visibleSuggestions = suggestions.filter((p) => !hiddenSuggestions.has(p.id));
+  const hideSuggestion = (id: string) => setHiddenSuggestions((prev) => new Set(prev).add(id));
   const suggestionRow = (profile: SuggestedProfile) => (
-    <div key={profile.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
+    <div key={profile.id} className="flex items-start gap-3 sm:gap-4 px-4 py-3">
       <Link to={`/profile/${profile.id}`}>
-        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
+        <Avatar className="h-[72px] w-[72px]">
           <AvatarImage src={profile.avatar_url || undefined} />
           <AvatarFallback>
             {profile.full_name?.[0]?.toUpperCase() || "U"}
@@ -411,19 +451,35 @@ const Friends = () => {
           </p>
         </Link>
         <p className="text-xs text-muted-foreground">
-          {profile.mutualCount > 0
-            ? `${profile.mutualCount} mutual ${profile.mutualCount === 1 ? "friend" : "friends"}`
-            : "New on Ember"}
+          {profile.mutualCount > 0 ? mutualLabel(profile.mutualCount) : "New on Ember"}
         </p>
-      </div>
+        <div className="mt-2 flex items-center gap-2">
       <Button
         size="sm"
+        variant="outline"
         onClick={() => handleSendRequest(profile.id)}
-        className="gap-1"
+        className="h-9 flex-1 gap-1 rounded-lg border-primary/60 font-semibold text-primary hover:bg-primary/10 hover:text-primary"
       >
         <UserPlus className="h-4 w-4" />
-        Add
+        Add friend
       </Button>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" aria-label={`More options for ${profile.full_name || "this person"}`} className="flex h-9 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground hover:bg-secondary/80">
+            <MoreHorizontal className="h-5 w-5" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => navigate(`/profile/${profile.id}`)}>
+            <UserPlus className="mr-2 h-4 w-4" /> View profile
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => hideSuggestion(profile.id)}>
+            <EyeOff className="mr-2 h-4 w-4" /> Remove suggestion
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+        </div>
+      </div>
     </div>
   );
 
@@ -471,13 +527,14 @@ const Friends = () => {
                     ) : (
                       <Button
                         size="sm"
-                        className="gap-1 shrink-0"
+                        variant="outline"
+                        className="h-8 shrink-0 gap-1 rounded-full border-primary/60 px-3 font-semibold text-primary hover:bg-primary/10 hover:text-primary"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSendRequest(profile.id);
                         }}
                       >
-                        <UserPlus className="h-4 w-4" /> Add
+                        <UserPlus className="h-4 w-4" /> Add friend
                       </Button>
                     )}
                   </div>
@@ -506,68 +563,68 @@ const Friends = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="requests">
-            <Card className="feed-section flat-list">
-              {pendingRequests.length === 0 ? (
+          <TabsContent value="requests" className="space-y-2 sm:space-y-4">
+            {pendingRequests.length === 0 ? (
+              <Card className="feed-section flat-list">
                 <EmptyState emoji="mailbox" title="No friend requests" text="When someone sends you a friend request, it'll show up here." />
-              ) : (
+              </Card>
+            ) : (
+              <Section title="Friend requests" count={pendingRequests.length}>
                 <div className="divide-y">
-                  {pendingRequests.map((request) => (
-                    <div key={request.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-                      <Link to={`/profile/${request.profiles.id}`}>
-                        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
-                          <AvatarImage src={request.profiles.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {request.profiles.full_name?.[0]?.toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Link>
-                      <div className="flex-1 min-w-0">
+                  {pendingRequests.map((request) => {
+                    const mutual = requestMutuals[request.user_id] ?? 0;
+                    return (
+                      <div key={request.id} className="flex items-start gap-3 sm:gap-4 px-4 py-3">
                         <Link to={`/profile/${request.profiles.id}`}>
-                          <p className="font-semibold truncate hover:underline">
-                            {request.profiles.full_name || "Anonymous"}
-                          </p>
+                          <Avatar className="h-[72px] w-[72px]">
+                            <AvatarImage src={request.profiles.avatar_url || undefined} />
+                            <AvatarFallback>
+                              {request.profiles.full_name?.[0]?.toUpperCase() || "U"}
+                            </AvatarFallback>
+                          </Avatar>
                         </Link>
-                        <p className="text-xs text-muted-foreground">
-                          {formatDistanceToNow(new Date(request.created_at), {
-                            addSuffix: true,
-                          })}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <Link to={`/profile/${request.profiles.id}`}>
+                            <p className="font-semibold truncate hover:underline">
+                              {request.profiles.full_name || "Anonymous"}
+                            </p>
+                          </Link>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {mutual > 0 && `${mutualLabel(mutual)} · `}
+                            {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
+                          </p>
+                          <div className="mt-2 grid grid-cols-2 gap-2">
+                          <Button
+                            size="sm"
+                            variant="accent"
+                            onClick={() => handleAccept(request.id)}
+                            className="h-9 gap-1 rounded-lg font-semibold"
+                          >
+                            <Check className="h-4 w-4" />
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => handleDecline(request.id)}
+                            aria-label="Decline request"
+                            className="h-9 rounded-lg font-semibold"
+                          >
+                            Delete
+                          </Button>
+                          </div>
+                        </div>
                       </div>
-                      <div className="flex gap-2 shrink-0">
-                        <Button
-                          size="sm"
-                          onClick={() => handleAccept(request.id)}
-                          className="gap-1"
-                        >
-                          <Check className="h-4 w-4" />
-                          Accept
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => handleDecline(request.id)}
-                          aria-label="Decline request"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
-              )}
-            </Card>
+              </Section>
+            )}
             {/* People you may know, right under your requests (as on Facebook). */}
             {visibleSuggestions.length > 0 && (
-              <section className="mt-3 sm:mt-4" aria-label="People you may know">
-                <div className="flex items-center justify-between px-4 pb-1 pt-2 sm:px-1">
-                  <h2 className="text-[15px] font-bold">People you may know</h2>
-                  <button type="button" onClick={() => setActiveTab("suggestions")} className="text-sm font-semibold text-primary">See all</button>
-                </div>
-                <Card className="feed-section flat-list">
-                  <div className="divide-y">{visibleSuggestions.slice(0, 3).map(suggestionRow)}</div>
-                </Card>
-              </section>
+              <Section title="People you may know" onSeeAll={() => setActiveTab("suggestions")}>
+                <div className="divide-y">{visibleSuggestions.slice(0, 3).map(suggestionRow)}</div>
+              </Section>
             )}
           </TabsContent>
 
@@ -588,11 +645,14 @@ const Friends = () => {
                         </Avatar>
                       </Link>
                       <div className="flex-1 min-w-0">
-                        <Link to={`/profile/${request.profiles.id}`}>
-                          <p className="font-semibold truncate hover:underline">
-                            {request.profiles.full_name || "Anonymous"}
-                          </p>
-                        </Link>
+                        <div className="flex min-w-0 items-center gap-1.5">
+                          <Link to={`/profile/${request.profiles.id}`} className="min-w-0">
+                            <p className="font-semibold truncate hover:underline">
+                              {request.profiles.full_name || "Anonymous"}
+                            </p>
+                          </Link>
+                          <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">Pending</span>
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           Sent {formatDistanceToNow(new Date(request.created_at), {
                             addSuffix: true,
@@ -601,8 +661,9 @@ const Friends = () => {
                       </div>
                       <Button
                         size="sm"
-                        variant="outline"
+                        variant="secondary"
                         onClick={() => handleCancelRequest(request.id)}
+                        className="h-8 shrink-0 rounded-full px-3 font-semibold"
                       >
                         Cancel
                       </Button>
@@ -627,13 +688,16 @@ const Friends = () => {
                       key={friendship.id}
                       className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
                     >
-                      <Link to={`/profile/${friendship.friend.id}`}>
+                      <Link to={`/profile/${friendship.friend.id}`} className="relative shrink-0">
                         <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
                           <AvatarImage src={friendship.friend.avatar_url || undefined} />
                           <AvatarFallback>
                             {friendship.friend.full_name?.[0]?.toUpperCase() || "U"}
                           </AvatarFallback>
                         </Avatar>
+                        {isOnline(friendship.friend) && (
+                          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-card" aria-hidden />
+                        )}
                       </Link>
                       <div className="flex-1 min-w-0">
                         <Link to={`/profile/${friendship.friend.id}`}>
@@ -641,10 +705,12 @@ const Friends = () => {
                             {friendship.friend.full_name || "Anonymous"}
                           </p>
                         </Link>
-                        <p className="text-xs text-muted-foreground">
-                          Friends since {formatDistanceToNow(toDate(friendship.created_at), {
-                            addSuffix: true,
-                          })}
+                        <p className={cn("text-xs", isOnline(friendship.friend) ? "font-medium text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
+                          {isOnline(friendship.friend)
+                            ? "Online"
+                            : friendship.friend.last_seen
+                              ? lastSeen(friendship.friend.last_seen)
+                              : `Friends since ${formatDistanceToNow(toDate(friendship.created_at), { addSuffix: true })}`}
                         </p>
                       </div>
                       <Button
@@ -665,13 +731,11 @@ const Friends = () => {
             {currentUserId && friends.length > 0 && friends.length < 10 && <InviteFriends userId={currentUserId} className="feed-section mt-2 sm:mt-4" />}
             {/* A short list leaves the page empty; suggest people to add underneath, as Facebook does. */}
             {friends.length > 0 && friends.length < 5 && visibleSuggestions.length > 0 && (
-              <Card className="feed-section flat-list mt-2 sm:mt-4">
-                <div className="flex items-center justify-between px-4 pt-3">
-                  <h2 className="text-[15px] font-semibold">People you may know</h2>
-                  <button type="button" className="text-sm font-medium text-primary" onClick={() => setActiveTab("suggestions")}>See all</button>
-                </div>
-                <div className="divide-y">{visibleSuggestions.slice(0, 5).map(suggestionRow)}</div>
-              </Card>
+              <div className="mt-2 sm:mt-4">
+                <Section title="People you may know" onSeeAll={() => setActiveTab("suggestions")}>
+                  <div className="divide-y">{visibleSuggestions.slice(0, 5).map(suggestionRow)}</div>
+                </Section>
+              </div>
             )}
           </TabsContent>
 

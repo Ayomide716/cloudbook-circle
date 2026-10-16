@@ -10,7 +10,7 @@ import { useEffect, useState, useRef } from "react";
 import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";
 import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
@@ -50,7 +50,7 @@ import {
   Ban,
   Flag,
   Share2 } from
-"lucide-react";
+"@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import ReportDialog from "@/components/ReportDialog";
 import BlockDialog from "@/components/BlockDialog";
@@ -66,7 +66,7 @@ import ProfileReels, { type ProfileReel } from "@/components/ProfileReels";
 import { POSTED_EVENT } from "@/lib/video-jobs";
 import { deleteWithUndo } from "@/lib/undo-delete";
 import CreatorSubscriptions from "@/components/CreatorSubscriptions";
-import type { LucideIcon } from "lucide-react";
+import type { LucideIcon } from "@/components/icons";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { softImage } from "@/lib/soft-image";
 
@@ -131,7 +131,12 @@ const Profile = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const location = useLocation();
+  // Menu's "Edit profile" lands here with the editor already open.
+  const [isEditingProfile, setIsEditingProfile] = useState(() => !!(location.state as { edit?: boolean } | null)?.edit);
+  useEffect(() => {
+    if ((location.state as { edit?: boolean } | null)?.edit) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const [friendCount, setFriendCount] = useState<number | null>(0);
   const [activeTab, setActiveTab] = useState<"posts" | "photos" | "videos" | "reels" | "albums" | "qa">("posts");
@@ -616,7 +621,7 @@ const Profile = () => {
             <div className="relative -mt-16 sm:-mt-20 w-fit flex-shrink-0">
               <Avatar className="h-28 w-28 sm:h-40 sm:w-40 border-4 border-card sm:border-background shadow-lg">
                 <AvatarImage src={profile.avatar_url || undefined} alt="" />
-                <AvatarFallback className="text-4xl sm:text-5xl font-display gradient-brand text-primary-foreground">
+                <AvatarFallback className="text-4xl sm:text-5xl font-display bg-secondary text-foreground">
                   {profile.full_name?.[0]?.toUpperCase() || "U"}
                 </AvatarFallback>
               </Avatar>
@@ -788,7 +793,7 @@ const Profile = () => {
                   aria-current={activeTab === tab ? "page" : undefined}
                   className={cn(
                     "shrink-0 rounded-full px-4 py-2 text-[15px] font-semibold transition-colors",
-                    activeTab === tab ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary"
+                    activeTab === tab ? "bg-foreground text-background" : "text-foreground hover:bg-secondary"
                   )}>
                   {{ posts: "All", photos: "Photos", videos: "Videos", reels: "Reels", albums: "Albums", qa: "Q&A" }[tab]}
                   {count !== null && count > 0 && <span className="ml-1 font-normal opacity-60">{count}</span>}
@@ -1087,7 +1092,7 @@ const Profile = () => {
             <div className="flex justify-end mb-4">
                     <Dialog open={createAlbumOpen} onOpenChange={setCreateAlbumOpen}>
                       <DialogTrigger asChild>
-                        <Button size="sm" className="rounded-xl gradient-brand text-primary-foreground">
+                        <Button size="sm" className="rounded-xl">
                           <Plus className="h-4 w-4 mr-2" /> New Album
                         </Button>
                       </DialogTrigger>
@@ -1111,7 +1116,7 @@ const Profile = () => {
                           <Button
                       onClick={createAlbum}
                       disabled={!newAlbumName.trim() || isCreatingAlbum}
-                      className="w-full rounded-xl gradient-brand text-primary-foreground">
+                      className="w-full rounded-xl">
                       
                             {isCreatingAlbum ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                             Create

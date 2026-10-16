@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { Archive, ArchiveRestore, BellOff, BellRing, Check, CheckCheck, ChevronDown, Pin, PinOff } from "lucide-react";
+import { Archive, ArchiveRestore, BellOff, BellRing, Check, CheckCheck, ChevronDown, Pin, PinOff } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import type { ChatPrefs } from "@/lib/chat-prefs";

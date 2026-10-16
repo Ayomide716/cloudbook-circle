@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { Check, History, Loader2, Play, Users } from "lucide-react";
+import { Check, History, Loader2, Play, Users } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -125,7 +125,7 @@ export const GroupsRow = ({ currentUserId }: { currentUserId: string }) => {
             {g.image_url ? (
               <img src={g.image_url} alt="" loading="lazy" className="h-[90px] w-full object-cover" />
             ) : (
-              <div className="flex h-[90px] items-center justify-center bg-primary/15"><Users className="h-8 w-8 text-primary" /></div>
+              <div className="flex h-[90px] items-center justify-center bg-secondary"><Users className="h-8 w-8 text-muted-foreground" /></div>
             )}
           </Link>
           <div className="p-2.5">

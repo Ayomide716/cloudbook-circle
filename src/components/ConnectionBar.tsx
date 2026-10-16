@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { WifiOff } from "lucide-react";
+import { WifiOff } from "@/components/icons";
 import { toast } from "@/hooks/use-toast";
 import { useBottomSpace } from "@/hooks/use-bottom-space";
 

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { Search } from "@/components/icons";
 import { Input } from "@/components/ui/input";
 import {
   Popover,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Flame, Loader2 } from "lucide-react";
+import { Flame, Loader2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useOutage, watchedFetch } from "@/lib/outage";
 import { features } from "@/lib/features";

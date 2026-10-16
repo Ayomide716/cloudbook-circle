@@ -1,4 +1,4 @@
-import { Loader2, RotateCcw, X } from "lucide-react";
+import { Loader2, RotateCcw, X } from "@/components/icons";
 import { Progress } from "@/components/ui/progress";
 import { useEffect, useRef } from "react";
 import { useBottomSpace } from "@/hooks/use-bottom-space";

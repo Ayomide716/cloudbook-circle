@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { fallbackPeaks, loadPeaks } from "@/lib/waveform";
 

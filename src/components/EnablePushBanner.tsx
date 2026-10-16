@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BellRing, Share, X } from "lucide-react";
+import { BellRing, Share, X } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { enablePush, needsHomeScreenInstall, pushActive, pushConfigured, pushPermission, pushReady, pushSupported } from "@/lib/web-push";

@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Users, MessageSquarePlus, Loader2 } from "lucide-react";
+import { Users, MessageSquarePlus, Loader2 } from "@/components/icons";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Profile {
@@ -88,7 +88,7 @@ const NewConversation = ({ currentUserId, onSelectUser, onNewGroup }: NewConvers
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button size="icon" aria-label="New message" title="New message" className="h-9 w-9 shrink-0 rounded-full bg-primary/15 text-primary hover:bg-primary/25 [&_svg]:size-[18px]">
+        <Button variant="ghost" size="icon" aria-label="New message" title="New message" className="h-10 w-10 shrink-0 rounded-full text-foreground hover:bg-secondary [&_svg]:size-6">
           <MessageSquarePlus />
         </Button>
       </DialogTrigger>

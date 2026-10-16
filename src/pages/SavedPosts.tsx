@@ -9,7 +9,7 @@ import type { PostComment } from "@/components/PostCard";
 import { PageHeader } from "@/components/layout/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
- import { Loader2 } from "lucide-react";
+ import { Loader2 } from "@/components/icons";
  import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
  import { useEffectEvent } from "@/hooks/use-effect-event";
  

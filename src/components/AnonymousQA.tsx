@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { MessageCircleQuestion, Send, Loader2, Trash2, Eye, EyeOff } from "lucide-react";
+import { MessageCircleQuestion, Send, Loader2, Trash2, Eye, EyeOff } from "@/components/icons";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";

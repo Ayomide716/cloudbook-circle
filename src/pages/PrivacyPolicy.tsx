@@ -1,4 +1,4 @@
-import { Shield } from "lucide-react";
+import { Shield } from "@/components/icons";
 import LegalPage, { LegalList } from "@/components/LegalPage";
 
 const PrivacyPolicy = () => (

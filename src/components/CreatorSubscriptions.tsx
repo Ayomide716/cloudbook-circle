@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Crown, Star, Gem, Check, Loader2 } from "lucide-react";
+import { Crown, Star, Gem, Check, Loader2 } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -123,7 +123,7 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
         <Crown className="h-10 w-10 mx-auto text-amber-500" />
         <h3 className="font-semibold">Enable Creator Subscriptions</h3>
         <p className="text-sm text-muted-foreground">Let your fans support you with monthly subscriptions.</p>
-        <Button className="gradient-brand text-primary-foreground rounded-xl" onClick={setupDefaultTiers}>
+        <Button className="rounded-xl" onClick={setupDefaultTiers}>
           Set Up Tiers
         </Button>
       </Card>
@@ -171,7 +171,7 @@ const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: Creato
                 ) : currentUserId !== creatorId ? (
                   <Button
                     size="sm"
-                    className="w-full rounded-xl gradient-brand text-primary-foreground"
+                    className="w-full rounded-xl"
                     disabled={subscribing === tier.id}
                     onClick={() => subscribe(tier)}
                   >

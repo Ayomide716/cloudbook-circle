@@ -2,7 +2,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Plus } from "lucide-react";
+import { Plus } from "@/components/icons";
 import { Chips, HeaderAction, PageHeader, PageSearch } from "./PageHeader";
 
 describe("PageHeader", () => {

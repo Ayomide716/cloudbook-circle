@@ -1,7 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, Search, Shield } from "lucide-react";
-import { Bell as PhBell, MagnifyingGlass, MessengerLogo } from "@phosphor-icons/react";
+import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, Search, Send, Shield } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
 import { playSound } from "@/lib/sounds";
@@ -232,7 +231,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
             <div className="flex items-center gap-1 shrink-0">
             {/* The wordmark: "ember." in the display font. */}
             <Link to="/" className="shrink-0 flex items-center" aria-label="Ember home">
-              <Wordmark className="text-[30px] md:text-[28px]" />
+              <Wordmark className="text-[28px]" />
             </Link>
             </div>
 
@@ -280,20 +279,20 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
               {/* Mobile top bar, as in Facebook's app: plain create, search and Messenger icons.
                   Notifications and everything else live in the bottom tab bar. */}
               {currentUserId && (
-                <div className="flex md:hidden items-center gap-2">
-                  {/* Round grey buttons with bold icons, as in Facebook's app. */}
+                <div className="-mr-2 flex md:hidden items-center">
+                  {/* Plain ink icons, no circles behind them (style A). */}
                   {[
-                    { label: "Search", icon: <MagnifyingGlass className="h-[19px] w-[19px]" weight="bold" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
+                    { label: "Search", icon: <Search className="h-6 w-6" />, onClick: () => setMobileSearchOpen(true) },
                     // Notifications: the bell, with how many are new (Create is the ➕ in the tab bar).
                     {
                       label: unreadNotifications > 0 ? `Notifications, ${unreadNotifications} new` : "Notifications",
-                      icon: <PhBell className="h-5 w-5" weight={location.pathname === "/notifications" ? "fill" : "bold"} aria-hidden="true" />,
+                      icon: <Bell className="h-6 w-6" fill={location.pathname === "/notifications" ? "currentColor" : undefined} />,
                       onClick: () => navigate("/notifications"),
                       count: unreadNotifications,
                     },
                     {
                       label: unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages",
-                      icon: <MessengerLogo className="h-5 w-5" weight="fill" aria-hidden="true" />,
+                      icon: <Send className="h-6 w-6" />,
                       onClick: () => navigate("/messages"),
                       dot: unreadMessages > 0,
                     },
@@ -303,12 +302,12 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       type="button"
                       onClick={b.onClick}
                       aria-label={b.label}
-                      className="relative flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-foreground transition-colors active:bg-secondary/60"
+                      className="relative flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors active:bg-secondary"
                     >
                       {b.icon}
-                      {b.dot && <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" aria-hidden="true" />}
+                      {b.dot && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" aria-hidden="true" />}
                       {!!b.count && (
-                        <span className="absolute -right-1 -top-1 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-center text-[10px] font-bold leading-[18px] text-destructive-foreground ring-2 ring-background" aria-hidden="true">
+                        <span className="absolute right-0.5 top-0.5 min-w-[18px] h-[18px] rounded-full bg-primary px-1 text-center text-[10px] font-bold leading-[18px] text-destructive-foreground ring-2 ring-background" aria-hidden="true">
                           {b.count > 9 ? "9+" : b.count}
                         </span>
                       )}

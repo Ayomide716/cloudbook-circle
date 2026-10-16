@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { useEffect } from "react";
-import { Compass, Home } from "lucide-react";
+import { Compass, Home } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useSEO } from "@/hooks/useSEO";
 
@@ -21,7 +21,7 @@ const NotFound = () => {
           The link may be broken, or the page may have been removed.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center">
-          <Button asChild className="rounded-full gradient-brand text-primary-foreground">
+          <Button asChild className="rounded-full">
             <Link to="/">
               <Home className="h-4 w-4 mr-2" /> Go to your feed
             </Link>

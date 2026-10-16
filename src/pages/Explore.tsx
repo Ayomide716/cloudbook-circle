@@ -11,8 +11,8 @@ import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
-import { groupColor, groupInitials } from "@/lib/group-tile";
-import { TrendingUp, Hash, Users, Compass, Flame, Check, Loader2 } from "lucide-react";
+import { groupInitials } from "@/lib/group-tile";
+import { TrendingUp, Hash, Users, Compass, Flame, Check, Loader2 } from "@/components/icons";
 import { Link } from "react-router-dom";
 import type { PostCardProps } from "@/components/PostCard";
 import type { Tables } from "@/integrations/supabase/types";
@@ -316,11 +316,11 @@ const Explore = () => {
               <div className="flex gap-3 overflow-x-auto px-3 pb-0.5 scrollbar-hide sm:px-4">
                 {groupsToJoin.map((g) => (
                   <Link key={g.id} to={`/groups/${g.id}`} className="w-40 shrink-0 overflow-hidden rounded-2xl border border-border bg-card transition-shadow hover:shadow-md">
-                    <div className="flex h-20 items-center justify-center" style={g.image_url ? undefined : { backgroundImage: groupColor(g.id) }}>
+                    <div className="flex h-20 items-center justify-center bg-secondary">
                       {g.image_url ? (
                         <img src={g.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
                       ) : (
-                        <span className="font-display text-2xl font-bold text-white" aria-hidden="true">{groupInitials(g.name)}</span>
+                        <span className="font-display text-2xl font-bold text-foreground" aria-hidden="true">{groupInitials(g.name)}</span>
                       )}
                     </div>
                     <div className="p-2.5">

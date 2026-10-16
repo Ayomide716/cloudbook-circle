@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { isRepeatSend } from "@/hooks/use-single-flight";
 import GroupInitials from "@/components/groups/GroupInitials";
-import { ArrowLeft, BellOff, Loader2, MoreVertical, Phone, Send, Users, Video, X } from "lucide-react";
+import { ArrowLeft, BellOff, Loader2, MoreVertical, Phone, Send, Users, Video, X } from "@/components/icons";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";

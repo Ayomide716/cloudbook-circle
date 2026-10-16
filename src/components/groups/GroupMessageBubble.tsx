@@ -1,6 +1,6 @@
 import { memo, useState } from "react";
 import { format } from "date-fns";
-import { Copy, CornerUpLeft, Forward, MoreHorizontal, Pencil, SmilePlus, Star, StarOff, Trash2 } from "lucide-react";
+import { Copy, CornerUpLeft, Forward, MoreHorizontal, Pencil, SmilePlus, Star, StarOff, Trash2 } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import VoiceMessagePlayer from "@/components/VoiceMessagePlayer";
 import MessageActionSheet, { type MessageAction } from "@/components/chat/MessageActionSheet";

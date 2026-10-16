@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
-import { Check, Mail } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
+import { Check, Mail } from "@/components/icons";
+import type { LucideIcon } from "@/components/icons";
 import Navigation from "@/components/Navigation";
 import { useSession } from "@/hooks/use-session";
 

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Users } from "lucide-react";
+import { Users } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import {
   Popover,

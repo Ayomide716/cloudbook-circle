@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Pencil, Video, Phone, Radio, Trash2, Check, Globe, MoreHorizontal, ShieldCheck, ShieldOff, UserMinus } from "lucide-react";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Pencil, Video, Phone, Radio, Trash2, Check, Globe, MoreHorizontal, ShieldCheck, ShieldOff, UserMinus } from "@/components/icons";
 import { HeaderAction } from "@/components/layout/PageHeader";
 import { formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";

@@ -24,7 +24,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import {
   Flag, Globe, MapPin, Mail, Phone, ThumbsUp, MessageCircle, ArrowLeft,
   Trash2, Edit, Camera, Loader2, Send, ImagePlus, X,
-} from "lucide-react";
+} from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";

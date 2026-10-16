@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, ReactElement, CSSProperties } from "react";
 import { List, useDynamicRowHeight, useListRef, type RowComponentProps } from "react-window";
-import { ChevronDown, Loader2 } from "lucide-react";
+import { ChevronDown, Loader2 } from "@/components/icons";
 
 interface VirtualizedChatListProps {
   itemCount: number;

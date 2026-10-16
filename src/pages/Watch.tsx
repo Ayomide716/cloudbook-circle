@@ -27,7 +27,7 @@ import {
   Search, Plus, Play, ThumbsUp, Bookmark, BookmarkCheck, Share2,
   Eye, TrendingUp, Gamepad2, Users, Sparkles,
   Upload, X, Loader2, MoreHorizontal, Trash2,
-} from "lucide-react";
+} from "@/components/icons";
 import {
   ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger,
 } from "@/components/ui/action-menu";

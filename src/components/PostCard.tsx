@@ -9,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban } from "lucide-react";
-import { BookmarkSimple, ChatCircle, DotsThree, GlobeHemisphereWest, ShareFat, ThumbsUp as PhThumbsUp, X as PhX } from "@phosphor-icons/react";
+import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban } from "@/components/icons";
+import { Globe, Heart, MessageCircle, MoreHorizontal, Send, X as XIcon } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -462,7 +462,7 @@ const PostCard = ({
   if (hidden) {
     const reasons = ["This post", `Too much from ${authorFirstName}`, "Seen it before", "Not relevant to me"];
     return (
-      <Card className="feed-section shadow-sm overflow-hidden rounded-2xl border-border/60">
+      <Card className="feed-section overflow-hidden rounded-2xl">
         <section aria-label="Post hidden" className="p-3 sm:p-4">
           <div className="rounded-2xl bg-secondary/70 p-3">
             <p className="font-semibold text-[15px] mb-2.5">
@@ -518,9 +518,9 @@ const PostCard = ({
   }
 
   return (
-    <Card className="feed-section shadow-sm overflow-hidden rounded-2xl border-border/60">
+    <Card className="feed-section overflow-hidden rounded-2xl">
       {/* Header */}
-      <div className="p-3 pb-2 sm:p-4">
+      <div className="px-4 pb-2.5 pt-3 sm:p-4">
         <div className="flex items-start gap-2.5 sm:gap-3">
           <Link to={`/profile/${post.profiles.id}`}>
             <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
@@ -534,7 +534,7 @@ const PostCard = ({
           <div className="flex-1 min-w-0">
             <Link to={`/profile/${post.profiles.id}`} className="flex max-w-full">
               {/* A long name shortens with "…" instead of pushing the menu button off the card. */}
-              <p className="flex min-w-0 items-center gap-1 text-[14px] font-semibold leading-tight hover:underline sm:text-base">
+              <p className="flex min-w-0 items-center gap-1 text-[15px] font-semibold leading-tight hover:underline">
                 <span className="truncate">{post.profiles.full_name || "Anonymous"}</span>
                 {post.profiles.is_verified && <span className="shrink-0"><VerifiedBadge size="sm" /></span>}
               </p>
@@ -548,20 +548,20 @@ const PostCard = ({
               </p>
             )}
             {/* As in Facebook: "Lekki, Lagos · 2h · 🌐" (Ember posts are public). */}
-            <p className="flex items-center gap-1 text-[11.5px] sm:text-[13px] text-muted-foreground min-w-0">
+            <p className="flex items-center gap-1 text-[13px] text-muted-foreground min-w-0">
               {post.location && <><span className="truncate">{post.location}</span><span aria-hidden="true">·</span></>}
               <time dateTime={toDate(post.created_at).toISOString()} title={formatDistanceToNow(toDate(post.created_at), { addSuffix: true })} className="shrink-0">
                 {shortTime(post.created_at)}
               </time>
               <span aria-hidden="true">·</span>
-              <GlobeHemisphereWest className="h-3.5 w-3.5 shrink-0" aria-label="Public" />
+              <Globe className="h-3.5 w-3.5 shrink-0" aria-label="Public" />
             </p>
           </div>
 
            <ActionMenu>
              <ActionMenuTrigger asChild>
                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label="Post options">
-                 <DotsThree className="h-7 w-7" weight="bold" />
+                 <MoreHorizontal className="h-6 w-6" fill="currentColor" />
                </Button>
              </ActionMenuTrigger>
              <ActionMenuContent align="end" title="Post options">
@@ -615,7 +615,7 @@ const PostCard = ({
                 aria-label="Hide post"
                 onClick={() => { hidePost(post.id); setHidden(true); setHideReason(null); }}
               >
-                <PhX className="h-5 w-5" weight="bold" />
+                <XIcon className="h-5 w-5" strokeWidth={2} />
               </Button>
             )}
         </div>
@@ -669,19 +669,19 @@ const PostCard = ({
 
       {/* A card for the first link, when the post has no photo or video of its own */}
       {!isEditing && !post.image_url && !post.video_url && postLink && (
-        <LinkPreview url={postLink} className="mx-2.5 mt-1" />
+        <LinkPreview url={postLink} className="mx-4 mt-1 sm:mx-2.5" />
       )}
 
       {/* Media */}
       {post.video_url && (
-        <div className="relative mx-2.5 overflow-hidden rounded-2xl bg-black">
+        <div className="relative overflow-hidden bg-black sm:mx-2.5 sm:rounded-2xl">
           <FeedVideo src={post.video_url} onDoubleTap={likeWithHeart} />
           {heartBurst > 0 && <HeartBurst key={heartBurst} />}
         </div>
       )}
       {!post.video_url && photos.length > 0 && (
         <>
-          <div className="relative mx-2.5 overflow-hidden rounded-2xl">
+          <div className="relative overflow-hidden sm:mx-2.5 sm:rounded-2xl">
             <PhotoCollage
               images={photos}
               previews={post.image_previews}
@@ -707,7 +707,7 @@ const PostCard = ({
  
        {/* Poll */}
        {post.poll && (
-         <div className="px-3 sm:px-4">
+         <div className="px-4">
            <PollDisplay
              pollId={post.poll.id}
              question={post.poll.question}
@@ -719,7 +719,7 @@ const PostCard = ({
 
       {/* React · Comment · Share with their counts on the left, Save on the right (compact, as on
           Instagram); "You and 3 others" sits on the react button's label for screen readers. */}
-      <div className="px-2 pt-1 pb-1.5">
+      <div className="px-1.5 pt-1 pb-1">
         <div className="flex items-center gap-0.5">
           <div
             ref={likeAreaRef}
@@ -770,7 +770,7 @@ const PostCard = ({
             )}
             <Button
               variant="ghost"
-              className={cn("h-10 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]", currentReaction?.color)}
+              className={cn("h-11 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-foreground hover:bg-accent [&_svg]:size-6", currentReaction?.color)}
               // Tapping removes your reaction, whichever it is; with none it's a like.
               onClick={() => {
                 // Letting go after a long press keeps the picker open instead of liking.
@@ -792,7 +792,7 @@ const PostCard = ({
                   ))}
                 </span>
               ) : (
-                <PhThumbsUp className="h-[22px] w-[22px]" weight="regular" aria-hidden="true" />
+                <Heart className="h-6 w-6" />
               )}
               {totalReactions > 0 && <span className="tabular-nums">{compactCount(totalReactions)}</span>}
             </Button>
@@ -800,22 +800,22 @@ const PostCard = ({
 
           <Button
             variant="ghost"
-            className="h-10 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-muted-foreground hover:bg-accent"
+            className="h-11 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-foreground hover:bg-accent [&_svg]:size-6"
             onClick={toggleComments}
             aria-expanded={showComments}
             aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
           >
-            <ChatCircle className="h-[22px] w-[22px]" weight="regular" aria-hidden="true" />
+            <MessageCircle className="h-6 w-6" />
             {comments.length > 0 && <span className="tabular-nums">{compactCount(comments.length)}</span>}
           </Button>
 
           <Button
             variant="ghost"
-            className="h-10 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-muted-foreground hover:bg-accent"
+            className="h-11 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-foreground hover:bg-accent [&_svg]:size-6"
             onClick={() => setShowShareDialog(true)}
             aria-label="Share"
           >
-            <ShareFat className="h-[22px] w-[22px]" weight="regular" aria-hidden="true" />
+            <Send className="h-6 w-6" />
           </Button>
 
           {/* Tips use credits, which are muted with the Ad Manager (features.extras). */}
@@ -823,12 +823,12 @@ const PostCard = ({
 
           <Button
             variant="ghost"
-            className={cn("ml-auto h-10 w-10 rounded-full p-0 text-muted-foreground hover:bg-accent", isSaved && "text-primary")}
+            className="ml-auto h-11 w-11 rounded-full p-0 text-foreground hover:bg-accent [&_svg]:size-6"
             onClick={handleSavePost}
             aria-pressed={isSaved}
             aria-label={isSaved ? "Saved" : "Save post"}
           >
-            <BookmarkSimple className="h-[22px] w-[22px]" weight={isSaved ? "fill" : "regular"} aria-hidden="true" />
+            <Bookmark className="h-6 w-6" fill={isSaved ? "currentColor" : undefined} />
           </Button>
         </div>
       </div>
@@ -838,7 +838,7 @@ const PostCard = ({
         <button
           type="button"
           onClick={() => setShowComments(true)}
-          className="block w-full px-3 pb-3 -mt-0.5 text-left text-[13.5px] leading-snug sm:px-4"
+          className="block w-full px-4 pb-3 -mt-0.5 text-left text-[14px] leading-snug"
         >
           <span className="line-clamp-2">
             <span className="font-semibold">{latestComment.profiles.full_name || "Someone"}</span>{" "}
@@ -861,7 +861,7 @@ const PostCard = ({
       {/* Comments open right under the post, as on Facebook: the conversation first, then your
           box at the bottom. "View more comments" brings in more without leaving the feed. */}
       {showComments && (
-        <div className="space-y-3 border-t border-border/60 px-3 pb-3 pt-2.5 sm:px-4">
+        <div className="space-y-3 border-t border-border px-4 pb-3 pt-2.5">
           {comments.length === 0 ? (
             <p className="py-1 text-center text-sm text-muted-foreground">No comments yet. Be the first to comment.</p>
           ) : (

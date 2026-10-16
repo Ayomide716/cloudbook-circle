@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink, X } from "lucide-react";
+import { ExternalLink, X } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { safeWebsiteUrl } from "@/lib/safe-url";
 

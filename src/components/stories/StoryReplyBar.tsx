@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { Heart, Send } from "lucide-react";
+import { Heart, Send } from "@/components/icons";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import { haptic } from "@/lib/haptics";
 import { cn } from "@/lib/utils";

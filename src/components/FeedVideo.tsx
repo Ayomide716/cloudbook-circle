@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize, Pause, Play, Volume2, VolumeX } from "lucide-react";
+import { Maximize, Pause, Play, Volume2, VolumeX } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { isDataSaver, useDataSaver } from "@/lib/data-saver";
 import { SEEK_SECONDS, seekBy, seekSideAt } from "@/lib/video-seek";

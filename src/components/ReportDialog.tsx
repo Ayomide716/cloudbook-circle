@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Flag } from "lucide-react";
+import { Flag } from "@/components/icons";
 import {
   Dialog,
   DialogContent,

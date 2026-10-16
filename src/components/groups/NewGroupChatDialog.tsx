@@ -2,7 +2,7 @@ import { uploadMedia } from "@/lib/media-upload";
 import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
-import { Camera, Check, Loader2, Search, Users } from "lucide-react";
+import { Camera, Check, Loader2, Search, Users } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

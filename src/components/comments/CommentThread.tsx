@@ -8,7 +8,7 @@ import { cn, toDate } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
-import { Heart, ThumbsUp } from "lucide-react";
+import { Heart, ThumbsUp } from "@/components/icons";
 import type { CommentLikes } from "@/lib/comment-likes";
 
 export interface ThreadComment {

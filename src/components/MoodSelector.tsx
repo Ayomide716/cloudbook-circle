@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
+import { X } from "@/components/icons";
 
 const moods = [
   { emoji: "😊", label: "Happy", color: "bg-yellow-500/10 text-yellow-600 border-yellow-500/20" },

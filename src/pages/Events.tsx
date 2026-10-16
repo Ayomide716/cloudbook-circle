@@ -16,7 +16,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import {
   CalendarPlus, MapPin, Clock, Users, Plus, Loader2, Check, Star, MoreHorizontal, Trash2, ImagePlus, X,
-} from "lucide-react";
+} from "@/components/icons";
 import { format, isSameDay } from "date-fns";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PageHeader, HeaderAction, Chips } from "@/components/layout/PageHeader";

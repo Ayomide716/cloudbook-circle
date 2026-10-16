@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, X, ArrowLeft, User, FileText, Users, Clock } from "lucide-react";
+import { Search, X, ArrowLeft, User, FileText, Users, Clock } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import EmptyState from "@/components/EmptyState";
@@ -241,7 +241,7 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
                   <button key={g.id} type="button" onClick={() => go(`/groups/${g.id}`)} className="flex w-full items-center gap-3 px-4 py-2 text-left transition-colors hover:bg-accent/60">
                     <Avatar className="h-11 w-11 rounded-xl">
                       <AvatarImage src={g.image_url || ""} className="object-cover" />
-                      <AvatarFallback className="rounded-xl bg-primary/15 text-primary"><Users className="h-5 w-5" /></AvatarFallback>
+                      <AvatarFallback className="rounded-xl bg-foreground text-background"><Users className="h-5 w-5" /></AvatarFallback>
                     </Avatar>
                     <span className="truncate text-sm font-medium">{g.name}</span>
                   </button>

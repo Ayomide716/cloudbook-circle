@@ -3,7 +3,7 @@ import { useSingleFlight } from "@/hooks/use-single-flight";
  import { useState, useEffect } from "react";
  import { Button } from "@/components/ui/button";
  import { Textarea } from "@/components/ui/textarea";
- import { Share2, Loader2, Link2, Send } from "lucide-react";
+ import { Share2, Loader2, Link2, Send } from "@/components/icons";
  import {
    Dialog,
    DialogContent,

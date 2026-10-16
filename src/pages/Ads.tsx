@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Coins, Eye, MousePointerClick, Pause, Play, Trash2, BarChart3, Info, Loader2 } from "lucide-react";
+import { Plus, Coins, Eye, MousePointerClick, Pause, Play, Trash2, BarChart3, Info, Loader2 } from "@/components/icons";
 import { formatDistanceToNow } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useEffectEvent } from "@/hooks/use-effect-event";
