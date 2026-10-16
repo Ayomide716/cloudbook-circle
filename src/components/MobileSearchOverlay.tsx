@@ -136,7 +136,8 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
   return (
     <div className="fixed inset-0 z-[100] bg-background flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-200">
       {/* Header */}
-      <div className="flex items-center gap-2 p-3 border-b border-border safe-area-top">
+      {/* Below the phone's status bar (the app and installed apps draw under it). */}
+      <div className="flex items-center gap-2 border-b border-border px-3 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">
         <button onClick={onClose} className="p-2 -ml-1 rounded-full hover:bg-secondary active:scale-95 transition-all">
           <ArrowLeft className="h-5 w-5 text-foreground" />
         </button>
