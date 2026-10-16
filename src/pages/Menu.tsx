@@ -22,6 +22,7 @@ import {
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -70,15 +71,24 @@ const ROWS: { icon: LucideIcon; label: string; path: string; adminOnly?: boolean
  * The Menu tab, as in Facebook's app: a full page (not a pop-up) with your profile,
  * a grid of shortcuts to every other section, then settings, help and log out.
  */
+/** What the menu showed last time, so coming back to it doesn't flash "Your profile" and "–". */
+let lastSeen: {
+  userId: string;
+  profile: { full_name: string | null; avatar_url: string | null } | null;
+  friendCount: number | null;
+  requestCount: number;
+  isAdmin: boolean;
+} | null = null;
+
 const Menu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   useSEO({ title: "Menu", description: "Shortcuts to everything on Ember." });
-  const [userId, setUserId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
-  const [friendCount, setFriendCount] = useState<number | null>(null);
-  const [requestCount, setRequestCount] = useState(0);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const [userId, setUserId] = useState<string | null>(lastSeen?.userId ?? null);
+  const [profile, setProfile] = useState(lastSeen?.profile ?? null);
+  const [friendCount, setFriendCount] = useState<number | null>(lastSeen?.friendCount ?? null);
+  const [requestCount, setRequestCount] = useState(lastSeen?.requestCount ?? 0);
+  const [isAdmin, setIsAdmin] = useState(lastSeen?.isAdmin ?? false);
 
   const load = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -106,6 +116,13 @@ const Menu = () => {
     setIsAdmin(!!role);
     if (!friends.error) setFriendCount(friends.count ?? 0);
     if (!requests.error) setRequestCount(requests.count ?? 0);
+    lastSeen = {
+      userId: id,
+      profile: profileData ?? null,
+      friendCount: friends.error ? null : friends.count ?? 0,
+      requestCount: requests.error ? 0 : requests.count ?? 0,
+      isAdmin: !!role,
+    };
   });
 
   useEffect(() => {
@@ -115,6 +132,7 @@ const Menu = () => {
   const handleLogout = async () => {
     // This phone stops getting the account's alerts once you've logged out.
     await disablePush();
+    lastSeen = null;
     await supabase.auth.signOut();
     navigate("/auth");
   };
@@ -137,10 +155,14 @@ const Menu = () => {
           >
             <Avatar className="h-12 w-12">
               <AvatarImage src={profile?.avatar_url || undefined} alt="" />
-              <AvatarFallback className="gradient-brand text-primary-foreground font-bold">{initial}</AvatarFallback>
+              <AvatarFallback className={cn("font-bold", profile ? "gradient-brand text-primary-foreground" : "animate-pulse bg-muted text-transparent")}>{initial}</AvatarFallback>
             </Avatar>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[17px] font-semibold">{profile?.full_name || "Your profile"}</span>
+              {profile ? (
+                <span className="block truncate text-[17px] font-semibold">{profile.full_name || "Your profile"}</span>
+              ) : (
+                <Skeleton className="mb-1 h-5 w-36" />
+              )}
               <span className="block text-sm text-muted-foreground">View your profile</span>
             </span>
             <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground" />
@@ -152,7 +174,7 @@ const Menu = () => {
               className="flex items-center gap-2 px-4 py-3 text-left text-sm transition-colors hover:bg-accent/60"
             >
               <Users className="h-4 w-4 text-primary" />
-              <span><strong>{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}</span>
+              {friendCount === null ? <Skeleton className="h-4 w-20" /> : <span><strong>{friendCount}</strong> {friendCount === 1 ? "friend" : "friends"}</span>}
             </button>
             <button
               type="button"

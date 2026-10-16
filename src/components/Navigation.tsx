@@ -425,6 +425,10 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
       </header>
       {/* Sub-pages on phones: no top bar, but still clear of the status bar. */}
       {subPage && !hideMobileTopBar && <div className="safe-area-top md:hidden" aria-hidden="true" />}
+      {/* Phones: a solid strip behind the status bar, so posts never scroll up under the clock
+          and battery once the top bar slides away (as on Facebook). Not on the profile, whose
+          cover photo runs up behind the status bar, or Reels, which is full-screen video. */}
+      {!hideMobileTopBar && location.pathname !== "/reels" && <div className="fixed inset-x-0 top-0 z-50 h-[env(safe-area-inset-top,0px)] bg-background md:hidden" aria-hidden="true" />}
 
       {/* Tablet Floating Dock - centered bottom (hidden on Reels; wide screens use the top-bar tabs) */}
       {currentUserId && location.pathname !== "/reels" && location.pathname !== "/messages" && (
