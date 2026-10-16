@@ -306,7 +306,7 @@ const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNav
               )}
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <Users className="h-3 w-3" /> {page.followers_count} {page.followers_count === 1 ? "follower" : "followers"}
+                  <Users className="h-3 w-3" /> {page.followers_count ?? 0} {page.followers_count === 1 ? "follower" : "followers"}
                 </span>
                 {!isOwner && page.owner_id !== currentUserId && (
                   <Button

@@ -1,5 +1,5 @@
 import EmptyState from "@/components/EmptyState";
-import { PageHeader } from "@/components/layout/PageHeader";
+import { HeaderAction, PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -293,11 +293,7 @@ const Ads = () => {
           back
           title="Ad Manager"
           className="!mb-0 !pb-0"
-          actions={
-            <Button onClick={() => setShowCreate(true)} className="gap-2 rounded-xl">
-              <Plus className="h-4 w-4" /> <span className="hidden min-[400px]:inline">New</span> campaign
-            </Button>
-          }
+          actions={<HeaderAction icon={Plus} label="New campaign" primary onClick={() => setShowCreate(true)} />}
         />
 
         {/* Stats Overview */}

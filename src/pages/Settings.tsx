@@ -268,11 +268,11 @@ const Settings = () => {
 
         <SectionTitle title="Preferences" desc="How Ember looks and sounds, and how much data it uses." />
         <Card className="mb-6 divide-y divide-border overflow-hidden rounded-2xl">
-        <div className="p-4 flex flex-wrap items-center gap-3">
+        <div className="p-4 flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
             <Palette className="h-4 w-4" />
           </div>
-          <span className="flex-1 text-sm font-medium">Appearance</span>
+          <span className="min-w-0 flex-1 truncate text-sm font-medium">Appearance</span>
           <AppearancePicker />
         </div>
 
