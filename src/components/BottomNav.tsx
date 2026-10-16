@@ -30,7 +30,7 @@ interface BottomNavProps {
 }
 
 /**
- * The tab bar, a floating pill: Home, Friends, Reels, Groups, Notifications and Menu (your
+ * The tab bar, docked to the bottom edge: Home, Friends, Reels, Groups, Notifications and Menu (your
  * photo, as on Facebook: your profile is at the top of the menu), the current tab filled
  * in tangerine on a soft tinted pill. (Facebook's fourth tab is Marketplace; Ember keeps
  * Groups there.)
@@ -39,7 +39,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   const navigate = useNavigate();
   const location = useLocation();
   // Toasts sit just above the tab bar (phones only; it's hidden on bigger screens).
-  useBottomSpace("--dock-space", typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "5rem" : null);
+  useBottomSpace("--dock-space", typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "4.25rem" : null);
 
   const tabs = [
     { icon: House, path: "/", label: "Home", short: undefined as string | undefined, badge: 0 },
@@ -75,12 +75,17 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   );
 
   return (
-    // A floating pill above the bottom edge of the screen.
+    // Docked to the bottom edge, full width, as on Facebook and Instagram; the phone's gesture
+    // bar gets its own room underneath.
     <nav
       aria-label="Main"
-      className="app-dock fixed inset-x-3 bottom-[calc(0.625rem+env(safe-area-inset-bottom,0px))] z-50 rounded-[28px] border border-border/80 bg-card/85 shadow-[var(--shadow-dock)] backdrop-blur-xl backdrop-saturate-150 md:hidden"
+      className={cn(
+        "app-dock fixed inset-x-0 bottom-0 z-50 border-t border-border/70 bg-background pb-[env(safe-area-inset-bottom,0px)] md:hidden",
+        // Over full-screen reels it stays dark, as on Facebook's video tab (no white strip under the video).
+        location.pathname.startsWith("/reels") && "dark"
+      )}
     >
-      <div className="grid grid-cols-6 h-[62px] px-1">
+      <div className="grid grid-cols-6 h-[58px] px-1">
         {tabs.map((tab) => {
           const active = isActive(tab.path);
           return (
