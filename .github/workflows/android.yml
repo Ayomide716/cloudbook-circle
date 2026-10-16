@@ -53,6 +53,19 @@ jobs:
       - name: Copy the build into the Android project
         run: npx cap sync android
 
+      # Firebase, for push notifications. Kept as a secret, not in the code. Without it the app
+      # would crash when asking for notifications, so the build stops instead.
+      - name: Add google-services.json
+        env:
+          GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -z "$GOOGLE_SERVICES_JSON" ]; then
+            echo "::error::The GOOGLE_SERVICES_JSON secret is missing (see docs/firebase-push.md)."
+            exit 1
+          fi
+          printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json
+          node -e "const j=require('./android/app/google-services.json'); if(!j.client?.some(c=>c.client_info?.android_client_info?.package_name==='app.ember.social')) { console.error('::error::google-services.json is not for app.ember.social'); process.exit(1) }"
+
       - name: Build the APK
         working-directory: android
         run: |

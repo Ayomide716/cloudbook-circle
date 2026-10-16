@@ -69,12 +69,22 @@ The APK is built by GitHub, which adds this file during the build. The file isn'
    leaks: Firebase → Project settings → Service accounts → **Manage service account
    permissions** → delete that key, and make a new one.
 
-## 7. Then
+## 7. Deploy the new send-push
 
-Once both secrets are in, the app side can be built:
+`send-push` now sends to Android phones through Firebase as well as to browsers.
 
-- Android app: asks "Allow Ember to send notifications?" after sign-in, and saves the phone's
-  push address.
-- `send-push`: sends the same notifications the website gets (messages, comments, friend
-  requests…) to Android phones through Firebase.
-- One new APK to install. After that, changes arrive over the air again.
+1. Supabase → **Edge Functions** → **send-push** → **Code**.
+2. Replace everything with `supabase/functions/send-push/index.ts` from the repo → **Deploy**.
+   Keep "Enforce JWT verification" off (the database calls it with `PUSH_WEBHOOK_SECRET`).
+3. If push was never set up for the website: also do steps 1, 2 and 4 of
+   `docs/push-notifications.md` (the SQL, the `PUSH_WEBHOOK_SECRET` secret, and telling the
+   database the function's address). The VAPID keys are only needed for browsers.
+
+## How it works in the app
+
+- Needs the APK made with Firebase (version 1.2.x and later). Older APKs keep working without push.
+- Settings → Notifications → "Notifications on this device", or the "Don't miss a message"
+  banner, asks "Allow Ember to send notifications?" and saves the phone's Firebase token in
+  `push_subscriptions` (as `https://fcm.googleapis.com/v1/ember-device/<token>`).
+- Tapping a notification opens the chat, post or page it's about.
+- Signing out removes the phone, so the next person to sign in doesn't get your alerts.

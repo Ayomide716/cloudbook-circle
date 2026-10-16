@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Ember's tangerine, for the notification icon and accent. -->
+    <color name="notification_tint">#FF6A3D</color>
+</resources>
