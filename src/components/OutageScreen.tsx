@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Flame, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useOutage, watchedFetch } from "@/lib/outage";
+import { features } from "@/lib/features";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
@@ -25,12 +26,12 @@ const OutageScreen = () => {
   };
 
   useEffect(() => {
-    if (!outage) return;
+    if (!outage || !features.outageScreen) return;
     const timer = window.setInterval(() => void check(), 30_000);
     return () => window.clearInterval(timer);
   }, [outage]);
 
-  if (!outage) return null;
+  if (!outage || !features.outageScreen) return null;
 
   return (
     <div role="alertdialog" aria-labelledby="outage-title" className="fixed inset-0 z-[200] flex flex-col items-center justify-center bg-background px-8 text-center">

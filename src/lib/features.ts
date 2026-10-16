@@ -33,4 +33,9 @@ export const features = {
    * reels. Turn back on with VITE_EXTRAS=true.
    */
   extras: import.meta.env.VITE_EXTRAS === "true",
+  /**
+   * The "We'll be right back" screen when Supabase stops answering (components/OutageScreen).
+   * Paused: it showed up at times when nothing was wrong. Turn back on here (true) when needed.
+   */
+  outageScreen: false,
 } as const;
