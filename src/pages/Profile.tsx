@@ -437,6 +437,7 @@ const Profile = () => {
     setProfile({ ...profile, cover_url: url });
   };
 
+  const [isFriend, setIsFriend] = useState(false);
   const startMessage = () => {
     if (!userId) return;
     navigate(`/messages?user=${userId}`);
@@ -720,8 +721,9 @@ const Profile = () => {
                 )}
               </> :
             <>
-                <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} className="h-9 w-full sm:flex-1 rounded-lg text-[14px]" />
-                <Button onClick={startMessage} className="h-9 sm:flex-1 rounded-lg text-[14px]">
+                <FriendshipButton currentUserId={currentUserId || ""} profileUserId={userId || ""} className="h-9 w-full sm:flex-1 rounded-lg text-[14px]" onFriendsChange={setIsFriend} />
+                {/* As on Facebook: Message is the main button once you're friends, grey before. */}
+                <Button onClick={startMessage} variant={isFriend ? "default" : "secondary"} className="h-9 sm:flex-1 rounded-lg text-[14px]">
                   <MessageCircle className="h-4 w-4 mr-1.5" /> Message
                 </Button>
                 {profileMenu(

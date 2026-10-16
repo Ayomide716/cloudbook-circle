@@ -63,6 +63,15 @@ const StoryHighlights = ({ userId, isOwn }: { userId: string; isOwn: boolean }) 
 
   if (!isOwn && highlights.length === 0) return null;
 
+  // Your own profile with no highlights yet: a small link, not a row with one empty circle.
+  if (highlights.length === 0) {
+    return (
+      <button type="button" onClick={() => navigate("/story-archive?highlight=1")} className="mt-3 flex items-center gap-1.5 text-sm font-semibold text-primary">
+        <Plus className="h-4 w-4" /> Add story highlights
+      </button>
+    );
+  }
+
   return (
     <div className="mt-4 -mx-4 flex gap-4 overflow-x-auto px-4 pb-1 scrollbar-hide sm:mx-0 sm:px-0">
       {isOwn && (

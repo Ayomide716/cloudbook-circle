@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, Search, Shield } from "lucide-react";
-import { List, MagnifyingGlass, MessengerLogo, PlusCircle } from "@phosphor-icons/react";
+import { MagnifyingGlass, MessengerLogo, PlusCircle } from "@phosphor-icons/react";
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
 import { playSound } from "@/lib/sounds";
@@ -38,6 +38,7 @@ import { dbChannel } from "@/lib/realtime";
 import { markMessagesDelivered } from "@/lib/delivered";
 import { useResync } from "@/hooks/use-resync";
 import { disablePush } from "@/lib/web-push";
+import { isSubPage } from "@/lib/sub-pages";
 
 interface NavigationProps {
   currentUserId?: string;
@@ -203,7 +204,10 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
 
   // Phones: the top bar slides away while you scroll down and comes back when you scroll up.
   const isPhone = useIsMobile();
-  const topBarHidden = useHideOnScroll(isPhone && !hideMobileTopBar);
+  // Pages opened from somewhere else have their own header with a back arrow instead.
+  const subPage = isSubPage(location.pathname);
+  const noMobileTopBar = hideMobileTopBar || subPage;
+  const topBarHidden = useHideOnScroll(isPhone && !noMobileTopBar);
 
   const dockItems = [
     { icon: Home, path: "/", label: "Home" },
@@ -219,25 +223,13 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
       <header className={cn(
         "sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50 max-md:bg-background max-md:border-x-0 max-md:border-t-0",
         "transition-transform duration-200 ease-out",
-        hideMobileTopBar && "max-md:hidden",
+        noMobileTopBar && "max-md:hidden",
         topBarHidden && "max-md:-translate-y-full"
       )}>
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6">
           <div className="flex items-center justify-between h-[var(--nav-height)]">
-            {/* Left - Logo (phones: the Menu button sits before it, as in Facebook's app) */}
+            {/* Left - Logo (phones: the Menu is the last tab, with your photo, as in Facebook's app) */}
             <div className="flex items-center gap-1 shrink-0">
-            {currentUserId && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="md:hidden -ml-1.5 h-8 w-8 rounded-full [&_svg]:size-[22px] hover:bg-secondary"
-                onClick={() => navigate("/menu")}
-                aria-label="Menu"
-                aria-current={location.pathname === "/menu" ? "page" : undefined}
-              >
-                <List className="h-[26px] w-[26px]" weight="regular" aria-hidden="true" />
-              </Button>
-            )}
             {/* The wordmark: "ember." in the display font. */}
             <Link to="/" className="shrink-0 flex items-center" aria-label="Ember home">
               <Wordmark className="text-[26px] md:text-[28px]" />
@@ -311,19 +303,6 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       {b.dot && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" aria-hidden="true" />}
                     </button>
                   ))}
-                  {/* Your photo: opens your profile. */}
-                  <button
-                    type="button"
-                    onClick={() => navigate(`/profile/${currentUserId}`)}
-                    aria-label="Your profile"
-                    className="relative ml-0.5 rounded-full ring-2 ring-border"
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={userProfile?.avatar_url || undefined} alt="" />
-                      <AvatarFallback className="text-sm font-semibold">{userProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                    </Avatar>
-                    <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-card" aria-hidden="true" />
-                  </button>
                 </div>
               )}
               {currentUserId && (
@@ -444,6 +423,8 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
           </div>
         </div>
       </header>
+      {/* Sub-pages on phones: no top bar, but still clear of the status bar. */}
+      {subPage && !hideMobileTopBar && <div className="safe-area-top md:hidden" aria-hidden="true" />}
 
       {/* Tablet Floating Dock - centered bottom (hidden on Reels; wide screens use the top-bar tabs) */}
       {currentUserId && location.pathname !== "/reels" && location.pathname !== "/messages" && (

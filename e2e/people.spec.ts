@@ -15,9 +15,11 @@ test.describe("profiles and friends", () => {
   test("your own profile has Facebook's header: stats, Add to story, Edit profile and chips", async ({ page }) => {
     await signIn(page, "alice");
     const bar = page.getByRole("navigation", { name: "Main" }).last();
-    await bar.getByRole("button", { name: "Profile" }).click();
+    // As on Facebook: the Menu tab (your photo), then your profile at the top of the menu.
+    await bar.getByRole("button", { name: "Menu" }).click();
+    await page.getByRole("button", { name: /View your profile/ }).click();
     await expect(page).toHaveURL(new RegExp(`/profile/${ids().alice}$`));
-    await expect(bar.getByRole("button", { name: "Profile" })).toHaveAttribute("aria-current", "page");
+    await expect(bar.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { level: 1, name: "Alice Johnson" })).toBeVisible();
     await expect(page.getByText(/1\s+friend\s+·\s+\d+\s+posts?/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Add to story" })).toBeVisible();

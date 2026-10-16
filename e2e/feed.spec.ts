@@ -26,7 +26,7 @@ test.describe("feed", () => {
     expect(Math.round(box.x)).toBe(12);
     expect(Math.round(box.width)).toBe(viewport.width - 24);
 
-    // Top bar, as in Facebook's app: menu, create, search and Messenger.
+    // As in Facebook's app: create, search and Messenger in the top bar; Menu is the last tab.
     await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create post" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeVisible();
@@ -93,7 +93,7 @@ test.describe("feed", () => {
     }
   });
 
-  test("the ☰ menu is a full page with shortcuts, and + opens the composer", async ({ page }) => {
+  test("the Menu tab is a full page with shortcuts, and + opens the composer", async ({ page }) => {
     await signIn(page, "alice");
     await page.getByRole("button", { name: "Menu", exact: true }).click();
     await expect(page).toHaveURL(/\/menu$/);

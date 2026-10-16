@@ -10,9 +10,9 @@ const FriendsSkeleton = () => (
     <PageHeader title="Friends" className="sm:mb-4">
       <StaticSearch placeholder="Search people" />
     </PageHeader>
-    <div className="feed-section flex h-11 items-stretch gap-1 border-b border-border bg-card sm:bg-transparent px-2 sm:px-0 mb-2 sm:mb-4" aria-hidden="true">
+    <div className="mb-2 flex gap-2 px-4 py-0.5 sm:mb-4 sm:px-0" aria-hidden="true">
       {TABS.map((t) => (
-        <span key={t} className="flex items-center px-3 text-[15px] font-semibold text-muted-foreground">{t}</span>
+        <span key={t} className="flex h-8 items-center rounded-full border border-border bg-card px-3 text-[13px] font-semibold text-muted-foreground sm:h-9 sm:text-sm">{t}</span>
       ))}
     </div>
     <div className="feed-section bg-card divide-y divide-border sm:rounded-xl sm:border">

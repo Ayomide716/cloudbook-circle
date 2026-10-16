@@ -1,6 +1,7 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useState } from "react";
 import AppVersionCard from "@/components/AppVersionCard";
+import AppearancePicker from "@/components/AppearancePicker";
 import { features } from "@/lib/features";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Bookmark, Download, History, Loader2, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "lucide-react";
+import { Loader2, Palette, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "lucide-react";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -265,25 +266,16 @@ const Settings = () => {
           </button>
         </Card>
 
-        <SectionTitle title="Your activity" desc="Things you've kept on Ember." />
+        <SectionTitle title="Preferences" desc="How Ember looks and sounds, and how much data it uses." />
         <Card className="mb-6 divide-y divide-border overflow-hidden rounded-2xl">
-          {[
-            { to: "/saved", icon: Bookmark, label: "Saved posts" },
-            { to: "/story-archive", icon: History, label: "Story archive" },
-            { to: "/offline-videos", icon: Download, label: "Offline videos" },
-          ].map((row) => (
-            <button key={row.to} type="button" onClick={() => navigate(row.to)} className="flex w-full items-center gap-3 p-4 text-left transition-colors hover:bg-accent/60">
-              <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-secondary">
-                <row.icon className="h-4 w-4" />
-              </div>
-              <span className="flex-1 text-sm font-medium">{row.label}</span>
-              <ChevronRight className="h-4 w-4 text-muted-foreground" />
-            </button>
-          ))}
-        </Card>
+        <div className="p-4 flex flex-wrap items-center gap-3">
+          <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
+            <Palette className="h-4 w-4" />
+          </div>
+          <span className="flex-1 text-sm font-medium">Appearance</span>
+          <AppearancePicker />
+        </div>
 
-        <SectionTitle title="Preferences" desc="How Ember sounds and how much data it uses." />
-        <Card className="mb-6 divide-y divide-border overflow-hidden rounded-2xl">
         <div className="p-4 flex items-center gap-3">
           <div className="h-9 w-9 rounded-full bg-secondary flex items-center justify-center flex-shrink-0">
             <Volume2 className="h-4 w-4" />
