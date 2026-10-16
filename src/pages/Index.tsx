@@ -277,7 +277,8 @@ const Index = () => {
               </Suspense>
 
               {/* For you · Friends, as on Instagram and Threads: right under the stories, so cards below never push it down */}
-              <div role="tablist" aria-label="Feed" className="flex gap-1 rounded-full border border-border bg-card p-1 shine-card">
+              {/* Two small chips (not a full-width bar), so the feed starts sooner. */}
+              <div role="tablist" aria-label="Feed" className="flex gap-2 px-3 sm:px-0">
                 {([["foryou", "For you"], ["friends", "Friends"]] as const).map(([value, label]) => (
                   <button
                     key={value}
@@ -286,8 +287,8 @@ const Index = () => {
                     aria-selected={feedTab === value}
                     onClick={() => chooseTab(value)}
                     className={cn(
-                      "relative h-9 flex-1 rounded-full text-[14px] font-semibold transition-colors",
-                      feedTab === value ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                      "relative h-8 rounded-full border px-4 text-[14px] font-semibold transition-colors",
+                      feedTab === value ? "border-primary/60 text-primary" : "border-border bg-card text-foreground hover:bg-secondary"
                     )}
                   >
                     {feedTab === value && (

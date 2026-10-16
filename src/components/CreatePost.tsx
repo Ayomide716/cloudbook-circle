@@ -4,7 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, Image, X, MapPin, Globe, BarChart3 } from "lucide-react";
+import { Loader2, X, MapPin, Globe, BarChart3 } from "lucide-react";
+import { ImagesSquare } from "@phosphor-icons/react";
 import TagFriends, { type TaggedFriend } from "@/components/TagFriends";
 import { previewsFor } from "@/lib/photo-previews";
 import { rememberPostTags } from "@/lib/post-tags";
@@ -246,11 +247,12 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 flex-shrink-0 rounded-full text-muted-foreground sm:text-primary hover:bg-primary/10 [&_svg]:size-5"
+            className="h-10 w-10 flex-shrink-0 rounded-full text-emerald-500 hover:bg-emerald-500/10 [&_svg]:size-6"
             onClick={() => setShowDialog(true)}
             aria-label="Add photos or video"
           >
-            <Image strokeWidth={1.6} />
+            {/* Green, as on Facebook, so it reads as "add a photo". */}
+            <ImagesSquare weight="fill" />
           </Button>
         </div>
       </Card>

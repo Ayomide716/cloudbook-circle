@@ -9,8 +9,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Trash2, MoreHorizontal, Bookmark, BookmarkCheck, Pencil, X, Globe, Clock, Flag, Undo2, Ban } from "lucide-react";
-import { ChatCircle, ShareFat, ThumbsUp as PhThumbsUp } from "@phosphor-icons/react";
+import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban } from "lucide-react";
+import { ChatCircle, DotsThree, GlobeHemisphereWest, ShareFat, ThumbsUp as PhThumbsUp, X as PhX } from "@phosphor-icons/react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -554,14 +554,14 @@ const PostCard = ({
                 {shortTime(post.created_at)}
               </time>
               <span aria-hidden="true">·</span>
-              <Globe className="h-3 w-3 shrink-0" aria-label="Public" />
+              <GlobeHemisphereWest className="h-3.5 w-3.5 shrink-0" aria-label="Public" />
             </p>
           </div>
 
            <ActionMenu>
              <ActionMenuTrigger asChild>
                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-full" aria-label="Post options">
-                 <MoreHorizontal className="h-5 w-5" />
+                 <DotsThree className="h-7 w-7" weight="bold" />
                </Button>
              </ActionMenuTrigger>
              <ActionMenuContent align="end" title="Post options">
@@ -615,7 +615,7 @@ const PostCard = ({
                 aria-label="Hide post"
                 onClick={() => { hidePost(post.id); setHidden(true); setHideReason(null); }}
               >
-                <X className="h-5 w-5" />
+                <PhX className="h-5 w-5" weight="bold" />
               </Button>
             )}
         </div>
@@ -738,14 +738,15 @@ const PostCard = ({
                 {compactCount(comments.length)} {comments.length === 1 ? "comment" : "comments"}
               </button>
             )}
-            <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact />
+            {/* Tips use credits, which are muted with the Ad Manager (features.extras). */}
+            {features.extras && <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact />}
           </span>
         </div>
       )}
 
-      {/* Like · Comment · Share in one outlined pill; Like turns blue and filled once you've liked. */}
-      <div className="px-2.5 pt-2 pb-2.5">
-        <div className="grid grid-cols-3 items-center rounded-full border border-border">
+      {/* Like · Comment · Share in a plain row under a thin line, as on Facebook. */}
+      <div className="px-2.5 pt-1.5 pb-1.5">
+        <div className="grid grid-cols-3 items-center border-t border-border/70 pt-1">
           <div
             ref={likeAreaRef}
             className="relative flex justify-center select-none [-webkit-touch-callout:none]"

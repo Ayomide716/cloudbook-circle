@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, Search, Shield } from "lucide-react";
-import { MagnifyingGlass, MessengerLogo, PlusCircle } from "@phosphor-icons/react";
+import { MagnifyingGlass, MessengerLogo, Plus } from "@phosphor-icons/react";
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
 import { playSound } from "@/lib/sounds";
@@ -232,7 +232,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
             <div className="flex items-center gap-1 shrink-0">
             {/* The wordmark: "ember." in the display font. */}
             <Link to="/" className="shrink-0 flex items-center" aria-label="Ember home">
-              <Wordmark className="text-[26px] md:text-[28px]" />
+              <Wordmark className="text-[30px] md:text-[28px]" />
             </Link>
             </div>
 
@@ -280,14 +280,14 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
               {/* Mobile top bar, as in Facebook's app: plain create, search and Messenger icons.
                   Notifications and everything else live in the bottom tab bar. */}
               {currentUserId && (
-                <div className="flex md:hidden items-center gap-1.5">
-                  {/* Round, softly outlined buttons, as in the mockup. */}
+                <div className="flex md:hidden items-center gap-2">
+                  {/* Round grey buttons with bold icons, as in Facebook's app. */}
                   {[
-                    { label: "Create post", icon: <PlusCircle className="h-[17px] w-[17px]" aria-hidden="true" />, onClick: () => navigate("/?compose=1") },
-                    { label: "Search", icon: <MagnifyingGlass className="h-[16px] w-[16px]" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
+                    { label: "Create post", icon: <Plus className="h-[21px] w-[21px]" weight="bold" aria-hidden="true" />, onClick: () => navigate("/?compose=1") },
+                    { label: "Search", icon: <MagnifyingGlass className="h-[21px] w-[21px]" weight="bold" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
                     {
                       label: unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages",
-                      icon: <MessengerLogo className="h-[17px] w-[17px]" aria-hidden="true" />,
+                      icon: <MessengerLogo className="h-[22px] w-[22px]" weight="fill" aria-hidden="true" />,
                       onClick: () => navigate("/messages"),
                       dot: unreadMessages > 0,
                     },
@@ -297,10 +297,10 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       type="button"
                       onClick={b.onClick}
                       aria-label={b.label}
-                      className="relative flex h-8 w-8 items-center justify-center rounded-full border border-border bg-secondary/60 text-foreground transition-colors active:bg-secondary"
+                      className="relative flex h-[38px] w-[38px] items-center justify-center rounded-full bg-secondary text-foreground transition-colors active:bg-secondary/60"
                     >
                       {b.icon}
-                      {b.dot && <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-destructive ring-2 ring-card" aria-hidden="true" />}
+                      {b.dot && <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" aria-hidden="true" />}
                     </button>
                   ))}
                 </div>
