@@ -42,11 +42,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   useBottomSpace("--dock-space", typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "5rem" : null);
 
   const tabs = [
-    { icon: House, path: "/", label: "Home", badge: 0 },
+    { icon: House, path: "/", label: "Home", short: undefined as string | undefined, badge: 0 },
     { icon: Users, path: "/friends", label: "Friends", badge: friendRequests },
     { icon: ReelsIcon, path: "/reels", label: "Reels", badge: 0 },
     { icon: UsersThree, path: "/groups", label: "Groups", badge: 0 },
-    { icon: Bell, path: "/notifications", label: "Notifications", badge: unreadNotifications },
+    // "Alerts" on the bar (shorter, so the six labels sit evenly); read out as Notifications.
+    { icon: Bell, path: "/notifications", label: "Notifications", short: "Alerts", badge: unreadNotifications },
   ];
   // A group's own page still counts as the Groups tab.
   const isActive = (path: string) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path));
@@ -61,10 +62,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
 
   const tabClass = (active: boolean) =>
     cn("relative flex min-w-0 flex-col items-center justify-center gap-0.5 transition-colors", active ? "text-primary" : "text-muted-foreground");
-  // The selected tab sits on a soft tangerine pill, as on iOS and Android.
+  // The selected tab: tangerine icon and label with a short tangerine line under it (no pill).
   const iconWrap = (active: boolean) =>
-    cn("relative flex h-[30px] w-[46px] items-center justify-center rounded-full transition-all duration-300 ease-out",
-      active ? "bg-primary/15 scale-100" : "scale-95");
+    cn("relative flex h-[30px] w-[46px] items-center justify-center transition-transform duration-300 ease-out",
+      active ? "scale-100" : "scale-95");
+  const activeLine = (active: boolean) =>
+    active && <motion.span layoutId="tab-line" className="absolute bottom-0 h-[3px] w-7 rounded-t-full bg-primary" transition={{ type: "spring", stiffness: 500, damping: 38 }} aria-hidden="true" />;
   const label = (text: string, active: boolean) => (
     <span className="flex flex-col items-center gap-[3px]">
       <span className={cn("max-w-full truncate text-[10px] tracking-tight leading-none", active ? "font-semibold" : "font-medium")}>{text}</span>
@@ -99,7 +102,8 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
                   </span>
                 )}
               </span>
-              {label(tab.label, active)}
+              {label(tab.short ?? tab.label, active)}
+              {activeLine(active)}
             </motion.button>
           );
         })}
@@ -120,6 +124,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
             </Avatar>
           </span>
           {label("Menu", menuActive)}
+          {activeLine(menuActive)}
         </motion.button>
       </div>
     </nav>

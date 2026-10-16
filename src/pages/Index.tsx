@@ -287,12 +287,14 @@ const Index = () => {
                     aria-selected={feedTab === value}
                     onClick={() => chooseTab(value)}
                     className={cn(
-                      "relative h-8 rounded-full border px-4 text-[14px] font-semibold transition-colors",
-                      feedTab === value ? "border-primary/60 text-primary" : "border-border bg-card text-foreground hover:bg-secondary"
+                      "relative h-9 rounded-full border px-5 text-[14px] font-semibold transition-colors",
+                      feedTab === value
+                        ? "border-primary/70 text-primary shadow-[0_0_14px_-2px_hsl(var(--primary)/0.45)]"
+                        : "border-transparent bg-secondary text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {feedTab === value && (
-                      <motion.span layoutId="feed-tab-pill" className="absolute inset-0 rounded-full bg-primary/15" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
+                      <motion.span layoutId="feed-tab-pill" className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 to-primary/10" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
                     )}
                     <span className="relative">{label}</span>
                   </button>

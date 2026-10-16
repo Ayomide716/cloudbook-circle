@@ -283,11 +283,11 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                 <div className="flex md:hidden items-center gap-2">
                   {/* Round grey buttons with bold icons, as in Facebook's app. */}
                   {[
-                    { label: "Create post", icon: <Plus className="h-[21px] w-[21px]" weight="bold" aria-hidden="true" />, onClick: () => navigate("/?compose=1") },
-                    { label: "Search", icon: <MagnifyingGlass className="h-[21px] w-[21px]" weight="bold" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
+                    { label: "Create post", icon: <Plus className="h-[19px] w-[19px]" weight="bold" aria-hidden="true" />, onClick: () => navigate("/?compose=1") },
+                    { label: "Search", icon: <MagnifyingGlass className="h-[19px] w-[19px]" weight="bold" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
                     {
                       label: unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages",
-                      icon: <MessengerLogo className="h-[22px] w-[22px]" weight="fill" aria-hidden="true" />,
+                      icon: <MessengerLogo className="h-5 w-5" weight="fill" aria-hidden="true" />,
                       onClick: () => navigate("/messages"),
                       dot: unreadMessages > 0,
                     },
@@ -297,7 +297,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       type="button"
                       onClick={b.onClick}
                       aria-label={b.label}
-                      className="relative flex h-[38px] w-[38px] items-center justify-center rounded-full bg-secondary text-foreground transition-colors active:bg-secondary/60"
+                      className="relative flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-foreground transition-colors active:bg-secondary/60"
                     >
                       {b.icon}
                       {b.dot && <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" aria-hidden="true" />}
