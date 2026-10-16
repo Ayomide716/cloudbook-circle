@@ -1,85 +1,41 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect } from "react";
+import { audio, bell } from "@/lib/sounds";
+
+/**
+ * The incoming-call ringtone: a bright, marimba-like melody that repeats every 2.4 seconds,
+ * loud like a phone's own ringtone, with the phone buzzing in time. It rings whatever the
+ * in-app sounds setting is (a call should never be silent).
+ */
+const MELODY: [number, number][] = [
+  // [seconds from the start, frequency in Hz]: E5 G#5 B5 E6, B5 E6.
+  [0, 659], [0.16, 831], [0.32, 988], [0.48, 1319], [0.8, 988], [0.96, 1319],
+];
+const EVERY_MS = 2400;
+
+function ringOnce() {
+  const ac = audio();
+  if (!ac) return;
+  const t = ac.currentTime + 0.02;
+  for (const [at, freq] of MELODY) bell(ac, t + at, freq, 0.55, 0.9);
+  try {
+    navigator.vibrate?.([400, 200, 400]);
+  } catch {
+    /* no vibration here */
+  }
+}
 
 export const useRingtone = (isPlaying: boolean) => {
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const oscillatorRef = useRef<OscillatorNode | null>(null);
-  const gainNodeRef = useRef<GainNode | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-
-  const stopRingtone = useCallback(() => {
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-    if (oscillatorRef.current) {
-      try {
-        oscillatorRef.current.stop();
-      } catch (e) {
-        // Already stopped
-      }
-      oscillatorRef.current = null;
-    }
-    if (gainNodeRef.current) {
-      gainNodeRef.current = null;
-    }
-  }, []);
-
-  const playRingTone = useCallback(() => {
-    if (!audioContextRef.current) {
-      audioContextRef.current = new (window.AudioContext ||
-        (window as Window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext!)();
-    }
-
-    const ctx = audioContextRef.current;
-    
-    // Create oscillator for the ring tone
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    
-    // Phone-like ring pattern: 440Hz + 480Hz
-    oscillator.type = "sine";
-    oscillator.frequency.value = 440;
-    
-    gainNode.gain.value = 0.3;
-    
-    oscillatorRef.current = oscillator;
-    gainNodeRef.current = gainNode;
-    
-    oscillator.start();
-    
-    // Ring pattern: 2 seconds on, 4 seconds off
-    let isRinging = true;
-    
-    intervalRef.current = setInterval(() => {
-      if (gainNodeRef.current) {
-        isRinging = !isRinging;
-        gainNodeRef.current.gain.setValueAtTime(isRinging ? 0.3 : 0, ctx.currentTime);
-        
-        // Add frequency variation for more realistic ring
-        if (oscillatorRef.current && isRinging) {
-          oscillatorRef.current.frequency.setValueAtTime(440, ctx.currentTime);
-          oscillatorRef.current.frequency.setValueAtTime(480, ctx.currentTime + 0.5);
-          oscillatorRef.current.frequency.setValueAtTime(440, ctx.currentTime + 1.0);
-          oscillatorRef.current.frequency.setValueAtTime(480, ctx.currentTime + 1.5);
-        }
-      }
-    }, 2000);
-  }, []);
-
   useEffect(() => {
-    if (isPlaying) {
-      playRingTone();
-    } else {
-      stopRingtone();
-    }
-
+    if (!isPlaying) return;
+    ringOnce();
+    const timer = window.setInterval(ringOnce, EVERY_MS);
     return () => {
-      stopRingtone();
+      window.clearInterval(timer);
+      try {
+        navigator.vibrate?.(0);
+      } catch {
+        /* fine */
+      }
     };
-  }, [isPlaying, playRingTone, stopRingtone]);
-
-  return { stopRingtone };
+  }, [isPlaying]);
 };
