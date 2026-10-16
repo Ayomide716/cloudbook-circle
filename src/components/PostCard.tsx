@@ -38,6 +38,7 @@ import BlockDialog from "./BlockDialog";
 import { explainError } from "@/lib/blocking";
 import PhotoCollage from "./PhotoCollage";
 import { usePostTags } from "@/lib/post-tags";
+import { useCommentLikes } from "@/lib/comment-likes";
 import PhotoViewer from "./PhotoViewer";
 import { postImages } from "@/lib/post-images";
 import TipButton from "./TipButton";
@@ -126,6 +127,12 @@ const PostCard = ({
   const [showComments, setShowComments] = useState(defaultShowComments);
   // Friends tagged in the post ("is with Tolu and 2 others").
   const tags = usePostTags(post.id);
+  // Likes on the comments, loaded once the comments are open.
+  const commentLikes = useCommentLikes(
+    showComments ? comments.filter((c) => !c.id.startsWith("temp-")).map((c) => c.id) : [],
+    currentUserId,
+    post.user_id,
+  );
   const myProfile = useMyProfile();
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [heartBurst, setHeartBurst] = useState(0);
@@ -426,6 +433,7 @@ const PostCard = ({
       onEdit={(id, text) => handleEditComment(id, text)}
       initialCount={initialCount}
       openThreadId={openThreadId}
+      likes={commentLikes}
     />
   );
 

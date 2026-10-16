@@ -8,6 +8,8 @@ import { cn, toDate } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
+import { Heart, ThumbsUp } from "lucide-react";
+import type { CommentLikes } from "@/lib/comment-likes";
 
 export interface ThreadComment {
   id: string;
@@ -34,6 +36,8 @@ interface CommentThreadProps<T extends ThreadComment> {
    * as under a post in Facebook's feed. Otherwise the oldest show first.
    */
   latest?: boolean;
+  /** Post comments: "Like" under each comment with its count (lib/comment-likes). */
+  likes?: CommentLikes | null;
   className?: string;
 }
 
@@ -63,6 +67,7 @@ export function CommentThread<T extends ThreadComment>({
   initialCount = 3,
   openThreadId,
   latest = false,
+  likes,
   className,
 }: CommentThreadProps<T>) {
   // Deleting a comment hides it at once with "Comment deleted · Undo" (and its replies with it);
@@ -191,6 +196,16 @@ export function CommentThread<T extends ThreadComment>({
           </div>
           <div className="ml-3 mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
             <span>{ago(c.created_at)}</span>
+            {likes && currentUserId && (
+              <button
+                type="button"
+                className={cn("font-semibold hover:text-foreground", likes.liked(c.id) && "text-primary hover:text-primary")}
+                onClick={() => likes.toggle(c.id)}
+                aria-pressed={likes.liked(c.id)}
+              >
+                Like
+              </button>
+            )}
             <button type="button" className="font-semibold hover:text-foreground" onClick={() => onReply(parent, isReply ? name : null)}>
               Reply
             </button>
@@ -203,6 +218,17 @@ export function CommentThread<T extends ThreadComment>({
               <button type="button" className="font-semibold hover:text-destructive" onClick={() => deleteWithUndo(c.id)}>
                 Delete
               </button>
+            )}
+            {likes && (likes.count(c.id) > 0 || likes.byAuthor(c.id)) && (
+              <span className="ml-auto flex items-center gap-1">
+                {likes.byAuthor(c.id) && <Heart className="h-3.5 w-3.5 fill-rose-500 text-rose-500" aria-label="Liked by the author" />}
+                {likes.count(c.id) > 0 && (
+                  <span className="flex items-center gap-0.5 rounded-full bg-card px-1.5 py-0.5 shadow-sm ring-1 ring-border" aria-label={`${likes.count(c.id)} likes`}>
+                    <ThumbsUp className="h-3 w-3 fill-primary text-primary" />
+                    {likes.count(c.id)}
+                  </span>
+                )}
+              </span>
             )}
           </div>
         </div>

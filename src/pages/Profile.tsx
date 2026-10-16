@@ -1,4 +1,5 @@
 import StoryHighlights from "@/components/stories/StoryHighlights";
+import ProfileQrDialog from "@/components/ProfileQrDialog";
 import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
 import { shrinkImage } from "@/lib/image-compress";
@@ -31,6 +32,7 @@ import {
   Link as LinkIcon,
   Heart,
   History,
+  QrCode,
   Users,
   Plus,
   FolderOpen,
@@ -328,6 +330,7 @@ const Profile = () => {
     setThingsInCommon(items.slice(0, 4));
   };
 
+  const [qrOpen, setQrOpen] = useState(false);
   const shareProfile = async () => {
     const url = publicUrl(`/profile/${userId}`);
     try {
@@ -507,6 +510,9 @@ const Profile = () => {
       <ActionMenuContent align="end">
         <ActionMenuItem onSelect={shareProfile}>
           <Share2 className="h-4 w-4 mr-2" /> Share profile
+        </ActionMenuItem>
+        <ActionMenuItem onSelect={() => setQrOpen(true)}>
+          <QrCode className="h-4 w-4 mr-2" /> QR code
         </ActionMenuItem>
         {isOwnProfile &&
       <ActionMenuItem onSelect={() => navigate("/story-archive")}>
@@ -728,6 +734,14 @@ const Profile = () => {
           </div>
 
           {userId && <StoryHighlights userId={userId} isOwn={isOwnProfile} />}
+          <ProfileQrDialog
+            open={qrOpen}
+            onOpenChange={setQrOpen}
+            url={publicUrl(`/profile/${userId}`)}
+            name={profile.full_name || "Ember user"}
+            avatarUrl={profile.avatar_url}
+            onShare={() => void shareProfile()}
+          />
 
           {/* Things in common (someone else's profile) */}
           {!isOwnProfile && thingsInCommon.length > 0 &&
