@@ -12,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye, X } from "lucide-react";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import MoveMediaCard from "@/components/MoveMediaCard";
+import StorageStatusCard from "@/components/StorageStatusCard";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
@@ -160,6 +161,8 @@ const AdminDashboard = () => {
       <div className="max-w-5xl mx-auto px-4 py-6 mb-20 space-y-6">
         <PageHeader back title="Admin Dashboard" className="!mb-0 !pb-0" />
 
+        {/* Is uploading to Cloudflare R2 working, and where did the last upload go. */}
+        <StorageStatusCard />
         <MoveMediaCard />
 
         {/* Stats */}
