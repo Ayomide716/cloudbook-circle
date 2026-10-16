@@ -10,7 +10,7 @@ import { useEffect, useState, useRef } from "react";
 import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";
 import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
@@ -131,7 +131,12 @@ const Profile = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isEditingProfile, setIsEditingProfile] = useState(false);
+  const location = useLocation();
+  // Menu's "Edit profile" lands here with the editor already open.
+  const [isEditingProfile, setIsEditingProfile] = useState(() => !!(location.state as { edit?: boolean } | null)?.edit);
+  useEffect(() => {
+    if ((location.state as { edit?: boolean } | null)?.edit) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const [friendCount, setFriendCount] = useState<number | null>(0);
   const [activeTab, setActiveTab] = useState<"posts" | "photos" | "videos" | "reels" | "albums" | "qa">("posts");
