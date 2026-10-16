@@ -34,9 +34,9 @@ final class CallNotifications {
     }
 
     /** ember://call link the web app reads (src/lib/native/call-links.ts). */
-    static Uri link(Map<String, String> data, boolean answer) {
+    static Uri link(Context context, Map<String, String> data, boolean answer) {
         return new Uri.Builder()
-                .scheme(BuildConfig.APPLICATION_ID)
+                .scheme(context.getPackageName())
                 .authority("call")
                 .appendQueryParameter("from", data.get("callerId"))
                 .appendQueryParameter("name", data.get("callerName"))
@@ -48,7 +48,7 @@ final class CallNotifications {
     }
 
     private static PendingIntent openApp(Context context, Map<String, String> data, boolean answer, int requestCode) {
-        Intent intent = new Intent(Intent.ACTION_VIEW, link(data, answer), context, MainActivity.class);
+        Intent intent = new Intent(Intent.ACTION_VIEW, link(context, data, answer), context, MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
         intent.putExtra(EXTRA_CALLER, data.get("callerId"));
         return PendingIntent.getActivity(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
