@@ -375,10 +375,25 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
   // Mark as viewed when story changes
   const activeStoryId = activeStory?.id;
+  const watched = useRef(new Set<string>());
   useEffect(() => {
     if (!viewerOpen || !activeStoryId) return;
+    watched.current.add(activeStoryId);
     supabase.from("story_views").insert({ story_id: activeStoryId, viewer_id: currentUserId }).then(() => {});
   }, [viewerOpen, activeStoryId, currentUserId]);
+  // Closing the viewer: people whose stories you've now watched get the faded "seen" ring.
+  useEffect(() => {
+    if (viewerOpen) return;
+    setStoryGroups((groups) => {
+      let changed = false;
+      const next = groups.map((g) => {
+        if (!g.hasUnviewed || !g.stories.every((st) => watched.current.has(st.id))) return g;
+        changed = true;
+        return { ...g, hasUnviewed: false };
+      });
+      return changed ? next : groups;
+    });
+  }, [viewerOpen]);
 
   const openViewer = (groupIndex: number) => {
     setActiveGroupIndex(groupIndex);
@@ -667,7 +682,8 @@ const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: 
           ring === "new" ? "bg-gradient-to-tr from-amber-400 via-primary to-rose-500" : ring === "seen" ? "bg-border" : "bg-transparent"
         )}
       >
-        <span className="block h-full w-full overflow-hidden rounded-full border-[2.5px] border-background bg-background">{children}</span>
+        {/* Stories you've already watched fade back, so new ones stand out. */}
+        <span className={cn("block h-full w-full overflow-hidden rounded-full border-[2.5px] border-background bg-background", ring === "seen" && "opacity-55")}>{children}</span>
       </button>
       {(add || onAdd) && (
         <button
@@ -680,6 +696,6 @@ const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: 
         </button>
       )}
     </div>
-    <span className="w-full truncate text-center text-[11.5px] font-medium text-foreground/90">{label}</span>
+    <span className={cn("w-full truncate text-center text-[11.5px] font-medium", ring === "seen" ? "text-muted-foreground" : "text-foreground/90")}>{label}</span>
   </div>
 );

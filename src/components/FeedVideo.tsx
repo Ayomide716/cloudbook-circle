@@ -145,11 +145,18 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
         onDoubleClick={(e) => e.preventDefault()}
       >
         {!playing && (
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm">
+          <span className="flex h-[68px] w-[68px] items-center justify-center rounded-full bg-black/55 text-white ring-1 ring-white/25 backdrop-blur-sm">
             <Play className="ml-1 h-8 w-8 fill-white" />
           </span>
         )}
       </button>
+
+      {/* How long it is ("0:24"), so it reads as a video at a glance. */}
+      {!playing && duration > 0 && (
+        <span className="pointer-events-none absolute right-2.5 top-2.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[11.5px] font-semibold tabular-nums text-white">
+          {time(duration)}
+        </span>
+      )}
 
       {seekFlash && <SeekFlash key={seekFlash.n} side={seekFlash.side} />}
 
