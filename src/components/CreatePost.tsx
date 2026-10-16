@@ -506,7 +506,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
             {/* Phones: pinned to the bottom of the screen, above the keyboard. */}
             <div className="flex items-center justify-between rounded-lg border p-3 max-sm:-mx-4 max-sm:rounded-none max-sm:border-x-0 max-sm:border-b-0 max-sm:px-4 max-sm:pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               <span className="text-sm font-medium">Add to your post</span>
-              <div className="flex gap-1">
+              {/* One ink colour for every tool (the design system has no rainbow icons). */}
+              <div className="flex gap-1 [&_button:hover]:!bg-secondary [&_button]:!text-foreground">
                 <MultiImageUpload
                   bucket="post-images"
                   userId={currentUser.id}

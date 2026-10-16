@@ -1,5 +1,7 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
+import { ArrowLeft } from "@/components/icons";
+import { StaticChips } from "./parts";
 
 /** One conversation row: avatar, name and time, last message (same sizes as the real row). */
 const ConversationItemSkeleton = ({ nameWidth, textWidth }: { nameWidth: string; textWidth: string }) => (
@@ -25,14 +27,17 @@ const MessagesSkeleton = () => (
         <div className="grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] gap-0 sm:gap-4 flex-1 overflow-hidden">
           <Card className="min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none">
             <div className="px-3 pt-3 pb-2.5 sm:p-4 md:border-b flex-shrink-0">
-              <div className="flex items-center gap-2 h-9">
-                <Skeleton className="md:hidden h-6 w-6 rounded-md" />
-                <Skeleton className="h-6 w-28 flex-1 max-w-28" />
-                <Skeleton className="ml-auto h-9 w-9 rounded-full" />
+              {/* The real title and chips show straight away; only the conversations are grey. */}
+              <div className="flex items-center gap-2 h-9" aria-hidden="true">
+                <ArrowLeft className="md:hidden h-5 w-5" />
+                <span className="text-[22px] font-bold tracking-tight">Messages</span>
+              </div>
+              <div className="mt-2.5">
+                <StaticChips labels={["All", "Unread", "Groups"]} />
               </div>
             </div>
-            <div className="flex-1 overflow-hidden max-md:px-3">
-              <div className="shine-card divide-y overflow-hidden max-md:rounded-[1.125rem] max-md:border max-md:bg-card md:!bg-none md:!shadow-none">
+            <div className="flex-1 overflow-hidden">
+              <div className="overflow-hidden">
                 <ConversationItemSkeleton nameWidth="32%" textWidth="64%" />
                 {ROWS.map(([name, text], i) => (
                   <ConversationItemSkeleton key={i} nameWidth={name} textWidth={text} />

@@ -9,8 +9,8 @@ import { cn } from "@/lib/utils";
  */
 
 export const StaticSearch = ({ placeholder }: { placeholder: string }) => (
-  <div className="relative flex h-10 items-center rounded-full bg-secondary pl-10 text-[15px] text-muted-foreground" aria-hidden="true">
-    <Search className="absolute left-3.5 h-4 w-4" />
+  <div className="relative flex h-11 items-center rounded-xl bg-secondary pl-10 text-[15px] text-muted-foreground" aria-hidden="true">
+    <Search className="absolute left-3.5 h-[18px] w-[18px]" />
     {placeholder}
   </div>
 );
@@ -21,8 +21,8 @@ export const StaticChips = ({ labels }: { labels: string[] }) => (
       <span
         key={label}
         className={cn(
-          "inline-flex h-9 shrink-0 items-center rounded-full border px-3.5 text-sm font-semibold",
-          i === 0 ? "border-primary bg-primary text-primary-foreground" : "border-border bg-card text-foreground"
+          "inline-flex h-[34px] shrink-0 items-center rounded-full px-3.5 text-[14px] font-semibold",
+          i === 0 ? "bg-foreground text-background" : "bg-secondary text-foreground"
         )}
       >
         {label}

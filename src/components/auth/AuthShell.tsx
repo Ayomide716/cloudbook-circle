@@ -26,11 +26,6 @@ interface AuthShellProps {
  */
 const AuthShell = ({ children, showPanel = true, className }: AuthShellProps) => (
   <div className="relative min-h-[100dvh] overflow-hidden bg-background">
-    {/* A soft tangerine glow from the top, like light from a fire. */}
-    <div
-      aria-hidden="true"
-      className="pointer-events-none absolute inset-x-0 top-0 h-[60vh] bg-[radial-gradient(70%_60%_at_50%_0%,hsl(var(--primary)/0.22),transparent_70%)]"
-    />
 
     <div className={cn("relative mx-auto grid min-h-[100dvh] w-full max-w-6xl items-center px-5 py-10 lg:grid-cols-2 lg:gap-16", !showPanel && "lg:grid-cols-1", className)}>
       {showPanel && (

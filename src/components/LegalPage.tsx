@@ -26,7 +26,7 @@ export const LegalList = ({ items }: { items: string[] }) => (
   <ul className="mt-2 space-y-2">
     {items.map((item) => (
       <li key={item} className="flex gap-2.5">
-        <Check className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        <Check className="mt-0.5 h-4 w-4 shrink-0 text-foreground" aria-hidden="true" />
         <span>{item}</span>
       </li>
     ))}
@@ -41,15 +41,15 @@ const LegalPage = ({ icon: Icon, title, updated, summary, sections, contact, oth
       <Navigation currentUserId={session?.user.id} />
       <main className="mx-auto max-w-2xl px-4 pb-28 pt-6">
         <header className="flex flex-col items-center text-center">
-          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+          <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-secondary text-foreground">
             <Icon className="h-7 w-7" aria-hidden="true" />
           </span>
           <h1 className="mt-4 font-display text-[28px] font-bold tracking-tight">{title}</h1>
           <p className="mt-1 rounded-full bg-secondary px-3 py-1 text-xs font-medium text-muted-foreground">Last updated {updated}</p>
         </header>
 
-        <section aria-label="In short" className="mt-6 rounded-2xl border border-primary/20 bg-primary/5 p-5">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-primary">In short</h2>
+        <section aria-label="In short" className="mt-6 rounded-2xl bg-secondary p-5">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">In short</h2>
           <div className="text-[15px] leading-relaxed">
             <LegalList items={summary} />
           </div>
@@ -82,7 +82,7 @@ const LegalPage = ({ icon: Icon, title, updated, summary, sections, contact, oth
 
         <footer className="mt-6 rounded-2xl bg-secondary p-5 text-center">
           <p className="text-[15px] font-semibold">{contact.label}</p>
-          <a href={`mailto:${contact.email}`} className="mt-3 inline-flex items-center gap-2 rounded-full bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground">
+          <a href={`mailto:${contact.email}`} className="mt-3 inline-flex items-center gap-2 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background">
             <Mail className="h-4 w-4" aria-hidden="true" /> {contact.email}
           </a>
           <p className="mt-4 text-sm text-muted-foreground">

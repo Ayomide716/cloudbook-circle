@@ -64,9 +64,9 @@ const PostDetail = () => {
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-8">
       <Navigation currentUserId={userId ?? undefined} />
-      <main className="max-w-2xl mx-auto px-4 py-4 sm:py-6">
+      <main className="max-w-2xl mx-auto px-0 py-2 sm:px-4 sm:py-6">
         {/* As on Facebook: "← Ada's post". */}
-        <header className="mb-3 flex items-center gap-2">
+        <header className="mb-1 flex items-center gap-2 px-4 sm:mb-3 sm:px-0">
           <button type="button" onClick={goBack} aria-label="Back" className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-secondary">
             <ArrowLeft className="h-5 w-5" />
           </button>
@@ -102,6 +102,8 @@ const PostDetail = () => {
         )}
 
         {status === "ready" && post && userId && (
+          // Flat and edge to edge on phones, like the feed.
+          <div className="feed-flush">
           <PostCard
             post={post}
             currentUserId={userId}
@@ -115,6 +117,7 @@ const PostDetail = () => {
             defaultShowComments
             inlineComments
           />
+          </div>
         )}
       </main>
     </div>
