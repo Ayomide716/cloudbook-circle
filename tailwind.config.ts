@@ -15,8 +15,8 @@ export default {
     },
     extend: {
       fontFamily: {
-        sans: ["Inter", "system-ui", "-apple-system", "sans-serif"],
-        display: ["Bricolage Grotesque", "Inter", "system-ui", "sans-serif"],
+        sans: ["Figtree Variable", "Figtree", "system-ui", "-apple-system", "sans-serif"],
+        display: ["Figtree Variable", "Figtree", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",

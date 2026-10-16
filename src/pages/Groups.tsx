@@ -4,7 +4,7 @@ import { getErrorMessage } from "@/lib/utils";
 import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
-import { groupColor, groupInitials } from "@/lib/group-tile";
+import { groupInitials } from "@/lib/group-tile";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -16,7 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Globe, ImagePlus, Check } from "lucide-react";
+import { Loader2, Plus, Globe, ImagePlus, Check } from "@/components/icons";
 import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import GroupsSkeleton from "@/components/skeletons/GroupsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -368,13 +368,12 @@ const Groups = () => {
                 }}
               >
                 <div
-                  className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl"
-                  style={group.image_url ? undefined : { backgroundImage: groupColor(group.id) }}
+                  className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-2xl bg-secondary"
                 >
                   {group.image_url ? (
                     <img src={group.image_url} alt="" loading="lazy" className="h-full w-full object-cover" />
                   ) : (
-                    <span className="font-display text-lg font-bold text-white" aria-hidden="true">{groupInitials(group.name)}</span>
+                    <span className="font-display text-lg font-bold text-foreground" aria-hidden="true">{groupInitials(group.name)}</span>
                   )}
                 </div>
                 <div className="min-w-0 flex-1">

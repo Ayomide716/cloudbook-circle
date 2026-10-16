@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ExternalLink, Globe, Play } from "lucide-react";
+import { ExternalLink, Globe, Play } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { youTubeId } from "@/lib/links";
 

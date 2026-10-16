@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2, MoreHorizontal, BellOff, Trash2 } from "lucide-react";
+import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2, MoreHorizontal, BellOff, Trash2 } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { ToastAction } from "@/components/ui/toast";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
@@ -347,7 +347,7 @@ const Notifications = () => {
                 <section key={sec.title} aria-label={sec.title}>
                   <h2 className="px-4 pb-1 pt-4 text-[15px] font-semibold">{sec.title}</h2>
                   {sec.rows.map((notification) => (
-                <div key={notification.id} className={cn("flex items-start rounded-2xl", !notification.read && "bg-primary/[0.06]")}>
+                <div key={notification.id} className={cn("flex items-start rounded-2xl", !notification.read && "bg-secondary")}>
                 <button
                   type="button"
                                     className={cn(

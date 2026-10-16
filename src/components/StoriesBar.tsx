@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, X, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX } from "lucide-react";
+import { Plus, X, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX } from "@/components/icons";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,

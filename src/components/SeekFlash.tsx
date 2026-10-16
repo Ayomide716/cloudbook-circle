@@ -1,4 +1,4 @@
-import { ChevronsLeft, ChevronsRight } from "lucide-react";
+import { ChevronsLeft, ChevronsRight } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { SEEK_SECONDS } from "@/lib/video-seek";
 

@@ -1,7 +1,7 @@
 import { uploadMedia } from "@/lib/media-upload";
 import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Mic, Square, Loader2, Play, Pause, X } from "lucide-react";
+import { Mic, Square, Loader2, Play, Pause, X } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
 import { cn, getErrorMessage } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";

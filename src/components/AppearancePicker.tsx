@@ -1,5 +1,5 @@
 import { useTheme } from "next-themes";
-import { Monitor, Moon, Sun } from "lucide-react";
+import { Monitor, Moon, Sun } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { fadeTheme } from "@/lib/theme-fade";
 

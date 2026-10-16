@@ -1,4 +1,4 @@
-import { Flame } from "lucide-react";
+import { Flame } from "@/components/icons";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { useLoginStreak } from "@/hooks/use-login-streak";

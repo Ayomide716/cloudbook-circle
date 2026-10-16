@@ -5,29 +5,29 @@
 @layer base {
   :root {
     /* Ember: warm off-white paper, near-black ink, one tangerine accent. */
-    --background: 36 38% 96%;
-    --foreground: 260 9% 8%;
+    --background: 0 0% 100%;
+    --foreground: 0 0% 7%;
 
     --card: 0 0% 100%;
-    --card-foreground: 260 9% 8%;
+    --card-foreground: 0 0% 7%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 260 9% 8%;
+    --popover-foreground: 0 0% 7%;
 
     /* Deep enough tangerine for white text and links on white. */
-    --primary: 16 85% 46%;
+    --primary: 16 89% 53%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 14 100% 62%;
+    --primary-glow: 16 89% 53%;
 
-    --secondary: 36 30% 92%;
-    --secondary-foreground: 260 9% 8%;
+    --secondary: 60 5% 96%;
+    --secondary-foreground: 0 0% 7%;
 
-    --muted: 36 30% 92%;
-    --muted-foreground: 270 4% 42%;
+    --muted: 60 5% 96%;
+    --muted-foreground: 0 0% 42%;
 
     /* Hover/selected surfaces (menus, ghost buttons, list rows). */
-    --accent: 30 40% 93%;
-    --accent-foreground: 260 9% 8%;
+    --accent: 60 5% 96%;
+    --accent-foreground: 0 0% 7%;
 
     /* Circle colours and highlights. */
     --gold: 40 100% 52%;
@@ -38,20 +38,20 @@
     --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 35 25% 88%;
-    --input: 35 25% 86%;
-    --ring: 16 85% 46%;
+    --border: 0 0% 93%;
+    --input: 0 0% 86%;
+    --ring: 0 0% 7%;
 
-    --radius: 1.25rem;
+    --radius: 0.75rem;
 
     /* Gradient tokens */
-    --gradient-brand: linear-gradient(135deg, hsl(14 100% 58%), hsl(340 100% 62%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(14 100% 58% / 0.12), hsl(340 100% 62% / 0.12));
+    --gradient-brand: linear-gradient(hsl(16 89% 53%), hsl(16 89% 53%));
+    --gradient-brand-soft: linear-gradient(hsl(16 89% 53% / 0.1), hsl(16 89% 53% / 0.1));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 100%));
 
     /* Glass & shadow */
-    --glass-bg: 36 38% 98% / 0.86;
-    --glass-border: 35 25% 86% / 0.8;
+    --glass-bg: 0 0% 100% / 0.92;
+    --glass-border: 0 0% 93%;
     --shadow-sm: 0 1px 2px 0 hsl(260 9% 8% / 0.05);
     --shadow-md: 0 6px 16px -6px hsl(260 9% 8% / 0.10);
     --shadow-lg: 0 16px 40px -12px hsl(260 9% 8% / 0.16);
@@ -62,28 +62,28 @@
 
   .dark {
     /* Warm ink with the brighter tangerine. */
-    --background: 240 8% 5%;
-    --foreground: 40 33% 94%;
+    --background: 240 4% 5%;
+    --foreground: 240 5% 96%;
 
-    --card: 240 8% 9.5%;
-    --card-foreground: 40 33% 94%;
+    --card: 240 4% 5%;
+    --card-foreground: 240 5% 96%;
 
-    --popover: 240 8% 10%;
-    --popover-foreground: 40 33% 94%;
+    --popover: 240 3% 9%;
+    --popover-foreground: 240 5% 96%;
 
-    --primary: 14 100% 62%;
+    --primary: 18 100% 58%;
     /* The bright tangerine reads best with dark text on it. */
-    --primary-foreground: 18 68% 6%;
-    --primary-glow: 14 100% 66%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 18 100% 58%;
 
-    --secondary: 240 9% 13%;
-    --secondary-foreground: 40 33% 94%;
+    --secondary: 240 4% 11%;
+    --secondary-foreground: 240 5% 96%;
 
-    --muted: 240 9% 13%;
-    --muted-foreground: 263 5% 60%;
+    --muted: 240 4% 11%;
+    --muted-foreground: 240 5% 65%;
 
-    --accent: 240 8% 15%;
-    --accent-foreground: 40 33% 94%;
+    --accent: 240 4% 11%;
+    --accent-foreground: 240 5% 96%;
 
     --gold: 40 100% 62%;
     --gold-foreground: 260 9% 8%;
@@ -93,16 +93,16 @@
     --destructive: 0 75% 58%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 240 8% 16%;
-    --input: 240 8% 18%;
-    --ring: 14 100% 62%;
+    --border: 240 5% 16%;
+    --input: 240 5% 23%;
+    --ring: 240 5% 96%;
 
-    --gradient-brand: linear-gradient(135deg, hsl(14 100% 62%), hsl(340 100% 64%));
-    --gradient-brand-soft: linear-gradient(135deg, hsl(14 100% 62% / 0.16), hsl(340 100% 64% / 0.16));
-    --gradient-card: linear-gradient(145deg, hsl(240 8% 9.5%), hsl(240 8% 9.5%));
+    --gradient-brand: linear-gradient(hsl(18 100% 58%), hsl(18 100% 58%));
+    --gradient-brand-soft: linear-gradient(hsl(18 100% 58% / 0.14), hsl(18 100% 58% / 0.14));
+    --gradient-card: linear-gradient(hsl(240 4% 5%), hsl(240 4% 5%));
 
-    --glass-bg: 240 8% 9% / 0.9;
-    --glass-border: 240 8% 18% / 0.9;
+    --glass-bg: 240 4% 5% / 0.92;
+    --glass-border: 240 5% 16%;
     --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.3);
     --shadow-md: 0 6px 16px -6px hsl(0 0% 0% / 0.45);
     --shadow-lg: 0 16px 40px -12px hsl(0 0% 0% / 0.6);
@@ -118,15 +118,15 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Figtree Variable', 'Figtree', system-ui, -apple-system, sans-serif;
     -webkit-tap-highlight-color: transparent;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    font-family: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif;
-    letter-spacing: -0.02em;
+    font-family: 'Figtree Variable', 'Figtree', system-ui, sans-serif;
+    letter-spacing: -0.015em;
   }
 
   .safe-area-bottom {
@@ -249,46 +249,34 @@
     @apply transition-all duration-200 hover:bg-accent/10 rounded-xl;
   }
 
-  /* Phones: every page uses the home screen's look. Sections are rounded, softly outlined
-     cards inset from the screen edges, floating on the background. */
+  /* Phones: style A. Pages run edge to edge on white; sections are separated by hairlines,
+     not floating cards. */
   @media (max-width: 639px) {
     .page-flush.page-flush,
     .feed-flush {
-      padding-left: 0.75rem;
-      padding-right: 0.75rem;
-    }
-    .page-flush.page-flush {
-      padding-top: 0.5rem;
-    }
-    .feed-flush {
-      padding-top: 0.75rem;
+      padding-left: 0;
+      padding-right: 0;
+      padding-top: 0;
     }
     .page-flush .feed-section,
     .feed-flush .feed-section {
-      border-radius: 1.125rem;
+      border-radius: 0;
+      border-width: 0 0 1px 0;
+      box-shadow: none;
     }
-    .page-flush .feed-section {
-      border-width: 1px;
-    }
-    .feed-flush > * + * {
-      margin-top: 0.875rem;
+    .feed-flush > * + *,
+    .page-flush > * + * {
+      margin-top: 0;
     }
   }
 
-  /* Cards are flat: a hairline border, no glow or sheen. */
-  :root:not(.dark) .feed-flush .feed-section,
-  :root:not(.dark) .page-flush .feed-section,
-  :root:not(.dark) .shine-card {
-    box-shadow: 0 1px 2px hsl(260 9% 8% / 0.04);
-  }
-
-  .dark .feed-flush .feed-section,
-  .dark .page-flush .feed-section,
-  .dark .bento-card,
-  .dark .premium-card,
-  .dark .shine-card {
+  /* Cards are flat: a hairline, no glow or sheen. */
+  .feed-flush .feed-section,
+  .page-flush .feed-section,
+  .shine-card,
+  .bento-card,
+  .premium-card {
     background-image: none;
-    border-color: hsl(var(--border));
     box-shadow: none;
   }
 

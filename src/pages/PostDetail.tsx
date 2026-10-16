@@ -1,6 +1,6 @@
 import { useContext, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, FileQuestion } from "lucide-react";
+import { ArrowLeft, FileQuestion } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionContext } from "@/lib/session-context";
 import Navigation from "@/components/Navigation";
@@ -95,7 +95,7 @@ const PostDetail = () => {
             <FileQuestion className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h2 className="text-lg font-semibold">This post isn't available</h2>
             <p className="text-sm text-muted-foreground mt-1">It may have been deleted, or you may not have permission to see it.</p>
-            <Button onClick={() => navigate("/")} className="mt-6 rounded-full gradient-brand text-primary-foreground">
+            <Button onClick={() => navigate("/")} className="mt-6 rounded-full">
               Go to your feed
             </Button>
           </div>

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import GroupInitials from "@/components/groups/GroupInitials";
-import { Check, Loader2, Users, X } from "lucide-react";
+import { Check, Loader2, Users, X } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

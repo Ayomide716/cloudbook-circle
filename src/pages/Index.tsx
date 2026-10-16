@@ -18,7 +18,7 @@ import PeopleYouMayKnow from "@/components/feed/PeopleYouMayKnow";
 import { GroupsRow, OnThisDay, ReelsRow } from "@/components/feed/FeedRows";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Check, Loader2, UserPlus, Users } from "lucide-react";
+import { Check, Loader2, UserPlus, Users } from "@/components/icons";
 import { motion } from "framer-motion";
 import { useLoginStreak } from "@/hooks/use-login-streak";
 import { isFilteredOut } from "@/lib/hidden-posts";
@@ -279,7 +279,7 @@ const Index = () => {
 
               {/* For you · Friends, as on Instagram and Threads: right under the stories, so cards below never push it down */}
               {/* Two small chips (not a full-width bar), so the feed starts sooner. */}
-              <div role="tablist" aria-label="Feed" className="flex gap-2 px-3 sm:px-0">
+              <div role="tablist" aria-label="Feed" className="flex gap-2 px-4 py-3 sm:px-0">
                 {([["foryou", "For you"], ["friends", "Friends"]] as const).map(([value, label]) => (
                   <button
                     key={value}
@@ -288,14 +288,12 @@ const Index = () => {
                     aria-selected={feedTab === value}
                     onClick={() => chooseTab(value)}
                     className={cn(
-                      "relative h-9 rounded-full border px-5 text-[14px] font-semibold transition-colors",
-                      feedTab === value
-                        ? "border-primary/70 text-primary shadow-[0_0_14px_-2px_hsl(var(--primary)/0.45)]"
-                        : "border-transparent bg-secondary text-muted-foreground hover:text-foreground"
+                      "relative h-[34px] rounded-full px-4 text-[14px] font-semibold transition-colors",
+                      feedTab === value ? "text-background" : "bg-secondary text-foreground"
                     )}
                   >
                     {feedTab === value && (
-                      <motion.span layoutId="feed-tab-pill" className="absolute inset-0 rounded-full bg-gradient-to-r from-primary/30 to-primary/10" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
+                      <motion.span layoutId="feed-tab-pill" className="absolute inset-0 rounded-full bg-foreground" transition={{ type: "spring", stiffness: 500, damping: 38 }} />
                     )}
                     <span className="relative">{label}</span>
                   </button>

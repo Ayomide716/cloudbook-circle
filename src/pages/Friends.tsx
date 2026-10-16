@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Loader2, UserPlus, Check, UserMinus, MoreHorizontal, EyeOff } from "lucide-react";
+import { Loader2, UserPlus, Check, UserMinus, MoreHorizontal, EyeOff } from "@/components/icons";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { formatDistanceToNow } from "date-fns";
 import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
@@ -34,7 +34,7 @@ import InviteFriends from "@/components/InviteFriends";
 
 /** The Requests / Sent / Friends / Suggested tabs as round chips. */
 const FRIEND_CHIP =
-  "h-8 rounded-full border border-border bg-card px-2 py-0 text-[13px] text-foreground hover:bg-secondary data-[state=active]:border-primary/60 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none sm:h-9 sm:text-sm";
+  "h-[34px] rounded-full border-0 bg-secondary px-2 py-0 text-[14px] font-semibold text-foreground hover:bg-secondary/80 data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none sm:h-9 sm:text-sm";
 
 
 interface Profile {
@@ -596,6 +596,7 @@ const Friends = () => {
                           <div className="mt-2 grid grid-cols-2 gap-2">
                           <Button
                             size="sm"
+                            variant="accent"
                             onClick={() => handleAccept(request.id)}
                             className="h-9 gap-1 rounded-lg font-semibold"
                           >

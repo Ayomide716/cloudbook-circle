@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Heart, Play, Trash2 } from "lucide-react";
+import { Heart, Play, Trash2 } from "@/components/icons";
 
 export interface ProfileReel {
   id: string;

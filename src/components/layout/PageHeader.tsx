@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
-import { ArrowLeft, Search } from "lucide-react";
+import type { LucideIcon } from "@/components/icons";
+import { ArrowLeft, Search } from "@/components/icons";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,7 +41,7 @@ const BackButton = () => {
 export const PageHeader = ({ title, subtitle, actions, children, back, className }: PageHeaderProps) => (
   <section
     className={cn(
-      "px-1 pt-1 pb-3 space-y-3",
+      "px-4 pt-2 pb-3 space-y-3",
       "sm:px-0 sm:pt-0 sm:pb-0 sm:mb-6 sm:space-y-4",
       className
     )}
@@ -49,7 +49,7 @@ export const PageHeader = ({ title, subtitle, actions, children, back, className
     <div className="flex items-center gap-2">
       {back && <BackButton />}
       <div className="min-w-0 flex-1">
-        <h1 className="font-display text-[22px] sm:text-3xl font-bold tracking-tight truncate">{title}</h1>
+        <h1 className="font-display text-[28px] font-extrabold tracking-tight truncate">{title}</h1>
         {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
@@ -76,7 +76,7 @@ export const HeaderAction = ({ icon: Icon, label, onClick, primary, badge }: Hea
     title={label}
     className={cn(
       "relative h-8 w-8 shrink-0 rounded-full p-0 bg-secondary text-foreground hover:bg-secondary/70 sm:h-10 sm:w-10 [&_svg]:size-4",
-      primary && "sm:w-auto sm:px-4 sm:bg-primary sm:text-primary-foreground sm:hover:bg-primary/90"
+      primary && "sm:w-auto sm:px-4 sm:bg-foreground sm:text-background sm:hover:bg-foreground/90"
     )}
   >
     <Icon />
@@ -99,14 +99,14 @@ interface PageSearchProps {
 /** The rounded grey search field used under page titles. */
 export const PageSearch = ({ value, onChange, placeholder, label }: PageSearchProps) => (
   <div className="relative">
-    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+    <Search className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground" />
     <Input
       type="search"
       value={value}
       onChange={(e) => onChange(e.target.value)}
       placeholder={placeholder}
       aria-label={label ?? placeholder}
-      className="h-9 rounded-full border border-border/60 bg-card pl-10 text-[14px] focus-visible:ring-1 sm:h-10 sm:text-[15px]"
+      className="h-11 rounded-xl border-0 bg-secondary pl-10 text-[15px] focus-visible:ring-1"
     />
   </div>
 );
@@ -131,10 +131,10 @@ export function Chips<T extends string>({ options, value, onChange, label }: Chi
             onClick={() => onChange(o.value)}
             aria-pressed={active}
             className={cn(
-              "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-semibold transition-colors sm:h-9 sm:px-3.5 sm:text-sm [&_svg]:h-3.5 [&_svg]:w-3.5",
+              "inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[14px] font-semibold transition-colors [&_svg]:h-3.5 [&_svg]:w-3.5",
               active
-                ? "border-primary/60 bg-primary/15 text-primary"
-                : "border-border bg-card text-foreground hover:bg-secondary"
+                ? "bg-foreground text-background"
+                : "bg-secondary text-foreground hover:bg-secondary/80"
             )}
           >
             {o.icon && <o.icon className="h-4 w-4" />}

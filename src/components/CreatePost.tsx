@@ -4,8 +4,8 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, X, MapPin, Globe, BarChart3 } from "lucide-react";
-import { ImagesSquare, VideoCamera } from "@phosphor-icons/react";
+import { Loader2, X, MapPin, Globe, BarChart3 } from "@/components/icons";
+import { Image as ImageIcon, Video as VideoIcon } from "@/components/icons";
 import TagFriends, { type TaggedFriend } from "@/components/TagFriends";
 import { previewsFor } from "@/lib/photo-previews";
 import { rememberPostTags } from "@/lib/post-tags";
@@ -226,8 +226,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   return (
     <>
       {/* Compact Create Post Card */}
-      {/* One rounded pill on phones: photo, prompt, photo icon. */}
-      <Card className="feed-section p-3 sm:p-4 shadow-sm max-sm:!rounded-full max-sm:p-1.5 max-sm:pr-2.5">
+      {/* Your photo, a grey prompt field, then photo and video. */}
+      <Card className="feed-section p-3 px-4 sm:p-4">
         <div className="flex items-center gap-3">
           <Avatar className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
             <AvatarImage src={currentUser.avatar_url || undefined} />
@@ -238,30 +238,30 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           
           <button
             onClick={() => setShowDialog(true)}
-            className="flex-1 min-w-0 h-9 sm:h-10 text-left px-1 sm:px-4 sm:bg-secondary sm:hover:bg-secondary/80 rounded-full text-muted-foreground transition-colors text-[14.5px] sm:text-base truncate"
+            className="flex-1 min-w-0 h-10 text-left px-4 bg-secondary hover:bg-secondary/80 rounded-full text-muted-foreground transition-colors text-[15px] truncate"
           >
             {/* Long names don't fit on a phone; the shorter prompt reads better than a cut-off name. */}
             <span className="sm:hidden">What's on your mind?</span>
             <span className="hidden sm:inline">What's on your mind, {currentUser.full_name?.split(' ')[0] || 'there'}?</span>
           </button>
-          {/* Photo and video, so it's clear posts aren't only text (green and rose, as on Facebook). */}
+          {/* Photo and video, so it's clear posts aren't only text. */}
           <Button
             variant="ghost"
             size="icon"
-            className="h-9 w-9 flex-shrink-0 rounded-full text-emerald-500 hover:bg-emerald-500/10 [&_svg]:size-[22px]"
+            className="h-10 w-10 flex-shrink-0 rounded-full text-foreground [&_svg]:size-6"
             onClick={() => setShowDialog(true)}
             aria-label="Add photos"
           >
-            <ImagesSquare weight="fill" />
+            <ImageIcon />
           </Button>
           <Button
             variant="ghost"
             size="icon"
-            className="-ml-2 h-9 w-9 flex-shrink-0 rounded-full text-rose-500 hover:bg-rose-500/10 [&_svg]:size-[22px]"
+            className="-ml-2 -mr-2 h-10 w-10 flex-shrink-0 rounded-full text-foreground [&_svg]:size-6"
             onClick={() => setShowDialog(true)}
             aria-label="Add a video"
           >
-            <VideoCamera weight="fill" />
+            <VideoIcon />
           </Button>
         </div>
       </Card>

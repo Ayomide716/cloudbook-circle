@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Loader2, UserPlus, X } from "lucide-react";
+import { Check, Loader2, UserPlus, X } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -117,7 +117,7 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
                   <Check className="mr-1 h-4 w-4" /> Requested
                 </Button>
               ) : (
-                <Button size="sm" className="mt-2 h-8 w-full rounded-lg" disabled={busy === p.id} onClick={() => add(p)} aria-label={`Add ${p.full_name || "friend"}`}>
+                <Button size="sm" variant="accent" className="mt-2 h-8 w-full rounded-lg" disabled={busy === p.id} onClick={() => add(p)} aria-label={`Add ${p.full_name || "friend"}`}>
                   {busy === p.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <><UserPlus className="mr-1 h-4 w-4" /> Add friend</>}
                 </Button>
               )}

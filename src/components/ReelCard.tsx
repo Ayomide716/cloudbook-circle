@@ -4,7 +4,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import SeekFlash from "@/components/SeekFlash";
 import { SEEK_SECONDS, seekBy, seekSideAt } from "@/lib/video-seek";
-import { ChevronsDown, FastForward, Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, Download } from "lucide-react";
+import { ChevronsDown, FastForward, Play, Trash2, Volume2, VolumeX, Link2, Flag, VideoOff, Download } from "@/components/icons";
 import { ChatCircle, DotsThree, Heart, MusicNotesSimple, ShareFat } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactionEmoji from "./reactions/ReactionEmoji";

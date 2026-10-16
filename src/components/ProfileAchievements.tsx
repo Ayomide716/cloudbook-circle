@@ -4,7 +4,7 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 import { motion } from "framer-motion";
 import {
   BadgeCheck, BookOpen, Crown, Flame, Gem, HeartHandshake, PenLine, Star, Users, type LucideIcon,
-} from "lucide-react";
+} from "@/components/icons";
 import { cn } from "@/lib/utils";
 import {
   Tooltip,

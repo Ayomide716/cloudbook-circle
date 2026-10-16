@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Loader2 } from 'lucide-react';
+import { Loader2 } from "@/components/icons";
 import { usePullToRefresh } from '@/hooks/use-pull-to-refresh';
 import { cn } from '@/lib/utils';
 import { playSound } from '@/lib/sounds';

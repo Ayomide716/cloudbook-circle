@@ -18,7 +18,7 @@ import {
   Download,
   History,
   LayoutDashboard,
-} from "lucide-react";
+} from "@/components/icons";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -38,8 +38,6 @@ interface Shortcut {
   icon: LucideIcon;
   label: string;
   path: string;
-  /** The icon's colour. */
-  tint: string;
   adminOnly?: boolean;
   /** Muted for now (see features.extras). */
   extra?: boolean;
@@ -47,26 +45,26 @@ interface Shortcut {
 
 // Everything that isn't a bottom tab (Home, Friends, Reels) or in the top bar (notifications, Messenger).
 const SHORTCUTS: Shortcut[] = [
-  { icon: Users, label: "Groups", path: "/groups", tint: "text-sky-500" },
-  { icon: CalendarDays, label: "Events", path: "/events", tint: "text-rose-500" },
-  { icon: Bookmark, label: "Saved", path: "/saved", tint: "text-violet-500" },
-  { icon: Compass, label: "Explore", path: "/explore", tint: "text-amber-500" },
-  { icon: History, label: "Story archive", path: "/story-archive", tint: "text-primary" },
-  { icon: Download, label: "Offline videos", path: "/offline-videos", tint: "text-emerald-500" },
-  { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", tint: "text-sky-500", extra: true },
-  { icon: MonitorPlay, label: "Watch", path: "/watch", tint: "text-pink-500", extra: true },
-  { icon: FileText, label: "Pages", path: "/pages", tint: "text-orange-500", extra: true },
-  { icon: Megaphone, label: "Ad Manager", path: "/ads", tint: "text-yellow-500", extra: true },
+  { icon: Users, label: "Groups", path: "/groups" },
+  { icon: CalendarDays, label: "Events", path: "/events" },
+  { icon: Bookmark, label: "Saved", path: "/saved" },
+  { icon: Compass, label: "Explore", path: "/explore" },
+  { icon: History, label: "Story archive", path: "/story-archive" },
+  { icon: Download, label: "Offline videos", path: "/offline-videos" },
+  { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", extra: true },
+  { icon: MonitorPlay, label: "Watch", path: "/watch", extra: true },
+  { icon: FileText, label: "Pages", path: "/pages", extra: true },
+  { icon: Megaphone, label: "Ad Manager", path: "/ads", extra: true },
 ];
 
 /** One row of the menu: an icon, its name and a chevron. */
-const MenuRow = ({ icon: Icon, label, tint, onClick }: { icon: LucideIcon; label: string; tint?: string; onClick: () => void }) => (
+const MenuRow = ({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) => (
   <button
     type="button"
     onClick={onClick}
     className="flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-accent/60 active:bg-accent"
   >
-    <Icon className={cn("h-[22px] w-[22px] shrink-0", tint ?? "text-foreground")} strokeWidth={2} />
+    <Icon className="h-6 w-6 shrink-0 text-foreground" />
     <span className="flex-1 text-[15px] font-medium">{label}</span>
     <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground/70" />
   </button>
@@ -165,14 +163,14 @@ const Menu = () => {
             type="button"
             onClick={() => userId && navigate(`/profile/${userId}`)}
             aria-label="View your profile"
-            className="block h-24 w-full bg-cover bg-center gradient-brand"
+            className="block h-24 w-full bg-secondary bg-cover bg-center"
             style={profile?.cover_url ? { backgroundImage: `url(${profile.cover_url})` } : undefined}
           />
           <div className="flex items-end gap-3 px-4 pb-4">
             <button type="button" onClick={() => userId && navigate(`/profile/${userId}`)} className="-mt-8 shrink-0 rounded-full">
               <Avatar className="h-[72px] w-[72px] ring-4 ring-card">
                 <AvatarImage src={profile?.avatar_url || undefined} alt="" />
-                <AvatarFallback className={cn("text-xl font-bold", profile ? "gradient-brand text-primary-foreground" : "animate-pulse bg-muted text-transparent")}>{initial}</AvatarFallback>
+                <AvatarFallback className={cn("text-xl font-bold", profile ? "bg-secondary text-foreground" : "animate-pulse bg-muted text-transparent")}>{initial}</AvatarFallback>
               </Avatar>
             </button>
             <button type="button" onClick={() => userId && navigate(`/profile/${userId}`)} className="min-w-0 flex-1 pt-2 text-left">
@@ -208,7 +206,7 @@ const Menu = () => {
         {/* Shortcuts: one simple list, an icon, a name and a chevron per row. */}
         <nav aria-label="Shortcuts" className="feed-section divide-y divide-border/60 rounded-2xl border border-border bg-card">
           {SHORTCUTS.filter((s) => (!s.adminOnly || isAdmin) && (!s.extra || features.extras)).map((s) => (
-            <MenuRow key={s.path} icon={s.icon} label={s.label} tint={s.tint} onClick={() => navigate(s.path)} />
+            <MenuRow key={s.path} icon={s.icon} label={s.label} onClick={() => navigate(s.path)} />
           ))}
         </nav>
 

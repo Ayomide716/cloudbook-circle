@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Palette, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "lucide-react";
+import { Loader2, Palette, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "@/components/icons";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,

@@ -1,7 +1,7 @@
  import { useState } from "react";
  import { Button } from "@/components/ui/button";
  import { Input } from "@/components/ui/input";
- import { X, Plus, BarChart3 } from "lucide-react";
+ import { X, Plus, BarChart3 } from "@/components/icons";
  import {
    Dialog,
    DialogContent,

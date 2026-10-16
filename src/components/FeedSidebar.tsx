@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import {
   Bookmark, CalendarDays, FileText, Film, Megaphone, MessageCircle, MonitorPlay,
   Shield, ShoppingBag, UserPlus, Users, type LucideIcon,
-} from "lucide-react";
+} from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { features } from "@/lib/features";

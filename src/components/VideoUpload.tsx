@@ -5,7 +5,7 @@ import type { MediaFolder } from "@/lib/media-upload";
 import { cancelVideoJob, isVideoJobRef, startVideoJob, useVideoJob } from "@/lib/video-jobs";
 import { readVideoInfo } from "@/lib/storage-upload";
 import { useToast } from "@/hooks/use-toast";
-import { Video, Loader2, X } from "lucide-react";
+import { Video, Loader2, X } from "@/components/icons";
 import VideoJobStatus from "@/components/VideoJobStatus";
 
 interface VideoUploadProps {

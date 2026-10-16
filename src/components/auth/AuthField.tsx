@@ -1,5 +1,5 @@
 import { forwardRef, useState, type InputHTMLAttributes } from "react";
-import { Eye, EyeOff, type LucideIcon } from "lucide-react";
+import { Eye, EyeOff, type LucideIcon } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 interface AuthFieldProps extends InputHTMLAttributes<HTMLInputElement> {

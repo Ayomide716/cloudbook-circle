@@ -11,10 +11,6 @@
     <link rel="canonical" href="https://ayo-chat-xi.vercel.app/" />
 
     <!-- Fonts: connect early and load without blocking the first paint (display=swap). -->
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400;500;600;700;800&display=swap" media="print" onload="this.media='all'" />
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=Inter:wght@400;500;600;700;800&display=swap" /></noscript>
 
     <!-- Favicon -->
     <link rel="icon" href="/favicon.png" type="image/png" />
@@ -50,7 +46,7 @@
       #splash { position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: center; justify-content: center; background: #0C0C0E; transition: opacity .35s ease; }
       #splash[hidden] { display: none; }
       #splash.out { opacity: 0; pointer-events: none; }
-      #splash .word { font-family: 'Bricolage Grotesque', 'Inter', system-ui, sans-serif; font-weight: 800; font-size: 56px; letter-spacing: -0.04em; color: #F5F1EA; line-height: 1; display: flex; align-items: center; }
+      #splash .word { font-family: 'Figtree Variable', 'Figtree', system-ui, sans-serif; font-weight: 800; font-size: 56px; letter-spacing: -0.04em; color: #F5F1EA; line-height: 1; display: flex; align-items: center; }
       #splash .dot { color: #FF6A3D; display: inline-block; transform: scale(0); transition: transform .35s cubic-bezier(.3,1.6,.5,1); }
       #splash .dot.on { transform: scale(1); }
       #splash .caret { width: 4px; height: 52px; margin-left: 4px; border-radius: 2px; background: #FF6A3D; animation: splash-blink .8s steps(1) infinite; }
@@ -113,7 +109,7 @@
         // Wait briefly for the display font so the letters don't change shape mid-way.
         var start = function () { type(0); };
         if (document.fonts && document.fonts.load) {
-          Promise.race([document.fonts.load('800 56px "Bricolage Grotesque"'), new Promise(function (r) { setTimeout(r, 700); })]).then(start, start);
+          Promise.race([document.fonts.load('800 56px "Figtree Variable"'), new Promise(function (r) { setTimeout(r, 700); })]).then(start, start);
         } else start();
         // Never get stuck on the splash.
         setTimeout(function () { wantHide = true; done = true; finish(); }, 4000);

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { format } from "date-fns";
-import { ArrowLeft, Link2, Loader2, Play, Star, Users, X } from "lucide-react";
+import { ArrowLeft, Link2, Loader2, Play, Star, Users, X } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import PhotoViewer from "@/components/PhotoViewer";

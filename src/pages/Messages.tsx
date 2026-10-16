@@ -22,7 +22,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer } from "lucide-react";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -737,7 +737,7 @@ const Messages = () => {
                   onClick={() => { setShowAIChat(true); setSelectedConversation(null); setSelectedGroupId(null); }}
                 >
                   <Avatar className="h-12 w-12 flex-shrink-0 gradient-brand">
-                    <AvatarFallback className="gradient-brand text-primary-foreground">
+                    <AvatarFallback className="bg-secondary text-foreground">
                       <Bot className="h-5 w-5" />
                     </AvatarFallback>
                   </Avatar>
@@ -765,10 +765,10 @@ const Messages = () => {
                         aria-pressed={chatFilter === chip.value}
                         onClick={() => setChatFilter(chip.value)}
                         className={cn(
-                          "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors",
+                          "inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[14px] font-semibold transition-colors",
                           chatFilter === chip.value
-                            ? "border-primary/60 bg-primary/15 text-primary"
-                            : "border-border bg-card text-foreground hover:bg-secondary"
+                            ? "bg-foreground text-background"
+                            : "bg-secondary text-foreground hover:bg-secondary/80"
                         )}
                       >
                         {chip.label}

@@ -1,4 +1,4 @@
-import { Share2 } from "lucide-react";
+import { Share2 } from "@/components/icons";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { inviteMessage, inviteUrl } from "@/lib/referral";

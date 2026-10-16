@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { Palette, Timer, Check } from "lucide-react";
+import { Palette, Timer, Check } from "@/components/icons";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface ChatSettingsModalProps {

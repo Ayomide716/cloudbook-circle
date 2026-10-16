@@ -6,7 +6,7 @@ import {
   Video, VideoOff, Mic, MicOff, PhoneOff,
   Maximize2, Minimize2, Monitor, MonitorOff,
   SwitchCamera, Volume2, VolumeX, PictureInPicture2,
-} from "lucide-react";
+} from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { canShareScreen, formatCallDuration, getIceServers, loadIceServers } from "@/lib/webrtc";
 import { useDraggable } from "@/hooks/use-draggable";

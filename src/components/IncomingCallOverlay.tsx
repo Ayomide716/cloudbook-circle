@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Phone, PhoneOff, Video } from "lucide-react";
+import { Phone, PhoneOff, Video } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 interface IncomingCallOverlayProps {

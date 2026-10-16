@@ -1,4 +1,4 @@
-import { Phone, Video, X } from "lucide-react";
+import { Phone, Video, X } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 

@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import GroupInitials from "@/components/groups/GroupInitials";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, BellOff, ChevronRight, ExternalLink, Image as ImageIcon, LogOut, Pencil, Star, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "lucide-react";
+import { ArrowLeft, BellOff, ChevronRight, ExternalLink, Image as ImageIcon, LogOut, Pencil, Star, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";

@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
-import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye, X } from "lucide-react";
+import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye, X } from "@/components/icons";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import MoveMediaCard from "@/components/MoveMediaCard";
 import StorageStatusCard from "@/components/StorageStatusCard";

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, MapPin, Tag, X, ImagePlus, DollarSign, MessageCircle, CheckCircle2, RotateCcw, Trash2, Loader2 } from "lucide-react";
+import { Plus, MapPin, Tag, X, ImagePlus, DollarSign, MessageCircle, CheckCircle2, RotateCcw, Trash2, Loader2 } from "@/components/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";

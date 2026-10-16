@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Coins, Loader2, Heart } from "lucide-react";
+import { Coins, Loader2, Heart } from "@/components/icons";
 
 interface TipButtonProps {
   postId: string;

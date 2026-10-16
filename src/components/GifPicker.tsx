@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Smile, Search, Loader2, X } from "lucide-react";
+import { Smile, Search, Loader2, X } from "@/components/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { motion } from "framer-motion";
@@ -187,7 +187,7 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
                 onClick={() => { setStickerSource(value); setSearch(""); setResults([]); }}
                 className={cn(
                   "rounded-full px-3 py-1 text-[12px] font-semibold transition-colors",
-                  stickerSource === value ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  stickerSource === value ? "bg-foreground text-background" : "text-muted-foreground hover:bg-accent hover:text-foreground"
                 )}
               >
                 {label}

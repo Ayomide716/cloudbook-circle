@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useDraggable } from "@/hooks/use-draggable";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Maximize2, Mic, MicOff, Minimize2, Monitor, MonitorOff, PhoneOff, Users, Video, VideoOff } from "lucide-react";
+import { Maximize2, Mic, MicOff, Minimize2, Monitor, MonitorOff, PhoneOff, Users, Video, VideoOff } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { canShareScreen, formatCallDuration, getIceServers, loadIceServers } from "@/lib/webrtc";
 import { freshChannel } from "@/lib/realtime-broadcast";

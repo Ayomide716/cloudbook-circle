@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Mic, MicOff, PhoneOff, Plus, Radio, Users } from "lucide-react";
+import { Mic, MicOff, PhoneOff, Plus, Radio, Users } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -97,7 +97,7 @@ const VoiceRoomCard = ({ room, isInRoom, isCreator, onJoin, onLeave, onEnd }: Vo
             <PhoneOff className="h-4 w-4 mr-1" /> Leave room
           </Button>
         ) : (
-          <Button size="sm" className="rounded-xl flex-1 gradient-brand text-primary-foreground" onClick={onJoin}>
+          <Button size="sm" className="rounded-xl flex-1" onClick={onJoin}>
             <Mic className="h-4 w-4 mr-1" /> Join room
           </Button>
         )}
@@ -224,7 +224,7 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
             />
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
-              <Button onClick={createRoom} disabled={!newTitle.trim()} className="gradient-brand text-primary-foreground">
+              <Button onClick={createRoom} disabled={!newTitle.trim()} className="">
                 Create and join
               </Button>
             </div>
