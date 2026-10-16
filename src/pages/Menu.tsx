@@ -23,7 +23,6 @@ import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { PageHeader } from "@/components/layout/PageHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSEO } from "@/hooks/useSEO";
@@ -155,7 +154,8 @@ const Menu = () => {
       <Navigation currentUserId={userId || undefined} />
 
       <div className="page-flush max-w-2xl mx-auto px-0 sm:px-4 pb-6 sm:py-6 space-y-2 sm:space-y-4">
-        <PageHeader title="Menu" className="sm:mb-0" />
+        {/* The tab bar already says where you are; the title is for screen readers only. */}
+        <h1 className="sr-only">Menu</h1>
 
         {/* You: cover, avatar, name and counts, with Edit profile */}
         <section className="feed-section overflow-hidden rounded-2xl border border-border bg-card">
