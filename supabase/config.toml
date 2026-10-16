@@ -2,3 +2,7 @@ project_id = "nipflgszescgafesikzo"
 [functions.send-push]
 # Called by the database with its own shared secret, not a signed-in user.
 verify_jwt = false
+
+[functions.call-push]
+# Called by the signed-in caller.
+verify_jwt = true

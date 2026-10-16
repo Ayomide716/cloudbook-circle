@@ -88,3 +88,18 @@ The APK is built by GitHub, which adds this file during the build. The file isn'
   `push_subscriptions` (as `https://fcm.googleapis.com/v1/ember-device/<token>`).
 - Tapping a notification opens the chat, post or page it's about.
 - Signing out removes the phone, so the next person to sign in doesn't get your alerts.
+
+## Calls when Ember is closed
+
+Calling someone also sends their phone a Firebase message through the `call-push` function
+(`supabase/functions/call-push`). The Android app (from version 1.3) turns it into a full-screen
+incoming call with Answer and Decline, ringing with Ember's ringtone, on the lock screen too.
+Hanging up before they answer sends a "cancel" that stops it.
+
+- Deploy `call-push` with **Verify JWT on** (only signed-in people can ring someone). It uses the
+  same `FCM_SERVICE_ACCOUNT` secret as `send-push`.
+- On Android 14 and later, people may need to allow **full-screen notifications** for Ember
+  (Settings → Apps → Ember → Notifications), otherwise the call shows as a normal notification.
+
+Ember's notifications use the `ember_v2` channel, which plays Ember's own sound instead of the
+phone's default (`android/app/src/main/res/raw`). Calls use the `ember_calls` channel.
