@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, X, Send, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX } from "lucide-react";
+import { Plus, X, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX } from "lucide-react";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -26,7 +26,12 @@ import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
-import ReactionEmoji from "@/components/reactions/ReactionEmoji";
+import StoryReplyBar from "@/components/stories/StoryReplyBar";
+
+/** The emoji for each face, in the message the story's owner gets. */
+const REACTION_CHARS: Record<string, string> = {
+  love: "❤️", haha: "😂", wow: "😮", sad: "😢", like: "👍", fire: "🔥", party: "🥳", angry: "😡",
+};
 
 interface Story {
   id: string;
@@ -84,11 +89,11 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const [activeGroupIndex, setActiveGroupIndex] = useState(0);
   const [activeStoryIndex, setActiveStoryIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  // Typing a reply or picking a face: paused, without the big play sign.
+  const [replying, setReplying] = useState(false);
   // Sound on video stories; stays as you leave it for the next ones.
   const [storyMuted, setStoryMuted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [replyText, setReplyText] = useState("");
-  const [isSendingReply, setIsSendingReply] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const { toast } = useToast();
@@ -362,37 +367,34 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const openViewer = (groupIndex: number) => {
     setActiveGroupIndex(groupIndex);
     setActiveStoryIndex(0);
-    setReplyText("");
     setIsPaused(false);
     setViewerOpen(true);
   };
 
-  // Extra taps while this is saving do nothing (no double posts on a slow network).
-  const onceHandleSendReply = useSingleFlight();
-  const handleSendReply = onceHandleSendReply(async () => {
-    if (!replyText.trim() || !activeStory) return;
-    setIsSendingReply(true);
-    await supabase.from("messages").insert({
-      sender_id: currentUserId,
-      receiver_id: activeStory.user_id,
-      content: `💬 Replied to your story: "${replyText.trim()}"`,
-    });
-    setIsSendingReply(false);
-    toast({ title: "Reply sent!" });
-    setReplyText("");
-  });
-
-  const handleReaction = async (emoji: string, type: string) => {
+  const handleSendReply = async (text: string) => {
     if (!activeStory) return;
-    await supabase.from("story_reactions").upsert(
-      { story_id: activeStory.id, user_id: currentUserId, reaction_type: type },
-      { onConflict: "story_id,user_id" }
-    );
-    await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       sender_id: currentUserId,
       receiver_id: activeStory.user_id,
-      content: `${emoji} Reacted to your story`,
+      content: `💬 Replied to your story: "${text}"`,
     });
+    toast(error ? { title: "Couldn't send your reply", variant: "destructive" } : { title: "Reply sent" });
+  };
+
+  // The face shows as sent straight away (StoryReplyBar); this saves it in the background.
+  const handleReaction = async (type: string) => {
+    if (!activeStory) return;
+    const story = activeStory;
+    await supabase.from("story_reactions").delete().eq("story_id", story.id).eq("user_id", currentUserId);
+    const [{ error }] = await Promise.all([
+      supabase.from("story_reactions").insert({ story_id: story.id, user_id: currentUserId, reaction_type: type }),
+      supabase.from("messages").insert({
+        sender_id: currentUserId,
+        receiver_id: story.user_id,
+        content: `${REACTION_CHARS[type] ?? "❤️"} Reacted to your story`,
+      }),
+    ]);
+    if (error) toast({ title: "Couldn't send that", variant: "destructive" });
   };
 
   return (
@@ -543,9 +545,10 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           )}
 
           {/* Caption */}
+          {/* Caption: centred just above the reply bar, as on WhatsApp. */}
           {activeStory.caption && (
-            <div className="absolute bottom-24 sm:bottom-20 left-0 right-0 z-20 text-center px-6">
-              <p className="text-white text-sm bg-black/50 inline-block px-4 py-2 rounded-xl">{activeStory.caption}</p>
+            <div className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+5.5rem)] left-0 right-0 z-20 text-center px-6">
+              <p className="text-white text-[15px] leading-snug bg-black/45 inline-block px-4 py-2 rounded-2xl">{activeStory.caption}</p>
             </div>
           )}
 
@@ -561,7 +564,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           />
           {seekFlash && <SeekFlash key={seekFlash.n} side={seekFlash.side} />}
           {/* Paused with a tap: a play sign in the middle (tap again to carry on). */}
-          {isPaused && !held.current && !confirmDelete && (
+          {isPaused && !held.current && !confirmDelete && !replying && (
             <span className="pointer-events-none absolute left-1/2 top-1/2 z-10 flex h-16 w-16 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-black/45 text-white">
               <Play className="ml-1 h-8 w-8 fill-white" />
             </span>
@@ -586,35 +589,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             <StoryViewers storyId={activeStory.id} ownerId={currentUserId} onOpenChange={(o) => setIsPaused(o)} />
           )}
 
-          {/* Reply & reactions (not own story) */}
+          {/* Reply and faces (not your own story), as on WhatsApp */}
           {activeGroup.userId !== currentUserId && (
-            <div className="absolute bottom-0 left-0 right-0 z-20 p-3 pb-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] sm:p-4 sm:pb-[calc(env(safe-area-inset-bottom,0px)+1rem)] bg-gradient-to-t from-black/80 to-transparent">
-              <div className="flex items-center gap-1.5 justify-center mb-2">
-                {[
-                  { emoji: "❤️", type: "love" }, { emoji: "😂", type: "haha" }, { emoji: "😮", type: "wow" },
-                  { emoji: "👍", type: "like" }, { emoji: "🔥", type: "fire" }, { emoji: "😢", type: "sad" },
-                ].map((r) => (
-                  <button key={r.type} onClick={() => handleReaction(r.emoji, r.type)} aria-label={r.type} className="p-0.5 transition-transform hover:scale-125 active:scale-110">
-                    <ReactionEmoji type={r.type} className="h-8 w-8 sm:h-9 sm:w-9" />
-                  </button>
-                ))}
-              </div>
-              <div className="flex items-center gap-2 max-w-lg mx-auto">
-                <Input
-                  placeholder="Reply..."
-                  value={replyText}
-                  onChange={(e) => setReplyText(e.target.value)}
-                  className="flex-1 bg-white/10 border-white/20 text-white placeholder:text-white/50 h-9 text-sm"
-                  onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); handleSendReply(); } }}
-                  onFocus={() => setIsPaused(true)}
-                  onBlur={() => setIsPaused(false)}
-                  disabled={isSendingReply}
-                />
-                <Button size="icon" variant="ghost" className="text-white h-9 w-9 hover:bg-white/20" onClick={handleSendReply} disabled={!replyText.trim() || isSendingReply}>
-                  {isSendingReply ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
+            <StoryReplyBar key={activeStory.id} onReply={handleSendReply} onReact={handleReaction} onPause={(p) => { setIsPaused(p); setReplying(p); }} />
           )}
         </div>,
         document.body
