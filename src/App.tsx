@@ -2,6 +2,7 @@ import { lazy, Suspense, useEffect, useMemo, useState, type ReactNode } from "re
 import { Toaster } from "@/components/ui/toaster";
 import PostingBar from "@/components/PostingBar";
 import ConnectionBar from "@/components/ConnectionBar";
+import OutageScreen from "@/components/OutageScreen";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -225,6 +226,7 @@ const App = () => {
           </CallProvider>
           <PostingBar />
           <ConnectionBar />
+          <OutageScreen />
           <Suspense fallback={null}>
             <InstallPrompt />
           </Suspense>

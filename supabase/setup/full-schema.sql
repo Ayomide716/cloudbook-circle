@@ -4128,5 +4128,135 @@ ALTER TABLE public.posts ADD CONSTRAINT posts_image_previews_size
   CHECK (cardinality(image_previews) <= 20 AND octet_length(array_to_string(image_previews, '')) <= 40000);
 
 
+-- ════════════════════════════════════════════════════════════════════════════
+-- 20261020090000_comment_likes.sql
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- Liking a comment, as on Facebook: "Like" under each comment, a count, and a notification
+-- for the comment's author ("Ayo liked your comment").
+CREATE TABLE IF NOT EXISTS public.comment_likes (
+  comment_id UUID NOT NULL REFERENCES public.comments(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (comment_id, user_id)
+);
+CREATE INDEX IF NOT EXISTS comment_likes_user_idx ON public.comment_likes (user_id);
+ALTER TABLE public.comment_likes ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Comment likes are viewable by everyone" ON public.comment_likes;
+CREATE POLICY "Comment likes are viewable by everyone"
+  ON public.comment_likes FOR SELECT USING (true);
+DROP POLICY IF EXISTS "People like comments as themselves" ON public.comment_likes;
+CREATE POLICY "People like comments as themselves"
+  ON public.comment_likes FOR INSERT WITH CHECK (auth.uid() = user_id);
+DROP POLICY IF EXISTS "People remove their own comment likes" ON public.comment_likes;
+CREATE POLICY "People remove their own comment likes"
+  ON public.comment_likes FOR DELETE USING (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.notify_comment_like()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  author uuid;
+  post uuid;
+  liker_name text;
+BEGIN
+  SELECT c.user_id, c.post_id INTO author, post FROM comments c WHERE c.id = NEW.comment_id;
+  IF author IS NULL OR author = NEW.user_id THEN RETURN NEW; END IF;
+  SELECT full_name INTO liker_name FROM profiles WHERE id = NEW.user_id;
+  INSERT INTO notifications (user_id, type, content, related_id, actor_id)
+  VALUES (author, 'like', COALESCE(liker_name, 'Someone') || ' liked your comment', post, NEW.user_id);
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  RETURN NEW; -- A notification problem never stops the like.
+END;
+$$;
+
+DROP TRIGGER IF EXISTS on_comment_like_created ON public.comment_likes;
+CREATE TRIGGER on_comment_like_created
+  AFTER INSERT ON public.comment_likes
+  FOR EACH ROW EXECUTE FUNCTION public.notify_comment_like();
+
+
+-- ════════════════════════════════════════════════════════════════════════════
+-- 20261020100000_push_test.sql
+-- ════════════════════════════════════════════════════════════════════════════
+
+-- "Test push notifications" (Admin dashboard): sends you a test alert through the same path as
+-- real ones, and reports each step, so a broken setup says where it's broken.
+
+-- Checks the setup and queues a test push to yourself. Returns what it found, and the id of the
+-- request to send-push (to read its answer with push_test_result).
+CREATE OR REPLACE FUNCTION public.push_test()
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, extensions
+AS $$
+DECLARE
+  me uuid := auth.uid();
+  fn_url text;
+  fn_secret text;
+  fcm int;
+  web int;
+  push_on boolean;
+  req bigint;
+BEGIN
+  IF me IS NULL THEN RAISE EXCEPTION 'Not signed in'; END IF;
+
+  SELECT count(*) FILTER (WHERE endpoint LIKE 'https://fcm.googleapis.com/v1/ember-device/%'),
+         count(*) FILTER (WHERE endpoint NOT LIKE 'https://fcm.googleapis.com/v1/ember-device/%')
+    INTO fcm, web
+    FROM public.push_subscriptions WHERE user_id = me;
+  SELECT push_enabled INTO push_on FROM public.notification_preferences WHERE user_id = me;
+
+  BEGIN
+    EXECUTE 'SELECT function_url, secret FROM private.push_config WHERE id = 1' INTO fn_url, fn_secret;
+  EXCEPTION WHEN undefined_table OR invalid_schema_name THEN
+    RETURN jsonb_build_object('setup', false, 'fcm', fcm, 'web', web, 'push_enabled', coalesce(push_on, true));
+  END;
+  IF fn_url IS NULL THEN
+    RETURN jsonb_build_object('setup', true, 'config', false, 'fcm', fcm, 'web', web, 'push_enabled', coalesce(push_on, true));
+  END IF;
+
+  SELECT net.http_post(
+    url := fn_url,
+    headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || fn_secret),
+    body := jsonb_build_object('user_id', me, 'title', 'Ember', 'body', 'Test notification: push works 🎉', 'url', '/notifications', 'tag', 'push-test')
+  ) INTO req;
+
+  RETURN jsonb_build_object('setup', true, 'config', true, 'fcm', fcm, 'web', web,
+    'push_enabled', coalesce(push_on, true), 'request', req, 'function_url', fn_url);
+END;
+$$;
+
+-- What send-push answered to a test (null until it has answered). Written so this file runs
+-- even where push was never set up (no pg_net yet).
+CREATE OR REPLACE FUNCTION public.push_test_result(_request bigint)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  result jsonb;
+BEGIN
+  IF auth.uid() IS NULL THEN RAISE EXCEPTION 'Not signed in'; END IF;
+  EXECUTE 'SELECT jsonb_build_object(''status'', status_code, ''body'', left(content::text, 600), ''error'', error_msg, ''timed_out'', timed_out)
+           FROM net._http_response WHERE id = $1'
+    INTO result USING _request;
+  RETURN result;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.push_test() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.push_test_result(bigint) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.push_test() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.push_test_result(bigint) TO authenticated;
+
+
 -- Make the API see the new tables straight away.
 NOTIFY pgrst, 'reload schema';

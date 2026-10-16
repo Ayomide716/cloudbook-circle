@@ -6,6 +6,7 @@
  * and would crash on register().
  */
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 import { shellLevelFrom } from "./ota";
 
 export const FCM_PREFIX = "https://fcm.googleapis.com/v1/ember-device/";
@@ -75,6 +76,10 @@ async function setUp(open: (path: string) => void) {
     console.warn("[push] registration failed", e.error);
     waiting?.(null);
     waiting = null;
+  });
+  // With Ember open, Android doesn't show the notification itself: show it in the app.
+  await PushNotifications.addListener("pushNotificationReceived", (notification) => {
+    toast({ title: notification.title ?? "Ember", description: notification.body });
   });
   // Tapping a notification opens what it's about (a chat, a post…).
   await PushNotifications.addListener("pushNotificationActionPerformed", ({ notification }) => {
