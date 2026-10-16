@@ -83,14 +83,24 @@ export async function testPush(): Promise<{ ok: boolean; steps: PushTestStep[] }
     return fail(`send-push answered ${answer.status}: ${body.slice(0, 200)}`);
   }
   pass("send-push answered.");
-  let result: { sent?: number; removed?: number } = {};
+  interface Kind { devices: number; sent: number; configured: boolean; error: string }
+  let result: { sent?: number; removed?: number; fcm?: Kind; web?: Kind } = {};
   try { result = JSON.parse(body); } catch { /* shown below */ }
-  if (!result.sent) {
-    if (result.removed) return fail("Firebase says this device's registration is gone. Turn notifications off and on again in Settings, then test again.");
-    return fail(isNative
-      ? "send-push couldn't deliver to this phone. Make sure the newest send-push code is deployed, and check its Logs for \"fcm failed\"."
-      : "send-push couldn't deliver to this browser. Check its Logs for \"push failed\".");
+  if (!result.fcm || !result.web) {
+    return fail("send-push is an older version. Paste the newest supabase/functions/send-push/index.ts into Supabase and deploy it.");
   }
-  pass(`Sent to ${result.sent} ${result.sent === 1 ? "device" : "devices"}. It should arrive in a few seconds.`);
+  const mine = isNative ? result.fcm : result.web;
+  const other = isNative ? result.web : result.fcm;
+  if (other && other.sent > 0) pass(`Reached your ${isNative ? "browsers" : "phones"} (${other.sent}).`);
+  if (!mine.configured) {
+    return fail(isNative
+      ? "send-push has no Firebase key: add the FCM_SERVICE_ACCOUNT secret (the whole service account JSON) in Edge Functions → Secrets, then test again."
+      : "send-push has no Web Push keys (VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY).");
+  }
+  if (mine.sent === 0) {
+    if (result.removed) return fail("Firebase says this device's registration is gone. Turn notifications off and on again in Settings, then test again.");
+    return fail(`${isNative ? "Firebase" : "Web Push"} didn't deliver to this device. ${mine.error || "Check send-push's Logs."}`);
+  }
+  pass(`Sent to this ${isNative ? "phone" : "browser"}. It should arrive in a few seconds.`);
   return { ok: true, steps };
 }
