@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useTheme } from "next-themes";
 import {
   Bookmark,
   CalendarDays,
@@ -8,20 +7,17 @@ import {
   Compass,
   FileText,
   LogOut,
-  MessageCircle,
   Megaphone,
-  Monitor,
   MonitorPlay,
-  Moon,
   Settings,
   Shield,
   ShoppingBag,
-  Sun,
   UserPlus,
   Users,
   type LucideIcon,
   Download,
   History,
+  LayoutDashboard,
 } from "lucide-react";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -33,7 +29,6 @@ import { useSEO } from "@/hooks/useSEO";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { cn } from "@/lib/utils";
 import { features } from "@/lib/features";
-import { fadeTheme } from "@/lib/theme-fade";
 import { motion } from "framer-motion";
 import { disablePush } from "@/lib/web-push";
 import InviteFriends from "@/components/InviteFriends";
@@ -50,24 +45,26 @@ interface Shortcut {
   extra?: boolean;
 }
 
-// Everything that isn't a bottom tab (Home, Friends, Reels, Groups, Notifications).
+// Everything that isn't a bottom tab (Home, Friends, Reels, Groups, Notifications) or the Messenger button.
 const SHORTCUTS: Shortcut[] = [
-  { icon: MessageCircle, label: "Messages", path: "/messages", tile: "from-orange-400 to-primary" },
   { icon: CalendarDays, label: "Events", path: "/events", tile: "from-rose-400 to-rose-600" },
   { icon: Bookmark, label: "Saved", path: "/saved", tile: "from-violet-400 to-violet-600" },
   { icon: Compass, label: "Explore", path: "/explore", tile: "from-amber-300 to-amber-500" },
+  { icon: History, label: "Story archive", path: "/story-archive", tile: "from-orange-400 to-primary" },
+  { icon: Download, label: "Offline videos", path: "/offline-videos", tile: "from-emerald-400 to-emerald-600" },
   { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", tile: "from-sky-400 to-sky-600", extra: true },
   { icon: MonitorPlay, label: "Watch", path: "/watch", tile: "from-pink-400 to-pink-600", extra: true },
   { icon: FileText, label: "Pages", path: "/pages", tile: "from-orange-300 to-orange-500", extra: true },
   { icon: Megaphone, label: "Ad Manager", path: "/ads", tile: "from-yellow-400 to-amber-600", extra: true },
-  { icon: Shield, label: "Admin", path: "/admin", tile: "from-slate-400 to-slate-600", adminOnly: true },
 ];
 
-const THEMES = [
-  { value: "light", label: "Light", icon: Sun },
-  { value: "dark", label: "Dark", icon: Moon },
-  { value: "system", label: "Auto", icon: Monitor },
-] as const;
+/** The rows under the shortcuts. Messages isn't here: it's the Messenger button in the top bar. */
+const ROWS: { icon: LucideIcon; label: string; path: string; adminOnly?: boolean }[] = [
+  { icon: Settings, label: "Settings & privacy", path: "/settings" },
+  { icon: FileText, label: "Terms of service", path: "/terms" },
+  { icon: Shield, label: "Privacy policy", path: "/privacy" },
+  { icon: LayoutDashboard, label: "Admin", path: "/admin", adminOnly: true },
+];
 
 /**
  * The Menu tab, as in Facebook's app: a full page (not a pop-up) with your profile,
@@ -76,7 +73,6 @@ const THEMES = [
 const Menu = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { setTheme, theme } = useTheme();
   useSEO({ title: "Menu", description: "Shortcuts to everything on Ember." });
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<{ full_name: string | null; avatar_url: string | null } | null>(null);
@@ -194,74 +190,20 @@ const Menu = () => {
 
         {userId && <InviteFriends userId={userId} className="feed-section" />}
 
-        {/* Settings, help and appearance */}
+        {/* Settings and help (appearance is in Settings) */}
         <section className="feed-section divide-y divide-border rounded-2xl border border-border bg-card">
-          <button
-            type="button"
-            onClick={() => navigate("/settings")}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/60"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><Settings className="h-5 w-5" /></span>
-            <span className="flex-1 font-semibold">Settings &amp; privacy</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/story-archive")}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/60"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><History className="h-5 w-5" /></span>
-            <span className="flex-1 font-semibold">Story archive</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/offline-videos")}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/60"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><Download className="h-5 w-5" /></span>
-            <span className="flex-1 font-semibold">Offline videos</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/terms")}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/60"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><FileText className="h-5 w-5" /></span>
-            <span className="flex-1 font-semibold">Terms of service</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-          <button
-            type="button"
-            onClick={() => navigate("/privacy")}
-            className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-accent/60"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><Shield className="h-5 w-5" /></span>
-            <span className="flex-1 font-semibold">Privacy policy</span>
-            <ChevronRight className="h-5 w-5 text-muted-foreground" />
-          </button>
-          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3.5">
-            <span className="font-semibold">Appearance</span>
-            <div className="flex rounded-xl bg-secondary p-1" role="radiogroup" aria-label="Appearance">
-              {THEMES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  role="radio"
-                  aria-checked={theme === t.value}
-                  onClick={() => fadeTheme(() => setTheme(t.value))}
-                  className={cn(
-                    "flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors",
-                    theme === t.value ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  <t.icon className="h-3.5 w-3.5" />
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
+          {ROWS.filter((r) => !r.adminOnly || isAdmin).map((r) => (
+            <button
+              key={r.path}
+              type="button"
+              onClick={() => navigate(r.path)}
+              className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-accent/60"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary"><r.icon className="h-5 w-5" /></span>
+              <span className="flex-1 font-semibold">{r.label}</span>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </button>
+          ))}
         </section>
 
         <div className="px-3 sm:px-0">

@@ -276,13 +276,7 @@ const Index = () => {
                 <StoriesBar currentUserId={currentUser.id} />
               </Suspense>
 
-              <BirthdaysCard currentUserId={currentUser.id} />
-
-              <ProfileCompletionPrompt userId={currentUser.id} />
-
-              <OnThisDay currentUserId={currentUser.id} name={currentUser.full_name} avatarUrl={currentUser.avatar_url} />
-
-              {/* For you · Friends, as on Instagram and Threads */}
+              {/* For you · Friends, as on Instagram and Threads: right under the stories, so cards below never push it down */}
               <div role="tablist" aria-label="Feed" className="flex gap-1 rounded-full border border-border bg-card p-1 shine-card">
                 {([["foryou", "For you"], ["friends", "Friends"]] as const).map(([value, label]) => (
                   <button
@@ -303,6 +297,12 @@ const Index = () => {
                   </button>
                 ))}
               </div>
+
+              <BirthdaysCard currentUserId={currentUser.id} />
+
+              <ProfileCompletionPrompt userId={currentUser.id} />
+
+              <OnThisDay currentUserId={currentUser.id} name={currentUser.full_name} avatarUrl={currentUser.avatar_url} />
 
               {allPosts.length === 0 ? (
                 // Nothing to show yet (new here, or no friends' posts): a welcome with ways in,

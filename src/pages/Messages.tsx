@@ -689,8 +689,9 @@ const Messages = () => {
 
   return (
     // Starts under the app's header (drawn once for all pages) and ends above the keyboard.
+    // Phones have no app header here: the chat list starts under the status bar.
     <div className={cn(
-      "fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background",
+      "fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] max-md:top-[env(safe-area-inset-top,0px)] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background",
       // Phones: an open chat takes the whole screen, as in WhatsApp.
       (selectedConversation || showAIChat || selectedGroup) && "max-md:top-0"
     )}>

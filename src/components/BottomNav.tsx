@@ -24,16 +24,16 @@ interface BottomNavProps {
   friendRequests?: number;
   /** Unread notifications, shown on the Notifications tab. */
   unreadNotifications?: number;
-  /** Your photo for the Profile tab, as Facebook shows it. */
+  /** Your photo for the Menu tab, as Facebook shows it. */
   avatarUrl?: string | null;
   name?: string | null;
 }
 
 /**
- * The tab bar, a floating pill: Home, Friends, Reels, Groups, Notifications and your
- * Profile, the current tab filled in tangerine on a soft tinted pill.
- * (Facebook's fourth tab is Marketplace; Ember keeps Groups there. The Menu is the
- * ☰ button in the top bar.)
+ * The tab bar, a floating pill: Home, Friends, Reels, Groups, Notifications and Menu (your
+ * photo, as on Facebook: your profile is at the top of the menu), the current tab filled
+ * in tangerine on a soft tinted pill. (Facebook's fourth tab is Marketplace; Ember keeps
+ * Groups there.)
  */
 const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0, avatarUrl, name }: BottomNavProps) => {
   const navigate = useNavigate();
@@ -50,8 +50,8 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
   ];
   // A group's own page still counts as the Groups tab.
   const isActive = (path: string) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path));
-  const profilePath = `/profile/${currentUserId ?? ""}`;
-  const profileActive = !!currentUserId && location.pathname === profilePath;
+  // The Menu tab also stands for your own profile, which you open from the menu.
+  const menuActive = location.pathname === "/menu" || (!!currentUserId && location.pathname === `/profile/${currentUserId}`);
 
   // Tapping the tab you're on scrolls back to the top; at the top, it refreshes (the feed listens).
   const reselect = () => {
@@ -104,21 +104,22 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
           );
         })}
 
-        {/* Profile: your photo, as Facebook's last tab. */}
+        {/* Menu: your photo, as Facebook's last tab. */}
         <motion.button
-          onClick={() => (profileActive ? reselect() : currentUserId && navigate(profilePath))}
+          onClick={() => (location.pathname === "/menu" ? reselect() : navigate("/menu"))}
+          onTouchStart={() => prefetchRoute("/menu")}
           whileTap={{ scale: 0.9 }}
-          aria-current={profileActive ? "page" : undefined}
-          aria-label="Profile"
-          className={tabClass(profileActive)}
+          aria-current={menuActive ? "page" : undefined}
+          aria-label="Menu"
+          className={tabClass(menuActive)}
         >
-          <span className={iconWrap(profileActive)}>
-            <Avatar className={cn("h-[26px] w-[26px] transition-shadow", profileActive ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : "ring-1 ring-border")}>
+          <span className={iconWrap(menuActive)}>
+            <Avatar className={cn("h-[26px] w-[26px] transition-shadow", menuActive ? "ring-2 ring-primary ring-offset-1 ring-offset-card" : "ring-1 ring-border")}>
               <AvatarImage src={avatarUrl || undefined} alt="" />
               <AvatarFallback className="text-[10px] font-bold">{name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
           </span>
-          {label("Profile", profileActive)}
+          {label("Menu", menuActive)}
         </motion.button>
       </div>
     </nav>

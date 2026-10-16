@@ -65,9 +65,15 @@ const PostDetail = () => {
     <div className="min-h-screen bg-background pb-24 md:pb-8">
       <Navigation currentUserId={userId ?? undefined} />
       <main className="max-w-2xl mx-auto px-4 py-4 sm:py-6">
-        <Button variant="ghost" size="sm" onClick={goBack} className="mb-3 -ml-2 rounded-full">
-          <ArrowLeft className="h-4 w-4 mr-1.5" /> Back
-        </Button>
+        {/* As on Facebook: "← Ada's post". */}
+        <header className="mb-3 flex items-center gap-2">
+          <button type="button" onClick={goBack} aria-label="Back" className="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full hover:bg-secondary">
+            <ArrowLeft className="h-5 w-5" />
+          </button>
+          <h1 className="min-w-0 truncate font-display text-lg font-bold">
+            {post ? `${post.profiles.full_name?.split(" ")[0] || "Someone"}'s post` : "Post"}
+          </h1>
+        </header>
 
         {status === "loading" && (
           <div className="rounded-2xl border bg-card p-4 space-y-4">
@@ -87,7 +93,7 @@ const PostDetail = () => {
         {status === "missing" && (
           <div className="rounded-2xl border bg-card px-6 py-14 text-center">
             <FileQuestion className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <h1 className="text-lg font-semibold">This post isn't available</h1>
+            <h2 className="text-lg font-semibold">This post isn't available</h2>
             <p className="text-sm text-muted-foreground mt-1">It may have been deleted, or you may not have permission to see it.</p>
             <Button onClick={() => navigate("/")} className="mt-6 rounded-full gradient-brand text-primary-foreground">
               Go to your feed

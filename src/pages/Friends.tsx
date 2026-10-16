@@ -30,6 +30,10 @@ import { dbChannel } from "@/lib/realtime";
 import EmptyState from "@/components/EmptyState";
 import InviteFriends from "@/components/InviteFriends";
 
+/** The Requests / Sent / Friends / Suggested tabs as round chips. */
+const FRIEND_CHIP =
+  "h-8 rounded-full border border-border bg-card px-2.5 py-0 text-[13px] text-foreground hover:bg-secondary data-[state=active]:border-primary/60 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none sm:h-9 sm:text-sm";
+
 
 interface Profile {
   id: string;
@@ -484,18 +488,19 @@ const Friends = () => {
         )}
 
         <Tabs value={activeTab ?? "friends"} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="feed-section w-full bg-card sm:bg-transparent px-2 sm:px-0 mb-2 sm:mb-4">
-            <TabsTrigger value="requests">
+          {/* Round chips, the same as Groups, Messages and Notifications, all on screen. */}
+          <TabsList className="mb-2 flex w-full gap-1.5 border-0 px-3 py-0.5 sm:mb-4 sm:gap-2 sm:px-0">
+            <TabsTrigger value="requests" className={FRIEND_CHIP}>
               Requests
               {pendingRequests.length > 0 && (
-                <span className="bg-destructive text-destructive-foreground text-[11px] rounded-full h-5 min-w-5 px-1.5 inline-flex items-center justify-center">
+                <span className="bg-destructive text-destructive-foreground text-[11px] rounded-full h-[18px] min-w-[18px] px-1 inline-flex items-center justify-center">
                   {pendingRequests.length}
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="sent">Sent</TabsTrigger>
-            <TabsTrigger value="friends">Friends</TabsTrigger>
-            <TabsTrigger value="suggestions">
+            <TabsTrigger value="sent" className={FRIEND_CHIP}>Sent</TabsTrigger>
+            <TabsTrigger value="friends" className={FRIEND_CHIP}>Friends</TabsTrigger>
+            <TabsTrigger value="suggestions" className={FRIEND_CHIP}>
               <span className="sm:hidden">Suggested</span>
               <span className="hidden sm:inline">People You May Know</span>
             </TabsTrigger>

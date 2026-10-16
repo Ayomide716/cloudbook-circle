@@ -12,10 +12,14 @@ interface FriendshipButtonProps {
   currentUserId: string;
   profileUserId: string;
   className?: string;
+  /** Told whether you're friends, so the profile can make Message the main button then. */
+  onFriendsChange?: (friends: boolean) => void;
 }
 
-const FriendshipButton = ({ currentUserId, profileUserId, className }: FriendshipButtonProps) => {
+const FriendshipButton = ({ currentUserId, profileUserId, className, onFriendsChange }: FriendshipButtonProps) => {
   const [friendshipStatus, setFriendshipStatus] = useState<'none' | 'pending_sent' | 'pending_received' | 'friends' | null>(null);
+  const isFriends = friendshipStatus === "friends";
+  useEffect(() => { onFriendsChange?.(isFriends); }, [isFriends, onFriendsChange]);
   const [isLoading, setIsLoading] = useState(false);
   const [confirmUnfriend, setConfirmUnfriend] = useState(false);
   const { toast } = useToast();

@@ -9,7 +9,7 @@ test.describe("feed", () => {
     const bar = page.getByRole("navigation", { name: "Main" }).last();
     const tabs = bar.getByRole("button");
     await expect(tabs).toHaveCount(6);
-    for (const [i, name] of [/^Home$/, /^Friends/, /^Reels$/, /^Groups$/, /^Notifications/, /^Profile$/].entries()) {
+    for (const [i, name] of [/^Home$/, /^Friends/, /^Reels$/, /^Groups$/, /^Notifications/, /^Menu$/].entries()) {
       await expect(tabs.nth(i)).toHaveAccessibleName(name);
     }
     await expect(bar.getByRole("button", { name: "Home" })).toHaveAttribute("aria-current", "page");
@@ -26,7 +26,7 @@ test.describe("feed", () => {
     expect(Math.round(box.x)).toBe(12);
     expect(Math.round(box.width)).toBe(viewport.width - 24);
 
-    // Top bar, as in Facebook's app: menu, create, search and Messenger.
+    // As in Facebook's app: create, search and Messenger in the top bar; Menu is the last tab.
     await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Create post" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeVisible();
@@ -93,7 +93,7 @@ test.describe("feed", () => {
     }
   });
 
-  test("the ☰ menu is a full page with shortcuts, and + opens the composer", async ({ page }) => {
+  test("the Menu tab is a full page with shortcuts, and + opens the composer", async ({ page }) => {
     await signIn(page, "alice");
     await page.getByRole("button", { name: "Menu", exact: true }).click();
     await expect(page).toHaveURL(/\/menu$/);
@@ -101,6 +101,8 @@ test.describe("feed", () => {
     await expect(page.getByText("Alice Johnson")).toBeVisible();
     await page.getByRole("navigation", { name: "Shortcuts" }).getByRole("button", { name: "Events" }).click();
     await expect(page).toHaveURL(/\/events$/);
+    // Events is a sub-page with its own header; + is in the top bar on the tabs.
+    await page.getByRole("navigation", { name: "Main" }).last().getByRole("button", { name: "Home" }).click();
 
     await page.getByRole("button", { name: "Create post" }).click();
     await expect(page.getByRole("dialog").getByText("Create post")).toBeVisible();

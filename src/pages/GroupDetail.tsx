@@ -542,8 +542,10 @@ const GroupDetail = () => {
           />
         )}
 
-        <Tabs defaultValue="chat" className="space-y-2 sm:space-y-4">
+        {/* Opens on the group's posts, as on Facebook. */}
+        <Tabs defaultValue="posts" className="space-y-2 sm:space-y-4">
           <TabsList className="feed-section grid w-full grid-cols-4 bg-card sm:bg-transparent">
+            <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="chat" className="flex items-center gap-1">
               <MessageCircle className="h-4 w-4" />
               Chat
@@ -552,7 +554,6 @@ const GroupDetail = () => {
               <Radio className="h-4 w-4" />
               Voice
             </TabsTrigger>
-            <TabsTrigger value="posts">Posts</TabsTrigger>
             <TabsTrigger value="members">Members</TabsTrigger>
           </TabsList>
 
@@ -577,10 +578,6 @@ const GroupDetail = () => {
                 <p className="text-muted-foreground">
                   Join the group to participate in the chat
                 </p>
-                <Button onClick={handleJoinGroup} className="mt-4" disabled={isJoining}>
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Join Group
-                </Button>
               </Card>
             )}
           </TabsContent>
