@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Trash2, X } from "lucide-react";
 import { BLANK_POSTER } from "@/lib/video-poster";
@@ -30,6 +30,18 @@ const StorySlides = ({ title, slides, onClose, onDelete }: StorySlidesProps) => 
   const next = () => (index < slides.length - 1 ? setIndex(index + 1) : onClose());
   const prev = () => setIndex(Math.max(0, index - 1));
 
+  // Moving on from a video (or closing): stop it and let go of the file, so Android's web view
+  // doesn't keep its sound going under the next one (as in StoriesBar).
+  const videoRef = useRef<HTMLVideoElement>(null);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    return () => {
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+    };
+  }, [slide?.id]);
   useEffect(() => {
     setProgress(0);
     if (!slide || slide.media_type === "video") return;
@@ -81,6 +93,7 @@ const StorySlides = ({ title, slides, onClose, onDelete }: StorySlidesProps) => 
       {slide.media_type === "video" ? (
         <video
           key={slide.id}
+          ref={videoRef}
           src={slide.media_url}
           poster={BLANK_POSTER}
           autoPlay

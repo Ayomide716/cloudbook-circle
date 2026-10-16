@@ -279,6 +279,22 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   useEffect(() => {
     isPausedRef.current = isPaused;
   }, [isPaused]);
+  // Moving on from a video story (or closing): stop it and let go of the file. Android's web view
+  // otherwise keeps the old video's sound, and sometimes its picture, going under the next one.
+  useEffect(() => {
+    const v = videoRef.current;
+    if (!v) return;
+    return () => {
+      v.pause();
+      v.removeAttribute("src");
+      v.load();
+    };
+  }, [activeStory?.id, viewerOpen]);
+  // Only the story plays: feed videos and reels behind the viewer pause while it's open.
+  useEffect(() => {
+    if (!viewerOpen) return;
+    document.querySelectorAll("video").forEach((el) => { if (el !== videoRef.current) el.pause(); });
+  }, [viewerOpen, activeStory?.id]);
   const advanceStory = useEffectEvent(() => goNext());
 
   // Taps on the story, as on Instagram and Facebook: hold anywhere to pause (let go to play on),
@@ -591,7 +607,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
           {/* Reply and faces (not your own story), as on WhatsApp */}
           {activeGroup.userId !== currentUserId && (
-            <StoryReplyBar key={activeStory.id} onReply={handleSendReply} onReact={handleReaction} onPause={(p) => { setIsPaused(p); setReplying(p); }} />
+            <StoryReplyBar key={`reply-${activeStory.id}`} onReply={handleSendReply} onReact={handleReaction} onPause={(p) => { setIsPaused(p); setReplying(p); }} />
           )}
         </div>,
         document.body
