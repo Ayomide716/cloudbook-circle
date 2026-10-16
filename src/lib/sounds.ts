@@ -76,8 +76,57 @@ export function bell(ac: AudioContext, at: number, freq: number, length: number,
   }
 }
 
+/**
+ * Recorded sounds (public/sounds, from Android's open-source tones, made louder): the ringtone,
+ * the new-message ping and the notification chime. Loaded once, then played instantly.
+ */
+const FILES = {
+  ringtone: "/sounds/ringtone.mp3",
+  message: "/sounds/message.mp3",
+  notification: "/sounds/notification.mp3",
+} as const;
+type FileName = keyof typeof FILES;
+const buffers = new Map<FileName, Promise<AudioBuffer | null>>();
+
+function load(ac: AudioContext, name: FileName): Promise<AudioBuffer | null> {
+  let buffer = buffers.get(name);
+  if (!buffer) {
+    buffer = fetch(FILES[name])
+      .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(new Error(String(r.status)))))
+      .then((data) => ac.decodeAudioData(data))
+      .catch(() => {
+        buffers.delete(name); // Try again next time.
+        return null;
+      });
+    buffers.set(name, buffer);
+  }
+  return buffer;
+}
+
+/**
+ * Plays a recorded sound at full volume (looping for the ringtone). Returns a stop function, or
+ * null when it can't play (then the caller can fall back to a made-up tone).
+ */
+export async function playFile(name: FileName, { loop = false } = {}): Promise<(() => void) | null> {
+  const ac = audio();
+  if (!ac) return null;
+  const buffer = await load(ac, name);
+  if (!buffer || ac.state !== "running") return null;
+  const source = ac.createBufferSource();
+  source.buffer = buffer;
+  source.loop = loop;
+  source.connect(ac.destination);
+  source.start();
+  return () => { try { source.stop(); } catch { /* already stopped */ } };
+}
+
 if (typeof window !== "undefined") {
-  const unlock = () => { audio(); window.removeEventListener("pointerdown", unlock); };
+  const unlock = () => {
+    const ac = audio();
+    // Have the recorded sounds ready before they're needed.
+    if (ac) for (const name of Object.keys(FILES) as FileName[]) void load(ac, name);
+    window.removeEventListener("pointerdown", unlock);
+  };
   window.addEventListener("pointerdown", unlock, { once: true, passive: true });
 }
 
@@ -144,6 +193,11 @@ export function playSound(name: SoundName) {
   try {
     const ac = audio();
     if (!ac || ac.state !== "running") return;
+    if (name === "message" || name === "notification") {
+      // The recorded sound, or the made-up chime if it can't load.
+      void playFile(name).then((stop) => { if (!stop) SOUNDS[name](ac, ac.currentTime + 0.01); });
+      return;
+    }
     SOUNDS[name](ac, ac.currentTime + 0.01);
   } catch { /* audio unavailable: stay silent */ }
 }
