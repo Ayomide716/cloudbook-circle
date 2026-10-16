@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { lazy, Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { SessionContext } from "@/lib/session-context";
@@ -233,7 +234,11 @@ const CallProvider = ({ children }: { children: ReactNode }) => {
   return (
     <CallsContext.Provider value={api}>
       {children}
-      {userId && (
+      {/* Calls live at the end of <body>, above everything, and always take taps: an open sheet or
+          dialog (a chat, comments…) makes the rest of the page ignore taps, which left the
+          incoming call's Accept button dead. pointer-events is inherited by everything inside. */}
+      {userId && createPortal(
+        <div style={{ position: "relative", zIndex: 150, pointerEvents: "auto" }}>
         <Suspense fallback={null}>
           {active && (
             <VideoCall
@@ -279,6 +284,8 @@ const CallProvider = ({ children }: { children: ReactNode }) => {
             />
           )}
         </Suspense>
+        </div>,
+        document.body,
       )}
     </CallsContext.Provider>
   );
