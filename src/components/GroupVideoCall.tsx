@@ -71,6 +71,10 @@ const GroupVideoCall = ({
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
   const pcsRef = useRef(new Map<string, { pc: RTCPeerConnection; createdAt: number }>());
   const pendingIceRef = useRef(new Map<string, RTCIceCandidateInit[]>());
+  // Each person's incoming sound and video, kept here too: they can arrive a moment before that
+  // person shows up in the call's member list, and updatePeer would otherwise drop them (then
+  // nobody hears or sees each other).
+  const streamsRef = useRef(new Map<string, MediaStream>());
   const presenceRef = useRef<PresenceInfo>({
     name: currentUserName, avatar: currentUserAvatar ?? null, audio: true, video: !isVoiceOnly, screen: false,
   });
@@ -92,6 +96,7 @@ const GroupVideoCall = ({
     pcsRef.current.get(userId)?.pc.close();
     pcsRef.current.delete(userId);
     pendingIceRef.current.delete(userId);
+    streamsRef.current.delete(userId);
   }, []);
 
   const createPeer = useCallback((userId: string) => {
@@ -112,7 +117,9 @@ const GroupVideoCall = ({
       if (e.candidate) sendSignal({ type: "ice", from: currentUserId, to: userId, candidate: e.candidate.toJSON() });
     };
     pc.ontrack = (e) => {
-      const stream = e.streams[0] ?? new MediaStream([e.track]);
+      const stream = e.streams[0] ?? streamsRef.current.get(userId) ?? new MediaStream();
+      if (!stream.getTracks().includes(e.track)) stream.addTrack(e.track);
+      streamsRef.current.set(userId, stream);
       updatePeer(userId, { stream });
     };
     pc.onconnectionstatechange = () => {
@@ -184,8 +191,8 @@ const GroupVideoCall = ({
           audio: info.audio,
           video: info.video,
           screen: info.screen,
-          stream: prev[id]?.stream ?? null,
-          connected: prev[id]?.connected ?? false,
+          stream: prev[id]?.stream ?? streamsRef.current.get(id) ?? null,
+          connected: prev[id]?.connected ?? pcsRef.current.get(id)?.pc.connectionState === "connected",
         };
       }
       return next;
