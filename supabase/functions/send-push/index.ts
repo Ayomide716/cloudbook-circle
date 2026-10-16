@@ -66,7 +66,7 @@ async function sendFcm(
   sa: ServiceAccount,
   deviceToken: string,
   msg: { title: string; body: string; url: string; tag?: string },
-): Promise<"sent" | "gone" | "failed"> {
+): Promise<"sent" | "gone" | string> {
   const access = await googleAccessToken(sa);
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${sa.project_id}/messages:send`, {
     method: "POST",
@@ -89,7 +89,7 @@ async function sendFcm(
   const detail = await res.text();
   if (res.status === 404 || detail.includes("UNREGISTERED") || (res.status === 400 && detail.includes("registration token"))) return "gone";
   console.error("fcm failed", res.status, detail.slice(0, 300));
-  return "failed";
+  return `Firebase answered ${res.status}: ${detail.slice(0, 200)}`;
 }
 
 Deno.serve(async (req) => {
@@ -146,19 +146,26 @@ Deno.serve(async (req) => {
 
   let sent = 0;
   const gone: string[] = [];
+  // Per kind, so the Admin push test can say which part works.
+  const fcm = { devices: 0, sent: 0, configured: !!serviceAccount, error: "" };
+  const web = { devices: 0, sent: 0, configured: webPushReady, error: "" };
   await Promise.all(
     subs.map(async (s) => {
       if (s.endpoint.startsWith(FCM_PREFIX)) {
+        fcm.devices++;
         if (!serviceAccount) return;
         try {
           const result = await sendFcm(serviceAccount, s.endpoint.slice(FCM_PREFIX.length), msg);
-          if (result === "sent") sent++;
+          if (result === "sent") { sent++; fcm.sent++; }
           else if (result === "gone") gone.push(s.id);
+          else fcm.error = result;
         } catch (err) {
-          console.error("fcm failed", (err as Error).message);
+          fcm.error = (err as Error).message;
+          console.error("fcm failed", fcm.error);
         }
         return;
       }
+      web.devices++;
       if (!webPushReady) return;
       try {
         await webpush.sendNotification(
@@ -167,11 +174,15 @@ Deno.serve(async (req) => {
           { TTL: 60 * 60 * 24, urgency: "high" },
         );
         sent++;
+        web.sent++;
       } catch (err) {
         // 404 / 410: the device unsubscribed or the app was removed. Forget it.
         const status = (err as { statusCode?: number }).statusCode;
         if (status === 404 || status === 410) gone.push(s.id);
-        else console.error("push failed", status, (err as Error).message);
+        else {
+          web.error = `${status ?? ""} ${(err as Error).message}`.trim();
+          console.error("push failed", web.error);
+        }
       }
     }),
   );
@@ -183,5 +194,5 @@ Deno.serve(async (req) => {
     });
   }
 
-  return json({ sent, removed: gone.length });
+  return json({ sent, removed: gone.length, fcm, web });
 });
