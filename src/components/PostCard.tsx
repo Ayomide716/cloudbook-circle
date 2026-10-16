@@ -10,7 +10,7 @@ import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban } from "lucide-react";
-import { ChatCircle, DotsThree, GlobeHemisphereWest, ShareFat, ThumbsUp as PhThumbsUp, X as PhX } from "@phosphor-icons/react";
+import { BookmarkSimple, ChatCircle, DotsThree, GlobeHemisphereWest, ShareFat, ThumbsUp as PhThumbsUp, X as PhX } from "@phosphor-icons/react";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -717,39 +717,13 @@ const PostCard = ({
          </div>
        )}
 
-      {/* Summary: the reactions people used and how many, then the comment count (as in the mockup). */}
-      {(totalReactions > 0 || comments.length > 0) && (
-        <div className="flex min-h-[26px] items-center gap-2 px-3 pt-2 text-[12.5px] text-muted-foreground sm:px-4">
-          {totalReactions > 0 && (
-            <span className="flex items-center gap-1.5">
-              <span className="flex -space-x-1" aria-hidden="true">
-                {topReactions.map(([type]) => (
-                  <span key={type} className="flex h-[19px] w-[19px] items-center justify-center rounded-full bg-card ring-2 ring-card">
-                    <ReactionEmoji type={type} className="h-[19px] w-[19px]" />
-                  </span>
-                ))}
-              </span>
-              {reactionSummary}
-            </span>
-          )}
-          <span className="ml-auto flex items-center gap-1">
-            {comments.length > 0 && (
-              <button type="button" className="hover:underline" onClick={() => setShowComments((v) => !v)} aria-expanded={showComments}>
-                {compactCount(comments.length)} {comments.length === 1 ? "comment" : "comments"}
-              </button>
-            )}
-            {/* Tips use credits, which are muted with the Ad Manager (features.extras). */}
-            {features.extras && <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact />}
-          </span>
-        </div>
-      )}
-
-      {/* Like · Comment · Share in a plain row under a thin line, as on Facebook. */}
-      <div className="px-2.5 pt-1.5 pb-1.5">
-        <div className="grid grid-cols-3 items-center border-t border-border/70 pt-1">
+      {/* React · Comment · Share with their counts on the left, Save on the right (compact, as on
+          Instagram); "You and 3 others" sits on the react button's label for screen readers. */}
+      <div className="px-2 pt-1 pb-1.5">
+        <div className="flex items-center gap-0.5">
           <div
             ref={likeAreaRef}
-            className="relative flex justify-center select-none [-webkit-touch-callout:none]"
+            className="relative flex select-none [-webkit-touch-callout:none]"
             onMouseEnter={() => { if (!isTouchRef.current) setShowReactions(true); }}
             onMouseLeave={() => { if (!isTouchRef.current) setShowReactions(false); }}
             // Phones: press and hold Like to pick a reaction, as in Facebook's app.
@@ -796,7 +770,7 @@ const PostCard = ({
             )}
             <Button
               variant="ghost"
-              className={cn("h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]", currentReaction?.color)}
+              className={cn("h-10 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]", currentReaction?.color)}
               // Tapping removes your reaction, whichever it is; with none it's a like.
               onClick={() => {
                 // Letting go after a long press keeps the picker open instead of liking.
@@ -804,38 +778,57 @@ const PostCard = ({
                 handleReaction(userReaction ?? 'like');
               }}
               aria-pressed={!!userReaction}
-              aria-label={`${currentReaction?.label ?? "Like"}${totalReactions ? `, ${totalReactions} ${totalReactions === 1 ? "reaction" : "reactions"}` : ""}`}
+              aria-label={`${currentReaction?.label ?? "Like"}${totalReactions ? `, ${reactionSummary}` : ""}`}
             >
               {currentReaction ? (
                 <motion.span key={currentReaction.type} initial={{ scale: 0.3, rotate: -20 }} animate={{ scale: 1, rotate: 0 }} transition={{ type: "spring", stiffness: 600, damping: 14 }} className="flex">
-                  <ReactionEmoji type={currentReaction.type} className="h-[21px] w-[21px]" />
+                  <ReactionEmoji type={currentReaction.type} className="h-[22px] w-[22px]" />
                 </motion.span>
+              ) : topReactions.length > 0 ? (
+                // Others reacted: their top faces, small and overlapping.
+                <span className="flex -space-x-1.5" aria-hidden="true">
+                  {topReactions.slice(0, 2).map(([type]) => (
+                    <span key={type} className="flex rounded-full bg-card ring-2 ring-card"><ReactionEmoji type={type} className="h-[19px] w-[19px]" /></span>
+                  ))}
+                </span>
               ) : (
-                <PhThumbsUp className="h-[21px] w-[21px]" weight={currentReaction ? "fill" : "regular"} aria-hidden="true" />
+                <PhThumbsUp className="h-[22px] w-[22px]" weight="regular" aria-hidden="true" />
               )}
-              {currentReaction?.label ?? "Like"}
+              {totalReactions > 0 && <span className="tabular-nums">{compactCount(totalReactions)}</span>}
             </Button>
           </div>
 
           <Button
             variant="ghost"
-            className="h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]"
+            className="h-10 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-muted-foreground hover:bg-accent"
             onClick={toggleComments}
             aria-expanded={showComments}
             aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
           >
-            <ChatCircle className="h-[21px] w-[21px]" weight="regular" aria-hidden="true" />
-            Comment
+            <ChatCircle className="h-[22px] w-[22px]" weight="regular" aria-hidden="true" />
+            {comments.length > 0 && <span className="tabular-nums">{compactCount(comments.length)}</span>}
           </Button>
 
           <Button
             variant="ghost"
-            className="h-9 w-full gap-1.5 rounded-full text-[13px] font-semibold text-muted-foreground hover:bg-accent [&_svg]:size-[18px]"
+            className="h-10 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-muted-foreground hover:bg-accent"
             onClick={() => setShowShareDialog(true)}
             aria-label="Share"
           >
-            <ShareFat className="h-[21px] w-[21px]" weight="regular" aria-hidden="true" />
-            Share
+            <ShareFat className="h-[22px] w-[22px]" weight="regular" aria-hidden="true" />
+          </Button>
+
+          {/* Tips use credits, which are muted with the Ad Manager (features.extras). */}
+          {features.extras && <TipButton postId={post.id} receiverId={post.user_id} currentUserId={currentUserId} compact />}
+
+          <Button
+            variant="ghost"
+            className={cn("ml-auto h-10 w-10 rounded-full p-0 text-muted-foreground hover:bg-accent", isSaved && "text-primary")}
+            onClick={handleSavePost}
+            aria-pressed={isSaved}
+            aria-label={isSaved ? "Saved" : "Save post"}
+          >
+            <BookmarkSimple className="h-[22px] w-[22px]" weight={isSaved ? "fill" : "regular"} aria-hidden="true" />
           </Button>
         </div>
       </div>

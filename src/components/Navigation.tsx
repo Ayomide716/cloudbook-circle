@@ -1,7 +1,7 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, Search, Shield } from "lucide-react";
-import { MagnifyingGlass, MessengerLogo, Plus } from "@phosphor-icons/react";
+import { Bell as PhBell, MagnifyingGlass, MessengerLogo } from "@phosphor-icons/react";
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
 import { playSound } from "@/lib/sounds";
@@ -283,8 +283,14 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                 <div className="flex md:hidden items-center gap-2">
                   {/* Round grey buttons with bold icons, as in Facebook's app. */}
                   {[
-                    { label: "Create post", icon: <Plus className="h-[19px] w-[19px]" weight="bold" aria-hidden="true" />, onClick: () => navigate("/?compose=1") },
                     { label: "Search", icon: <MagnifyingGlass className="h-[19px] w-[19px]" weight="bold" aria-hidden="true" />, onClick: () => setMobileSearchOpen(true) },
+                    // Notifications: the bell, with how many are new (Create is the ➕ in the tab bar).
+                    {
+                      label: unreadNotifications > 0 ? `Notifications, ${unreadNotifications} new` : "Notifications",
+                      icon: <PhBell className="h-5 w-5" weight={location.pathname === "/notifications" ? "fill" : "bold"} aria-hidden="true" />,
+                      onClick: () => navigate("/notifications"),
+                      count: unreadNotifications,
+                    },
                     {
                       label: unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages",
                       icon: <MessengerLogo className="h-5 w-5" weight="fill" aria-hidden="true" />,
@@ -301,6 +307,11 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                     >
                       {b.icon}
                       {b.dot && <span className="absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" aria-hidden="true" />}
+                      {!!b.count && (
+                        <span className="absolute -right-1 -top-1 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-center text-[10px] font-bold leading-[18px] text-destructive-foreground ring-2 ring-background" aria-hidden="true">
+                          {b.count > 9 ? "9+" : b.count}
+                        </span>
+                      )}
                     </button>
                   ))}
                 </div>
@@ -474,7 +485,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
       <MobileSearchOverlay open={mobileSearchOpen} onClose={() => setMobileSearchOpen(false)} />
 
       {/* Mobile Bottom Navigation */}
-      {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} unreadNotifications={unreadNotifications} avatarUrl={userProfile?.avatar_url} name={userProfile?.full_name} />}
+      {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} avatarUrl={userProfile?.avatar_url} name={userProfile?.full_name} />}
     </>
   );
 };

@@ -1,4 +1,10 @@
-import { Bell, House, Users, UsersThree } from "@phosphor-icons/react";
+import { FilmSlate, House, NotePencil, Plus, PlusCircle, Users } from "@phosphor-icons/react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/lib/prefetch";
@@ -22,34 +28,27 @@ interface BottomNavProps {
   currentUserId?: string;
   /** Pending friend requests, shown on the Friends tab. */
   friendRequests?: number;
-  /** Unread notifications, shown on the Notifications tab. */
-  unreadNotifications?: number;
   /** Your photo for the Menu tab, as Facebook shows it. */
   avatarUrl?: string | null;
   name?: string | null;
 }
 
 /**
- * The tab bar, docked to the bottom edge: Home, Friends, Reels, Groups, Notifications and Menu (your
- * photo, as on Facebook: your profile is at the top of the menu), the current tab filled
- * in tangerine on a soft tinted pill. (Facebook's fourth tab is Marketplace; Ember keeps
- * Groups there.)
+ * The tab bar, docked to the bottom edge: Home, Friends, Create (a post, story or reel), Reels
+ * and Menu (your photo; your profile, Groups and the rest are in the menu). The current tab is
+ * tangerine with a short line under it. Notifications are the bell in the top bar.
  */
-const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0, avatarUrl, name }: BottomNavProps) => {
+const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: BottomNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   // Toasts sit just above the tab bar (phones only; it's hidden on bigger screens).
   useBottomSpace("--dock-space", typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "4.25rem" : null);
 
   const tabs = [
-    { icon: House, path: "/", label: "Home", short: undefined as string | undefined, badge: 0 },
+    { icon: House, path: "/", label: "Home", badge: 0 },
     { icon: Users, path: "/friends", label: "Friends", badge: friendRequests },
     { icon: ReelsIcon, path: "/reels", label: "Reels", badge: 0 },
-    { icon: UsersThree, path: "/groups", label: "Groups", badge: 0 },
-    // "Alerts" on the bar (shorter, so the six labels sit evenly); read out as Notifications.
-    { icon: Bell, path: "/notifications", label: "Notifications", short: "Alerts", badge: unreadNotifications },
   ];
-  // A group's own page still counts as the Groups tab.
   const isActive = (path: string) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path));
   // The Menu tab also stands for your own profile, which you open from the menu.
   const menuActive = location.pathname === "/menu" || (!!currentUserId && location.pathname === `/profile/${currentUserId}`);
@@ -74,6 +73,33 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
     </span>
   );
 
+  const renderTab = (tab: (typeof tabs)[number]) => {
+    const active = isActive(tab.path);
+    return (
+      <motion.button
+        key={tab.label}
+        onClick={() => (active ? reselect() : navigate(tab.path))}
+        onTouchStart={() => prefetchRoute(tab.path)}
+        whileTap={{ scale: 0.9 }}
+        aria-current={active ? "page" : undefined}
+        aria-label={tab.badge > 0 ? `${tab.label}, ${tab.badge} new` : tab.label}
+        className={tabClass(active)}
+      >
+        <span className={iconWrap(active)}>
+          {/* Light outlines, filled when selected. */}
+          <tab.icon className="h-[23px] w-[23px]" weight={active ? "fill" : "regular"} aria-hidden="true" />
+          {tab.badge > 0 && (
+            <span className="absolute -top-1 right-0 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground text-center ring-2 ring-card">
+              {tab.badge > 9 ? "9+" : tab.badge}
+            </span>
+          )}
+        </span>
+        {label(tab.label, active)}
+        {activeLine(active)}
+      </motion.button>
+    );
+  };
+
   return (
     // Docked to the bottom edge, full width, as on Facebook and Instagram; the phone's gesture
     // bar gets its own room underneath.
@@ -85,33 +111,36 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadNotifications = 0,
         location.pathname.startsWith("/reels") && "dark"
       )}
     >
-      <div className="grid grid-cols-6 h-[58px] px-1">
-        {tabs.map((tab) => {
-          const active = isActive(tab.path);
-          return (
-            <motion.button
-              key={tab.label}
-              onClick={() => (active ? reselect() : navigate(tab.path))}
-              onTouchStart={() => prefetchRoute(tab.path)}
-              whileTap={{ scale: 0.9 }}
-              aria-current={active ? "page" : undefined}
-              aria-label={tab.badge > 0 ? `${tab.label}, ${tab.badge} new` : tab.label}
-              className={tabClass(active)}
-            >
-              <span className={iconWrap(active)}>
-                {/* Light outlines, filled when selected. */}
-                <tab.icon className="h-[23px] w-[23px]" weight={active ? "fill" : "regular"} aria-hidden="true" />
-                {tab.badge > 0 && (
-                  <span className="absolute -top-1 right-0 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground text-center ring-2 ring-card">
-                    {tab.badge > 9 ? "9+" : tab.badge}
-                  </span>
-                )}
-              </span>
-              {label(tab.short ?? tab.label, active)}
-              {activeLine(active)}
-            </motion.button>
-          );
-        })}
+      <div className="grid grid-cols-5 h-[58px] px-1">
+        {tabs.slice(0, 2).map(renderTab)}
+
+        {/* Create, in the middle: a post, a story or a reel. */}
+        <div className="flex items-center justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                aria-label="Create"
+                className="flex h-11 w-11 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-[0_4px_14px_-2px_hsl(var(--primary)/0.55)]"
+              >
+                <Plus className="h-6 w-6" weight="bold" aria-hidden="true" />
+              </motion.button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent side="top" align="center" sideOffset={10} className="w-48 rounded-2xl p-1.5">
+              <DropdownMenuItem className="gap-3 rounded-xl py-2.5 text-[15px]" onSelect={() => navigate("/?compose=1")}>
+                <NotePencil className="h-5 w-5 text-primary" weight="fill" /> Post
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-3 rounded-xl py-2.5 text-[15px]" onSelect={() => navigate("/?story=1")}>
+                <PlusCircle className="h-5 w-5 text-primary" weight="fill" /> Story
+              </DropdownMenuItem>
+              <DropdownMenuItem className="gap-3 rounded-xl py-2.5 text-[15px]" onSelect={() => navigate("/reels?create=1")}>
+                <FilmSlate className="h-5 w-5 text-primary" weight="fill" /> Reel
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {tabs.slice(2).map(renderTab)}
 
         {/* Menu: your photo, as Facebook's last tab. */}
         <motion.button

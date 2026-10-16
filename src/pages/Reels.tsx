@@ -2,7 +2,7 @@ import { publicUrl } from "@/lib/native/platform";
 import { REEL_MAX_SECONDS } from "@/lib/video-compress";
 import { useState, useEffect, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
@@ -67,6 +67,15 @@ export default function Reels() {
   const reelCommentBox = useRef<HTMLTextAreaElement>(null);
   useAutoGrow(reelCommentBox, commentText, 110);
   const [showUpload, setShowUpload] = useState(false);
+  // The tab bar's ➕ → Reel opens the upload straight away (via /reels?create=1).
+  const [searchParams, setSearchParams] = useSearchParams();
+  useEffect(() => {
+    if (searchParams.get("create") !== "1") return;
+    setShowUpload(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete("create");
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploadVideoUrl, setUploadVideoUrl] = useState("");
   const [isMuted, setIsMuted] = useState(true);

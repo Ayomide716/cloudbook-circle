@@ -46,8 +46,9 @@ interface Shortcut {
   extra?: boolean;
 }
 
-// Everything that isn't a bottom tab (Home, Friends, Reels, Groups, Notifications) or the Messenger button.
+// Everything that isn't a bottom tab (Home, Friends, Reels) or in the top bar (notifications, Messenger).
 const SHORTCUTS: Shortcut[] = [
+  { icon: Users, label: "Groups", path: "/groups", tile: "from-sky-400 to-sky-600" },
   { icon: CalendarDays, label: "Events", path: "/events", tile: "from-rose-400 to-rose-600" },
   { icon: Bookmark, label: "Saved", path: "/saved", tile: "from-violet-400 to-violet-600" },
   { icon: Compass, label: "Explore", path: "/explore", tile: "from-amber-300 to-amber-500" },
