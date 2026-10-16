@@ -417,7 +417,7 @@ const PageDetail = () => {
               <div className="mt-3">
                 <h1 className="text-xl sm:text-2xl font-bold break-words">{page.name}</h1>
                 <p className="text-sm text-muted-foreground">
-                  {pageCategoryLabel(page.category)} · {page.followers_count} {page.followers_count === 1 ? "follower" : "followers"}
+                  {pageCategoryLabel(page.category)} · {page.followers_count ?? 0} {page.followers_count === 1 ? "follower" : "followers"}
                 </p>
                 {page.description && <p className="text-sm mt-2">{page.description}</p>}
               </div>

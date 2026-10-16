@@ -32,7 +32,7 @@ import InviteFriends from "@/components/InviteFriends";
 
 /** The Requests / Sent / Friends / Suggested tabs as round chips. */
 const FRIEND_CHIP =
-  "h-8 rounded-full border border-border bg-card px-2.5 py-0 text-[13px] text-foreground hover:bg-secondary data-[state=active]:border-primary/60 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none sm:h-9 sm:text-sm";
+  "h-8 rounded-full border border-border bg-card px-2 py-0 text-[13px] text-foreground hover:bg-secondary data-[state=active]:border-primary/60 data-[state=active]:bg-primary/15 data-[state=active]:text-primary data-[state=active]:shadow-none sm:h-9 sm:text-sm";
 
 
 interface Profile {
