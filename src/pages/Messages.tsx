@@ -1057,8 +1057,8 @@ const Messages = () => {
               ) : (
                 <div className="flex items-center justify-center h-full">
                   <div className="text-center space-y-2">
-                    <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
-                      <Send className="h-7 w-7 text-primary" />
+                    <div className="h-16 w-16 rounded-full bg-secondary flex items-center justify-center mx-auto">
+                      <Send className="h-7 w-7 text-foreground" />
                     </div>
                     <p className="font-semibold">Your Messages</p>
                     <p className="text-sm text-muted-foreground">Select a conversation to start messaging</p>

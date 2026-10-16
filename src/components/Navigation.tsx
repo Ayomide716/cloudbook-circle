@@ -1,6 +1,6 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, Search, Send, Shield } from "@/components/icons";
+import { UsersRound, Home, LogOut, MessageCircle, Users, Film, Bell, UserPlus, CalendarDays, Bookmark, Settings, Search, Send, Shield } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { NavShellContext } from "@/lib/nav-shell";
 import { playSound } from "@/lib/sounds";
@@ -211,9 +211,9 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   const dockItems = [
     { icon: Home, path: "/", label: "Home" },
     { icon: Film, path: "/reels", label: "Reels" },
-    { icon: UserPlus, path: "/friends", label: "Friends" },
-    { icon: Users, path: "/groups", label: "Groups" },
-    { icon: MessageCircle, path: "/messages", label: "Messages" },
+    { icon: Users, path: "/friends", label: "Friends" },
+    { icon: UsersRound, path: "/groups", label: "Groups" },
+    { icon: Send, path: "/messages", label: "Messages" },
   ];
 
   return (
@@ -258,16 +258,16 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       title={item.label}
                       className={cn(
                         "group relative flex items-center px-1 xl:px-2",
-                        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                        "text-foreground"
                       )}
                     >
                       <span className={cn(
                         "flex h-11 w-14 xl:w-24 items-center justify-center rounded-xl transition-colors",
                         !active && "group-hover:bg-secondary"
                       )}>
-                        <item.icon className="h-6 w-6" />
+                        <item.icon className="h-[26px] w-[26px]" fill={active ? "currentColor" : undefined} />
                       </span>
-                      {active && <span className="absolute inset-x-1 xl:inset-x-2 bottom-0 h-[3px] rounded-t-full bg-primary" />}
+                      {active && <span className="absolute inset-x-1 xl:inset-x-2 bottom-0 h-[2px] rounded-t-full bg-foreground" />}
                     </Link>
                   );
                 })}
@@ -323,13 +323,13 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary relative"
+                          className="h-10 w-10 rounded-full text-foreground hover:bg-secondary relative [&_svg]:size-6"
                           onClick={() => navigate("/friends")}
                           onMouseEnter={() => prefetchRoute("/friends")}
                         >
                           <UserPlus className="h-5 w-5" />
                           {pendingRequests > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center badge-pulse">
+                            <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center ring-2 ring-background">
                               {pendingRequests > 9 ? "9+" : pendingRequests}
                             </span>
                           )}
@@ -345,13 +345,13 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-10 w-10 rounded-full bg-secondary/60 hover:bg-secondary relative"
+                          className="h-10 w-10 rounded-full text-foreground hover:bg-secondary relative [&_svg]:size-6"
                           onClick={() => navigate("/notifications")}
                           onMouseEnter={() => prefetchRoute("/notifications")}
                         >
                           <Bell className="h-5 w-5" />
                           {unreadNotifications > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 gradient-brand text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center badge-pulse">
+                            <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center ring-2 ring-background">
                               {unreadNotifications > 9 ? "9+" : unreadNotifications}
                             </span>
                           )}
@@ -367,18 +367,18 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-10 w-10 rounded-full p-0 overflow-hidden ring-2 ring-border/50 hover:ring-primary/40 transition-all duration-200"
+                          className="h-10 w-10 rounded-full p-0 overflow-hidden ring-1 ring-border hover:ring-foreground/30 transition-all duration-200"
                         >
                           <Avatar className="h-10 w-10">
                             <AvatarImage src={userProfile?.avatar_url || undefined} />
-                            <AvatarFallback className="gradient-brand-soft text-foreground font-semibold">
+                            <AvatarFallback className="font-semibold">
                               {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
                             </AvatarFallback>
                           </Avatar>
                         </Button>
                       </motion.div>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="w-72 p-2 glass border-border/50 animate-scale-in">
+                    <DropdownMenuContent align="end" className="w-72 p-2 border-border animate-scale-in">
                       <DropdownMenuItem
                         className="p-3 cursor-pointer rounded-xl focus:bg-accent/10"
                         onClick={() => navigate(`/profile/${currentUserId}`)}
@@ -386,7 +386,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                         <div className="flex items-center gap-3">
                           <Avatar className="h-12 w-12 ring-2 ring-border/50">
                             <AvatarImage src={userProfile?.avatar_url || undefined} />
-                            <AvatarFallback className="gradient-brand-soft font-semibold">
+                            <AvatarFallback className="font-semibold">
                               {userProfile?.full_name?.[0]?.toUpperCase() || "U"}
                             </AvatarFallback>
                           </Avatar>

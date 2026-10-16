@@ -133,7 +133,7 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
                 type="button"
                 variant="ghost"
                 size="icon"
-                className={cn("h-9 w-9 rounded-full text-green-500 hover:bg-green-500/10", className)}
+                className={cn("h-9 w-9 rounded-full text-foreground hover:bg-secondary", className)}
                 disabled={isUploading}
                 aria-label={label}
                 asChild

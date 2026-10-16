@@ -2,8 +2,8 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
-  Bookmark, CalendarDays, FileText, Film, Megaphone, MessageCircle, MonitorPlay,
-  Shield, ShoppingBag, UserPlus, Users, type LucideIcon,
+  Bookmark, CalendarDays, FileText, Film, Megaphone, MonitorPlay, Send,
+  Shield, ShoppingBag, Users, UsersRound, type LucideIcon,
 } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -19,9 +19,9 @@ interface FeedSidebarProps {
 
 // Same icon set as the header and dock, so a destination always looks the same.
 const sidebarLinks: { href: string; icon: LucideIcon; label: string; adminOnly?: boolean; extra?: boolean }[] = [
-  { href: "/friends", icon: UserPlus, label: "Friends" },
-  { href: "/messages", icon: MessageCircle, label: "Messages" },
-  { href: "/groups", icon: Users, label: "Communities" },
+  { href: "/friends", icon: Users, label: "Friends" },
+  { href: "/messages", icon: Send, label: "Messages" },
+  { href: "/groups", icon: UsersRound, label: "Groups" },
   { href: "/pages", icon: FileText, label: "Pages", extra: true },
   { href: "/watch", icon: MonitorPlay, label: "Watch", extra: true },
   { href: "/reels", icon: Film, label: "Reels" },
@@ -71,14 +71,14 @@ const FeedSidebar = ({ currentUser }: FeedSidebarProps) => {
         <motion.div variants={item}>
           <Link
             to={`/profile/${currentUser.id}`}
-            className="flex items-center gap-3 p-3 rounded-2xl hover:bg-secondary/80 transition-all duration-200 group"
+            className="flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-secondary"
           >
-            <Avatar className="w-10 h-10 rounded-xl ring-2 ring-border/50 group-hover:ring-primary/30 transition-all">
+            <Avatar className="h-10 w-10">
               <AvatarImage src={currentUser.avatar_url || undefined} alt="" className="object-cover" />
-              <AvatarFallback className="rounded-xl text-sm">{initials}</AvatarFallback>
+              <AvatarFallback className="text-sm">{initials}</AvatarFallback>
             </Avatar>
             <div>
-              <span className="text-sm font-semibold font-display block">{currentUser.full_name}</span>
+              <span className="block text-[15px] font-semibold">{currentUser.full_name}</span>
               <span className="text-xs text-muted-foreground">View profile</span>
             </div>
           </Link>
@@ -88,12 +88,10 @@ const FeedSidebar = ({ currentUser }: FeedSidebarProps) => {
           <motion.div key={link.href} variants={item}>
             <Link
               to={link.href}
-              className="flex items-center gap-3 p-2.5 rounded-2xl hover:bg-secondary/80 transition-all duration-200 group"
+              className="flex items-center gap-3.5 rounded-xl px-3 py-2.5 transition-colors hover:bg-secondary"
             >
-              <span className="w-8 h-8 flex items-center justify-center rounded-xl bg-secondary/60 text-muted-foreground group-hover:text-primary group-hover:bg-primary/10 transition-colors duration-200">
-                <link.icon className="h-[18px] w-[18px]" />
-              </span>
-              <span className="text-sm font-medium">{link.label}</span>
+              <link.icon className="h-6 w-6 shrink-0 text-foreground" />
+              <span className="text-[15px] font-medium">{link.label}</span>
             </Link>
           </motion.div>
         ))}

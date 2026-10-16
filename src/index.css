@@ -40,7 +40,7 @@
 
     --border: 0 0% 93%;
     --input: 0 0% 86%;
-    --ring: 0 0% 7%;
+    --ring: 0 0% 55%;
 
     --radius: 0.75rem;
 
@@ -95,7 +95,7 @@
 
     --border: 240 5% 16%;
     --input: 240 5% 23%;
-    --ring: 240 5% 96%;
+    --ring: 240 5% 55%;
 
     --gradient-brand: linear-gradient(hsl(18 100% 58%), hsl(18 100% 58%));
     --gradient-brand-soft: linear-gradient(hsl(18 100% 58% / 0.14), hsl(18 100% 58% / 0.14));
