@@ -106,5 +106,11 @@ export async function initNative() {
   // First: tell the updater this version started fine (or it rolls back to the last good one).
   const { startOverTheAirUpdates } = await import("./ota");
   await startOverTheAirUpdates();
-  await Promise.all([handleBackButton(), matchSystemBarsToTheme(), provideShareSheet(), handleSignInReturn(), trackKeyboard(), hideSplashWhenPainted()]).catch(() => {});
+  // Tapping a notification opens its page (React Router follows the history change).
+  const openPath = (path: string) => {
+    window.history.pushState({}, "", path);
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  };
+  const { initNativePush } = await import("./push");
+  await Promise.all([initNativePush(openPath).catch(() => {}), handleBackButton(), matchSystemBarsToTheme(), provideShareSheet(), handleSignInReturn(), trackKeyboard(), hideSplashWhenPainted()]).catch(() => {});
 }

@@ -1,4 +1,13 @@
 import { supabase } from "@/integrations/supabase/client";
+import { isNative } from "@/lib/native/platform";
+import {
+  disableNativePush,
+  enableNativePush,
+  nativePushAvailable,
+  nativePushPermission,
+  nativePushReady,
+  syncNativePush,
+} from "@/lib/native/push";
 
 /**
  * Notifications that reach a locked phone or a closed app (Web Push). The phone's browser
@@ -13,14 +22,25 @@ const VAPID_PUBLIC_KEY: string = import.meta.env.VITE_VAPID_PUBLIC_KEY ?? "";
 export const PUSH_ACTIVE_KEY = "ember_push_active";
 
 /** The app has a key to subscribe with (set up on the server too). */
-export const pushConfigured = !!VAPID_PUBLIC_KEY;
+export const pushConfigured = !!VAPID_PUBLIC_KEY || isNative;
+
+/**
+ * In the Android app, push goes through Firebase (lib/native/push) instead of the browser's
+ * Web Push; everything below works the same for both.
+ */
+export const pushReady = (): Promise<void> => (isNative ? nativePushReady : Promise.resolve());
+
+/** Whether notifications are allowed here: "granted", "denied" or "default" (not asked yet). */
+export const pushPermission = (): NotificationPermission =>
+  isNative ? nativePushPermission() : typeof Notification !== "undefined" ? Notification.permission : "default";
 
 export const pushSupported = () =>
+  isNative ? nativePushAvailable() :
   !!VAPID_PUBLIC_KEY && typeof window !== "undefined" && "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 
 /** iPhones only allow notifications for apps added to the Home Screen. */
 export const needsHomeScreenInstall = () => {
-  if (typeof window === "undefined") return false;
+  if (typeof window === "undefined" || isNative) return false;
   const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
   const standalone = window.matchMedia?.("(display-mode: standalone)").matches || (navigator as Navigator & { standalone?: boolean }).standalone === true;
   return ios && !standalone;
@@ -64,6 +84,11 @@ async function save(sub: PushSubscription) {
  * Returns "on", "denied" (blocked in the browser), or "unsupported".
  */
 export async function enablePush(): Promise<"on" | "denied" | "unsupported"> {
+  if (isNative) {
+    const result = await enableNativePush();
+    setActive(result === "on");
+    return result;
+  }
   if (!pushSupported()) return "unsupported";
   const permission = Notification.permission === "default" ? await Notification.requestPermission() : Notification.permission;
   if (permission !== "granted") return "denied";
@@ -77,6 +102,10 @@ export async function enablePush(): Promise<"on" | "denied" | "unsupported"> {
 
 /** After signing in: if notifications are already allowed, make sure this device is saved for you. */
 export async function syncPush() {
+  if (isNative) {
+    if (await syncNativePush()) setActive(true);
+    return;
+  }
   if (!pushSupported() || Notification.permission !== "granted") return;
   try {
     const reg = await navigator.serviceWorker.ready;
@@ -92,6 +121,10 @@ export async function syncPush() {
 /** Stop alerts on this device (turning them off, or logging out). */
 export async function disablePush() {
   setActive(false);
+  if (isNative) {
+    await disableNativePush().catch(() => {});
+    return;
+  }
   if (!pushSupported()) return;
   try {
     const reg = await navigator.serviceWorker.ready;

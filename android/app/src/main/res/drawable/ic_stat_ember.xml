@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The small flame in the status bar for Ember's notifications (Android draws it in one colour). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M12,2C12.5,4.5 14,6.9 16,8.5C18,10.1 19,12 19,14A7,7 0,1 1,5 14C5,12.85 5.43,11.71 6,11A2.5,2.5 0,0 0,8.5 13.5A2.5,2.5 0,0 0,11 11C11,9.62 10.5,9 10,8C8.93,5.86 9.78,3.95 12,2Z" />
+</vector>

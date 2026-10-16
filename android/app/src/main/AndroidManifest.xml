@@ -32,6 +32,18 @@
 
         </activity>
 
+        <!-- Push notifications (Firebase): Ember's flame in the status bar, tinted tangerine, on
+             the "Ember" channel the app creates. -->
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_stat_ember" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/notification_tint" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_channel_id"
+            android:value="ember" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -50,6 +62,8 @@
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
+    <!-- Notifications when the app is closed (asked for on Android 13 and later) -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!-- Little buzzes on long-press and reactions -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Not every phone has a camera; the app still installs on those. -->

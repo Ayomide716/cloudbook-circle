@@ -6,4 +6,5 @@
  *
  * android/app/build.gradle reads this number, so the APK and the web code always agree.
  */
-export const NATIVE_LEVEL = 1;
+// 2: push notifications (Firebase).
+export const NATIVE_LEVEL = 2;

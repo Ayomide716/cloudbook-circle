@@ -27,3 +27,6 @@ dist-ssr
 /test-results/
 /playwright-report/
 /coverage/
+
+# Firebase config for the Android app: added by the APK build from a GitHub secret.
+android/app/google-services.json

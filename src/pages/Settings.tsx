@@ -2,7 +2,6 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useState } from "react";
 import AppVersionCard from "@/components/AppVersionCard";
 import StorageStatusCard from "@/components/StorageStatusCard";
-import { isNative } from "@/lib/native/platform";
 import { features } from "@/lib/features";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +22,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import { disablePush, enablePush, needsHomeScreenInstall, pushActive, pushSupported } from "@/lib/web-push";
+import { disablePush, enablePush, needsHomeScreenInstall, pushActive, pushPermission as currentPushPermission, pushReady, pushSupported } from "@/lib/web-push";
+import { isNative } from "@/lib/native/platform";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RowSkeleton } from "@/components/skeletons/parts";
 import { setDataSaver, useDataSaver } from "@/lib/data-saver";
@@ -123,9 +123,7 @@ const Settings = () => {
       setCurrentUserId(session.user.id);
       setEmail(session.user.email ?? null);
       
-      if ("Notification" in window) {
-        setPushPermission(Notification.permission);
-      }
+      void pushReady().then(() => setPushPermission(currentPushPermission()));
 
       const { data } = await supabase
         .from("notification_preferences")
@@ -174,13 +172,13 @@ const Settings = () => {
       toast({ title: "Add Ember to your Home Screen first", description: "On iPhone, tap Share then \"Add to Home Screen\", open Ember from there, and turn notifications on." });
       return;
     }
-    if (Notification.permission === "denied") {
-      toast({ title: "Notifications are blocked", description: "Allow them for this site in your browser's settings, then come back." });
+    if (currentPushPermission() === "denied") {
+      toast({ title: "Notifications are blocked", description: isNative ? "Allow them for Ember in your phone's Settings → Apps → Ember → Notifications, then come back." : "Allow them for this site in your browser's settings, then come back." });
       return;
     }
     try {
       const result = await enablePush();
-      setPushPermission(Notification.permission);
+      setPushPermission(currentPushPermission());
       if (result === "on") {
         setPushOn(true);
         handleToggle("push_enabled", true);
