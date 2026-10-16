@@ -557,6 +557,18 @@ const Friends = () => {
                 </div>
               )}
             </Card>
+            {/* People you may know, right under your requests (as on Facebook). */}
+            {visibleSuggestions.length > 0 && (
+              <section className="mt-3 sm:mt-4" aria-label="People you may know">
+                <div className="flex items-center justify-between px-4 pb-1 pt-2 sm:px-1">
+                  <h2 className="text-[15px] font-bold">People you may know</h2>
+                  <button type="button" onClick={() => setActiveTab("suggestions")} className="text-sm font-semibold text-primary">See all</button>
+                </div>
+                <Card className="feed-section flat-list">
+                  <div className="divide-y">{visibleSuggestions.slice(0, 3).map(suggestionRow)}</div>
+                </Card>
+              </section>
+            )}
           </TabsContent>
 
           <TabsContent value="sent">

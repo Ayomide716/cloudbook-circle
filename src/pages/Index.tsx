@@ -267,14 +267,15 @@ const Index = () => {
             {/* Main Feed - Bento Grid */}
             {/* Posts read best at about Facebook's width; wider just stretches photos and lines of text. */}
             <main className="feed-flush space-y-5 max-sm:space-y-2 min-w-0 w-full max-w-[680px] mx-auto">
+              {/* Friends' stories first, then the composer (as on Facebook and Instagram now). */}
+              <Suspense fallback={<div className="h-24" />}>
+                <StoriesBar currentUserId={currentUser.id} />
+              </Suspense>
+
               <CreatePost
                 currentUser={currentUser}
                 onPostCreated={() => void handleRefresh()}
               />
-
-              <Suspense fallback={<div className="h-24" />}>
-                <StoriesBar currentUserId={currentUser.id} />
-              </Suspense>
 
               {/* For you · Friends, as on Instagram and Threads: right under the stories, so cards below never push it down */}
               {/* Two small chips (not a full-width bar), so the feed starts sooner. */}

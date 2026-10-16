@@ -5,11 +5,11 @@ test.describe("feed", () => {
   test("has the redesign's layout on a phone", async ({ page }) => {
     await signIn(page, "alice");
 
-    // Bottom bar: the mockup's tabs, in a pill floating above the bottom of the screen.
+    // Bottom bar: Home, Friends, Create in the middle, Reels and Menu.
     const bar = page.getByRole("navigation", { name: "Main" }).last();
     const tabs = bar.getByRole("button");
-    await expect(tabs).toHaveCount(6);
-    for (const [i, name] of [/^Home$/, /^Friends/, /^Reels$/, /^Groups$/, /^Notifications/, /^Menu$/].entries()) {
+    await expect(tabs).toHaveCount(5);
+    for (const [i, name] of [/^Home$/, /^Friends/, /^Create$/, /^Reels$/, /^Menu$/].entries()) {
       await expect(tabs.nth(i)).toHaveAccessibleName(name);
     }
     await expect(bar.getByRole("button", { name: "Home" })).toHaveAttribute("aria-current", "page");
@@ -26,9 +26,9 @@ test.describe("feed", () => {
     expect(Math.round(box.x)).toBe(0);
     expect(Math.round(box.width)).toBe(viewport.width);
 
-    // As in Facebook's app: create, search and Messenger in the top bar; Menu is the last tab.
+    // Top bar: search, notifications and Messenger; Menu is the last tab.
     await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
-    await expect(page.getByRole("button", { name: "Create post" })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^Notifications/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Messages/ })).toBeVisible();
 
@@ -85,7 +85,7 @@ test.describe("feed", () => {
     await page.locator("header").first().evaluate((el) => el.setAttribute("data-kept", "1"));
     await bar.evaluate((el) => el.setAttribute("data-kept", "1"));
 
-    for (const tab of ["Friends", "Groups", "Notifications", "Home"]) {
+    for (const tab of ["Friends", "Menu", "Home"]) {
       await bar.getByRole("button", { name: new RegExp(`^${tab}`) }).click();
       await expect(bar.getByRole("button", { name: new RegExp(`^${tab}`) })).toHaveAttribute("aria-current", "page");
       await expect(page.locator("header[data-kept]")).toHaveCount(1);
@@ -93,7 +93,7 @@ test.describe("feed", () => {
     }
   });
 
-  test("the Menu tab is a full page with shortcuts, and + opens the composer", async ({ page }) => {
+  test("the Menu tab is a full page with shortcuts, and Create → Post opens the composer", async ({ page }) => {
     await signIn(page, "alice");
     await page.getByRole("button", { name: "Menu", exact: true }).click();
     await expect(page).toHaveURL(/\/menu$/);
@@ -101,10 +101,9 @@ test.describe("feed", () => {
     await expect(page.getByText("Alice Johnson")).toBeVisible();
     await page.getByRole("navigation", { name: "Shortcuts" }).getByRole("button", { name: "Events" }).click();
     await expect(page).toHaveURL(/\/events$/);
-    // Events is a sub-page with its own header; + is in the top bar on the tabs.
-    await page.getByRole("navigation", { name: "Main" }).last().getByRole("button", { name: "Home" }).click();
-
-    await page.getByRole("button", { name: "Create post" }).click();
+    // The ➕ in the middle of the tab bar: Post opens the composer.
+    await page.getByRole("navigation", { name: "Main" }).last().getByRole("button", { name: "Create" }).click();
+    await page.getByRole("menuitem", { name: "Post" }).click();
     await expect(page.getByRole("dialog").getByText("Create post")).toBeVisible();
   });
 
