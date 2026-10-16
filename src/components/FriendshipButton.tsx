@@ -127,7 +127,7 @@ const FriendshipButton = ({ currentUserId, profileUserId, className, onFriendsCh
   if (friendshipStatus === 'pending_received') {
     return (
       <div className={cn("flex gap-2", className)}>
-        <Button className="h-full flex-1" onClick={acceptRequest} disabled={isLoading}>
+        <Button variant="accent" className="h-full flex-1" onClick={acceptRequest} disabled={isLoading}>
           {isLoading ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <UserCheck className="h-4 w-4 mr-2" />}
           Accept
         </Button>
@@ -140,13 +140,13 @@ const FriendshipButton = ({ currentUserId, profileUserId, className, onFriendsCh
 
   if (friendshipStatus === 'none') {
     return (
-      <Button onClick={sendFriendRequest} disabled={isLoading} className={className}>
+      <Button variant="accent" onClick={sendFriendRequest} disabled={isLoading} className={className}>
         {isLoading ? (
           <Loader2 className="h-4 w-4 mr-2 animate-spin" />
         ) : (
           <UserPlus className="h-4 w-4 mr-2" />
         )}
-        Add Friend
+        Add friend
       </Button>
     );
   }

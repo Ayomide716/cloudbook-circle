@@ -29,7 +29,7 @@ const ProfileSkeleton = () => (
       </div>
       <div className="flex gap-1.5 border-y border-border bg-card sm:bg-transparent px-3 sm:px-0 py-2 mt-2" aria-hidden="true">
         {["All", "Photos", "Videos", "Albums"].map((t, i) => (
-          <span key={t} className={`shrink-0 rounded-full px-4 py-2 text-[15px] font-semibold ${i === 0 ? "bg-primary/10 text-primary" : "text-foreground"}`}>{t}</span>
+          <span key={t} className={`shrink-0 rounded-full px-4 py-2 text-[15px] font-semibold ${i === 0 ? "bg-foreground text-background" : "text-foreground"}`}>{t}</span>
         ))}
       </div>
       <div className="mt-2 bg-card sm:bg-transparent p-4 sm:px-0 space-y-3.5">
