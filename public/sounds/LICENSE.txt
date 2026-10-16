@@ -1,0 +1,5 @@
+ringtone.mp3 ("Titania"), message.mp3 ("Ariel") and notification.mp3 ("Tethys") are from the
+Android Open Source Project (platform/frameworks/base, data/sounds), made louder for Ember.
+
+Copyright (C) The Android Open Source Project
+Licensed under the Apache License, Version 2.0: http://www.apache.org/licenses/LICENSE-2.0
