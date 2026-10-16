@@ -61,14 +61,7 @@ async function setUp(open: (path: string) => void) {
   const { PushNotifications } = await import("@capacitor/push-notifications");
   available = true;
   permission = toPermission((await PushNotifications.checkPermissions()).receive);
-  await PushNotifications.createChannel({
-    id: "ember",
-    name: "Ember",
-    description: "Messages, comments, likes and friend requests",
-    importance: 4,
-    visibility: 1,
-    vibration: true,
-  }).catch(() => {});
+  // The notification channels (with Ember's own sounds) are made by the app itself: EmberChannels.java.
   await PushNotifications.addListener("registration", ({ value }) => {
     void saveToken(value).finally(() => { waiting?.(value); waiting = null; });
   });

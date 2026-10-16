@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application
         android:allowBackup="true"
@@ -32,8 +33,25 @@
 
         </activity>
 
+        <!-- Firebase messages: calls ring full screen even with Ember closed (EmberMessagingService),
+             everything else goes to Capacitor's push plugin, whose own service this replaces. -->
+        <service
+            android:name=".EmberMessagingService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <service
+            android:name="com.capacitorjs.plugins.pushnotifications.MessagingService"
+            tools:node="remove" />
+        <!-- "Decline" on the incoming-call notification -->
+        <receiver
+            android:name=".CallActionReceiver"
+            android:exported="false" />
+
         <!-- Push notifications (Firebase): Ember's flame in the status bar, tinted tangerine, on
-             the "Ember" channel the app creates. -->
+             the "Ember" channel with Ember's own sound (EmberChannels). -->
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_icon"
             android:resource="@drawable/ic_stat_ember" />
@@ -42,7 +60,7 @@
             android:resource="@color/notification_tint" />
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
-            android:value="ember" />
+            android:value="ember_v2" />
 
         <provider
             android:name="androidx.core.content.FileProvider"
@@ -64,6 +82,8 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Notifications when the app is closed (asked for on Android 13 and later) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Incoming calls fill the screen, on the lock screen too -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Little buzzes on long-press and reactions -->
     <uses-permission android:name="android.permission.VIBRATE" />
     <!-- Not every phone has a camera; the app still installs on those. -->

@@ -80,7 +80,7 @@ async function sendFcm(
           priority: "HIGH",
           ttl: "86400s",
           // Same tag replaces the last one (e.g. a chat's newest message), as Web Push does.
-          notification: { channel_id: "ember", ...(msg.tag ? { tag: msg.tag } : {}) },
+          notification: { channel_id: "ember_v2", ...(msg.tag ? { tag: msg.tag } : {}) },
         },
       },
     }),

@@ -7,4 +7,5 @@
  * android/app/build.gradle reads this number, so the APK and the web code always agree.
  */
 // 2: push notifications (Firebase).
-export const NATIVE_LEVEL = 2;
+// 3: calls ring with Ember closed (full-screen call notification), Ember's own notification sound.
+export const NATIVE_LEVEL = 3;

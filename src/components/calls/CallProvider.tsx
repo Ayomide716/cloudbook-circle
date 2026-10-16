@@ -7,6 +7,7 @@ import { CallsContext, type CallGroup, type CallPeer, type CallsApi } from "@/ho
 import { useRingtone } from "@/hooks/useRingtone";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { toast } from "@/hooks/use-toast";
+import { onCallLink } from "@/lib/native/call-links";
 import type { CallEndReason } from "@/components/VideoCall";
 
 const VideoCall = lazy(() => import("@/components/VideoCall"));
@@ -66,6 +67,15 @@ const CallProvider = ({ children }: { children: ReactNode }) => {
       broadcast([{ topic: userCallTopic(to), event, payload: { from: userId, to, ...extra } }], { accessToken, keepalive });
     },
     [userId, accessToken]
+  );
+
+  /** Rings (or stops ringing) their phone through Firebase, for when Ember is closed there. */
+  const pushCall = useCallback(
+    (to: string, action: "ring" | "cancel", isVoiceOnly = false) => {
+      if (!userId) return;
+      supabase.functions.invoke("call-push", { body: { to, action, isVoiceOnly } }).catch(() => {});
+    },
+    [userId]
   );
 
   const busy = () => !!active || !!groupCall;
@@ -168,8 +178,22 @@ const CallProvider = ({ children }: { children: ReactNode }) => {
   const startCall = useEffectEvent((peer: CallPeer, isVoiceOnly: boolean) => {
     if (!userId || alreadyInCall()) return;
     send(peer.id, "call-request", { fromName: me.name, fromAvatar: me.avatar, isVoiceOnly });
+    pushCall(peer.id, "ring", isVoiceOnly);
     setActive({ peer, isIncoming: false, isVoiceOnly });
   });
+
+  // Answered (or opened) from the phone's incoming-call notification.
+  const takeCallLink = useEffectEvent((link: { peer: CallPeer; isVoiceOnly: boolean; answer: boolean }) => {
+    if (!userId || busy()) return;
+    if (link.answer) {
+      if (groupCall) setGroupCall(null);
+      setIncoming(null);
+      setActive({ peer: link.peer, isIncoming: true, isVoiceOnly: link.isVoiceOnly });
+    } else {
+      setIncoming({ ...link.peer, isVoiceOnly: link.isVoiceOnly });
+    }
+  });
+  useEffect(() => (userId ? onCallLink(takeCallLink) : undefined), [userId, takeCallLink]);
 
   const startGroupCall = useEffectEvent((group: CallGroup, isVoiceOnly: boolean, memberIds: string[]) => {
     if (!userId || alreadyInCall()) return;
@@ -212,6 +236,7 @@ const CallProvider = ({ children }: { children: ReactNode }) => {
   const endCall = (reason: CallEndReason) => {
     if (active) {
       send(active.peer.id, "call-ended");
+      if (!active.isIncoming) pushCall(active.peer.id, "cancel");
       if (reason === "no-answer") toast({ title: `${active.peer.name} didn't answer` });
       if (reason === "failed") toast({ title: "Call dropped", description: "The connection was lost." });
       if (reason === "no-media") toast({ title: "Can't reach your microphone", description: "Allow microphone access in your browser to make calls.", variant: "destructive" });

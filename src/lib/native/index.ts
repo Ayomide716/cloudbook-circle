@@ -65,6 +65,18 @@ async function handleSignInReturn() {
   });
 }
 
+/** Opened from the incoming-call notification while Ember was closed (or in the background). */
+async function handleCallLinks() {
+  const { App } = await import("@capacitor/app");
+  const { parseCallLink, openCallLink } = await import("./call-links");
+  const take = (url: string | undefined) => {
+    const link = url ? parseCallLink(url) : null;
+    if (link) openCallLink(link);
+  };
+  App.addListener("appUrlOpen", ({ url }) => take(url));
+  take((await App.getLaunchUrl().catch(() => undefined))?.url);
+}
+
 /**
  * The keyboard's height straight from Android, as --keyboard-inset (what sheets, the chat box
  * and the story reply bar sit on). Inside the app the web view's own viewport numbers aren't
@@ -112,5 +124,5 @@ export async function initNative() {
     window.dispatchEvent(new PopStateEvent("popstate"));
   };
   const { initNativePush } = await import("./push");
-  await Promise.all([initNativePush(openPath).catch(() => {}), handleBackButton(), matchSystemBarsToTheme(), provideShareSheet(), handleSignInReturn(), trackKeyboard(), hideSplashWhenPainted()]).catch(() => {});
+  await Promise.all([initNativePush(openPath).catch(() => {}), handleBackButton(), matchSystemBarsToTheme(), provideShareSheet(), handleSignInReturn(), handleCallLinks(), trackKeyboard(), hideSplashWhenPainted()]).catch(() => {});
 }
