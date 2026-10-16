@@ -1,7 +1,6 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import { useEffect, useState } from "react";
 import AppVersionCard from "@/components/AppVersionCard";
-import StorageStatusCard from "@/components/StorageStatusCard";
 import { features } from "@/lib/features";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -202,12 +201,14 @@ const Settings = () => {
   // you haven't paused them for your account.
   const canPush = pushSupported() || needsHomeScreenInstall();
   const deviceOn = canPush && pushPermission === "granted" && pushOn && prefs.push_enabled;
-  const deviceNote = isNative
-    ? "Coming soon to the Android app"
-    : !canPush
-    ? "This browser can't show notifications"
+  const deviceNote = !canPush
+    ? isNative
+      ? "Install the newest Ember app to get notifications"
+      : "This browser can't show notifications"
     : pushPermission === "denied"
-      ? "Blocked. Allow notifications for this site in your browser's settings"
+      ? isNative
+        ? "Blocked. Allow them in your phone's Settings → Apps → Ember → Notifications"
+        : "Blocked. Allow notifications for this site in your browser's settings"
       : needsHomeScreenInstall()
         ? "On iPhone, add Ember to your Home Screen first"
         : deviceOn
@@ -366,11 +367,12 @@ const Settings = () => {
           </>
         )}
 
-        <SectionTitle title="App" desc="Version, updates and storage." className="mt-8" />
-        <div className="space-y-3">
-          {isNative && <AppVersionCard />}
-          <StorageStatusCard />
-        </div>
+        {isNative && (
+          <>
+            <SectionTitle title="App" desc="Version and updates." className="mt-8" />
+            <AppVersionCard />
+          </>
+        )}
 
         <SectionTitle title="Delete account" className="mt-8" />
         <Card className="p-4 border-destructive/30 rounded-2xl">

@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { cn, getErrorMessage, safeRedirectPath } from "@/lib/utils";
 import AuthShell, { AuthBrand } from "@/components/auth/AuthShell";
 import AuthField from "@/components/auth/AuthField";
+import { nameProblem, tidyName } from "@/lib/name-check";
 
 const Auth = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -36,6 +37,12 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    // A real first name and surname, not "ddd" (lib/name-check).
+    const problem = isLogin ? null : nameProblem(fullName);
+    if (problem) {
+      toast({ title: "Check your name", description: problem, variant: "destructive" });
+      return;
+    }
     setIsLoading(true);
     try {
       if (isLogin) {
@@ -46,7 +53,7 @@ const Auth = () => {
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            data: { full_name: tidyName(fullName) },
             emailRedirectTo: publicUrl("/"),
           },
         });
@@ -109,7 +116,7 @@ const Auth = () => {
                 label="Your name"
                 icon={User}
                 autoComplete="name"
-                placeholder="Ada Lovelace"
+                placeholder="First name and surname"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 required={!isLogin}

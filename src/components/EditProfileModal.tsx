@@ -9,6 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { RELATIONSHIP_OPTIONS } from "@/lib/profile-details";
+import { nameProblem, tidyName } from "@/lib/name-check";
 
 interface Profile {
   id: string;
@@ -47,6 +48,12 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const problem = nameProblem(formData.full_name);
+    if (problem) {
+      toast({ title: "Check your name", description: problem, variant: "destructive" });
+      return;
+    }
+    formData.full_name = tidyName(formData.full_name);
     setIsLoading(true);
 
     const { error } = await supabase
