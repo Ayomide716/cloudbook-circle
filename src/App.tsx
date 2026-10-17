@@ -18,6 +18,7 @@ import { useSession } from "@/hooks/use-session";
 import { NavShellContext } from "@/lib/nav-shell";
 import { AppNavigation } from "@/components/Navigation";
 import EdgeSwipeBack from "@/components/EdgeSwipeBack";
+import BootBars from "@/components/skeletons/BootBars";
 
 // Shown after a delay, so it shouldn't weigh down the first load.
 const InstallPrompt = lazy(() => import("@/components/InstallPrompt"));
@@ -98,6 +99,8 @@ const MiniFallback = () => <div className="min-h-screen bg-background" aria-busy
 const PageFallback = () => {
   const location = useLocation();
   const path = location.pathname;
+  // Before the sign-in check finishes the app's bars aren't up yet: draw still copies of them.
+  const barsUp = !!useSession();
 
   const skeleton = (() => {
     if (path === "/" ) return <FeedSkeleton />;
@@ -113,13 +116,8 @@ const PageFallback = () => {
     return null;
   })();
 
-  if (!skeleton) return <MiniFallback />;
-
-  return (
-    <Suspense fallback={<MiniFallback />}>
-      {skeleton}
-    </Suspense>
-  );
+  const page = !skeleton ? <MiniFallback /> : <Suspense fallback={<MiniFallback />}>{skeleton}</Suspense>;
+  return barsUp || withoutBars(path) ? page : <BootBars path={path}>{page}</BootBars>;
 };
 
 // Pages that never show the app's bars: sign-in screens and full-screen Reels.
