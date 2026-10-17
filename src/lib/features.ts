@@ -34,8 +34,13 @@ export const features = {
    */
   extras: import.meta.env.VITE_EXTRAS === "true",
   /**
-   * The "We'll be right back" screen when Supabase stops answering (components/OutageScreen).
-   * Paused: it showed up at times when nothing was wrong. Turn back on here (true) when needed.
+   * The "We'll be right back" screen when Supabase blocks the project (a 402: paused or over
+   * its plan's limits). See components/OutageScreen.
    */
-  outageScreen: false,
+  outageScreen: true,
+  /**
+   * Also show it after several server errors in a row. Off: that guess showed the screen at
+   * times when nothing was wrong.
+   */
+  outageScreenOnErrors: false,
 } as const;
