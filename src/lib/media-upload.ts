@@ -1,12 +1,12 @@
 /**
  * Every photo, video and voice note goes up through here.
  *
- * When Cloudflare R2 is set up (the media-upload function's secrets, docs/cloudflare-r2.md),
- * files go straight to R2, where downloads are free. Until then, or if R2 can't be reached,
- * they go to Supabase Storage exactly as before, so uploading never breaks.
+ * Files go straight to Cloudflare R2 (the media-upload function's secrets, docs/cloudflare-r2.md),
+ * where downloads are free. There's no fallback to Supabase Storage: its downloads count against
+ * Supabase's small egress quota, and going over it blocked the whole project. If R2 can't take a
+ * file, the upload fails and says why (Settings → Photo storage → Test).
  */
 import { supabase } from "@/integrations/supabase/client";
-import { LONG_CACHE } from "./image-compress";
 
 export type MediaFolder =
   | "post-images"
@@ -27,9 +27,9 @@ interface Ticket {
 // After R2 says it isn't set up, don't ask again for a while (one less request per upload).
 let r2OffUntil = 0;
 
-/** Where the last upload in this session went, and if it wasn't R2, why (Settings → Photo storage). */
+/** How the last upload in this session went, and if it failed, why (Settings → Photo storage). */
 export interface LastUpload {
-  target: "r2" | "supabase";
+  target: "r2" | "failed";
   reason?: string;
   at: number;
 }
@@ -65,7 +65,7 @@ async function r2Ticket(folder: MediaFolder, file: Blob, ext: string): Promise<T
       body: { folder, contentType: (file.type || "application/octet-stream").split(";")[0].trim(), size: file.size, ext },
     });
     if (error || !data?.uploadUrl) {
-      // 503 "not-configured" (or the function isn't deployed yet): Supabase Storage for now.
+      // 503 "not-configured" (or the function isn't deployed yet): uploads are off until it is.
       const status = (error as { context?: { status?: number } } | null)?.context?.status;
       if (!status || status === 503 || status === 404) r2OffUntil = Date.now() + 10 * 60_000;
       r2SkipReason = status === 503 ? "R2 isn't set up yet (a secret is missing)." : status === 404 ? "The media-upload function isn't deployed." : `The media-upload function failed (${status ?? "no answer"}).`;
@@ -110,50 +110,38 @@ export function extensionOf(file: Blob & { name?: string }): string {
   return fromType || "bin";
 }
 
+/** The message a failed upload shows. */
+const HELP = "Uploads are paused until Cloudflare storage works (Settings → Photo storage → Test).";
+
 /**
- * Uploads `file` and resolves with its public address. `path` is where it goes in Supabase
- * Storage (R2 picks its own name under the uploader's id).
+ * Uploads `file` to Cloudflare R2 and resolves with its public address, or throws why it couldn't.
+ * `path` is kept for callers; R2 picks its own name under the uploader's id.
  */
 export async function uploadMedia(
   folder: MediaFolder,
-  path: string,
+  _path: string,
   file: Blob & { name?: string },
   onProgress?: (percent: number) => void,
 ): Promise<string> {
-  const ticket = await r2Ticket(folder, file, extensionOf(file));
-  if (ticket) {
-    try {
-      await put(ticket.uploadUrl, file, ticket.headers, "PUT", onProgress);
-      lastUpload = { target: "r2", at: Date.now() };
-      return ticket.publicUrl;
-    } catch (e) {
-      // R2 unreachable from here (e.g. its CORS isn't set up yet): Supabase Storage instead.
-      r2OffUntil = Date.now() + 10 * 60_000;
-      r2SkipReason = pauseReason = describeR2Failure(e instanceof UploadError ? e.status : 0);
-      console.warn("[media-upload] R2 failed, using Supabase:", r2SkipReason);
-    }
-  }
+  const fail = (reason: string): never => {
+    lastUpload = { target: "failed", reason, at: Date.now() };
+    r2SkipReason = "";
+    throw new Error(`Couldn't upload. ${HELP}`);
+  };
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) throw new Error("Please sign in again.");
-  const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/${folder}/${path.split("/").map(encodeURIComponent).join("/")}`;
-  await put(
-    url,
-    file,
-    {
-      Authorization: `Bearer ${session.access_token}`,
-      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-      "x-upsert": "false",
-      // Kept by phones for a year: the file never changes, so it's downloaded once per viewer.
-      "cache-control": `max-age=${LONG_CACHE}`,
-      ...(file.type ? { "Content-Type": file.type } : {}),
-    },
-    "POST",
-    onProgress,
-  );
-  lastUpload = { target: "supabase", reason: r2SkipReason || undefined, at: Date.now() };
-  r2SkipReason = "";
-  return supabase.storage.from(folder).getPublicUrl(path).data.publicUrl;
+  const ticket = await r2Ticket(folder, file, extensionOf(file));
+  if (!ticket) return fail(r2SkipReason);
+  try {
+    await put(ticket.uploadUrl, file, ticket.headers, "PUT", onProgress);
+  } catch (e) {
+    const status = e instanceof UploadError ? e.status : 0;
+    // A dropped connection is the phone's, not R2's: say so and don't pause R2.
+    if (status === 0 && typeof navigator !== "undefined" && !navigator.onLine) throw new Error("You're offline. Try again when you're connected.");
+    r2OffUntil = Date.now() + 10 * 60_000;
+    return fail((pauseReason = describeR2Failure(status)));
+  }
+  lastUpload = { target: "r2", at: Date.now() };
+  return ticket.publicUrl;
 }
 
 export interface StorageTest {
