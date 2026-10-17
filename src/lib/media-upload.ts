@@ -4,9 +4,11 @@
  * Files go straight to Cloudflare R2 (the media-upload function's secrets, docs/cloudflare-r2.md),
  * where downloads are free. There's no fallback to Supabase Storage: its downloads count against
  * Supabase's small egress quota, and going over it blocked the whole project. If R2 can't take a
- * file, the upload fails and says why (Settings → Photo storage → Test).
+ * file, the upload fails and says why (Settings → Photo storage → Test). The one exception is a
+ * Supabase running on this computer (local development and the end-to-end tests), which has no R2.
  */
 import { supabase } from "@/integrations/supabase/client";
+import { LONG_CACHE } from "./image-compress";
 
 export type MediaFolder =
   | "post-images"
@@ -110,16 +112,40 @@ export function extensionOf(file: Blob & { name?: string }): string {
   return fromType || "bin";
 }
 
+/** A Supabase on this computer (local development, the end-to-end tests): uploads may go to its Storage. */
+const LOCAL_SUPABASE = /^https?:\/\/(127\.0\.0\.1|localhost)(:|\/|$)/.test(import.meta.env.VITE_SUPABASE_URL ?? "");
+
+/** Uploads to the local Supabase's Storage (see LOCAL_SUPABASE). */
+async function uploadToLocalSupabase(folder: MediaFolder, path: string, file: Blob, onProgress?: (percent: number) => void): Promise<string> {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) throw new Error("Please sign in again.");
+  const url = `${import.meta.env.VITE_SUPABASE_URL}/storage/v1/object/${folder}/${path.split("/").map(encodeURIComponent).join("/")}`;
+  await put(
+    url,
+    file,
+    {
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+      "x-upsert": "false",
+      "cache-control": `max-age=${LONG_CACHE}`,
+      ...(file.type ? { "Content-Type": file.type } : {}),
+    },
+    "POST",
+    onProgress,
+  );
+  return supabase.storage.from(folder).getPublicUrl(path).data.publicUrl;
+}
+
 /** The message a failed upload shows. */
 const HELP = "Uploads are paused until Cloudflare storage works (Settings → Photo storage → Test).";
 
 /**
  * Uploads `file` to Cloudflare R2 and resolves with its public address, or throws why it couldn't.
- * `path` is kept for callers; R2 picks its own name under the uploader's id.
+ * `path` is only used by a local Supabase; R2 picks its own name under the uploader's id.
  */
 export async function uploadMedia(
   folder: MediaFolder,
-  _path: string,
+  path: string,
   file: Blob & { name?: string },
   onProgress?: (percent: number) => void,
 ): Promise<string> {
@@ -130,6 +156,7 @@ export async function uploadMedia(
   };
 
   const ticket = await r2Ticket(folder, file, extensionOf(file));
+  if (!ticket && LOCAL_SUPABASE) return uploadToLocalSupabase(folder, path, file, onProgress);
   if (!ticket) return fail(r2SkipReason);
   try {
     await put(ticket.uploadUrl, file, ticket.headers, "PUT", onProgress);
