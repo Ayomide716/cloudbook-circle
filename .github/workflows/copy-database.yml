@@ -1,0 +1,71 @@
+# Copies Ember's database (accounts and passwords, posts, messages, friends, everything) from
+# the old Supabase project to a new, empty one. Run by hand: Actions → Copy database → Run
+# workflow. See docs/NEW-SUPABASE-PROJECT.md.
+#
+# Needs two repository secrets, each a "Session pooler" connection string with the password in
+# it (Supabase → Connect → Session pooler): OLD_DATABASE_URL and NEW_DATABASE_URL. Delete both
+# once the copy is done.
+name: Copy database
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "copy" to copy the old project into the new, empty one'
+        required: true
+
+jobs:
+  copy:
+    name: Copy the old project into the new one
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: inputs.confirm == 'copy'
+    env:
+      OLD_DATABASE_URL: ${{ secrets.OLD_DATABASE_URL }}
+      NEW_DATABASE_URL: ${{ secrets.NEW_DATABASE_URL }}
+    steps:
+      - name: Check the secrets are set
+        run: |
+          [ -n "$OLD_DATABASE_URL" ] || { echo "::error::The OLD_DATABASE_URL secret is missing."; exit 1; }
+          [ -n "$NEW_DATABASE_URL" ] || { echo "::error::The NEW_DATABASE_URL secret is missing."; exit 1; }
+          [ "$OLD_DATABASE_URL" != "$NEW_DATABASE_URL" ] || { echo "::error::Both secrets point at the same database."; exit 1; }
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Install the Postgres client
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSo /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update -qq && sudo apt-get install -y -qq postgresql-client-17
+
+      # Never write over a project that's in use: the new one must have no tables of its own yet.
+      - name: Check the new project is empty
+        run: |
+          tables=$(psql "$NEW_DATABASE_URL" -Atc "select count(*) from information_schema.tables where table_schema = 'public'")
+          [ "$tables" = "0" ] || { echo "::error::The new project already has $tables tables. Use a fresh, empty project."; exit 1; }
+
+      - name: Read the old project
+        run: |
+          supabase db dump --db-url "$OLD_DATABASE_URL" -f roles.sql --role-only
+          supabase db dump --db-url "$OLD_DATABASE_URL" -f schema.sql
+          supabase db dump --db-url "$OLD_DATABASE_URL" -f data.sql --use-copy --data-only
+          ls -lh roles.sql schema.sql data.sql
+
+      # All or nothing: if any part fails, the new project is left as it was.
+      - name: Write it into the new project
+        run: |
+          psql "$NEW_DATABASE_URL" --single-transaction --variable ON_ERROR_STOP=1 \
+            --file roles.sql --file schema.sql \
+            --command 'SET session_replication_role = replica' \
+            --file data.sql
+
+      - name: Count what arrived
+        run: |
+          psql "$NEW_DATABASE_URL" -c "select
+            (select count(*) from auth.users) as accounts,
+            (select count(*) from public.profiles) as profiles,
+            (select count(*) from public.posts) as posts,
+            (select count(*) from public.messages) as messages"
