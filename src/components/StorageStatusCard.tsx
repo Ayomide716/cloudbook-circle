@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getLastUpload, testStorage, type StorageTest } from "@/lib/media-upload";
 
-/** Where photos and videos are uploaded to (Cloudflare R2 or Supabase), and a test that says why. */
+/** Whether photos and videos upload to Cloudflare R2, and a test that says why not. */
 const StorageStatusCard = () => {
   const [testing, setTesting] = useState(false);
   const [result, setResult] = useState<StorageTest | null>(null);
@@ -31,7 +31,7 @@ const StorageStatusCard = () => {
               ? "Nothing uploaded since the app opened."
               : last.target === "r2"
                 ? "Last upload went to Cloudflare R2."
-                : "Last upload went to Supabase."}
+                : "Last upload failed."}
           </p>
           {last?.reason && <p className="mt-1 text-xs text-destructive">{last.reason}</p>}
         </div>
