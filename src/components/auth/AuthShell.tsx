@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import Wordmark from "@/components/Wordmark";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import { TAGLINE } from "@/lib/brand";

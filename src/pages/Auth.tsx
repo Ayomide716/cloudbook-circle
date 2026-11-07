@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, ArrowRight } from "@/components/icons";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as motion, AnimatePresence } from "framer-motion";
 import { cn, friendlyError, safeRedirectPath } from "@/lib/utils";
 import AuthShell, { AuthBrand } from "@/components/auth/AuthShell";
 import AuthField from "@/components/auth/AuthField";

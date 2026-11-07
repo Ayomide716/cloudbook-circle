@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { X, Sparkles } from "@/components/icons";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as motion, AnimatePresence } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 // A nudge, not a nag: once you close it, it stays away for a month, and otherwise it shows at

@@ -8,7 +8,7 @@ import {
 import { useNavigate, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { prefetchRoute } from "@/lib/prefetch";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useBottomSpace } from "@/hooks/use-bottom-space";
 

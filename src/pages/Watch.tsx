@@ -33,7 +33,7 @@ import {
 } from "@/components/ui/action-menu";
 import { cn, friendlyError } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as motion, AnimatePresence } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { readVideoInfo, storagePathFromUrl, uploadWithProgress } from "@/lib/storage-upload";

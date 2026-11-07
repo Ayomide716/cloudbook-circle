@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m as motion } from "framer-motion";
 import { Heart, Send } from "@/components/icons";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import { haptic } from "@/lib/haptics";

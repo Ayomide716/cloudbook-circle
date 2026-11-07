@@ -3,12 +3,14 @@ import { Toaster } from "@/components/ui/toaster";
 import PostingBar from "@/components/PostingBar";
 import ConnectionBar from "@/components/ConnectionBar";
 import OutageScreen from "@/components/OutageScreen";
-import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { MotionConfig } from "framer-motion";
+import { LazyMotion, MotionConfig } from "framer-motion";
+
+// Animation features arrive just after the first screen (see src/lib/motion-features.ts).
+const loadMotionFeatures = () => import("@/lib/motion-features").then((mod) => mod.default);
 import SessionProvider from "@/components/SessionProvider";
 import RequireAuth from "@/components/RequireAuth";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -215,9 +217,9 @@ const App = () => {
       <TooltipProvider>
       {/* Animations follow the phone's "reduce motion" setting: movement is dropped, fades stay. */}
       <MotionConfig reducedMotion="user">
+      <LazyMotion features={loadMotionFeatures} strict={import.meta.env.DEV}>
         <StatusBarColor />
         <Toaster />
-        <Sonner />
         <BrowserRouter>
           <ScrollToTop />
           <CallProvider>
@@ -232,6 +234,7 @@ const App = () => {
             <InstallPrompt />
           </Suspense>
         </BrowserRouter>
+      </LazyMotion>
       </MotionConfig>
       </TooltipProvider>
     </ThemeProvider>

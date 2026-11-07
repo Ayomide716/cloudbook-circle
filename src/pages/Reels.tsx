@@ -27,7 +27,7 @@ import CommentsSheet from "@/components/comments/CommentsSheet";
 import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import { playSound } from "@/lib/sounds";
 import { cn, friendlyError } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { POSTED_EVENT, isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
 import { deleteWithUndo } from "@/lib/undo-delete";
 

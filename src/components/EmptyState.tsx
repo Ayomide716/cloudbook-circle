@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { Bell, Bookmark, CalendarDays, Camera, Film, Flag, Mail, MessageCircle, Search, ShoppingBag, Sparkles, Users, type IconProps } from "@/components/icons";
 import { cn } from "@/lib/utils";
 

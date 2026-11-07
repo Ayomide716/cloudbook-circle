@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import {
   Bookmark, CalendarDays, FileText, Film, Megaphone, MonitorPlay, Send,
   Shield, ShoppingBag, Users, UsersRound, type LucideIcon,

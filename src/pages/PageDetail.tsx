@@ -27,7 +27,7 @@ import {
 } from "@/components/icons";
 import { cn, friendlyError } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { PAGE_CATEGORIES, pageCategoryLabel } from "@/lib/page-categories";
 import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";

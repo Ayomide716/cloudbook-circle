@@ -16,6 +16,10 @@
     <link rel="icon" href="/favicon.png" type="image/png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/manifest.json" />
+    <!-- Open the connection to the database while the app downloads. -->
+    <link rel="preconnect" href="%VITE_SUPABASE_URL%" crossorigin />
+    <!-- The display font, fetched straight away rather than after the stylesheet (the splash waits for it). -->
+    <link rel="preload" href="/node_modules/@fontsource-variable/figtree/files/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
 
     <!-- Open Graph -->
     <meta property="og:title" content="Ember — your people, closer" />

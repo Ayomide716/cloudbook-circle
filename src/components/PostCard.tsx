@@ -24,7 +24,7 @@ import SharePostDialog from "./SharePostDialog";
 import LinkPreview from "./LinkPreview";
 import HeartBurst from "./HeartBurst";
 import ReactionEmoji from "./reactions/ReactionEmoji";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import FeedVideo from "./FeedVideo";
 import { CommentThread } from "./comments/CommentThread";
 import { firstLink } from "@/lib/links";

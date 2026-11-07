@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { MessageCircleQuestion, Send, Loader2, Trash2, Eye, EyeOff } from "@/components/icons";
 import { formatDistanceToNow } from "date-fns";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as motion, AnimatePresence } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { friendlyError } from "@/lib/utils";
 

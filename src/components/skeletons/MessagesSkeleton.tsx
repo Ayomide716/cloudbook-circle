@@ -1,6 +1,6 @@
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card } from "@/components/ui/card";
-import { ArrowLeft } from "@/components/icons";
+import { ArrowLeft, Search } from "@/components/icons";
 import { StaticChips } from "./parts";
 
 /** One conversation row: avatar, name and time, last message (same sizes as the real row). */
@@ -31,6 +31,10 @@ const MessagesSkeleton = () => (
               <div className="flex items-center gap-2 h-9" aria-hidden="true">
                 <ArrowLeft className="md:hidden h-5 w-5" />
                 <span className="text-[22px] font-bold tracking-tight">Messages</span>
+              </div>
+              <div className="mt-2.5 flex h-10 items-center gap-2 rounded-full bg-secondary px-3.5 text-[15px] text-muted-foreground" aria-hidden="true">
+                <Search className="h-[18px] w-[18px]" />
+                Search chats
               </div>
               <div className="mt-2.5">
                 <StaticChips labels={["All", "Unread", "Groups"]} />
