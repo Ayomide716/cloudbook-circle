@@ -126,7 +126,7 @@ const Menu = () => {
         .eq("friend_id", id),
     ]);
     if (profileData) setProfile(profileData);
-    if (profileError && friends.error) setLoadFailed(true);
+    if (profileError || friends.error) setLoadFailed(true);
     setIsAdmin(!!role);
     if (!friends.error) setFriendCount(friends.count ?? 0);
     if (!requests.error) setRequestCount(requests.count ?? 0);
