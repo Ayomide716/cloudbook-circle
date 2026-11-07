@@ -360,7 +360,7 @@ const Marketplace = () => {
           </div>
         ) : listings.length === 0 ? (
           <EmptyState
-            emoji={debouncedSearch ? "search" : "mailbox"}
+            emoji={debouncedSearch ? "search" : "shop"}
             title={debouncedSearch ? "No listings match your search" : view === "mine" ? "You haven't listed anything yet" : "No listings yet"}
             text={view === "mine" ? "Tap “Sell item” to list something." : "Be the first to sell something!"}
           />

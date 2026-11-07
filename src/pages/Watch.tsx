@@ -447,7 +447,7 @@ const Watch = () => {
             </div>
           ) : videos.length === 0 ? (
             <EmptyState
-              emoji={debouncedSearch ? "search" : "camera"}
+              emoji={debouncedSearch ? "search" : "video"}
               title={activeCategory === "saved" ? "No saved videos yet" :
                 activeCategory === "following" ? "No videos from your friends yet" :
                 debouncedSearch ? "No videos match your search" :

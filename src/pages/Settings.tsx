@@ -239,8 +239,9 @@ const Settings = () => {
   return (
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
-      <div className="max-w-[600px] mx-auto px-4 py-4 sm:py-6 pb-28 md:pb-8">
-        <PageHeader back title="Settings" className="mb-3 sm:mb-6" />
+      <div className="max-w-[600px] mx-auto px-4 pb-28 sm:py-6 md:pb-8">
+        {/* Flush with the screen edge on phones, like every other page's header. */}
+        <PageHeader back title="Settings" className="-mx-4 mb-3 sm:mx-0 sm:mb-6" />
 
         {/* Account */}
         <SectionTitle title="Account" desc="Your sign-in details." />

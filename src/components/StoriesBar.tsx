@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Plus, X, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX } from "@/components/icons";
+import { Plus, X, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX, User } from "@/components/icons";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -438,7 +438,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
             <StoryBubble label="Your story" onClick={() => setIsCreating(true)} ariaLabel="Create a story" ring="none" add>
               <Avatar className="h-full w-full">
                 <AvatarImage src={myProfile?.avatar_url || undefined} className="object-cover" />
-                <AvatarFallback className="bg-secondary font-display text-xl font-bold text-primary">{myProfile?.full_name?.[0]?.toUpperCase() || "+"}</AvatarFallback>
+                <AvatarFallback className="bg-secondary font-display text-xl font-bold text-foreground">{myProfile?.full_name?.[0]?.toUpperCase() || <User className="h-7 w-7 text-muted-foreground" />}</AvatarFallback>
               </Avatar>
             </StoryBubble>
           )}
@@ -696,6 +696,6 @@ const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: 
         </button>
       )}
     </div>
-    <span className={cn("w-full truncate text-center text-[11.5px] font-medium", ring === "seen" ? "text-muted-foreground" : "text-foreground/90")}>{label}</span>
+    <span className={cn("w-full truncate text-center text-xs font-medium", ring === "seen" ? "text-muted-foreground" : "text-foreground/90")}>{label}</span>
   </div>
 );

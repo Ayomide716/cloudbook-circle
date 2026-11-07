@@ -153,7 +153,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
 
       {/* How long it is ("0:24"), so it reads as a video at a glance. */}
       {!playing && duration > 0 && (
-        <span className="pointer-events-none absolute right-2.5 top-2.5 rounded-md bg-black/65 px-1.5 py-0.5 text-[11.5px] font-semibold tabular-nums text-white">
+        <span className="pointer-events-none absolute right-2.5 top-2.5 rounded-md bg-black/65 px-1.5 py-0.5 text-xs font-semibold tabular-nums text-white">
           {time(duration)}
         </span>
       )}

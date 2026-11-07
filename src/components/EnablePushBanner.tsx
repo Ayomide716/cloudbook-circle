@@ -65,7 +65,7 @@ const EnablePushBanner = () => {
       </span>
       <div className="min-w-0 flex-1">
         <p className="text-[14px] font-semibold leading-tight">Don't miss a message</p>
-        <p className="mt-0.5 text-[12.5px] leading-snug text-muted-foreground">
+        <p className="mt-0.5 text-[13px] leading-snug text-muted-foreground">
           {ios ? (
             <>Add Ember to your Home Screen (<Share className="inline h-3 w-3 align-[-1px]" aria-label="Share" /> then "Add to Home Screen"), open it from there, and turn notifications on.</>
           ) : (

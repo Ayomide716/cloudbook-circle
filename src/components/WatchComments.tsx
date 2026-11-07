@@ -126,7 +126,7 @@ const WatchComments = ({ videoId, currentUserId }: WatchCommentsProps) => {
                 <div key={c.id} className="flex gap-2 group">
                   <Avatar className="h-6 w-6 flex-shrink-0">
                     <AvatarImage src={c.profiles?.avatar_url || undefined} />
-                    <AvatarFallback className="text-[9px]">{c.profiles?.full_name?.[0] || "U"}</AvatarFallback>
+                    <AvatarFallback className="text-[10px]">{c.profiles?.full_name?.[0] || "U"}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="bg-secondary rounded-xl px-2.5 py-1.5 inline-block max-w-full">

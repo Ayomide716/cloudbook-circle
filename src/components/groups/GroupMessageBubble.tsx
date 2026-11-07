@@ -183,7 +183,7 @@ const GroupMessageBubble = ({
             </p>
           )}
           <p className={cn(
-            "text-right text-[10.5px] leading-none",
+            "text-right text-[11px] leading-none",
             sticker ? "absolute bottom-1 right-1 rounded-full bg-black/55 px-1.5 py-1 text-white" : showText ? "-mt-3.5" : "mt-1",
             !sticker && (mine ? "text-white/70" : "text-muted-foreground")
           )}>

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { motion } from "framer-motion";
-import { Bell, Bookmark, CalendarDays, Camera, Mail, MessageCircle, Search, Sparkles, Users, type IconProps } from "@/components/icons";
+import { Bell, Bookmark, CalendarDays, Camera, Film, Flag, Mail, MessageCircle, Search, ShoppingBag, Sparkles, Users, type IconProps } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 /** The app's own line icons for empty screens (no 3D stickers, per the design system). */
@@ -10,14 +10,17 @@ const ICONS: Record<string, React.ComponentType<IconProps>> = {
   calendar: CalendarDays,
   camera: Camera,
   chat: MessageCircle,
+  flag: Flag,
   mailbox: Mail,
   party: Sparkles,
   people: Users,
   search: Search,
+  shop: ShoppingBag,
+  video: Film,
 };
 
 interface EmptyStateProps {
-  /** Which icon to show: calendar, bookmark, bell, chat, people, camera, mailbox, search or party. */
+  /** Which icon to show: calendar, bookmark, bell, chat, flag, people, camera, mailbox, search, shop, video or party. */
   emoji: string;
   title: string;
   text?: string;

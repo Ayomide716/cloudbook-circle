@@ -278,7 +278,7 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
             ))}
           </div>
         ) : remote ? (
-          <p className="border-t border-border py-1.5 text-center text-[10.5px] font-semibold uppercase tracking-wider text-muted-foreground">Powered by GIPHY</p>
+          <p className="border-t border-border py-1.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Powered by GIPHY</p>
         ) : null}
       </PopoverContent>
     </Popover>

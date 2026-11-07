@@ -36,9 +36,9 @@ const LiveRoomCard = ({ room }: { room: LiveRoom }) => {
             <span key={i} className="w-1 rounded-full bg-primary-foreground animate-sound-bar motion-reduce:animate-none" style={{ height: 14, animationDelay: `${i * 0.15}s` }} />
           ))}
         </span>
-        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-md border-2 border-background bg-rose-500 px-1.5 text-[9px] font-extrabold tracking-wider text-white">LIVE</span>
+        <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 rounded-md border-2 border-background bg-rose-500 px-1.5 text-[10px] font-extrabold tracking-wider text-white">LIVE</span>
       </span>
-      <span className="w-full truncate text-center text-[11.5px] font-medium text-foreground/90">{room.groupName}</span>
+      <span className="w-full truncate text-center text-xs font-medium text-foreground/90">{room.groupName}</span>
     </button>
   );
 };
