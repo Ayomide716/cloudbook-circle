@@ -146,10 +146,10 @@ const AnonymousQA = ({ profileId, isOwnProfile, currentUserId }: AnonymousQAProp
                   </div>
                   {isOwnProfile && (
                     <div className="flex gap-1">
-                      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleVisibility(q.id, q.is_public)}>
+                      <Button aria-label={q.is_public ? "Hide answer from profile" : "Show answer on profile"} variant="ghost" size="icon" className="h-7 w-7" onClick={() => toggleVisibility(q.id, q.is_public)}>
                         {q.is_public ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
                       </Button>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteQuestion(q.id)}>
+                      <Button aria-label="Delete question" variant="ghost" size="icon" className="h-7 w-7 text-destructive" onClick={() => deleteQuestion(q.id)}>
                         <Trash2 className="h-3.5 w-3.5" />
                       </Button>
                     </div>

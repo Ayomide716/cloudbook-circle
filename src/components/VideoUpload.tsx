@@ -74,7 +74,7 @@ const VideoUpload = ({ bucket, userId, onUploadComplete, currentVideo, label = "
             className="w-full max-h-64 rounded-lg bg-black"
           />
           <VideoJobStatus job={job} className="mt-1" />
-          <Button
+          <Button aria-label="Remove video"
             type="button"
             variant="destructive"
             size="icon"

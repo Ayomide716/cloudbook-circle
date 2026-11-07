@@ -94,7 +94,7 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
             alt="Preview"
             className="w-full max-h-64 object-cover rounded-lg"
           />
-          <Button
+          <Button aria-label="Remove photo"
             type="button"
             variant="destructive"
             size="icon"

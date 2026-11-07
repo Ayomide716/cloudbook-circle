@@ -32,7 +32,7 @@ const ReactionChips = ({ reactions, currentUserId, nameOf, onRemoveMine, isOwnMe
         <ActionMenuTrigger asChild>
           <button
             type="button"
-            className="flex items-center gap-0.5 rounded-full border border-border bg-card px-1.5 py-0.5 text-[13px] leading-none shadow-sm dark:bg-[#232327]"
+            className="flex items-center gap-0.5 rounded-full border border-border bg-chat-surface px-1.5 py-0.5 text-[13px] leading-none shadow-sm"
             aria-label={`Reactions: ${reactions.length}. See who reacted`}
           >
             {kinds.slice(0, 3).map((k) => (hasReactionEmoji(k) ? <ReactionEmoji key={k} type={k} className="h-4 w-4" /> : <span key={k}>{reactionEmoji(k)}</span>))}

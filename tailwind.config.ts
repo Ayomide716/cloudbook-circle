@@ -14,6 +14,12 @@ export default {
       },
     },
     extend: {
+      // Motion curves: a strong ease-out for things that appear or leave, the iOS drawer curve
+      // for sheets. (Built-in ease and ease-out are too soft to feel deliberate.)
+      transitionTimingFunction: {
+        ui: "cubic-bezier(0.23, 1, 0.32, 1)",
+        drawer: "cubic-bezier(0.32, 0.72, 0, 1)",
+      },
       fontFamily: {
         sans: ["Figtree Variable", "Figtree", "system-ui", "-apple-system", "sans-serif"],
         display: ["Figtree Variable", "Figtree", "system-ui", "sans-serif"],
@@ -56,6 +62,10 @@ export default {
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
+        },
+        chat: {
+          surface: "hsl(var(--chat-surface))",
+          sent: "hsl(var(--chat-sent))",
         },
         card: {
           DEFAULT: "hsl(var(--card))",
@@ -176,17 +186,17 @@ export default {
         "post-progress": "post-progress 3s cubic-bezier(.1,.7,.3,1) forwards",
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "fade-in": "fade-in 0.3s ease-out",
-        "fade-out": "fade-out 0.3s ease-out",
-        "scale-in": "scale-in 0.2s ease-out",
-        "scale-out": "scale-out 0.2s ease-out",
-        "slide-in-right": "slide-in-right 0.3s ease-out",
-        "slide-out-right": "slide-out-right 0.3s ease-out",
+        "fade-in": "fade-in 0.25s cubic-bezier(0.23,1,0.32,1)",
+        "fade-out": "fade-out 0.2s cubic-bezier(0.23,1,0.32,1)",
+        "scale-in": "scale-in 0.2s cubic-bezier(0.23,1,0.32,1)",
+        "scale-out": "scale-out 0.15s cubic-bezier(0.23,1,0.32,1)",
+        "slide-in-right": "slide-in-right 0.3s cubic-bezier(0.23,1,0.32,1)",
+        "slide-out-right": "slide-out-right 0.25s cubic-bezier(0.23,1,0.32,1)",
         "slide-up": "slide-up 0.4s ease-out",
         "glow-pulse": "glow-pulse 2s ease-in-out infinite",
         "dock-bounce": "dock-bounce 0.4s ease-in-out",
-        enter: "fade-in 0.3s ease-out, scale-in 0.2s ease-out",
-        exit: "fade-out 0.3s ease-out, scale-out 0.2s ease-out",
+        enter: "fade-in 0.25s cubic-bezier(0.23,1,0.32,1), scale-in 0.2s cubic-bezier(0.23,1,0.32,1)",
+        exit: "fade-out 0.2s cubic-bezier(0.23,1,0.32,1), scale-out 0.15s cubic-bezier(0.23,1,0.32,1)",
       },
     },
   },

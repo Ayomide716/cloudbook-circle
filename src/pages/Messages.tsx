@@ -987,7 +987,7 @@ const Messages = () => {
                     )}
                     {/* Replying to (or editing) a message: a quote above the box, as in WhatsApp. */}
                     {(replyingTo || editingMessage) && !voiceActive && (
-                      <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-card dark:bg-[#232327] p-1.5 pl-2 shadow-sm animate-fade-in">
+                      <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-chat-surface p-1.5 pl-2 shadow-sm animate-fade-in">
                         <div className="min-w-0 flex-1 rounded-lg border-l-4 border-primary bg-black/5 dark:bg-white/5 px-2 py-1">
                           <p className="text-xs font-semibold text-primary">
                             {editingMessage ? "Editing message" : replyingTo?.sender_id === currentUserId ? "You" : selectedConversation.full_name || "Them"}
@@ -1008,7 +1008,7 @@ const Messages = () => {
                     )}
                     <div className="flex items-end gap-1.5">
                       {!voiceActive && (
-                        <div className="flex-1 min-w-0 flex items-end gap-0.5 rounded-3xl bg-card dark:bg-[#232327] shadow-sm px-1 py-1 min-h-12 [&_button]:h-10 [&_button]:w-10 [&_button]:shrink-0 [&_button]:rounded-full [&_button_svg]:!h-[22px] [&_button_svg]:!w-[22px] [&_button_svg]:text-muted-foreground">
+                        <div className="flex-1 min-w-0 flex items-end gap-0.5 rounded-3xl bg-chat-surface shadow-sm px-1 py-1 min-h-12 [&_button]:h-10 [&_button]:w-10 [&_button]:shrink-0 [&_button]:rounded-full [&_button_svg]:!h-[22px] [&_button_svg]:!w-[22px] [&_button_svg]:text-muted-foreground">
                           <GifPicker
                             onSelect={(content) => {
                               if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }

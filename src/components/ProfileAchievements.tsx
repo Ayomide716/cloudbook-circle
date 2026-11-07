@@ -157,8 +157,8 @@ const ProfileAchievements = ({ userId, isOwnProfile }: ProfileAchievementsProps)
           <Tooltip key={a.type}>
             <TooltipTrigger asChild>
               <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
+                initial={{ scale: 0.6, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: i * 0.05, type: "spring", stiffness: 400 }}
                 className="h-10 w-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center cursor-default hover:scale-110 transition-transform"
                 aria-label={a.label}

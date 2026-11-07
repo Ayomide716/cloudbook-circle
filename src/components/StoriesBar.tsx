@@ -605,12 +605,12 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
           {/* Nav arrows (desktop) */}
           {activeGroupIndex > 0 && (
-            <button className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm items-center justify-center text-white hover:bg-white/30" onClick={goPrev}>
+            <button aria-label="Previous story" className="hidden sm:flex absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm items-center justify-center text-white hover:bg-white/30" onClick={goPrev}>
               <ChevronLeft className="h-5 w-5" />
             </button>
           )}
           {(activeStoryIndex < activeGroup.stories.length - 1 || activeGroupIndex < storyGroups.length - 1) && (
-            <button className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm items-center justify-center text-white hover:bg-white/30" onClick={goNext}>
+            <button aria-label="Next story" className="hidden sm:flex absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-white/20 backdrop-blur-sm items-center justify-center text-white hover:bg-white/30" onClick={goNext}>
               <ChevronRight className="h-5 w-5" />
             </button>
           )}
@@ -679,7 +679,7 @@ const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: 
         aria-label={ariaLabel}
         className={cn(
           "block h-[66px] w-[66px] rounded-full p-[2.5px] transition-transform active:scale-95",
-          ring === "new" ? "bg-gradient-to-tr from-amber-400 via-primary to-rose-500" : ring === "seen" ? "bg-border" : "bg-transparent"
+          ring === "new" ? "bg-primary" : ring === "seen" ? "bg-border" : "bg-transparent"
         )}
       >
         {/* Stories you've already watched fade back, so new ones stand out. */}

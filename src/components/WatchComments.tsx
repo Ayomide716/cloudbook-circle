@@ -109,7 +109,7 @@ const WatchComments = ({ videoId, currentUserId }: WatchCommentsProps) => {
               onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
               className="h-8 text-xs"
             />
-            <Button size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleSubmit} disabled={!newComment.trim() || isSending}>
+            <Button aria-label="Send comment" size="icon" className="h-8 w-8 flex-shrink-0" onClick={handleSubmit} disabled={!newComment.trim() || isSending}>
               {isSending ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5" />}
             </Button>
           </div>

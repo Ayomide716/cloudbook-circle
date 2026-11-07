@@ -27,7 +27,7 @@ interface CreatorSubscriptionsProps {
 const TIER_CONFIG = {
   supporter: { icon: Star, color: "text-primary", gradient: "from-primary/20 to-primary/5", label: "Supporter" },
   superfan: { icon: Crown, color: "text-amber-500", gradient: "from-amber-500/20 to-amber-500/5", label: "Superfan" },
-  vip: { icon: Gem, color: "text-violet-500", gradient: "from-violet-500/20 to-violet-500/5", label: "VIP" },
+  vip: { icon: Gem, color: "text-foreground", gradient: "from-foreground/15 to-foreground/5", label: "VIP" },
 };
 
 const CreatorSubscriptions = ({ creatorId, currentUserId, isOwnProfile }: CreatorSubscriptionsProps) => {
