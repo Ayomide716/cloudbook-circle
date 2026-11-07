@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Plain dark launch screen: the app's own "ember." typing splash (index.html) is the first thing people see. -->
+<!-- Plain launch screen in the app's background colour (white, or near-black in dark mode): the
+     app's own "ember." splash (index.html) is the first thing people see. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="rectangle">
-    <solid android:color="#0C0C0E" />
+    <solid android:color="@color/ember_launch" />
 </shape>

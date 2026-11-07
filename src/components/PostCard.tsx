@@ -10,7 +10,7 @@ import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban } from "@/components/icons";
-import { Globe, Heart, MessageCircle, MoreHorizontal, Share2, X as XIcon } from "@/components/icons";
+import { Heart, MessageCircle, MoreHorizontal, Share2, X as XIcon } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -553,8 +553,6 @@ const PostCard = ({
               <time dateTime={toDate(post.created_at).toISOString()} title={formatDistanceToNow(toDate(post.created_at), { addSuffix: true })} className="shrink-0">
                 {shortTime(post.created_at)}
               </time>
-              <span aria-hidden="true">·</span>
-              <Globe className="h-3.5 w-3.5 shrink-0" aria-label="Public" />
             </p>
           </div>
 
@@ -761,7 +759,7 @@ const PostCard = ({
                       title={label}
                       aria-label={label}
                     >
-                      <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 rounded-full bg-foreground/85 px-2 py-0.5 text-[10.5px] font-semibold text-background opacity-0 transition-opacity group-hover:opacity-100">{label}</span>
+                      <span className="pointer-events-none absolute -top-7 left-1/2 -translate-x-1/2 rounded-full bg-foreground/85 px-2 py-0.5 text-[11px] font-semibold text-background opacity-0 transition-opacity group-hover:opacity-100">{label}</span>
                       <ReactionEmoji type={type} className="h-9 w-9 max-sm:h-10 max-sm:w-10" />
                     </motion.button>
                   ))}

@@ -11,9 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PageHeader, HeaderAction, PageSearch } from "@/components/layout/PageHeader";
+import { Chips, HeaderAction, PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Search, Plus, Users, Globe, Flag, Loader2 } from "@/components/icons";
 import { cn, friendlyError } from "@/lib/utils";
 import { motion } from "framer-motion";
@@ -21,6 +21,7 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useSEO } from "@/hooks/useSEO";
 import { PAGE_CATEGORIES, pageCategoryLabel } from "@/lib/page-categories";
+import EmptyState from "@/components/EmptyState";
 
 
 interface Page {
@@ -181,14 +182,20 @@ const Pages = () => {
             className="sm:mb-4"
           >
             <PageSearch value={searchQuery} onChange={setSearchQuery} placeholder="Search pages" />
+            {/* Chips, like Events, Groups and Marketplace. */}
+            <Chips
+              label="Show pages"
+              value={activeTab}
+              onChange={setActiveTab}
+              options={[
+                { value: "discover", label: "Discover" },
+                { value: "following", label: "Following" },
+                { value: "my-pages", label: "My pages" },
+              ]}
+            />
           </PageHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="feed-section w-full bg-card sm:bg-transparent px-2 sm:px-0 mb-2 sm:mb-4">
-              <TabsTrigger value="discover">Discover</TabsTrigger>
-              <TabsTrigger value="following">Following</TabsTrigger>
-              <TabsTrigger value="my-pages">My Pages</TabsTrigger>
-            </TabsList>
 
             <TabsContent value="discover">
               {isLoading ? <PageGridSkeleton /> : (
@@ -199,7 +206,7 @@ const Pages = () => {
                   onToggleFollow={toggleFollow}
                   onNavigate={(id) => navigate(`/pages/${id}`)}
                   getCategoryLabel={getCategoryLabel}
-                  emptyMessage="No pages found. Create one!"
+                  emptyMessage="No pages yet"
                 />
               )}
             </TabsContent>
@@ -253,10 +260,7 @@ interface PageGridProps {
 const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNavigate, getCategoryLabel, emptyMessage, isOwner }: PageGridProps) => {
   if (pages.length === 0) {
     return (
-      <div className="text-center py-16">
-        <Flag className="h-16 w-16 mx-auto text-muted-foreground/40 mb-4" />
-        <p className="text-lg text-muted-foreground">{emptyMessage}</p>
-      </div>
+      <EmptyState emoji="flag" title={emptyMessage} />
     );
   }
 

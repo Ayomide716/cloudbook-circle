@@ -182,7 +182,7 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
             onClick={() => setSpeed((s) => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length])}
             aria-label={`Playback speed ${speed} times`}
             className={cn(
-              "rounded-full px-1.5 text-[10.5px] font-bold leading-[18px]",
+              "rounded-full px-1.5 text-[11px] font-bold leading-[18px]",
               isOwnMessage ? "bg-white/20 text-white" : "bg-foreground/10 text-foreground"
             )}
           >

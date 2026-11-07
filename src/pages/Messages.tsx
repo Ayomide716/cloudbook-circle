@@ -649,7 +649,7 @@ const Messages = () => {
       <>
       {newDay && (
         <div className="flex justify-center pt-3 pb-1">
-          <span className="rounded-lg bg-card/90 px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground shadow-sm backdrop-blur dark:bg-[#1c2530]/90">
+          <span className="rounded-lg bg-card/90 px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur dark:bg-[#1c2530]/90">
             {dayLabel(day)}
           </span>
         </div>

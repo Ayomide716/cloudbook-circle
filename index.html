@@ -41,17 +41,21 @@
     </style>
 
 
-    <!-- Splash for the installed app: "ember." types itself out while the app loads. -->
+    <!-- Splash for the installed app: "ember." rises in letter by letter, the orange dot settles,
+         and it all fades into the app. Light or dark, as the app will be. -->
     <style>
-      #splash { position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: center; justify-content: center; background: #0C0C0E; transition: opacity .35s ease; }
+      #splash { --bg: #FFFFFF; --ink: #121212; --dot: #F2551C; position: fixed; inset: 0; z-index: 2147483647; display: flex; align-items: center; justify-content: center; background: var(--bg); transition: opacity .28s cubic-bezier(.23,1,.32,1), transform .28s cubic-bezier(.23,1,.32,1); }
+      #splash.dark { --bg: #0C0C0E; --ink: #F4F4F5; --dot: #FF6929; }
       #splash[hidden] { display: none; }
-      #splash.out { opacity: 0; pointer-events: none; }
-      #splash .word { font-family: 'Figtree Variable', 'Figtree', system-ui, sans-serif; font-weight: 800; font-size: 56px; letter-spacing: -0.04em; color: #F5F1EA; line-height: 1; display: flex; align-items: center; }
-      #splash .dot { color: #FF6A3D; display: inline-block; transform: scale(0); transition: transform .35s cubic-bezier(.3,1.6,.5,1); }
-      #splash .dot.on { transform: scale(1); }
-      #splash .caret { width: 4px; height: 52px; margin-left: 4px; border-radius: 2px; background: #FF6A3D; animation: splash-blink .8s steps(1) infinite; }
-      #splash .caret.off { display: none; }
-      @keyframes splash-blink { 50% { opacity: 0; } }
+      #splash.out { opacity: 0; transform: scale(1.03); pointer-events: none; }
+      #splash .word { font-family: 'Figtree Variable', 'Figtree', system-ui, sans-serif; font-weight: 800; font-size: 56px; letter-spacing: -0.045em; color: var(--ink); line-height: 1.1; display: flex; overflow: hidden; padding-bottom: .08em; }
+      #splash .l { display: inline-block; transform: translateY(105%); opacity: 0; animation: splash-rise .5s cubic-bezier(.23,1,.32,1) forwards; }
+      #splash .dot { color: var(--dot); display: inline-block; transform: scale(.3); opacity: 0; animation: splash-dot .42s cubic-bezier(.34,1.56,.64,1) forwards; }
+      #splash .l, #splash .dot { animation-play-state: paused; }
+      #splash.go .l, #splash.go .dot { animation-play-state: running; }
+      @keyframes splash-rise { to { transform: none; opacity: 1; } }
+      @keyframes splash-dot { to { transform: none; opacity: 1; } }
+      @media (prefers-reduced-motion: reduce) { #splash .l, #splash .dot { animation: none; transform: none; opacity: 1; } #splash.out { transform: none; } }
     </style>
 
     <!-- Theme Color -->
@@ -83,7 +87,7 @@
       // Inside the Android app or the installed app: no scrollbars, as in native apps (index.css .app-shell).
       try { if ((window.matchMedia && matchMedia("(display-mode: standalone)").matches) || navigator.standalone === true || (window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform())) document.documentElement.classList.add("app-shell"); } catch (e) {}
     </script>
-    <div id="splash" hidden aria-hidden="true"><span class="word"><span class="typed"></span><span class="dot">.</span><span class="caret"></span></span></div>
+    <div id="splash" hidden aria-hidden="true"><span class="word"></span></div>
     <script>
       // Only when opened as the installed app (home-screen icon or the Android app), once per launch. ?splash=1 forces it.
       (function () {
@@ -94,25 +98,30 @@
         var seen = false;
         try { seen = sessionStorage.getItem("ember_splash") === "1"; sessionStorage.setItem("ember_splash", "1"); } catch (e) {}
         if (!forced && (!standalone || seen)) { window.__hideSplash = function () {}; return; }
+        // The theme the app is about to use: your choice in Settings, else the phone's.
+        var theme = null;
+        try { theme = localStorage.getItem("theme"); } catch (e) {}
+        var dark = theme === "dark" || ((!theme || theme === "system") && window.matchMedia && matchMedia("(prefers-color-scheme: dark)").matches);
+        if (dark) el.classList.add("dark");
+        var word = el.querySelector(".word");
+        "ember".split("").forEach(function (c, i) {
+          var s = document.createElement("span"); s.className = "l"; s.textContent = c; s.style.animationDelay = (60 + i * 45) + "ms"; word.appendChild(s);
+        });
+        var dot = document.createElement("span"); dot.className = "dot"; dot.textContent = "."; dot.style.animationDelay = "380ms"; word.appendChild(dot);
         el.hidden = false;
-        // In the Android app, lift the dark launch screen now, so the typing is seen from the first letter.
-        try { window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashScreen && window.Capacitor.Plugins.SplashScreen.hide({ fadeOutDuration: 150 }); } catch (e) {}
-        var typed = el.querySelector(".typed"), dot = el.querySelector(".dot"), caret = el.querySelector(".caret");
-        var word = "ember", done = false, wantHide = false;
-        var finish = function () { el.classList.add("out"); setTimeout(function () { el.remove(); }, 400); };
-        window.__hideSplash = function () { wantHide = true; if (done) finish(); };
-        var type = function (i) {
-          if (i <= word.length) { typed.textContent = word.slice(0, i); setTimeout(function () { type(i + 1); }, i === 0 ? 220 : 130); return; }
-          dot.classList.add("on");
-          setTimeout(function () { caret.classList.add("off"); done = true; if (wantHide) setTimeout(finish, 300); }, 450);
-        };
-        // Wait briefly for the display font so the letters don't change shape mid-way.
-        var start = function () { type(0); };
+        // In the Android app, lift the plain launch screen now (same colour), so the animation is seen from the start.
+        try { window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.SplashScreen && window.Capacitor.Plugins.SplashScreen.hide({ fadeOutDuration: 0 }); } catch (e) {}
+        // Shown for at least the animation (~0.8s), then as long as the app needs, then it fades into the app.
+        // Start once the display font is in (at most 0.5s), so the letters don't change shape mid-way.
+        var go = function () { el.classList.add("go"); };
         if (document.fonts && document.fonts.load) {
-          Promise.race([document.fonts.load('800 56px "Figtree Variable"'), new Promise(function (r) { setTimeout(r, 700); })]).then(start, start);
-        } else start();
+          Promise.race([document.fonts.load('800 56px "Figtree Variable"'), new Promise(function (r) { setTimeout(r, 500); })]).then(go, go);
+        } else go();
+        var shownAt = Date.now(), gone = false;
+        var finish = function () { if (gone) return; gone = true; el.classList.add("out"); setTimeout(function () { el.remove(); }, 320); };
+        window.__hideSplash = function () { setTimeout(finish, Math.max(0, 850 - (Date.now() - shownAt))); };
         // Never get stuck on the splash.
-        setTimeout(function () { wantHide = true; done = true; finish(); }, 4000);
+        setTimeout(finish, 4000);
       })();
     </script>
     <div id="root"></div>

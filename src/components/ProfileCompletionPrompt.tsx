@@ -87,7 +87,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
         exit={{ opacity: 0, y: -6 }}
         className="feed-section flex items-center gap-2.5 rounded-2xl border border-border/60 bg-card px-3 py-2 sm:px-4"
       >
-        <Sparkles className="h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
+        <Sparkles className="h-4 w-4 shrink-0 text-foreground" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <p className="truncate text-[13px] font-semibold">
             Your profile is {completion}% done
@@ -97,7 +97,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
         <Button
           variant="outline"
           size="sm"
-          className="h-7 shrink-0 rounded-full px-3 text-[12px]"
+          className="tap-target h-8 shrink-0 rounded-full px-3 text-[13px]"
           onClick={() => navigate(`/profile/${userId}`)}
           title={`Next: ${nextStep}`}
         >

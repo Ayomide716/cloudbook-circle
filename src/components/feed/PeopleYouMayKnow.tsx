@@ -91,7 +91,7 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
     <section className="feed-section overflow-hidden rounded-[1.125rem] border bg-card py-3" aria-label="People you may know">
       <div className="flex items-center justify-between px-3.5 pb-2.5">
         <h2 className="text-[15px] font-semibold">People you may know</h2>
-        <Link to="/friends" className="text-sm font-medium text-primary hover:underline">See all</Link>
+        <Link to="/friends" className="text-sm font-semibold text-foreground hover:underline">See all</Link>
       </div>
       <div className="flex snap-x gap-2.5 overflow-x-auto px-3.5 pb-1 scrollbar-hide">
         {people.map((p) => (

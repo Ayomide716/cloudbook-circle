@@ -14,7 +14,7 @@ const RowShell = ({ title, link, linkLabel = "See all", children, label }: { tit
   <section className="feed-section overflow-hidden rounded-[1.125rem] border bg-card py-3" aria-label={label}>
     <div className="flex items-center justify-between px-3.5 pb-2.5">
       <h2 className="text-[15px] font-semibold">{title}</h2>
-      <Link to={link} className="text-sm font-medium text-primary hover:underline">{linkLabel}</Link>
+      <Link to={link} className="text-sm font-semibold text-foreground hover:underline">{linkLabel}</Link>
     </div>
     <div className="flex snap-x gap-2.5 overflow-x-auto px-3.5 pb-1 scrollbar-hide">{children}</div>
   </section>
@@ -64,7 +64,7 @@ export const ReelsRow = () => {
           <span className="absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white">
             <Play className="h-3.5 w-3.5 fill-white" />
           </span>
-          <span className="absolute inset-x-2 bottom-2 line-clamp-2 text-[11.5px] font-semibold leading-tight text-white drop-shadow">
+          <span className="absolute inset-x-2 bottom-2 line-clamp-2 text-xs font-semibold leading-tight text-white drop-shadow">
             {r.caption || r.profiles?.full_name || "Reel"}
           </span>
         </button>
@@ -130,7 +130,7 @@ export const GroupsRow = ({ currentUserId }: { currentUserId: string }) => {
             )}
           </Link>
           <div className="p-2.5">
-            <Link to={`/groups/${g.id}`} className="line-clamp-2 min-h-[2.5em] text-[13.5px] font-semibold leading-tight hover:underline">{g.name}</Link>
+            <Link to={`/groups/${g.id}`} className="line-clamp-2 min-h-[2.5em] text-[14px] font-semibold leading-tight hover:underline">{g.name}</Link>
             {g.members !== null && <p className="mt-0.5 text-xs text-muted-foreground">{g.members} {g.members === 1 ? "member" : "members"}</p>}
             {joined.has(g.id) ? (
               <Button size="sm" variant="secondary" disabled className="mt-2 h-8 w-full rounded-lg"><Check className="mr-1 h-4 w-4" /> Joined</Button>
@@ -193,9 +193,9 @@ export const OnThisDay = ({ currentUserId, name, avatarUrl }: { currentUserId: s
   return (
     <section className="feed-section overflow-hidden rounded-[1.125rem] border bg-card" aria-label="On this day">
       <div className="flex items-center gap-2 px-3.5 pt-3">
-        <History className="h-5 w-5 text-primary" />
+        <History className="h-5 w-5 text-foreground" />
         <h2 className="flex-1 text-[15px] font-semibold">On this day</h2>
-        <button type="button" onClick={dismiss} className="text-sm text-muted-foreground hover:text-foreground">Not now</button>
+        <button type="button" onClick={dismiss} className="-my-2 -mr-2 h-10 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground">Not now</button>
       </div>
       <Link to={`/post/${memory.id}`} className="block px-3.5 pb-3.5 pt-2">
         <p className="text-sm text-muted-foreground">{years} {years === 1 ? "year" : "years"} ago today, you shared:</p>

@@ -388,7 +388,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
       <>
         {newDay && (
           <div className="flex justify-center pb-1 pt-3">
-            <span className="rounded-lg bg-card/90 px-2.5 py-1 text-[11.5px] font-medium text-muted-foreground shadow-sm dark:bg-[#1c2530]/90">{dayLabel(day)}</span>
+            <span className="rounded-lg bg-card/90 px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm dark:bg-[#1c2530]/90">{dayLabel(day)}</span>
           </div>
         )}
         <GroupMessageBubble

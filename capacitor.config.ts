@@ -14,10 +14,9 @@ const config: CapacitorConfig = {
       initialViewportFitValueHint: "cover",
     },
     SplashScreen: {
-      // No logo screen: a plain dark one (the colour of the web splash) that gives way to the
-      // app's own "ember." typing splash (index.html) as soon as the app has loaded.
+      // No logo screen: a plain one in the app's background colour (splash_blank, light or dark
+      // with the phone) that gives way to the app's own "ember." splash (index.html).
       launchAutoHide: false,
-      backgroundColor: "#0C0C0E",
       androidSplashResourceName: "splash_blank",
       androidScaleType: "CENTER_CROP",
       showSpinner: false,
