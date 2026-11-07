@@ -13,15 +13,17 @@
 
     /* Chat: other people's bubbles and the composer, and your own bubbles. */
     --chat-surface: 0 0% 100%;
-    --chat-sent: 16 89% 53%;
+    --chat-sent: 16 86% 44%;
 
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 7%;
 
-    /* Deep enough tangerine for white text and links on white. */
-    --primary: 16 89% 53%;
+    /* Deep enough tangerine for white text on it and for orange text on white (4.65:1, AA). */
+    --primary: 16 86% 44%;
     --primary-foreground: 0 0% 100%;
-    --primary-glow: 16 89% 53%;
+    --primary-glow: 16 86% 44%;
+    /* The bright signature orange, for marks with no text on them: the logo dot, story rings. */
+    --brand: 16 89% 53%;
 
     --secondary: 60 5% 96%;
     --secondary-foreground: 0 0% 7%;
@@ -49,8 +51,8 @@
     --radius: 0.75rem;
 
     /* Gradient tokens */
-    --gradient-brand: linear-gradient(hsl(16 89% 53%), hsl(16 89% 53%));
-    --gradient-brand-soft: linear-gradient(hsl(16 89% 53% / 0.1), hsl(16 89% 53% / 0.1));
+    --gradient-brand: linear-gradient(hsl(16 86% 44%), hsl(16 86% 44%));
+    --gradient-brand-soft: linear-gradient(hsl(16 86% 44% / 0.1), hsl(16 86% 44% / 0.1));
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 100%));
 
     /* Glass & shadow */
@@ -79,9 +81,10 @@
     --popover-foreground: 240 5% 96%;
 
     --primary: 18 100% 58%;
-    /* The bright tangerine reads best with dark text on it. */
-    --primary-foreground: 0 0% 100%;
+    /* The bright tangerine reads best with dark text on it (6.5:1). */
+    --primary-foreground: 0 0% 7%;
     --primary-glow: 18 100% 58%;
+    --brand: 18 100% 58%;
 
     --secondary: 240 4% 11%;
     --secondary-foreground: 240 5% 96%;

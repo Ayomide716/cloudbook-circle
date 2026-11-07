@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { myBlockedPeople, unblockUser } from "@/lib/blocking";
-import { getErrorMessage } from "@/lib/utils";
+import { friendlyError } from "@/lib/utils";
 
 type Person = Awaited<ReturnType<typeof myBlockedPeople>>[number];
 
@@ -24,7 +24,7 @@ const BlockedPeople = ({ userId }: { userId: string }) => {
       setPeople((prev) => prev?.filter((p) => p.id !== person.id) ?? null);
       toast({ title: `You unblocked ${person.full_name || "them"}` });
     } catch (error) {
-      toast({ title: "Couldn't unblock", description: getErrorMessage(error), variant: "destructive" });
+      toast({ title: "Couldn't unblock", description: friendlyError(error), variant: "destructive" });
     }
   };
 

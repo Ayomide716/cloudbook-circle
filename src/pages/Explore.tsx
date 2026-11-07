@@ -18,6 +18,7 @@ import type { PostCardProps } from "@/components/PostCard";
 import type { Tables } from "@/integrations/supabase/types";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import ExploreSkeleton from "@/components/skeletons/ExploreSkeleton";
+import { friendlyError } from "@/lib/utils";
 
 interface TrendingTopic {
   tag: string;
@@ -198,7 +199,7 @@ const Explore = () => {
     const { error } = await supabase.from("friendships").insert({ user_id: currentUser.id, friend_id: userId, status: "pending" });
     setAddingId(null);
     if (error) {
-      toast({ title: "Couldn't send friend request", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't send friend request", description: friendlyError(error), variant: "destructive" });
       return;
     }
     setRequested((prev) => new Set(prev).add(userId));

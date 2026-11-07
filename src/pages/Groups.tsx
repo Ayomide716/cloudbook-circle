@@ -1,6 +1,6 @@
 import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
-import { getErrorMessage } from "@/lib/utils";
+import { friendlyError } from "@/lib/utils";
 import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
 import { useEffect, useState, useMemo, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
@@ -82,7 +82,7 @@ const Groups = () => {
     if (error) {
       toast({
         title: "Error loading groups",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       setIsLoading(false);
@@ -168,7 +168,7 @@ const Groups = () => {
       console.error("Upload error:", uploadError);
       toast({
         title: "Image upload failed",
-        description: getErrorMessage(uploadError),
+        description: friendlyError(uploadError),
         variant: "destructive",
       });
       return null;
@@ -201,7 +201,7 @@ const Groups = () => {
     if (error) {
       toast({
         title: "Error creating group",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       setIsUploading(false);
@@ -233,7 +233,7 @@ const Groups = () => {
     if (memberError) {
       toast({
         title: "Group created, but you couldn't be added to it",
-        description: memberError.message,
+        description: friendlyError(memberError),
         variant: "destructive",
       });
     }
@@ -263,7 +263,7 @@ const Groups = () => {
     if (error) {
       toast({
         title: "Error joining group",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;

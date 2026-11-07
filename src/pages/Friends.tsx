@@ -26,7 +26,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { formatDistanceToNow } from "date-fns";
 import { PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { useEffectEvent } from "@/hooks/use-effect-event";
-import { cn, toDate } from "@/lib/utils";
+import { cn, friendlyError, toDate } from "@/lib/utils";
 import { lastSeen } from "@/lib/time";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { dbChannel } from "@/lib/realtime";
@@ -285,7 +285,7 @@ const Friends = () => {
     if (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -313,7 +313,7 @@ const Friends = () => {
     if (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -346,7 +346,7 @@ const Friends = () => {
       });
       toast({
         title: "Error",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -386,7 +386,7 @@ const Friends = () => {
     if (error) {
       toast({
         title: "Error",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -403,7 +403,7 @@ const Friends = () => {
       .eq("id", unfriendTarget.id);
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
     } else {
       toast({ title: `Unfriended ${unfriendTarget.friend.full_name || "user"}` });
       loadData();

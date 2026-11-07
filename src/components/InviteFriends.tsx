@@ -41,7 +41,7 @@ const InviteFriends = ({ userId, className, compact = false }: { userId: string;
         </>
       )}
       <div className={cn("flex gap-2", !compact && "mt-3")}>
-        <Button asChild className="flex-1 rounded-full bg-[#25D366] text-white hover:bg-[#1ebe5a]">
+        <Button asChild className="flex-1 rounded-full bg-[#25D366] text-[#0b2614] hover:bg-[#1ebe5a]">
           <a href={`https://wa.me/?text=${encodeURIComponent(text)}`} target="_blank" rel="noopener noreferrer">
             <WhatsAppIcon className="mr-1.5 h-4 w-4" /> WhatsApp
           </a>

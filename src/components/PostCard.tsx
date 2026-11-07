@@ -10,7 +10,7 @@ import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban } from "@/components/icons";
-import { Globe, Heart, MessageCircle, MoreHorizontal, Send, X as XIcon } from "@/components/icons";
+import { Globe, Heart, MessageCircle, MoreHorizontal, Share2, X as XIcon } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -815,7 +815,8 @@ const PostCard = ({
             onClick={() => setShowShareDialog(true)}
             aria-label="Share"
           >
-            <Send className="h-6 w-6" />
+            {/* The share icon, not the paper plane: that one means Messages in the top bar. */}
+            <Share2 className="h-6 w-6" />
           </Button>
 
           {/* Tips use credits, which are muted with the Ad Manager (features.extras). */}

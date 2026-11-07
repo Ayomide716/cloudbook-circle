@@ -99,6 +99,8 @@ const Menu = () => {
   const [friendCount, setFriendCount] = useState<number | null>(lastSeen?.friendCount ?? null);
   const [requestCount, setRequestCount] = useState(lastSeen?.requestCount ?? 0);
   const [isAdmin, setIsAdmin] = useState(lastSeen?.isAdmin ?? false);
+  // The header couldn't load (patchy data): show a retry instead of placeholders that never fill.
+  const [loadFailed, setLoadFailed] = useState(false);
 
   const load = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -108,7 +110,8 @@ const Menu = () => {
     }
     const id = session.user.id;
     setUserId(id);
-    const [{ data: profileData }, { data: role }, friends, requests] = await Promise.all([
+    setLoadFailed(false);
+    const [{ data: profileData, error: profileError }, { data: role }, friends, requests] = await Promise.all([
       supabase.from("profiles").select("full_name, avatar_url, cover_url").eq("id", id).maybeSingle(),
       supabase.from("user_roles").select("role").eq("user_id", id).eq("role", "admin").maybeSingle(),
       supabase
@@ -123,6 +126,7 @@ const Menu = () => {
         .eq("friend_id", id),
     ]);
     if (profileData) setProfile(profileData);
+    if (profileError && friends.error) setLoadFailed(true);
     setIsAdmin(!!role);
     if (!friends.error) setFriendCount(friends.count ?? 0);
     if (!requests.error) setRequestCount(requests.count ?? 0);
@@ -137,6 +141,10 @@ const Menu = () => {
 
   useEffect(() => {
     load();
+    // Back online after a failed load: fill the header in without a tap.
+    const retry = () => load();
+    window.addEventListener("online", retry);
+    return () => window.removeEventListener("online", retry);
   }, [load]);
 
   const handleLogout = async () => {
@@ -176,10 +184,14 @@ const Menu = () => {
             <button type="button" onClick={() => userId && navigate(`/profile/${userId}`)} className="min-w-0 flex-1 pt-2 text-left">
               {profile ? (
                 <span className="block truncate text-[17px] font-semibold">{profile.full_name || "Your profile"}</span>
+              ) : loadFailed ? (
+                <span className="block truncate text-[17px] font-semibold">Your profile</span>
               ) : (
                 <Skeleton className="mb-1 h-5 w-32" />
               )}
-              {friendCount === null ? (
+              {friendCount === null && loadFailed ? (
+                <span className="block truncate text-[13px] text-muted-foreground">Couldn't load. Check your connection.</span>
+              ) : friendCount === null ? (
                 <Skeleton className="h-4 w-24" />
               ) : (
                 <span className="block truncate text-[13px] text-muted-foreground">
@@ -199,6 +211,14 @@ const Menu = () => {
               Edit
             </Button>
           </div>
+          {loadFailed && (
+            <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5">
+              <span className="text-[13px] text-muted-foreground">Some details didn't load.</span>
+              <Button variant="secondary" size="sm" onClick={() => load()} className="h-8 rounded-lg px-3 text-[13px] font-semibold">
+                Try again
+              </Button>
+            </div>
+          )}
         </section>
 
         {userId && <GroupShortcuts userId={userId} />}

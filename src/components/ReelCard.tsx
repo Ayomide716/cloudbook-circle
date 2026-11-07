@@ -8,7 +8,7 @@ import { ChevronsDown, FastForward, Play, Trash2, Volume2, VolumeX, Link2, Flag,
 import { ChatCircle, DotsThree, Heart, MusicNotesSimple, ShareFat } from "@phosphor-icons/react";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactionEmoji from "./reactions/ReactionEmoji";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import {
   ActionMenu,
   ActionMenuContent,
@@ -282,7 +282,7 @@ export default function ReelCard({
       await saveOffline(reel.video_url, reel.caption || `${reel.profiles.full_name || "Someone"}'s reel`);
       toast({ title: "Saved. Watch it any time in Menu → Offline videos" });
     } catch (e) {
-      toast({ title: "Couldn't save it", description: (e as Error).message, variant: "destructive" });
+      toast({ title: "Couldn't save it", description: friendlyError(e), variant: "destructive" });
     }
     setSaving(false);
   };

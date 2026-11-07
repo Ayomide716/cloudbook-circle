@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Camera, Image, Loader2, X } from "@/components/icons";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 
 interface ImageUploadProps {
   bucket: string;
@@ -72,7 +72,7 @@ const ImageUpload = ({ bucket, userId, onUploadComplete, currentImage, label = "
     } catch (error) {
       toast({
         title: "Upload failed",
-        description: getErrorMessage(error),
+        description: friendlyError(error),
         variant: "destructive",
       });
     } finally {

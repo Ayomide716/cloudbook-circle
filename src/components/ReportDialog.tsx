@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { friendlyError } from "@/lib/utils";
 
 interface ReportDialogProps {
   reportedType: "post" | "reel" | "comment" | "profile";
@@ -55,7 +56,7 @@ const ReportDialog = ({ reportedType, reportedId, currentUserId, open: openProp,
     });
     setIsSubmitting(false);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
     } else {
       toast({ title: "Report submitted", description: "We'll review this content shortly." });
       setOpen(false);

@@ -23,7 +23,7 @@ import { BLANK_POSTER } from "@/lib/video-poster";
 import LiveRoomStories from "./LiveRoomStories";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
 import StoryReplyBar from "@/components/stories/StoryReplyBar";
@@ -214,7 +214,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     try {
       await save(storyVideo || storyImage, storyVideo ? "video" : "image");
     } catch (e) {
-      toast({ title: "Error creating story", description: (e as Error).message, variant: "destructive" });
+      toast({ title: "Error creating story", description: friendlyError(e), variant: "destructive" });
       return;
     }
     done();
@@ -235,7 +235,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     setIsDeleting(false);
     setConfirmDelete(false);
     if (error) {
-      toast({ title: "Couldn't delete story", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't delete story", description: friendlyError(error), variant: "destructive" });
       setIsPaused(false);
       return;
     }
@@ -679,7 +679,7 @@ const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: 
         aria-label={ariaLabel}
         className={cn(
           "block h-[66px] w-[66px] rounded-full p-[2.5px] transition-transform active:scale-95",
-          ring === "new" ? "bg-primary" : ring === "seen" ? "bg-border" : "bg-transparent"
+          ring === "new" ? "bg-brand" : ring === "seen" ? "bg-border" : "bg-transparent"
         )}
       >
         {/* Stories you've already watched fade back, so new ones stand out. */}

@@ -27,6 +27,7 @@ import { dbChannel } from "@/lib/realtime";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RowSkeleton } from "@/components/skeletons/parts";
 import { recordGroupVisit } from "@/lib/recent-groups";
+import { friendlyError } from "@/lib/utils";
 
 interface Group {
   id: string;
@@ -154,7 +155,7 @@ const GroupDetail = () => {
     if (error) {
       toast({
         title: "Error loading group",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -297,7 +298,7 @@ const GroupDetail = () => {
     if (error) {
       toast({
         title: "Error joining group",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -317,7 +318,7 @@ const GroupDetail = () => {
       .eq("user_id", currentUserId);
 
     if (error) {
-      toast({ title: "Couldn't leave the group", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't leave the group", description: friendlyError(error), variant: "destructive" });
       return;
     }
     toast({ title: `You left ${group?.name ?? "the group"}` });
@@ -332,7 +333,7 @@ const GroupDetail = () => {
   const handleDeletePost = async (postId: string) => {
     const { error } = await supabase.from("group_posts").delete().eq("id", postId);
     if (error) {
-      toast({ title: "Couldn't delete post", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't delete post", description: friendlyError(error), variant: "destructive" });
       return;
     }
     setPosts((prev) => prev.filter((p) => p.id !== postId));
@@ -362,7 +363,7 @@ const GroupDetail = () => {
     if (error) {
       toast({
         title: "Error creating post",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;

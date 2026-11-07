@@ -11,7 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
-import { toDate } from "@/lib/utils";
+import { friendlyError, toDate } from "@/lib/utils";
 import { dbChannel } from "@/lib/realtime";
 
 interface Notification {
@@ -43,7 +43,7 @@ const Notifications = ({ userId }: NotificationsProps) => {
     if (error) {
       toast({
         title: "Error loading notifications",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;

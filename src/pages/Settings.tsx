@@ -21,7 +21,7 @@ import {
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { disablePush, enablePush, needsHomeScreenInstall, pushActive, pushPermission as currentPushPermission, pushReady, pushSupported } from "@/lib/web-push";
 import { isNative } from "@/lib/native/platform";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -76,7 +76,7 @@ const Settings = () => {
     const { error } = await supabase.rpc("delete_my_account");
     if (error) {
       setDeleting(false);
-      toast({ title: "Couldn't delete your account", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't delete your account", description: friendlyError(error), variant: "destructive" });
       return;
     }
     // The account is gone; just clear this device's session.
@@ -97,7 +97,7 @@ const Settings = () => {
     const { error } = await supabase.auth.updateUser({ password: newPassword });
     setSavingPassword(false);
     if (error) {
-      toast({ title: "Couldn't change your password", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't change your password", description: friendlyError(error), variant: "destructive" });
       return;
     }
     setNewPassword("");
@@ -162,7 +162,7 @@ const Settings = () => {
 
     setIsSaving(false);
     if (error) {
-      toast({ title: "Failed to save", description: error.message, variant: "destructive" });
+      toast({ title: "Failed to save", description: friendlyError(error), variant: "destructive" });
       setPrefs({ ...prefs }); // revert
     }
   };

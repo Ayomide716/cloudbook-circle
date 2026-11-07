@@ -14,7 +14,7 @@ import { PageHeader, Chips } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import NotificationsSkeleton from "@/components/skeletons/NotificationsSkeleton";
 import { formatDistanceToNow } from "date-fns";
-import { cn, toDate } from "@/lib/utils";
+import { cn, friendlyError, toDate } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { groupMessage, groupNotifications, type GroupableNotification, type NotificationGroup } from "@/lib/notification-groups";
 import { dbChannel } from "@/lib/realtime";
@@ -72,7 +72,7 @@ const Notifications = () => {
     if (error) {
       toast({
         title: "Error loading notifications",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;

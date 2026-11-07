@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { friendlyError } from "@/lib/utils";
 
 /** Rows that break up the feed, as Facebook's do: Reels, groups to join, and memories. */
 
@@ -112,7 +113,7 @@ export const GroupsRow = ({ currentUserId }: { currentUserId: string }) => {
     setBusy(g.id);
     const { error } = await supabase.from("group_members").insert({ group_id: g.id, user_id: currentUserId, role: "member" });
     setBusy(null);
-    if (error) return toast({ title: "Couldn't join", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Couldn't join", description: friendlyError(error), variant: "destructive" });
     setJoined((s) => new Set(s).add(g.id));
   };
 

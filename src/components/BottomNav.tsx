@@ -26,8 +26,9 @@ interface BottomNavProps {
 
 /**
  * The tab bar, docked to the bottom edge: Home, Friends, Create (a post, story or reel), Reels
- * and Menu (your photo; your profile, Groups and the rest are in the menu). Icons only, in ink;
- * the tab you're on turns solid. Notifications are the bell in the top bar.
+ * and Menu (your photo; your profile, Groups and the rest are in the menu). Icons in ink with a
+ * small label under each, as on Facebook (people arrive from there); the tab you're on turns
+ * solid and its label bold. Notifications are the bell in the top bar.
  */
 const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: BottomNavProps) => {
   const navigate = useNavigate();
@@ -64,11 +65,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
         aria-label={tab.badge > 0 ? `${tab.label}, ${tab.badge} new` : tab.label}
         className={tabClass}
       >
-        <span className="relative flex h-11 w-12 items-center justify-center">
+        <span className="relative flex flex-col items-center gap-0.5">
           {/* Outlines, solid on the tab you're on. */}
-          <tab.icon className="h-[27px] w-[27px]" fill={active ? "currentColor" : undefined} />
+          <tab.icon className="h-[25px] w-[25px]" fill={active ? "currentColor" : undefined} />
+          <span className={cn("text-[11px] leading-none", active ? "font-bold" : "font-medium text-muted-foreground")} aria-hidden="true">{tab.label}</span>
           {tab.badge > 0 && (
-            <span className="absolute -top-1 right-0 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground text-center ring-2 ring-card">
+            <span className="absolute -top-1.5 left-1/2 ml-1.5 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground text-center ring-2 ring-card">
               {tab.badge > 9 ? "9+" : tab.badge}
             </span>
           )}
@@ -98,9 +100,10 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 aria-label="Create"
-                className="flex h-11 w-12 items-center justify-center text-foreground"
+                className="flex flex-col items-center justify-center gap-0.5 text-foreground"
               >
-                <PlusCircle className="h-[31px] w-[31px]" />
+                <PlusCircle className="h-[25px] w-[25px]" />
+                <span className="text-[11px] font-medium leading-none text-muted-foreground" aria-hidden="true">Create</span>
               </motion.button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="center" sideOffset={10} className="w-48 rounded-2xl p-1.5">
@@ -128,11 +131,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
           aria-label="Menu"
           className={tabClass}
         >
-          <span className="relative flex h-11 w-12 items-center justify-center">
-            <Avatar className={cn("h-7 w-7 transition-shadow", menuActive ? "ring-2 ring-foreground ring-offset-2 ring-offset-background" : "ring-1 ring-border")}>
+          <span className="relative flex flex-col items-center gap-0.5">
+            <Avatar className={cn("h-[25px] w-[25px] transition-shadow", menuActive ? "ring-2 ring-foreground ring-offset-1 ring-offset-background" : "ring-1 ring-border")}>
               <AvatarImage src={avatarUrl || undefined} alt="" />
               <AvatarFallback className="text-[10px] font-bold">{name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
+            <span className={cn("text-[11px] leading-none", menuActive ? "font-bold" : "font-medium text-muted-foreground")} aria-hidden="true">Menu</span>
           </span>
         </motion.button>
       </div>

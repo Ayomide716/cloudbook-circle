@@ -25,7 +25,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Plus, MapPin, Tag, X, ImagePlus, DollarSign, MessageCircle, CheckCircle2, RotateCcw, Trash2, Loader2 } from "@/components/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { formatDistanceToNow } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 
 const CATEGORIES = [
@@ -116,7 +116,7 @@ const Marketplace = () => {
 
       const { data, error } = await query;
       if (cancelled) return;
-      if (error) toast({ title: "Couldn't load listings", description: error.message, variant: "destructive" });
+      if (error) toast({ title: "Couldn't load listings", description: friendlyError(error), variant: "destructive" });
       else setListings((data ?? []) as unknown as Listing[]);
       setLoading(false);
     })();
@@ -160,7 +160,7 @@ const Marketplace = () => {
 
     setSubmitting(false);
     if (error) {
-      toast({ title: "Couldn't create the listing", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't create the listing", description: friendlyError(error), variant: "destructive" });
       return;
     }
     toast({

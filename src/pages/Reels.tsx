@@ -26,7 +26,7 @@ import { CommentThread } from "@/components/comments/CommentThread";
 import CommentsSheet from "@/components/comments/CommentsSheet";
 import { sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import { playSound } from "@/lib/sounds";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { POSTED_EVENT, isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
 import { deleteWithUndo } from "@/lib/undo-delete";
@@ -275,7 +275,7 @@ export default function Reels() {
       try {
         postWhenReady(uploadVideoUrl, "reel", save);
       } catch (e) {
-        toast({ title: "Couldn't post the reel", description: getErrorMessage(e), variant: "destructive" });
+        toast({ title: "Couldn't post the reel", description: friendlyError(e), variant: "destructive" });
         return;
       }
       setShowUpload(false); setUploadCaption(""); setUploadVideoUrl("");

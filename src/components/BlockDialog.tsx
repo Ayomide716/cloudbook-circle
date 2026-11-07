@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { useToast } from "@/hooks/use-toast";
 import { blockUser } from "@/lib/blocking";
-import { getErrorMessage } from "@/lib/utils";
+import { friendlyError } from "@/lib/utils";
 
 interface BlockDialogProps {
   open: boolean;
@@ -26,7 +26,7 @@ const BlockDialog = ({ open, onOpenChange, userId, name, onBlocked }: BlockDialo
       queryClient.invalidateQueries({ queryKey: ["feed"] });
       onBlocked?.();
     } catch (error) {
-      toast({ title: "Couldn't block", description: getErrorMessage(error), variant: "destructive" });
+      toast({ title: "Couldn't block", description: friendlyError(error), variant: "destructive" });
     }
   };
 

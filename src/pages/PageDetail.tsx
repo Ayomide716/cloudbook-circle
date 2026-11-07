@@ -25,7 +25,7 @@ import {
   Flag, Globe, MapPin, Mail, Phone, ThumbsUp, MessageCircle, ArrowLeft,
   Trash2, Edit, Camera, Loader2, Send, ImagePlus, X,
 } from "@/components/icons";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { motion } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -206,7 +206,7 @@ const PageDetail = () => {
       setPostImage(null);
       loadPosts();
     } catch (e) {
-      toast({ title: "Couldn't publish the post", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+      toast({ title: "Couldn't publish the post", description: friendlyError(e), variant: "destructive" });
     } finally {
       setIsPosting(false);
     }
@@ -306,7 +306,7 @@ const PageDetail = () => {
     const { error } = await supabase.from("pages").update(changes).eq("id", page.id);
     setIsSavingEdit(false);
     if (error) {
-      toast({ title: "Couldn't save your changes", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't save your changes", description: friendlyError(error), variant: "destructive" });
       return;
     }
     setPage({ ...page, ...changes });

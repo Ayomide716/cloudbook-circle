@@ -7,6 +7,7 @@ import { useSEO } from "@/hooks/useSEO";
 import { Button } from "@/components/ui/button";
 import AuthShell, { AuthBrand } from "@/components/auth/AuthShell";
 import AuthField from "@/components/auth/AuthField";
+import { friendlyError } from "@/lib/utils";
 
 /**
  * Where the "reset your password" email link lands. Supabase signs the visitor in
@@ -56,7 +57,7 @@ const ResetPassword = () => {
     const { error: updateError } = await supabase.auth.updateUser({ password });
     setSaving(false);
     if (updateError) {
-      toast({ title: "Couldn't change your password", description: updateError.message, variant: "destructive" });
+      toast({ title: "Couldn't change your password", description: friendlyError(updateError), variant: "destructive" });
       return;
     }
     toast({ title: "Password changed", description: "You're signed in with your new password." });

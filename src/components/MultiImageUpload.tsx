@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Images, Loader2, X } from "@/components/icons";
-import { getErrorMessage } from "@/lib/utils";
+import { friendlyError } from "@/lib/utils";
 
 interface MultiImageUploadProps {
   bucket: string;
@@ -68,7 +68,7 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
 
       onUploadComplete([...currentImages, ...newUrls]);
     } catch (error) {
-      toast({ title: "Upload failed", description: getErrorMessage(error), variant: "destructive" });
+      toast({ title: "Upload failed", description: friendlyError(error), variant: "destructive" });
     } finally {
       setIsUploading(false);
     }

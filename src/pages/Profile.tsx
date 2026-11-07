@@ -10,7 +10,7 @@ import { useEffect, useState, useRef } from "react";
 import { displayUrl, safeWebsiteUrl } from "@/lib/safe-url";
 import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
 import ConfirmDialog from "@/components/ConfirmDialog";
-import { useParams, useNavigate, useLocation } from "react-router-dom";
+import { Link, useParams, useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
 import { useToast } from "@/hooks/use-toast";
@@ -60,7 +60,7 @@ import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import AnonymousQA from "@/components/AnonymousQA";
 import ProfileReels, { type ProfileReel } from "@/components/ProfileReels";
 import { POSTED_EVENT } from "@/lib/video-jobs";
@@ -131,6 +131,8 @@ const Profile = () => {
   const [posts, setPosts] = useState<Post[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  // Loading failed (as opposed to no such profile): offer a retry rather than "not found".
+  const [loadFailed, setLoadFailed] = useState(false);
   const location = useLocation();
   // Menu's "Edit profile" lands here with the editor already open.
   const [isEditingProfile, setIsEditingProfile] = useState(() => !!(location.state as { edit?: boolean } | null)?.edit);
@@ -186,15 +188,15 @@ const Profile = () => {
   const loadProfile = useEffectEvent(async () => {
     if (!userId || !currentUserId) return;
     setIsLoading(true);
+    setLoadFailed(false);
     const { data: profileData, error: profileError } = await supabase.
     from("profiles").select("*").eq("id", userId).maybeSingle();
     if (profileError) {
-      toast({ title: "Error loading profile", description: profileError.message, variant: "destructive" });
+      setLoadFailed(true);
       setIsLoading(false);
       return;
     }
     if (!profileData) {
-      toast({ title: "Profile not found", variant: "destructive" });
       setIsLoading(false);
       return;
     }
@@ -220,7 +222,7 @@ const Profile = () => {
     order("created_at", { ascending: false });
 
     if (postsError) {
-      toast({ title: "Error loading posts", description: postsError.message, variant: "destructive" });
+      toast({ title: "Error loading posts", description: friendlyError(postsError), variant: "destructive" });
     } else {
       setPosts(postsData || []);
       loadPostsData(postsData || []);
@@ -371,7 +373,7 @@ const Profile = () => {
       user_id: currentUserId
     });
     if (error) {
-      toast({ title: "Error creating album", description: error.message, variant: "destructive" });
+      toast({ title: "Error creating album", description: friendlyError(error), variant: "destructive" });
     } else {
       setNewAlbumName("");
       setNewAlbumDesc("");
@@ -384,7 +386,7 @@ const Profile = () => {
   const deleteAlbum = async (albumId: string) => {
     const { error } = await supabase.from("albums").delete().eq("id", albumId);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
     } else {
       setSelectedAlbum(null);
       loadAlbums();
@@ -407,7 +409,7 @@ const Profile = () => {
       if (insertError) throw insertError;
       loadAlbums();
     } catch (error) {
-      toast({ title: "Upload failed", description: getErrorMessage(error), variant: "destructive" });
+      toast({ title: "Upload failed", description: friendlyError(error), variant: "destructive" });
     }
     setIsUploadingPhoto(false);
   };
@@ -415,7 +417,7 @@ const Profile = () => {
   const deletePhoto = async (photoId: string) => {
     const { error } = await supabase.from("album_photos").delete().eq("id", photoId);
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
     } else {
       loadAlbums();
     }
@@ -431,14 +433,14 @@ const Profile = () => {
   const handleAvatarUpload = async (url: string) => {
     if (!profile) return;
     const { error } = await supabase.from("profiles").update({ avatar_url: url }).eq("id", profile.id);
-    if (error) {toast({ title: "Error", description: error.message, variant: "destructive" });return;}
+    if (error) {toast({ title: "Error", description: friendlyError(error), variant: "destructive" });return;}
     setProfile({ ...profile, avatar_url: url });
   };
 
   const handleCoverUpload = async (url: string) => {
     if (!profile) return;
     const { error } = await supabase.from("profiles").update({ cover_url: url }).eq("id", profile.id);
-    if (error) {toast({ title: "Error", description: error.message, variant: "destructive" });return;}
+    if (error) {toast({ title: "Error", description: friendlyError(error), variant: "destructive" });return;}
     setProfile({ ...profile, cover_url: url });
   };
 
@@ -461,9 +463,23 @@ const Profile = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
-        <div className="flex items-center justify-center h-[60vh]">
-          <p className="text-muted-foreground">Profile not found</p>
-        </div>
+        {loadFailed ? (
+          <EmptyState
+            emoji="people"
+            title="Couldn't load this profile"
+            text="Check your connection and try again."
+            className="min-h-[60vh] justify-center"
+            action={<Button onClick={() => loadProfile()} className="rounded-full px-6">Try again</Button>}
+          />
+        ) : (
+          <EmptyState
+            emoji="people"
+            title="This profile isn't available"
+            text="The link may be wrong, or the account may have been deleted."
+            className="min-h-[60vh] justify-center"
+            action={<Button asChild className="rounded-full px-6"><Link to="/">Go to your feed</Link></Button>}
+          />
+        )}
       </div>);
 
   }
@@ -492,7 +508,7 @@ const Profile = () => {
                   toast({ title: `You unblocked ${name}` });
                   loadProfile();
                 } catch (error) {
-                  toast({ title: "Couldn't unblock", description: getErrorMessage(error), variant: "destructive" });
+                  toast({ title: "Couldn't unblock", description: friendlyError(error), variant: "destructive" });
                 }
               }}>
                 Unblock
