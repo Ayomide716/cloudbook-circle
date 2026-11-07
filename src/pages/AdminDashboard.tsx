@@ -13,6 +13,8 @@ import { Shield, Flag, Users, FileText, AlertTriangle, CheckCircle, Trash2, Eye,
 import ConfirmDialog from "@/components/ConfirmDialog";
 import MoveMediaCard from "@/components/MoveMediaCard";
 import StorageStatusCard from "@/components/StorageStatusCard";
+import UsageCard from "@/components/UsageCard";
+import { features } from "@/lib/features";
 import PushTestCard from "@/components/PushTestCard";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -164,6 +166,7 @@ const AdminDashboard = () => {
         <PageHeader back title="Admin Dashboard" className="!mb-0 !pb-0" />
 
         {/* Is uploading to Cloudflare R2 working, and where did the last upload go. */}
+        {features.usageAlerts && <UsageCard />}
         <StorageStatusCard />
         <PushTestCard />
         <MoveMediaCard />

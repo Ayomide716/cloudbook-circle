@@ -20,6 +20,8 @@ export const features = {
    * (20261107090000_groups_v2.sql).
    */
   groupsV2: nov,
+  /** Supabase usage on the Admin page, and the daily server check (20261108100000_usage_alerts.sql). */
+  usageAlerts: nov,
   /** "Lekki, Lagos · 2h" on posts, and the place field when posting. */
   postLocation: on,
   /** Hometown, birthday and relationship on profiles. */
