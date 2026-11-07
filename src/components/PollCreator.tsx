@@ -81,7 +81,7 @@
                    onChange={(e) => updateOption(index, e.target.value)}
                  />
                  {options.length > 2 && (
-                   <Button
+                   <Button aria-label="Remove option"
                      variant="ghost"
                      size="icon"
                      onClick={() => removeOption(index)}

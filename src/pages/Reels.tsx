@@ -386,7 +386,7 @@ export default function Reels() {
       {/* Desktop top bar for Reels (no floating dock on this page) */}
       <div className="hidden md:flex items-center justify-between px-6 py-3 bg-black/80 backdrop-blur-md border-b border-white/10 z-30">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate("/")} className="text-white/70 hover:text-white transition-colors">
+          <button aria-label="Back" onClick={() => navigate("/")} className="text-white/70 hover:text-white transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <h1 className="text-white font-display font-bold text-xl">Reels</h1>
@@ -418,7 +418,7 @@ export default function Reels() {
 
       {shown.length === 0 ? (
         <div className="flex flex-1 flex-col items-center justify-center px-8 text-center text-white min-h-[100dvh] md:min-h-0">
-          <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-[28px] bg-gradient-to-br from-primary to-rose-500">
+          <span className="mb-5 flex h-20 w-20 items-center justify-center rounded-[28px] bg-primary">
             <Film className="h-9 w-9" />
           </span>
           <p className="font-display text-xl font-bold">{tab === "friends" && reels.length > 0 ? "No reels from friends yet" : "No reels yet"}</p>

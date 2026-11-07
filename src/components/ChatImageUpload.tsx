@@ -131,9 +131,9 @@ const ChatMediaUpload = ({
               className="h-10 w-10 object-cover rounded-lg"
             />
           )}
-          <button
+          <button aria-label="Remove attachment"
             onClick={onMediaCleared}
-            className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+            className="tap-target absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
           >
             <X className="h-3 w-3" />
           </button>

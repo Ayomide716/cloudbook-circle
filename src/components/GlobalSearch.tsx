@@ -101,7 +101,7 @@ export default function GlobalSearch() {
           className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground"
         />
         {query && (
-          <button onClick={() => { setQuery(""); setResults([]); }}>
+          <button className="tap-target" aria-label="Clear search" onClick={() => { setQuery(""); setResults([]); }}>
             <X className="h-4 w-4 text-muted-foreground" />
           </button>
         )}

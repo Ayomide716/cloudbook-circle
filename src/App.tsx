@@ -8,6 +8,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigationType } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
+import { MotionConfig } from "framer-motion";
 import SessionProvider from "@/components/SessionProvider";
 import RequireAuth from "@/components/RequireAuth";
 import ScrollToTop from "@/components/ScrollToTop";
@@ -212,6 +213,8 @@ const App = () => {
     <SessionProvider>
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <TooltipProvider>
+      {/* Animations follow the phone's "reduce motion" setting: movement is dropped, fades stay. */}
+      <MotionConfig reducedMotion="user">
         <StatusBarColor />
         <Toaster />
         <Sonner />
@@ -229,6 +232,7 @@ const App = () => {
             <InstallPrompt />
           </Suspense>
         </BrowserRouter>
+      </MotionConfig>
       </TooltipProvider>
     </ThemeProvider>
     </SessionProvider>

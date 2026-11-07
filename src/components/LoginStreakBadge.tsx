@@ -17,8 +17,8 @@ const LoginStreakBadge = ({ userId, className }: LoginStreakBadgeProps) => {
 
   return (
     <motion.div
-      initial={showCelebration ? { scale: 0, rotate: -20 } : { scale: 1 }}
-      animate={{ scale: 1, rotate: 0 }}
+      initial={showCelebration ? { scale: 0.6, opacity: 0, rotate: -20 } : { scale: 1 }}
+      animate={{ scale: 1, opacity: 1, rotate: 0 }}
       transition={{ type: "spring", stiffness: 400, damping: 15 }}
       className={cn(
         "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary/80 border border-border/50 text-sm font-semibold",

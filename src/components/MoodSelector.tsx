@@ -35,9 +35,9 @@ const MoodSelector = ({ onMoodChange, currentMood }: MoodSelectorProps) => {
         >
           <span>{selectedMood.emoji}</span>
           <span>Feeling {selectedMood.label}</span>
-          <button
+          <button aria-label="Clear mood"
             onClick={(e) => { e.stopPropagation(); onMoodChange(null); }}
-            className="ml-1 hover:opacity-70"
+            className="tap-target ml-1 hover:opacity-70"
           >
             <X className="h-3 w-3" />
           </button>

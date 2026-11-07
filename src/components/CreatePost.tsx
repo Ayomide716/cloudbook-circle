@@ -431,7 +431,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
              {pollData && (
                <div className="relative bg-secondary/50 rounded-lg p-3">
-                 <Button
+                 <Button aria-label="Remove poll"
                    type="button"
                    variant="ghost"
                    size="icon"

@@ -51,13 +51,13 @@ const MessageSearch = ({ messages, onHighlight, onClose }: MessageSearchProps) =
           {currentIndex + 1}/{results.length}
         </span>
       )}
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate("up")} disabled={results.length === 0}>
+      <Button aria-label="Previous match" variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate("up")} disabled={results.length === 0}>
         <ChevronUp className="h-3.5 w-3.5" />
       </Button>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate("down")} disabled={results.length === 0}>
+      <Button aria-label="Next match" variant="ghost" size="icon" className="h-7 w-7" onClick={() => navigate("down")} disabled={results.length === 0}>
         <ChevronDown className="h-3.5 w-3.5" />
       </Button>
-      <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => { onHighlight(null); onClose(); }}>
+      <Button aria-label="Close search" variant="ghost" size="icon" className="h-7 w-7" onClick={() => { onHighlight(null); onClose(); }}>
         <X className="h-3.5 w-3.5" />
       </Button>
     </div>

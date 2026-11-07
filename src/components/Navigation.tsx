@@ -454,7 +454,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
               return (
                 <Tooltip key={item.path}>
                   <TooltipTrigger asChild>
-                    <motion.button
+                    <motion.button aria-label={item.label}
                       onClick={() => navigate(item.path)}
                       onMouseEnter={() => prefetchRoute(item.path)}
                       onFocus={() => prefetchRoute(item.path)}

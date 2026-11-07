@@ -128,7 +128,7 @@ const GroupMessageBubble = ({
             "relative w-full rounded-lg px-2.5 pb-1.5 pt-1 [-webkit-touch-callout:none] [@media(hover:none)]:select-none",
             sticker
               ? "w-auto bg-transparent px-0 pb-0 text-foreground"
-              : cn("shadow-sm", mine ? "bg-primary text-primary-foreground dark:bg-[#8a3412] dark:text-white" : "bg-card text-foreground dark:bg-[#232327]"),
+              : cn("shadow-sm", mine ? "bg-chat-sent text-primary-foreground dark:text-white" : "bg-chat-surface text-foreground"),
             !sticker && firstInRun && (mine ? "rounded-tr-none" : "rounded-tl-none"),
             pending && "opacity-70",
             (menuOpen || highlighted) && "ring-2 ring-primary/40",

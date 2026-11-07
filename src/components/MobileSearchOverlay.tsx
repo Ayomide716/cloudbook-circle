@@ -138,7 +138,7 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
       {/* Header */}
       {/* Below the phone's status bar (the app and installed apps draw under it). */}
       <div className="flex items-center gap-2 border-b border-border px-3 pb-3 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)]">
-        <button onClick={onClose} className="p-2 -ml-1 rounded-full hover:bg-secondary active:scale-95 transition-all">
+        <button aria-label="Back" onClick={onClose} className="p-2 -ml-1 rounded-full hover:bg-secondary active:scale-95 transition-all">
           <ArrowLeft className="h-5 w-5 text-foreground" />
         </button>
         <div className="flex-1 flex items-center bg-secondary rounded-full px-4 py-2.5 gap-2">
@@ -151,7 +151,7 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
             className="bg-transparent text-sm outline-none w-full placeholder:text-muted-foreground"
           />
           {query && (
-            <button onClick={() => { setQuery(""); setResults([]); }} className="active:scale-90">
+            <button aria-label="Clear search" onClick={() => { setQuery(""); setResults([]); }} className="tap-target active:scale-90">
               <X className="h-4 w-4 text-muted-foreground" />
             </button>
           )}

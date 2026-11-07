@@ -115,7 +115,7 @@ const AIChatCompanion = ({ onBack, mood }: AIChatCompanionProps) => {
       {/* Header */}
       <div className="border-b p-3 sm:p-4 flex items-center gap-3 flex-shrink-0 bg-card">
         {onBack && (
-          <Button variant="ghost" size="icon" className="h-9 w-9" onClick={onBack}>
+          <Button aria-label="Back" variant="ghost" size="icon" className="h-9 w-9" onClick={onBack}>
             <ArrowLeft className="h-5 w-5" />
           </Button>
         )}
@@ -191,7 +191,7 @@ const AIChatCompanion = ({ onBack, mood }: AIChatCompanionProps) => {
           disabled={isLoading}
           className="flex-1"
         />
-        <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
+        <Button aria-label="Send" type="submit" size="icon" disabled={isLoading || !input.trim()}>
           {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
         </Button>
       </form>

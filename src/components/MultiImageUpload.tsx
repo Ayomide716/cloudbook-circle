@@ -86,7 +86,7 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
           {currentImages.map((url, i) => (
             <div key={i} className="relative rounded-lg overflow-hidden aspect-square">
               <img src={url} alt="" className="w-full h-full object-cover" />
-              <Button
+              <Button aria-label="Remove photo"
                 type="button"
                 variant="destructive"
                 size="icon"

@@ -97,7 +97,7 @@ const ScreenTimeWidget = () => {
                   <Eye className="h-4 w-4 text-primary" />
                   Screen Time
                 </h3>
-                <button onClick={() => setShowWidget(false)} className="text-muted-foreground hover:text-foreground">
+                <button aria-label="Close" onClick={() => setShowWidget(false)} className="tap-target text-muted-foreground hover:text-foreground">
                   <X className="h-4 w-4" />
                 </button>
               </div>

@@ -50,9 +50,9 @@ const InstallPrompt = () => {
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className="fixed bottom-24 md:bottom-20 left-4 right-4 md:left-auto md:right-6 md:w-80 z-40 glass-strong rounded-2xl p-4 border border-border/50"
       >
-        <button
+        <button aria-label="Dismiss"
           onClick={() => setDismissed(true)}
-          className="absolute top-2 right-2 text-muted-foreground hover:text-foreground"
+          className="tap-target absolute top-2 right-2 text-muted-foreground hover:text-foreground"
         >
           <X className="h-4 w-4" />
         </button>
