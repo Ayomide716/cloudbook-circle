@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, ReactElement, CSSProperties } from "react";
+import { useCallback, useEffect, useRef, useState, ReactElement, CSSProperties } from "react";
 import { List, useDynamicRowHeight, useListRef, type RowComponentProps } from "react-window";
 import { ChevronDown, Loader2 } from "@/components/icons";
 
@@ -50,6 +50,13 @@ const VirtualizedChatList = ({
   style,
 }: VirtualizedChatListProps) => {
   const listRef = useListRef(null);
+  // react-window hands out its scroll element one render late (listRef.current.element is null
+  // when our effects first run), so the effects below find it in the DOM instead.
+  const containerRef = useRef<HTMLDivElement>(null);
+  const getListEl = useCallback(
+    () => listRef.current?.element ?? containerRef.current?.querySelector<HTMLDivElement>(".chat-scroller") ?? null,
+    [listRef]
+  );
   const dynamicRowHeight = useDynamicRowHeight({
     defaultRowHeight: estimatedItemSize,
     key: itemCount,
@@ -120,7 +127,7 @@ const VirtualizedChatList = ({
       const settles = [120, 400].map((ms) => setTimeout(() => {
         if (!atBottomRef.current || Date.now() < userScrollingUntilRef.current) return;
         scrollToEnd();
-        const el = listRef.current?.element;
+        const el = getListEl();
         if (el) el.scrollTop = el.scrollHeight;
       }, ms));
       return () => settles.forEach(clearTimeout);
@@ -133,7 +140,7 @@ const VirtualizedChatList = ({
   // message being measured, the keyboard opening. Only while you're at the bottom; if you've
   // scrolled up to read, nothing moves you.
   useEffect(() => {
-    const listEl = listRef.current?.element;
+    const listEl = getListEl();
     if (!listEl || typeof ResizeObserver === "undefined") return;
     const stick = () => {
       if (atBottomRef.current && Date.now() >= userScrollingUntilRef.current) listEl.scrollTop = listEl.scrollHeight;
@@ -149,11 +156,11 @@ const VirtualizedChatList = ({
     for (const row of Array.from(listEl.querySelectorAll("[data-message-row]"))) observer.observe(row);
     return () => { observer.disconnect(); rowsObserver.disconnect(); };
     // hasItems: the list element only exists once there are messages to show.
-  }, [listRef, hasItems]);
+  }, [listRef, hasItems, getListEl]);
 
   // Track whether the reader is near the bottom, for the ↓ button.
   useEffect(() => {
-    const listEl = listRef.current?.element;
+    const listEl = getListEl();
     if (!listEl) return;
     // Only you scrolling up (touch, wheel, keys) leaves the bottom; the list moving because
     // photos loaded or rows were measured doesn't. Leaving happens the moment you start, so
@@ -233,7 +240,7 @@ const VirtualizedChatList = ({
       listEl.removeEventListener("scroll", onScroll);
     };
     // hasItems: the list element only exists once there are messages to show.
-  }, [listRef, hasItems]);
+  }, [listRef, hasItems, getListEl]);
 
   const jumpToBottom = () => {
     setUnseen(0);
@@ -261,7 +268,7 @@ const VirtualizedChatList = ({
 
   // Detect scroll to top for loading more
   useEffect(() => {
-    const listEl = listRef.current?.element;
+    const listEl = getListEl();
     if (!listEl || !onLoadMore || !hasMore) return;
 
     const handleScroll = () => {
@@ -272,11 +279,11 @@ const VirtualizedChatList = ({
 
     listEl.addEventListener("scroll", handleScroll, { passive: true });
     return () => listEl.removeEventListener("scroll", handleScroll);
-  }, [onLoadMore, isLoadingMore, hasMore, itemCount, listRef]);
+  }, [onLoadMore, isLoadingMore, hasMore, itemCount, listRef, getListEl]);
 
   // Observe row elements for dynamic sizing
   useEffect(() => {
-    const listEl = listRef.current?.element;
+    const listEl = getListEl();
     if (!listEl) return;
 
     const observer = new MutationObserver(() => {
@@ -289,10 +296,10 @@ const VirtualizedChatList = ({
     if (rows.length > 0) observeRowElements(rows);
 
     return () => observer.disconnect();
-  }, [itemCount, listRef, observeRowElements]);
+  }, [itemCount, listRef, observeRowElements, getListEl]);
 
   return (
-    <div className={className} style={{ position: "relative", flex: 1, minHeight: 0, ...style }}>
+    <div ref={containerRef} className={className} style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", ...style }}>
       {isLoadingMore && (
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-card/90 backdrop-blur rounded-full px-3 py-1.5 shadow-md flex items-center gap-2">
           <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
@@ -307,7 +314,10 @@ const VirtualizedChatList = ({
         rowProps={{ renderItem }}
         overscanCount={10}
         // contain: reaching the top or bottom doesn't drag (bounce) the whole page with it.
-        style={{ height: "100%", overflow: "auto", overscrollBehavior: "contain" }}
+        className="chat-scroller"
+        // flex: the list takes the room left by the footer (the typing dots), instead of all of
+        // it with the footer pushed out of sight.
+        style={{ flex: "1 1 0", minHeight: 0, overflow: "auto", overscrollBehavior: "contain" }}
       />
       {(showJump || unseen > 0) && itemCount > 0 && (
         <button

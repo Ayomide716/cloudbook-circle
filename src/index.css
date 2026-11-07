@@ -325,8 +325,11 @@
   body.keyboard-open .app-dock {
     display: none !important;
   }
+  /* ...and the room it took becomes room for the keyboard: in the app the screen doesn't always
+     get shorter, so a field at the very bottom of a short page needs space to scroll up into. */
+  body.keyboard-open,
   body.keyboard-open.has-dock {
-    padding-bottom: 0;
+    padding-bottom: var(--keyboard-inset, 0px);
   }
 
   /* Light / dark switch: every colour eases over for a moment (see lib/theme-fade). */
@@ -515,3 +518,4 @@
 .seek-flash {
   animation: seek-flash 0.7s ease-out forwards;
 }
+

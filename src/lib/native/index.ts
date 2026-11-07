@@ -3,6 +3,7 @@
  * the share sheet, the splash screen, coming back from Google sign-in, and over-the-air updates.
  * Nothing here runs in a browser.
  */
+import { KEYBOARD_SHOWN_EVENT, keyboardLift } from "@/lib/keyboard-lift";
 import { isNative, APP_SCHEME } from "./platform";
 
 /** Android back: close the open sheet or dialog, else go back a page, else leave the app. */
@@ -86,23 +87,31 @@ async function handleCallLinks() {
 async function trackKeyboard() {
   const { Keyboard } = await import("@capacitor/keyboard");
   const root = document.documentElement;
-  let keyboardUp = false;
+  let keyboardHeight = 0;
   let fullHeight = window.innerHeight;
-  window.addEventListener("resize", () => {
-    if (!keyboardUp) fullHeight = window.innerHeight; // rotating, split screen…
-  });
-  const apply = (height: number) => {
-    const shrunk = Math.max(0, fullHeight - window.innerHeight);
-    root.style.setProperty("--keyboard-inset", `${Math.max(0, Math.round(height - shrunk))}px`);
-    document.body.classList.toggle("keyboard-open", height > 0);
+  const apply = () => {
+    root.style.setProperty("--keyboard-inset", `${keyboardLift(keyboardHeight, fullHeight, window.innerHeight)}px`);
+    document.body.classList.toggle("keyboard-open", keyboardHeight > 0);
   };
-  Keyboard.addListener("keyboardWillShow", ({ keyboardHeight }) => { keyboardUp = true; apply(keyboardHeight); });
-  Keyboard.addListener("keyboardDidShow", ({ keyboardHeight }) => { keyboardUp = true; apply(keyboardHeight); });
-  Keyboard.addListener("keyboardWillHide", () => { keyboardUp = false; apply(0); });
+  // Android may make the app shorter after it has told us the keyboard's height: work it out
+  // again then, so nothing is lifted twice.
+  window.addEventListener("resize", () => {
+    if (keyboardHeight === 0) fullHeight = window.innerHeight; // rotating, split screen…
+    apply();
+  });
+  const shown = (height: number) => {
+    keyboardHeight = height;
+    apply();
+    // Once it's settled, bring the field you're typing in into view.
+    requestAnimationFrame(() => { apply(); window.dispatchEvent(new Event(KEYBOARD_SHOWN_EVENT)); });
+  };
+  Keyboard.addListener("keyboardWillShow", ({ keyboardHeight: h }) => { keyboardHeight = h; apply(); });
+  Keyboard.addListener("keyboardDidShow", ({ keyboardHeight: h }) => shown(h));
+  Keyboard.addListener("keyboardWillHide", () => { keyboardHeight = 0; apply(); });
   Keyboard.addListener("keyboardDidHide", () => {
-    keyboardUp = false;
+    keyboardHeight = 0;
     fullHeight = window.innerHeight;
-    apply(0);
+    apply();
   });
 }
 
