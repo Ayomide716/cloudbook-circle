@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import { features } from "@/lib/features";
 import { shrinkImage } from "@/lib/image-compress";
 import { isNative } from "@/lib/native/platform";
 import { useSingleFlight } from "@/hooks/use-single-flight";
@@ -209,6 +210,9 @@ const Events = () => {
       setRsvps(prevRsvps);
       setRsvpCounts(prevCounts);
       toast({ title: "Couldn't save your RSVP", description: "Please try again.", variant: "destructive" });
+    } else if (next && !previous && features.mentions) {
+      // The server sends the reminders (send_event_reminders); say so once, when you sign up.
+      toast({ title: "We'll remind you", description: "A notification the day before and an hour before it starts." });
     }
   };
 

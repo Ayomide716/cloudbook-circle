@@ -22,6 +22,8 @@ import MentionInput from "./MentionInput";
 import { cn } from "@/lib/utils";
 import { BACKGROUND_MAX_LENGTH, POST_BACKGROUNDS, backgroundCss } from "@/lib/post-backgrounds";
 import { features } from "@/lib/features";
+import { encodeMentions, plainMentions, type Mention } from "@/lib/mentions";
+import { clearDraft, loadDraft, saveDraft } from "@/lib/post-draft";
 import {
   Dialog,
   DialogClose,
@@ -52,6 +54,33 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [location, setLocation] = useState("");
   const [showLocation, setShowLocation] = useState(false);
   const [tagged, setTagged] = useState<TaggedFriend[]>([]);
+  // People picked from the @ suggestions, saved with their ids when the post goes up.
+  const [mentions, setMentions] = useState<Mention[]>([]);
+  // What you were writing comes back next time you open the composer (kept on this phone).
+  const [draftRestored, setDraftRestored] = useState(false);
+  useEffect(() => {
+    if (!showDialog || content) return;
+    const d = loadDraft(currentUser.id);
+    if (d) {
+      setContent(d.content);
+      if (d.location) setLocation(d.location);
+      setDraftRestored(true);
+    }
+    // Only when the composer opens.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showDialog]);
+  useEffect(() => {
+    if (!showDialog) return;
+    const t = window.setTimeout(() => saveDraft(currentUser.id, content, location), 400);
+    return () => window.clearTimeout(t);
+  }, [content, location, showDialog, currentUser.id]);
+  const discardDraft = () => {
+    clearDraft(currentUser.id);
+    setContent("");
+    setLocation("");
+    setMentions([]);
+    setDraftRestored(false);
+  };
   const { toast } = useToast();
   // A picked video is prepared and uploaded in the background (lib/video-jobs).
   const videoJob = useVideoJob(videoUrl);
@@ -124,7 +153,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     else if (postExpiry === "7d") expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
     else if (postExpiry === "30d") expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const text = content.trim() || (pollData ? `📊 ${pollData.question}` : "");
+    const words = features.mentions ? encodeMentions(content.trim(), mentions) : content.trim();
+    const text = words || (pollData ? `📊 ${pollData.question}` : "");
     const poll = pollData;
     const place = location.trim() || null;
     const bg = bgCss ? background : null;
@@ -176,6 +206,9 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       setLocation("");
       setShowLocation(false);
       setTagged([]);
+      setMentions([]);
+      setDraftRestored(false);
+      clearDraft(currentUser.id);
       setShowDialog(false);
     };
 
@@ -194,7 +227,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
     // Close the composer at once and show the post going up at the top of the feed, with a
     // progress bar, instead of making you wait in the composer.
     const draft = { content, imageUrls, videoUrl: finalVideoUrl ?? "", pollData, postExpiry, location, showLocation };
-    setPending({ content: text, image: imageUrls[0] ?? null, video: !!finalVideoUrl, failed: false, draft });
+    setPending({ content: plainMentions(text), image: imageUrls[0] ?? null, video: !!finalVideoUrl, failed: false, draft });
     setShowDialog(false);
 
     let failed = false;
@@ -339,6 +372,13 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
               </div>
             </div>
 
+            {draftRestored && content && (
+              <div className="flex items-center justify-between gap-2 rounded-xl bg-secondary px-3 py-2 text-[13px]">
+                <span className="text-muted-foreground">Your draft is back where you left it.</span>
+                <button type="button" onClick={discardDraft} className="shrink-0 font-semibold text-primary hover:underline">Discard</button>
+              </div>
+            )}
+
             {/* On a coloured background, the text is big and centred as it will be on the post. */}
             <div
               className={cn(bgCss && "flex min-h-[230px] items-center rounded-2xl px-5 py-6")}
@@ -348,6 +388,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 placeholder={`What's on your mind, ${currentUser.full_name?.split(' ')[0] || 'there'}? Use @ to mention friends`}
                 value={content}
                 onChange={setContent}
+                rich={features.mentions}
+                onMention={(m) => setMentions((list) => [...list.filter((x) => x.id !== m.id), m])}
                 className={cn(
                   // A little room on the sides so the first letter isn't clipped at the edge.
                   "resize-none border-0 focus-visible:ring-0 px-1 py-0",

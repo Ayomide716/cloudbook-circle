@@ -26,7 +26,8 @@ const PostContent = ({ content }: PostContentProps) => {
     
     // Combined pattern to find links, hashtags and mentions (a link is matched whole, so a
     // "#" inside it isn't taken for a hashtag)
-    const combinedPattern = /(https?:\/\/[^\s<>"]+|#\w+|@\w+)/gi;
+    // A saved mention, @[Name](id), comes first so its name isn't read as a plain @word.
+    const combinedPattern = /(@\[[^\]\n]{1,80}\]\([0-9a-fA-F-]{36}\)|https?:\/\/[^\s<>"]+|#\w+|@\w+)/gi;
     let match;
     
     while ((match = combinedPattern.exec(text)) !== null) {
@@ -38,7 +39,20 @@ const PostContent = ({ content }: PostContentProps) => {
       const matchedText = match[0];
       const key = `${match.index}-${matchedText}`;
       
-      if (/^https?:\/\//i.test(matchedText)) {
+      const rich = /^@\[([^\]\n]{1,80})\]\(([0-9a-fA-F-]{36})\)$/.exec(matchedText);
+      if (rich) {
+        // A person you picked from the suggestions: their name, linking to their profile.
+        parts.push(
+          <Link
+            key={key}
+            to={`/profile/${rich[2]}`}
+            className="font-semibold text-primary hover:underline"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {rich[1]}
+          </Link>
+        );
+      } else if (/^https?:\/\//i.test(matchedText)) {
         // Link: opens in a new tab; punctuation right after it stays as text
         const url = matchedText.replace(/[.,!?;:)\]}'"]+$/, "");
         parts.push(

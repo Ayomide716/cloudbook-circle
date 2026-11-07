@@ -1,4 +1,6 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { features } from "@/lib/features";
+import CloseFriendsDialog from "@/components/stories/CloseFriendsDialog";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { createPortal } from "react-dom";
 import { useSearchParams } from "react-router-dom";
@@ -40,6 +42,8 @@ interface Story {
   media_type: string;
   caption: string | null;
   created_at: string;
+  /** "close_friends": only your close friends see it (green ring). */
+  audience?: string;
   profiles: {
     id: string;
     full_name: string | null;
@@ -52,6 +56,8 @@ interface UserStoryGroup {
   profile: { id: string; full_name: string | null; avatar_url: string | null };
   stories: Story[];
   hasUnviewed: boolean;
+  /** Some story you haven't watched was shared to close friends only. */
+  closeFriends?: boolean;
   /** How many times these stories were viewed (only counted where you may see the views). */
   views: number;
 }
@@ -74,6 +80,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const [storyVideo, setStoryVideo] = useState("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const [storyCaption, setStoryCaption] = useState("");
+  // Who sees the story: everyone, or just your close friends (and the list to pick them).
+  const [storyAudience, setStoryAudience] = useState<"everyone" | "close_friends">("everyone");
+  const [editingCloseFriends, setEditingCloseFriends] = useState(false);
   // "Add to story" on your profile opens this dialog (via /?story=1).
   const [searchParams, setSearchParams] = useSearchParams();
   useEffect(() => {
@@ -151,7 +160,10 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         const group = groupMap.get(uid)!;
         group.stories.push(story);
         group.views += viewsPerStory.get(story.id) ?? 0;
-        if (!viewedIds.has(story.id)) group.hasUnviewed = true;
+        if (!viewedIds.has(story.id)) {
+          group.hasUnviewed = true;
+          if (story.audience === "close_friends") group.closeFriends = true;
+        }
       });
 
       // Current user first, then unviewed, then viewed
@@ -200,11 +212,15 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       return;
     }
     const caption = storyCaption || null;
+    const audience = storyAudience;
     const save = async (mediaUrl: string, type: "image" | "video") => {
-      const { error } = await supabase.from("stories").insert({ user_id: currentUserId, media_url: mediaUrl, media_type: type, caption });
+      const { error } = await supabase.from("stories").insert({
+        user_id: currentUserId, media_url: mediaUrl, media_type: type, caption,
+        ...(features.closeFriends ? { audience } : {}),
+      });
       if (error) throw error;
     };
-    const done = () => { setIsCreating(false); setStoryImage(""); setStoryVideo(""); setStoryCaption(""); };
+    const done = () => { setIsCreating(false); setStoryImage(""); setStoryVideo(""); setStoryCaption(""); setStoryAudience("everyone"); };
     // A video still being prepared or uploaded: posted from the background when it's ready.
     if (isVideoJobRef(storyVideo)) {
       postWhenReady(storyVideo, "story", (url) => save(url, "video"));
@@ -454,7 +470,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                 label={mine ? "Your story" : group.profile.full_name?.split(" ")[0] || "User"}
                 ariaLabel={mine ? "Your story" : `${group.profile.full_name || "User"}'s story`}
                 onClick={() => openViewer(index)}
-                ring={group.hasUnviewed ? "new" : "seen"}
+                ring={group.hasUnviewed ? (group.closeFriends ? "close" : "new") : "seen"}
                 onAdd={mine ? () => setIsCreating(true) : undefined}
               >
                 <Avatar className="h-full w-full">
@@ -484,6 +500,33 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               </div>
             )}
             <Input placeholder="Add a caption..." value={storyCaption} onChange={(e) => setStoryCaption(e.target.value)} />
+            {features.closeFriends && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Who can see it</p>
+                <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Who can see your story">
+                  {([["everyone", "Friends", "Everyone who sees your stories"], ["close_friends", "Close friends", "Only people on your list"]] as const).map(([value, title, text]) => (
+                    <button
+                      key={value}
+                      type="button"
+                      role="radio"
+                      aria-checked={storyAudience === value}
+                      onClick={() => setStoryAudience(value)}
+                      className={cn(
+                        "rounded-xl border p-3 text-left transition-colors",
+                        storyAudience === value ? (value === "close_friends" ? "border-green-500 bg-green-500/10" : "border-foreground bg-secondary") : "border-border hover:bg-secondary/60"
+                      )}
+                    >
+                      <span className="flex items-center gap-1.5 text-sm font-semibold">
+                        {value === "close_friends" && <span className="h-2.5 w-2.5 rounded-full bg-green-500" aria-hidden="true" />}
+                        {title}
+                      </span>
+                      <span className="mt-0.5 block text-xs text-muted-foreground">{text}</span>
+                    </button>
+                  ))}
+                </div>
+                <button type="button" onClick={() => setEditingCloseFriends(true)} className="text-sm font-semibold text-primary hover:underline">Edit close friends</button>
+              </div>
+            )}
             <div className="flex justify-end gap-2">
               <Button variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
               <Button onClick={handleCreateStory} disabled={!storyImage && !storyVideo}>Share Story</Button>
@@ -491,6 +534,10 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {features.closeFriends && (
+        <CloseFriendsDialog open={editingCloseFriends} onOpenChange={setEditingCloseFriends} currentUserId={currentUserId} />
+      )}
 
       {/* Full-Screen Story Viewer */}
       {/* Rendered at <body> level so no transformed/filtered ancestor (pull-to-refresh, page
@@ -521,7 +568,12 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               </Avatar>
               <div>
                 <p className="text-white text-sm font-semibold">{activeGroup.userId === currentUserId ? "Your Story" : activeGroup.profile.full_name || "User"}</p>
-                <p className="text-white/60 text-[10px]">{formatDistanceToNow(new Date(activeStory.created_at), { addSuffix: true })}</p>
+                <p className="flex items-center gap-1.5 text-white/60 text-[10px]">
+                  {formatDistanceToNow(new Date(activeStory.created_at), { addSuffix: true })}
+                  {activeStory.audience === "close_friends" && (
+                    <span className="rounded-full bg-green-500 px-1.5 py-px text-[10px] font-semibold text-white">Close friends</span>
+                  )}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-1">
@@ -660,8 +712,8 @@ interface StoryBubbleProps {
   label: string;
   ariaLabel: string;
   onClick: () => void;
-  /** "new": a tangerine ring (not watched yet); "seen": a faint ring; "none": no ring. */
-  ring: "new" | "seen" | "none";
+  /** "new": a tangerine ring (not watched yet); "close": green, shared to close friends; "seen": a faint ring; "none": no ring. */
+  ring: "new" | "close" | "seen" | "none";
   /** Show the + badge that adds a story (on "Your story" with no story yet). */
   add?: boolean;
   /** A + badge that adds another story (on your own bubble when you have one). */
@@ -679,7 +731,7 @@ const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: 
         aria-label={ariaLabel}
         className={cn(
           "block h-[66px] w-[66px] rounded-full p-[2.5px] transition-transform active:scale-95",
-          ring === "new" ? "bg-brand" : ring === "seen" ? "bg-border" : "bg-transparent"
+          ring === "new" ? "bg-brand" : ring === "close" ? "bg-green-500" : ring === "seen" ? "bg-border" : "bg-transparent"
         )}
       >
         {/* Stories you've already watched fade back, so new ones stand out. */}

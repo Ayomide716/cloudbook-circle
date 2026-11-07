@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
+import { plainMentions } from "@/lib/mentions";
 import { cancelDelete, deleteLater, deleteNow, hideEverywhere, showAgain, useHiddenEverywhere } from "@/lib/pending-deletes";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { haptic } from "@/lib/haptics";
@@ -167,7 +168,7 @@ const PostCard = ({
   const [isSaved, setIsSaved] = useState(false);
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState(post.content);
+  const [editContent, setEditContent] = useState(plainMentions(post.content ?? ""));
   const [editLoading, setEditLoading] = useState(false);
   // The thread you just replied in stays open.
   const [openThreadId, setOpenThreadId] = useState<string | null>(null);
@@ -578,7 +579,7 @@ const PostCard = ({
                </ActionMenuItem>
                 {currentUserId === post.user_id && (
                   <>
-                    <ActionMenuItem onClick={() => { setIsEditing(true); setEditContent(post.content); }}>
+                    <ActionMenuItem onClick={() => { setIsEditing(true); setEditContent(plainMentions(post.content ?? "")); }}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit Post
                     </ActionMenuItem>
@@ -657,7 +658,7 @@ const PostCard = ({
               className="mt-2.5 flex min-h-[230px] items-center justify-center rounded-2xl px-6 py-8 text-center"
               style={{ backgroundImage: postBackground }}
             >
-              <p className="whitespace-pre-wrap break-words text-2xl font-bold leading-snug text-white drop-shadow-sm">{post.content}</p>
+              <p className="whitespace-pre-wrap break-words text-2xl font-bold leading-snug text-white drop-shadow-sm">{plainMentions(post.content)}</p>
             </div>
           ) : (
             <PostContent content={post.content} />
@@ -696,7 +697,7 @@ const PostCard = ({
             caption={
               <>
                 <span className="font-semibold text-white">{post.profiles.full_name || "Anonymous"}</span>
-                {post.content && <span className="line-clamp-2"> {post.content}</span>}
+                {post.content && <span className="line-clamp-2"> {plainMentions(post.content)}</span>}
               </>
             }
           />
@@ -841,7 +842,7 @@ const PostCard = ({
         >
           <span className="line-clamp-2">
             <span className="font-semibold">{latestComment.profiles.full_name || "Someone"}</span>{" "}
-            <span className="text-foreground/85">{latestComment.content}</span>
+            <span className="text-foreground/85">{plainMentions(latestComment.content)}</span>
           </span>
           {comments.length > 1 && (
             <span className="mt-0.5 block text-muted-foreground">View all {compactCount(comments.length)} comments</span>

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { mentionName, type Mention } from "@/lib/mentions";
 
 interface MentionInputProps {
   value: string;
@@ -10,6 +11,9 @@ interface MentionInputProps {
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  /** Mentions keep the full name and are reported through onMention (saved with the person's id). */
+  rich?: boolean;
+  onMention?: (mention: Mention) => void;
 }
 
 interface UserSuggestion {
@@ -18,7 +22,7 @@ interface UserSuggestion {
   avatar_url: string | null;
 }
 
-const MentionInput = ({ value, onChange, placeholder, className, disabled }: MentionInputProps) => {
+const MentionInput = ({ value, onChange, placeholder, className, disabled, rich, onMention }: MentionInputProps) => {
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
@@ -68,9 +72,12 @@ const MentionInput = ({ value, onChange, placeholder, className, disabled }: Men
     const mentionMatch = textBeforeCursor.match(/@(\w*)$/);
     if (mentionMatch) {
       const beforeMention = textBeforeCursor.slice(0, mentionMatch.index);
-      const displayName = (user.full_name || "User").replace(/\s+/g, "");
+      // Rich mentions keep the full name (saved with the person's id and linked to them);
+      // otherwise one word, as before.
+      const displayName = rich ? mentionName(user.full_name) : (user.full_name || "User").replace(/\s+/g, "");
       const newValue = `${beforeMention}@${displayName} ${textAfterCursor}`;
       onChange(newValue);
+      if (rich) onMention?.({ id: user.id, name: displayName });
     }
     setShowSuggestions(false);
     setMentionQuery("");

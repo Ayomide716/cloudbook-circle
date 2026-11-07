@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { plainMentions } from "@/lib/mentions";
 import { useNavigate } from "react-router-dom";
 import { Search, X, User, FileText, Users, BookOpen } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
@@ -54,7 +55,7 @@ export default function GlobalSearch() {
         type: "user" as const, id: p.id, title: p.full_name || "User", avatar: p.avatar_url,
       })),
       ...(posts.data || []).map((p) => ({
-        type: "post" as const, id: p.id, title: p.content.substring(0, 60) + (p.content.length > 60 ? "..." : ""),
+        type: "post" as const, id: p.id, title: plainMentions(p.content).substring(0, 60) + (p.content.length > 60 ? "..." : ""),
       })),
       ...(groups.data || []).map((g) => ({
         type: "group" as const, id: g.id, title: g.name, avatar: g.image_url,

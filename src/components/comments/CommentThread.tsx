@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { plainMentions } from "@/lib/mentions";
 import { Link } from "react-router-dom";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -191,7 +192,7 @@ export function CommentThread<T extends ThreadComment>({
                 </div>
               </div>
             ) : (
-              <p className="whitespace-pre-wrap break-words text-sm">{c.content}</p>
+              <p className="whitespace-pre-wrap break-words text-sm">{plainMentions(c.content)}</p>
             )}
           </div>
           <div className="ml-3 mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
@@ -210,7 +211,7 @@ export function CommentThread<T extends ThreadComment>({
               Reply
             </button>
             {mine && onEdit && !isReply && !isEditing && (
-              <button type="button" className="font-semibold hover:text-foreground" onClick={() => setEditing({ id: c.id, text: c.content })}>
+              <button type="button" className="font-semibold hover:text-foreground" onClick={() => setEditing({ id: c.id, text: plainMentions(c.content) })}>
                 Edit
               </button>
             )}

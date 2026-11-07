@@ -1111,6 +1111,12 @@ export type Database = {
           },
         ]
       }
+      close_friends: {
+        Row: { created_at: string; friend_id: string; user_id: string }
+        Insert: { created_at?: string; friend_id: string; user_id: string }
+        Update: { created_at?: string; friend_id?: string; user_id?: string }
+        Relationships: []
+      }
       comment_likes: {
         Row: {
           comment_id: string
@@ -2064,6 +2070,7 @@ export type Database = {
       }
       stories: {
         Row: {
+          audience: string
           caption: string | null
           created_at: string
           expires_at: string
@@ -2073,6 +2080,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          audience?: string
           caption?: string | null
           created_at?: string
           expires_at?: string
@@ -2082,6 +2090,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          audience?: string
           caption?: string | null
           created_at?: string
           expires_at?: string
@@ -2571,6 +2580,8 @@ export type Database = {
         Returns: { group_id: string; member_count: number }[]
       }
       admin_usage: { Args: Record<string, never>; Returns: Json }
+      trending_hashtags: { Args: { _days?: number; _limit?: number }; Returns: { tag: string; posts: number }[] }
+      is_close_friend_of: { Args: { _owner: string }; Returns: boolean }
       is_friend_of: { Args: { _other: string }; Returns: boolean }
       group_member_preview: {
         Args: { _group: string; _limit?: number }

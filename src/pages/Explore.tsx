@@ -1,4 +1,5 @@
 import EmptyState from "@/components/EmptyState";
+import { features } from "@/lib/features";
 import { useEffect, useRef, useState } from "react";
 import { fetchPostInteractions, usePostInteractions } from "@/hooks/use-post-interactions";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -144,6 +145,11 @@ const Explore = () => {
     setTrendingTopics(
       Array.from(tagCounts.entries()).map(([tag, count]) => ({ tag, count })).sort((a, b) => b.count - a.count).slice(0, 8)
     );
+    // The server counts every post from the last week, not just the 50 loaded here.
+    if (features.trendingHashtags) {
+      const { data: trending } = await supabase.rpc("trending_hashtags", { _days: 7, _limit: 8 });
+      if (trending?.length) setTrendingTopics(trending.map((t) => ({ tag: `#${t.tag}`, count: Number(t.posts) })));
+    }
 
     loadSuggestions(userId);
     loadGroups(userId);
