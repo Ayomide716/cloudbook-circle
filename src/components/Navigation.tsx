@@ -459,17 +459,17 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       onClick={() => navigate(item.path)}
                       onMouseEnter={() => prefetchRoute(item.path)}
                       onFocus={() => prefetchRoute(item.path)}
-                      whileHover={{ scale: 1.2, y: -6 }}
-                      whileTap={{ scale: 0.9 }}
-                      transition={{ type: "spring", stiffness: 400, damping: 17 }}
+                      whileTap={{ scale: 0.94 }}
+                      transition={{ type: "spring", stiffness: 500, damping: 30 }}
                       className={cn(
                         "relative flex items-center justify-center h-12 w-12 rounded-xl transition-colors duration-200",
+                        // Ink when active, solid icon: the same language as the phone tab bar.
                         active
-                          ? "gradient-brand text-primary-foreground shadow-lg"
-                          : "text-muted-foreground hover:text-foreground hover:bg-secondary/80"
+                          ? "bg-foreground text-background"
+                          : "text-foreground hover:bg-secondary"
                       )}
                     >
-                      <item.icon className="h-5 w-5" />
+                      <item.icon className="h-[22px] w-[22px]" fill={active ? "currentColor" : undefined} />
                     </motion.button>
                   </TooltipTrigger>
                   <TooltipContent side="top" className="text-xs font-medium glass border-border/50">

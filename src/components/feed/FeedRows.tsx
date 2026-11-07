@@ -14,7 +14,7 @@ const RowShell = ({ title, link, linkLabel = "See all", children, label }: { tit
   <section className="feed-section overflow-hidden rounded-[1.125rem] border bg-card py-3" aria-label={label}>
     <div className="flex items-center justify-between px-3.5 pb-2.5">
       <h2 className="text-[15px] font-semibold">{title}</h2>
-      <Link to={link} className="text-sm font-medium text-primary hover:underline">{linkLabel}</Link>
+      <Link to={link} className="text-sm font-semibold text-foreground hover:underline">{linkLabel}</Link>
     </div>
     <div className="flex snap-x gap-2.5 overflow-x-auto px-3.5 pb-1 scrollbar-hide">{children}</div>
   </section>
@@ -193,7 +193,7 @@ export const OnThisDay = ({ currentUserId, name, avatarUrl }: { currentUserId: s
   return (
     <section className="feed-section overflow-hidden rounded-[1.125rem] border bg-card" aria-label="On this day">
       <div className="flex items-center gap-2 px-3.5 pt-3">
-        <History className="h-5 w-5 text-primary" />
+        <History className="h-5 w-5 text-foreground" />
         <h2 className="flex-1 text-[15px] font-semibold">On this day</h2>
         <button type="button" onClick={dismiss} className="-my-2 -mr-2 h-10 rounded-lg px-2 text-sm text-muted-foreground hover:text-foreground">Not now</button>
       </div>
