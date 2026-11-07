@@ -267,7 +267,8 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       )}>
                         <item.icon className="h-[26px] w-[26px]" fill={active ? "currentColor" : undefined} />
                       </span>
-                      {active && <span className="absolute inset-x-1 xl:inset-x-2 bottom-0 h-[2px] rounded-t-full bg-foreground" />}
+                      {/* One underline that slides to the tab you pick. */}
+                      {active && <motion.span layoutId="top-tab-underline" transition={{ type: "spring", stiffness: 500, damping: 40 }} className="absolute inset-x-1 xl:inset-x-2 bottom-0 h-[2px] rounded-t-full bg-foreground" />}
                     </Link>
                   );
                 })}

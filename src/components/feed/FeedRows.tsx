@@ -200,7 +200,7 @@ export const OnThisDay = ({ currentUserId, name, avatarUrl }: { currentUserId: s
             <p className="text-xs text-muted-foreground">{format(new Date(memory.created_at), "d MMMM yyyy")}</p>
             <p className="line-clamp-3 text-[14px]">{memory.content}</p>
           </div>
-          {memory.image_url && <img src={memory.image_url} alt="" className="h-16 w-16 flex-shrink-0 rounded-lg object-cover" />}
+          {memory.image_url && <img loading="lazy" decoding="async" src={memory.image_url} alt="" className="h-16 w-16 flex-shrink-0 rounded-lg object-cover" />}
         </div>
       </Link>
     </section>

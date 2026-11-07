@@ -283,7 +283,7 @@ const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNav
             {/* Cover */}
             <div className="h-24 bg-gradient-to-br from-primary/20 to-primary/5 relative">
               {page.cover_url && (
-                <img src={page.cover_url} alt="" className="w-full h-full object-cover" />
+                <img loading="lazy" decoding="async" src={page.cover_url} alt="" className="w-full h-full object-cover" />
               )}
             </div>
             {/* Avatar + Info */}
@@ -291,7 +291,7 @@ const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNav
               <div className="-mt-8 mb-2">
                 <div className="h-16 w-16 rounded-xl border-4 border-background bg-secondary overflow-hidden">
                   {page.avatar_url ? (
-                    <img src={page.avatar_url} alt={page.name} className="w-full h-full object-cover" />
+                    <img loading="lazy" decoding="async" src={page.avatar_url} alt={page.name} className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center bg-primary/10">
                       <Flag className="h-6 w-6 text-primary" />

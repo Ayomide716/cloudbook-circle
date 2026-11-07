@@ -262,7 +262,7 @@ const ChatBubble = ({
           )}
           {/* Sticker */}
           {stickerSrc && (
-            <img
+            <img loading="lazy" decoding="async"
               src={stickerSrc}
               alt={stickerAlt}
               draggable={false}
@@ -279,11 +279,11 @@ const ChatBubble = ({
           )}
           {/* GIF */}
           {isGif && message.image_url && (
-            <img src={message.image_url} alt="GIF" className="rounded-md max-w-full max-h-52" />
+            <img loading="lazy" decoding="async" src={message.image_url} alt="GIF" className="rounded-md max-w-full max-h-52" />
           )}
           {/* Image */}
           {isMedia && !isVideo && !isGif && message.image_url && (
-            <img
+            <img loading="lazy" decoding="async"
               src={message.image_url}
               alt="Shared"
               className="rounded-md max-w-full cursor-pointer hover:opacity-90 transition-opacity"

@@ -47,6 +47,8 @@ const FEED_VISIT_KEY = "cloudbook_feed_last_visit";
 
 const Index = () => {
   const navigate = useNavigate();
+  // Posts newer than this arrived while you were here, so they open up into the feed.
+  const [feedOpenedAt] = useState(() => Date.now());
   // Old post links were "/?post=<id>": send them to the post's own page.
   const [searchParams] = useSearchParams();
   const legacyPostId = searchParams.get("post");
@@ -316,7 +318,7 @@ const Index = () => {
                   className="space-y-2 sm:space-y-4"
                 >
                   <section className="feed-section rounded-[1.125rem] border bg-card px-5 py-6 text-center">
-                    <ReactionEmoji type="wave" className="mx-auto h-14 w-14 animate-[wave_1.6s_ease-in-out_1]" />
+                    <span className="mx-auto flex h-[72px] w-[72px] items-center justify-center rounded-full bg-secondary"><Users className="h-8 w-8 text-foreground" /></span>
                     <h2 className="mt-2 text-lg font-semibold">
                       {feedTab === "friends" ? "No posts from friends yet" : `Welcome to Ember${currentUser.full_name ? `, ${currentUser.full_name.split(" ")[0]}` : ""}!`}
                     </h2>
@@ -356,14 +358,20 @@ const Index = () => {
                         <motion.div
                           key={post.id}
                           data-feed-post={post.id}
-                          initial={{ opacity: 0, y: 20, scale: 0.97 }}
-                          animate={{ opacity: 1, y: 0, scale: 1 }}
-                          transition={{
-                            type: "spring",
-                            stiffness: 260,
-                            damping: 20,
-                            delay: Math.min(index, 5) * 0.06,
-                          }}
+                          // A post that arrives while you're here (yours, or a friend's) opens up
+                          // at the top and eases the rest down, instead of making them jump.
+                          {...(Date.parse(post.created_at) > feedOpenedAt
+                            ? {
+                                initial: { opacity: 0, height: 0 },
+                                animate: { opacity: 1, height: "auto", transitionEnd: { overflow: "visible" } },
+                                style: { overflow: "hidden" },
+                                transition: { duration: 0.35, ease: [0.23, 1, 0.32, 1] },
+                              }
+                            : {
+                                initial: { opacity: 0, y: 20, scale: 0.97 },
+                                animate: { opacity: 1, y: 0, scale: 1 },
+                                transition: { type: "spring", stiffness: 260, damping: 20, delay: Math.min(index, 5) * 0.06 },
+                              })}
                           className={size === "full" ? "md:col-span-2" : "md:col-span-1"}
                         >
                           {ad && currentUser && (
@@ -435,7 +443,7 @@ const Index = () => {
                           <Button variant="secondary" className="rounded-full" onClick={() => chooseTab("foryou")}>See more in For you</Button>
                         </div>
                       ) : (
-                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><ReactionEmoji type="party" className="h-5 w-5" /> You're all caught up!</p>
+                        <p className="flex items-center gap-1.5 text-sm text-muted-foreground"><Check className="h-4 w-4" /> You're all caught up!</p>
                       )
                     )}
                   </div>

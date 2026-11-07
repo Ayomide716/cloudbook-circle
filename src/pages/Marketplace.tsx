@@ -380,7 +380,7 @@ const Marketplace = () => {
                     <button type="button" className="block w-full text-left" onClick={() => setDetailListing(listing)}>
                       <div className="aspect-square bg-muted relative overflow-hidden">
                         {listing.image_urls?.length > 0 ? (
-                          <img
+                          <img decoding="async"
                             src={listing.image_urls[0]}
                             alt={listing.title}
                             loading="lazy"
@@ -431,7 +431,7 @@ const Marketplace = () => {
               {detailListing.image_urls?.length > 0 && (
                 <div className="flex gap-2 overflow-x-auto pb-2 snap-x snap-mandatory -mx-1 px-1">
                   {detailListing.image_urls.map((url, i) => (
-                    <img
+                    <img loading="lazy" decoding="async"
                       key={i}
                       src={url}
                       alt={`${detailListing.title}, photo ${i + 1}`}

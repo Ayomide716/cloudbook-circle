@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -96,6 +97,11 @@ const Friends = () => {
   /** Mutual friends with each person who sent you a request. */
   const [requestMutuals, setRequestMutuals] = useState<Record<string, number>>({});
   const [hiddenSuggestions, setHiddenSuggestions] = useState<Set<string>>(new Set());
+  // Requests you just accepted: they show "You're now friends" for a moment before leaving the list.
+  const [justAccepted, setJustAccepted] = useState<Set<string>>(new Set());
+  // The list as it was when you tapped Accept, so a realtime reload doesn't pull the row away early.
+  const [heldRequests, setHeldRequests] = useState<FriendRequest[] | null>(null);
+  const shownRequests = heldRequests ?? pendingRequests;
   const [unfriendTarget, setUnfriendTarget] = useState<Friendship | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -285,7 +291,17 @@ const Friends = () => {
       return;
     }
 
-    loadData();
+    setHeldRequests((held) => held ?? pendingRequests);
+    setJustAccepted((s) => new Set(s).add(requestId));
+    window.setTimeout(() => {
+      setJustAccepted((s) => {
+        const next = new Set(s);
+        next.delete(requestId);
+        if (next.size === 0) setHeldRequests(null);
+        return next;
+      });
+      loadData();
+    }, 1600);
   };
 
   const handleDecline = async (requestId: string) => {
@@ -564,14 +580,14 @@ const Friends = () => {
           </TabsList>
 
           <TabsContent value="requests" className="space-y-2 sm:space-y-4">
-            {pendingRequests.length === 0 ? (
+            {shownRequests.length === 0 ? (
               <Card className="feed-section flat-list">
                 <EmptyState emoji="mailbox" title="No friend requests" text="When someone sends you a friend request, it'll show up here." />
               </Card>
             ) : (
-              <Section title="Friend requests" count={pendingRequests.length}>
+              <Section title="Friend requests" count={shownRequests.length}>
                 <div className="divide-y">
-                  {pendingRequests.map((request) => {
+                  {shownRequests.map((request) => {
                     const mutual = requestMutuals[request.user_id] ?? 0;
                     return (
                       <div key={request.id} className="flex items-start gap-3 sm:gap-4 px-4 py-3">
@@ -593,6 +609,25 @@ const Friends = () => {
                             {mutual > 0 && `${mutualLabel(mutual)} · `}
                             {formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}
                           </p>
+                          {justAccepted.has(request.id) ? (
+                          <motion.p
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
+                            className="mt-2 flex h-9 items-center gap-1.5 text-sm font-semibold"
+                            role="status"
+                          >
+                            <motion.span
+                              initial={{ scale: 0.6 }}
+                              animate={{ scale: 1 }}
+                              transition={{ type: "spring", stiffness: 500, damping: 22 }}
+                              className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground"
+                            >
+                              <Check className="h-3.5 w-3.5" />
+                            </motion.span>
+                            You're now friends
+                          </motion.p>
+                          ) : (
                           <div className="mt-2 grid max-w-sm grid-cols-2 gap-2">
                           <Button
                             size="sm"
@@ -613,6 +648,7 @@ const Friends = () => {
                             Delete
                           </Button>
                           </div>
+                          )}
                         </div>
                       </div>
                     );
