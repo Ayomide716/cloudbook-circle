@@ -59,7 +59,7 @@ import { birthdayLabel, relationshipLabel } from "@/lib/profile-details";
 import ImageUpload from "@/components/ImageUpload";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import ProfileSkeleton from "@/components/skeletons/ProfileSkeleton";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { m as motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import { cn, friendlyError } from "@/lib/utils";
 import AnonymousQA from "@/components/AnonymousQA";
 import ProfileReels, { type ProfileReel } from "@/components/ProfileReels";

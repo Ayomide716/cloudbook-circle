@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffectEvent } from "@/hooks/use-effect-event";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import {
   BadgeCheck, BookOpen, Crown, Flame, Gem, HeartHandshake, PenLine, Star, Users, type LucideIcon,
 } from "@/components/icons";

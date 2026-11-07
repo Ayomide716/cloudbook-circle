@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Clock, Eye, TrendingDown, Coffee, X } from "@/components/icons";
-import { motion, AnimatePresence } from "framer-motion";
+import { m as motion, AnimatePresence } from "framer-motion";
 
 const ScreenTimeWidget = () => {
   const [sessionMinutes, setSessionMinutes] = useState(0);

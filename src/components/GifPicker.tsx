@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Smile, Search, Loader2, X } from "@/components/icons";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { STICKER_PACKS, stickerName, stickerUrl } from "@/lib/stickers";
 import { findGifs, findStickers, type GifResult } from "@/lib/giphy";

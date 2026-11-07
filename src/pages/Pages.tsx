@@ -16,7 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Search, Plus, Users, Globe, Flag, Loader2 } from "@/components/icons";
 import { cn, friendlyError } from "@/lib/utils";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { useSEO } from "@/hooks/useSEO";

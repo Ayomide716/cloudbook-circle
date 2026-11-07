@@ -10,7 +10,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import EmptyState from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
  import { Loader2 } from "@/components/icons";
- import FeedSkeleton from "@/components/skeletons/FeedSkeleton";
+ import { PostSkeleton } from "@/components/skeletons/FeedSkeleton";
  import { useEffectEvent } from "@/hooks/use-effect-event";
  
  interface Post {
@@ -116,7 +116,11 @@ import { Button } from "@/components/ui/button";
      return (
        <div className="min-h-screen bg-background">
          <Navigation currentUserId={currentUserId || undefined} />
-         <FeedSkeleton />
+         <div className="page-flush max-w-2xl mx-auto px-0 sm:px-4 pb-6 sm:py-6 space-y-2 sm:space-y-3" aria-busy="true" aria-label="Loading saved posts">
+          <PageHeader back title="Saved" className="sm:mb-4" />
+          <PostSkeleton />
+          <PostSkeleton photo={false} />
+        </div>
        </div>
      );
    }

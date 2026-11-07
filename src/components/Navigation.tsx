@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/tooltip";
 import { usePushNotifications } from "@/hooks/usePushNotifications";
 import { prefetchRoute } from "@/lib/prefetch";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useHideOnScroll } from "@/hooks/use-hide-on-scroll";

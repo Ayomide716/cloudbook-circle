@@ -19,7 +19,7 @@ import { GroupsRow, OnThisDay, ReelsRow } from "@/components/feed/FeedRows";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { Check, Loader2, UserPlus, Users } from "@/components/icons";
-import { motion } from "framer-motion";
+import { m as motion } from "framer-motion";
 import { useLoginStreak } from "@/hooks/use-login-streak";
 import { isFilteredOut } from "@/lib/hidden-posts";
 import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";

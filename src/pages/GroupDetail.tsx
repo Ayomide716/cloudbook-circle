@@ -25,7 +25,8 @@ import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { dbChannel } from "@/lib/realtime";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RowSkeleton } from "@/components/skeletons/parts";
+import { RowSkeleton, StaticChips } from "@/components/skeletons/parts";
+import { PostSkeleton } from "@/components/skeletons/FeedSkeleton";
 import { recordGroupVisit } from "@/lib/recent-groups";
 import { friendlyError } from "@/lib/utils";
 import { features } from "@/lib/features";
@@ -488,13 +489,23 @@ const GroupDetail = () => {
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
         {/* The group's shape in grey while it loads, instead of a spinner. */}
-        <div className="mx-auto max-w-2xl" aria-busy="true">
-          <Skeleton className="h-40 w-full rounded-none sm:h-56 sm:rounded-2xl" />
-          <div className="space-y-2 px-4 py-4">
-            <Skeleton className="h-7 w-2/3 rounded-full" />
-            <Skeleton className="h-4 w-1/3 rounded-full" />
+        <div className="mx-auto max-w-2xl" aria-busy="true" aria-label="Loading group">
+          <Skeleton className="h-44 w-full rounded-none sm:h-60 sm:rounded-2xl" />
+          <div className="px-4 pb-3 pt-4">
+            <Skeleton className="h-7 w-2/3" />
+            <Skeleton className="mt-2.5 h-4 w-1/2" />
+            <div className="mt-3 flex -space-x-2">
+              {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-8 w-8 rounded-full border-2 border-background" />)}
+            </div>
+            <div className="mt-3 flex gap-2">
+              <Skeleton className="h-10 flex-1 rounded-xl" />
+              <Skeleton className="h-10 flex-1 rounded-xl" />
+            </div>
+            <div className="mt-3">
+              <StaticChips labels={["Discussion", "Chat", "Members", "Events"]} />
+            </div>
           </div>
-          {[0, 1, 2].map((r) => <RowSkeleton key={r} />)}
+          <PostSkeleton photo={false} />
         </div>
       </div>
     );
