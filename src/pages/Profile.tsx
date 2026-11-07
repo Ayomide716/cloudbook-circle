@@ -141,7 +141,7 @@ const Profile = () => {
   }, [location.state, location.pathname, navigate]);
   const { reactionsData, setReactionsData, commentsData, setCommentsData, toggleReaction, reloadComments } = usePostInteractions();
   const [friendCount, setFriendCount] = useState<number | null>(0);
-  const [activeTab, setActiveTab] = useState<"posts" | "photos" | "videos" | "reels" | "albums" | "qa">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "photos" | "videos" | "reels" | "albums" | "about" | "qa">("posts");
   const [reels, setReels] = useState<ProfileReel[]>([]);
 
   // Albums state
@@ -583,6 +583,47 @@ const Profile = () => {
   filter(Boolean) as {icon: LucideIcon;label: string;prefix?: string;href?: string | null;}[];
   const hasDetails = infoItems.some((item) => item.prefix !== "Joined");
 
+  // Personal details, shown beside posts and on their own in About.
+  const personalDetails = (
+    <>
+              {isOwnProfile && !hasDetails &&
+            <section className="feed-section bento-card flex items-center gap-3 p-4 sm:p-5" aria-label="Add personal details">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[15px] font-semibold">Tell people about yourself</p>
+                    <p className="text-sm text-muted-foreground">Where you live, work and studied, so friends can find you.</p>
+                  </div>
+                  <Button size="sm" variant="secondary" className="shrink-0 rounded-full" onClick={() => setIsEditingProfile(true)}>Add details</Button>
+                </section>
+            }
+              {hasDetails &&
+            <section className="feed-section bento-card p-4 sm:p-5" aria-labelledby="personal-details">
+                  <div className="flex items-center justify-between mb-3">
+                    <h2 id="personal-details" className="text-[17px] font-bold">Personal details</h2>
+                    {isOwnProfile &&
+                <button type="button" onClick={() => setIsEditingProfile(true)} className="text-[15px] text-primary font-medium hover:underline">Edit</button>
+                }
+                  </div>
+                  <ul className="space-y-3.5">
+                    {infoItems.map((item) =>
+                <li key={`${item.prefix ?? ""}${item.label}`} className="flex items-center gap-3 text-[15px]">
+                        <item.icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        {item.href ?
+                  <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
+                            {displayUrl(item.href)}
+                          </a> :
+                  <span className="min-w-0 [overflow-wrap:anywhere]">
+                            {item.prefix && <>{item.prefix} </>}
+                            {item.prefix ? <strong className="font-semibold">{item.label}</strong> : item.label}
+                          </span>
+                  }
+                      </li>
+                )}
+                  </ul>
+                </section>
+            }
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} hideMobileTopBar />
@@ -691,7 +732,7 @@ const Profile = () => {
 
           {/* Short details line: 📍 Lagos · 🎓 UNILAG · ❤ Single */}
           {/* The All tab lists these in Personal details just below, so they're not repeated here. */}
-          {summaryItems.length > 0 && !(activeTab === "posts" && hasDetails) &&
+          {summaryItems.length > 0 && !((activeTab === "posts" || activeTab === "about") && hasDetails) &&
           <p className="mt-2 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[15px]">
               {summaryItems.map((item, i) =>
             <span key={item.label} className="inline-flex items-center gap-1">
@@ -793,8 +834,8 @@ const Profile = () => {
         <nav aria-label="Profile sections" className="sticky top-0 md:top-[var(--nav-height)] z-30 mb-2 sm:mb-5 max-sm:!bg-card max-sm:rounded-b-3xl max-sm:border-t max-sm:border-border/60 sm:border-b sm:border-border bg-card/95 sm:bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-card/85 sm:supports-[backdrop-filter]:bg-background/80">
           <div className="flex gap-1.5 overflow-x-auto scrollbar-hide px-3 sm:px-0 py-2">
             {/* Only sections with something in them (yours keeps Albums, to make one). */}
-            {(["posts", "photos", "videos", "reels", "albums", "qa"] as const).filter((tab) =>
-              tab === "posts" ||
+            {(["posts", "photos", "videos", "reels", "albums", "about", "qa"] as const).filter((tab) =>
+              tab === "posts" || tab === "about" ||
               (tab === "photos" && photoPosts.length > 0) ||
               (tab === "videos" && videoPosts.length > 0) ||
               (tab === "reels" && reels.length > 0) ||
@@ -811,7 +852,7 @@ const Profile = () => {
                     "shrink-0 rounded-full px-4 py-2 text-[15px] font-semibold transition-colors",
                     activeTab === tab ? "bg-foreground text-background" : "text-foreground hover:bg-secondary"
                   )}>
-                  {{ posts: "All", photos: "Photos", videos: "Videos", reels: "Reels", albums: "Albums", qa: "Q&A" }[tab]}
+                  {{ posts: "Posts", photos: "Photos", videos: "Videos", reels: "Reels", albums: "Albums", about: "About", qa: "Q&A" }[tab]}
                   {count !== null && count > 0 && <span className="ml-1 font-normal opacity-60">{count}</span>}
                 </button>
               );
@@ -826,41 +867,7 @@ const Profile = () => {
             <div className="lg:col-span-1 space-y-2 sm:space-y-5">
               {/* Personal details, as on Facebook: "Lives in Lagos", "From Ibadan", … */}
               {/* Only "Joined" isn't worth a card: others see nothing, you get a nudge to add details. */}
-              {isOwnProfile && !hasDetails &&
-            <section className="feed-section bento-card flex items-center gap-3 p-4 sm:p-5" aria-label="Add personal details">
-                  <div className="min-w-0 flex-1">
-                    <p className="text-[15px] font-semibold">Tell people about yourself</p>
-                    <p className="text-sm text-muted-foreground">Where you live, work and studied, so friends can find you.</p>
-                  </div>
-                  <Button size="sm" variant="secondary" className="shrink-0 rounded-full" onClick={() => setIsEditingProfile(true)}>Add details</Button>
-                </section>
-            }
-              {hasDetails &&
-            <section className="feed-section bento-card p-4 sm:p-5" aria-labelledby="personal-details">
-                  <div className="flex items-center justify-between mb-3">
-                    <h2 id="personal-details" className="text-[17px] font-bold">Personal details</h2>
-                    {isOwnProfile &&
-                <button type="button" onClick={() => setIsEditingProfile(true)} className="text-[15px] text-primary font-medium hover:underline">Edit</button>
-                }
-                  </div>
-                  <ul className="space-y-3.5">
-                    {infoItems.map((item) =>
-                <li key={`${item.prefix ?? ""}${item.label}`} className="flex items-center gap-3 text-[15px]">
-                        <item.icon className="h-5 w-5 shrink-0 text-muted-foreground" aria-hidden="true" />
-                        {item.href ?
-                  <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline truncate">
-                            {displayUrl(item.href)}
-                          </a> :
-                  <span className="min-w-0 [overflow-wrap:anywhere]">
-                            {item.prefix && <>{item.prefix} </>}
-                            {item.prefix ? <strong className="font-semibold">{item.label}</strong> : item.label}
-                          </span>
-                  }
-                      </li>
-                )}
-                  </ul>
-                </section>
-            }
+              {personalDetails}
 
               {/* Photos grid card */}
               {photoPosts.length > 0 &&
@@ -956,6 +963,16 @@ const Profile = () => {
           </div>
         }
 
+        {activeTab === "about" && (
+          <div className="mx-auto max-w-2xl space-y-2 sm:space-y-5">
+            {personalDetails}
+            {!hasDetails && !isOwnProfile && (
+              <section className="feed-section bento-card p-4 text-[15px] text-muted-foreground sm:p-5">
+                {(profile.full_name || "They").split(" ")[0]} hasn't added any details yet.
+              </section>
+            )}
+          </div>
+        )}
         {activeTab === "videos" && (
         videoPosts.length === 0 ?
         <EmptyState className="bento-card" emoji="camera" title="No videos yet" text="Videos from posts will show up here." /> :

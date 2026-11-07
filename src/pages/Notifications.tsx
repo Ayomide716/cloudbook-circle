@@ -347,7 +347,7 @@ const Notifications = () => {
                 <section key={sec.title} aria-label={sec.title}>
                   <h2 className="px-4 pb-1 pt-4 text-[15px] font-semibold">{sec.title}</h2>
                   {sec.rows.map((notification) => (
-                <div key={notification.id} className={cn("flex items-start rounded-2xl", !notification.read && "bg-secondary")}>
+                <div key={notification.id} className={cn("mx-1.5 my-0.5 flex items-start rounded-2xl sm:mx-2", !notification.read && "bg-secondary")}>
                 <button
                   type="button"
                                     className={cn(

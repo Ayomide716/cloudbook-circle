@@ -26,7 +26,8 @@ test.describe("profiles and friends", () => {
     await expect(page.getByRole("button", { name: "Edit profile" })).toBeVisible();
     const chips = page.getByRole("navigation", { name: "Profile sections" });
     // Only sections with something in them: no videos, so no Videos chip; your own Albums stays.
-    await expect(chips.getByRole("button", { name: /^All/ })).toBeVisible();
+    await expect(chips.getByRole("button", { name: /^Posts/ })).toBeVisible();
+    await expect(chips.getByRole("button", { name: /^About/ })).toBeVisible();
     await expect(chips.getByRole("button", { name: /^Videos/ })).toHaveCount(0);
     await expect(chips.getByRole("button", { name: /^Albums/ })).toBeVisible();
 

@@ -25,6 +25,8 @@ interface ConversationRowProps {
   preview?: string;
   /** In the picture's place when there's no picture (a group icon for groups). */
   fallback?: ReactNode;
+  /** A green dot on the picture: they're active now. */
+  online?: boolean;
 }
 
 /**
@@ -32,7 +34,7 @@ interface ConversationRowProps {
  * are unread messages. Press and hold (or the ⌄ button on bigger screens) to pin, mute or archive.
  */
 const ConversationRow = ({
-  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback,
+  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback, online,
 }: ConversationRowProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pressTimer = useRef<number>();
@@ -65,10 +67,13 @@ const ConversationRow = ({
       onPointerCancel={() => window.clearTimeout(pressTimer.current)}
       onContextMenu={(e) => { e.preventDefault(); setMenuOpen(true); }}
     >
-      <Avatar className="h-12 w-12 flex-shrink-0">
-        <AvatarImage src={profile.avatar_url || undefined} className="object-cover" />
-        <AvatarFallback>{fallback ?? (profile.full_name?.[0]?.toUpperCase() || "U")}</AvatarFallback>
-      </Avatar>
+      <span className="relative flex-shrink-0">
+        <Avatar className="h-12 w-12">
+          <AvatarImage src={profile.avatar_url || undefined} className="object-cover" />
+          <AvatarFallback>{fallback ?? (profile.full_name?.[0]?.toUpperCase() || "U")}</AvatarFallback>
+        </Avatar>
+        {online && <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-green-500" aria-label="Active now" />}
+      </span>
       <div className="min-w-0 flex-1">
         <div className="flex items-center justify-between gap-2">
           <p className="truncate font-semibold">{name}</p>

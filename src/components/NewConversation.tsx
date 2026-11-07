@@ -25,13 +25,18 @@ interface NewConversationProps {
   onSelectUser: (user: Profile) => void;
   /** "New group chat" at the top of the list, as on WhatsApp. */
   onNewGroup?: () => void;
+  /** Open it from elsewhere too (the empty chat list, the floating button on phones). */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-const NewConversation = ({ currentUserId, onSelectUser, onNewGroup }: NewConversationProps) => {
+const NewConversation = ({ currentUserId, onSelectUser, onNewGroup, open: openProp, onOpenChange }: NewConversationProps) => {
   const [friends, setFriends] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [open, setOpen] = useState(false);
+  const [openState, setOpenState] = useState(false);
+  const open = openProp ?? openState;
+  const setOpen = (next: boolean) => { setOpenState(next); onOpenChange?.(next); };
 
   const loadFriends = useEffectEvent(async () => {
     setIsLoading(true);

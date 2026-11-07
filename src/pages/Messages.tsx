@@ -22,7 +22,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer } from "@/components/icons";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -48,6 +48,8 @@ import { useResync } from "@/hooks/use-resync";
 import EnablePushBanner from "@/components/EnablePushBanner";
 import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
 import EmptyState from "@/components/EmptyState";
+import ActiveNow from "@/components/chat/ActiveNow";
+import { useOnlineFriends } from "@/hooks/use-online-friends";
 
 interface Profile {
   id: string;
@@ -94,6 +96,11 @@ const Messages = () => {
   const { toast } = useToast();
   useSEO({ title: "Messages", description: "Chat with your friends on Ember." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  // Search the chat list by name, and the new-message picker opened from anywhere on the page.
+  const [chatQuery, setChatQuery] = useState("");
+  const [composeOpen, setComposeOpen] = useState(false);
+  const onlineFriends = useOnlineFriends(currentUserId);
+  const onlineIds = useMemo(() => new Set(onlineFriends.map((f) => f.id)), [onlineFriends]);
   const [currentUserName, setCurrentUserName] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const { prefs: chatPrefs, toggle: toggleChatPref } = useChatPrefs(currentUserId);
@@ -118,12 +125,17 @@ const Messages = () => {
   type ChatRowItem = { kind: "dm"; conv: Conversation } | { kind: "group"; chat: GroupChatSummary };
   const unreadChats = conversations.filter((c) => c.unreadCount > 0 && !chatPrefs.archived.includes(c.profile.id)).length + groupChats.filter((g) => g.unread > 0 && !chatPrefs.archived.includes(g.group.id)).length;
   const chatRows: ChatRowItem[] = (() => {
+    const q = chatQuery.trim().toLowerCase();
+    const matches = (name: string | null | undefined) => !q || (name ?? "").toLowerCase().includes(q);
     const groupsInView = groupChats.filter((g) => chatPrefs.archived.includes(g.group.id) === showArchived);
     const people = showArchived ? listedConversations : chatFilter === "groups" ? [] : listedConversations.filter((c) => chatFilter !== "unread" || c.unreadCount > 0);
     const groups = showArchived ? groupsInView : groupsInView.filter((g) => chatFilter !== "unread" || g.unread > 0);
     const time = (row: ChatRowItem) => (row.kind === "group" ? groupActivity(row.chat) : row.conv.lastMessage?.created_at ?? "");
     const pinned = (row: ChatRowItem) => chatPrefs.pinned.includes(row.kind === "group" ? row.chat.group.id : row.conv.profile.id);
-    return [...people.map((conv) => ({ kind: "dm" as const, conv })), ...groups.map((chat) => ({ kind: "group" as const, chat }))]
+    return [
+      ...people.filter((c) => matches(c.profile.full_name)).map((conv) => ({ kind: "dm" as const, conv })),
+      ...groups.filter((g) => matches(g.group.name)).map((chat) => ({ kind: "group" as const, chat })),
+    ]
       .sort((a, b) => Number(pinned(b)) - Number(pinned(a)) || time(b).localeCompare(time(a)));
   })();
   const [selectedConversation, setSelectedConversation] = useState<Profile | null>(null);
@@ -700,7 +712,7 @@ const Messages = () => {
         <div className="container mx-auto px-0 sm:px-4 py-0 sm:py-4 flex-1 flex overflow-hidden">
           <div className="grid grid-cols-1 md:grid-cols-[300px_minmax(0,1fr)] lg:grid-cols-[360px_minmax(0,1fr)] gap-0 sm:gap-4 flex-1 overflow-hidden">
             {/* Conversations List */}
-            <Card className={cn("min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (selectedConversation || showAIChat || selectedGroup) ? "hidden md:flex" : "flex")}>
+            <Card className={cn("relative min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (selectedConversation || showAIChat || selectedGroup) ? "hidden md:flex" : "flex")}>
               <div className="px-3 pt-3 pb-2.5 sm:p-4 md:border-b flex-shrink-0">
                 <div className="flex items-center gap-1.5">
                   <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 -ml-1 [&_svg]:size-5" onClick={() => navigate("/")} aria-label="Back">
@@ -723,10 +735,28 @@ const Messages = () => {
                       </ActionMenuItem>
                     </ActionMenuContent>
                   </ActionMenu>
-                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} />
+                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} open={composeOpen} onOpenChange={setComposeOpen} />
                 </div>
+                {!showArchived && (
+                  <label className="mt-2.5 flex h-10 items-center gap-2 rounded-full bg-secondary px-3.5 text-muted-foreground focus-within:ring-2 focus-within:ring-ring">
+                    <Search className="h-[18px] w-[18px] shrink-0" aria-hidden="true" />
+                    <input
+                      type="search"
+                      value={chatQuery}
+                      onChange={(e) => setChatQuery(e.target.value)}
+                      placeholder="Search chats"
+                      aria-label="Search chats"
+                      className="min-w-0 flex-1 bg-transparent text-[15px] text-foreground outline-none placeholder:text-muted-foreground [&::-webkit-search-cancel-button]:hidden"
+                    />
+                    {chatQuery && (
+                      <button type="button" onClick={() => setChatQuery("")} aria-label="Clear search" className="-mr-1 flex h-7 w-7 items-center justify-center rounded-full hover:bg-accent">
+                        <X className="h-4 w-4" />
+                      </button>
+                    )}
+                  </label>
+                )}
               </div>
-              <div className="flex-1 overflow-y-auto max-md:px-3 max-md:pb-3">
+              <div className="flex-1 overflow-y-auto max-md:px-3 max-md:pb-24">
                 {/* AI Companion Entry */}
                 {features.cloudBuddy && (
                 <div
@@ -777,6 +807,7 @@ const Messages = () => {
                     ))}
                   </div>
                 )}
+                {!showArchived && !chatQuery && <ActiveNow people={onlineFriends} onOpen={openPerson} />}
                 {!showArchived && <EnablePushBanner />}
                 {!showArchived && groupInvites.length > 0 && (
                   <GroupInviteCards
@@ -801,9 +832,12 @@ const Messages = () => {
                 )}
                 {chatRows.length === 0 ? (
                   <EmptyState
-                    emoji="chat"
-                    title={showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "No group chats yet" : "No conversations yet"}
-                    text={showArchived || chatFilter === "unread" ? undefined : "Tap the new-message button at the top to start one."}
+                    emoji={chatQuery ? "search" : "chat"}
+                    title={chatQuery ? `No chats match "${chatQuery.trim()}"` : showArchived ? "No archived chats" : chatFilter === "unread" ? "No unread chats" : chatFilter === "groups" ? "No group chats yet" : "No conversations yet"}
+                    text={chatQuery || showArchived || chatFilter === "unread" ? undefined : "Say hello to a friend. Your chats will show up here."}
+                    action={!chatQuery && !showArchived && chatFilter !== "unread" ? (
+                      <Button onClick={() => setComposeOpen(true)} className="rounded-full px-5">Start a chat</Button>
+                    ) : undefined}
                   />
                 ) : (
                   <div className="flat-list divide-y">
@@ -834,6 +868,7 @@ const Messages = () => {
                           muted={chatPrefs.muted.includes(row.conv.profile.id)}
                           archived={chatPrefs.archived.includes(row.conv.profile.id)}
                           time={row.conv.lastMessage ? shortTime(row.conv.lastMessage.created_at) : undefined}
+                          online={onlineIds.has(row.conv.profile.id)}
                           onOpen={() => openPerson(row.conv.profile)}
                           onToggle={(list) => toggleChatPref(list, row.conv.profile.id)}
                           draft={selectedConversation?.id === row.conv.profile.id ? undefined : drafts[row.conv.profile.id]}
@@ -843,6 +878,17 @@ const Messages = () => {
                   </div>
                 )}
               </div>
+              {/* New message within thumb reach on phones, as on WhatsApp. */}
+              {!showArchived && (
+                <Button
+                  onClick={() => setComposeOpen(true)}
+                  size="icon"
+                  aria-label="New message"
+                  className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-4 h-14 w-14 rounded-2xl shadow-lg md:hidden [&_svg]:size-6"
+                >
+                  <MessageSquarePlus />
+                </Button>
+              )}
             </Card>
 
             {/* Chat Area — AI or regular conversation */}
