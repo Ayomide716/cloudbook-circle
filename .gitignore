@@ -30,3 +30,7 @@ dist-ssr
 
 # Firebase config for the Android app: added by the APK build from a GitHub secret.
 android/app/google-services.json
+
+# Taste skill (40 MB of photos and page parts): downloaded at session start by the cloud
+# environment's setup script, pinned in .claude/skills/SOURCES.md, not committed.
+/.claude/skills/design-taste-frontend/
