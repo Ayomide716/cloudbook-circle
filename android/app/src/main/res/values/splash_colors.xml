@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Launch screen colour: the app's own background, so the web splash (index.html) follows without a flash. -->
+    <color name="ember_launch">#FFFFFF</color>
+</resources>
