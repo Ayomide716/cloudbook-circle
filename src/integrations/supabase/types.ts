@@ -654,8 +654,38 @@ export type Database = {
         }
         Relationships: []
       }
+      group_join_requests: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_join_requests_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       group_members: {
         Row: {
+          muted_until: string | null
           group_id: string
           id: string
           joined_at: string
@@ -663,6 +693,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          muted_until?: string | null
           group_id: string
           id?: string
           joined_at?: string
@@ -670,6 +701,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          muted_until?: string | null
           group_id?: string
           id?: string
           joined_at?: string
@@ -771,6 +803,7 @@ export type Database = {
       }
       group_posts: {
         Row: {
+          pinned_at: string | null
           content: string
           created_at: string
           group_id: string
@@ -779,6 +812,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          pinned_at?: string | null
           content: string
           created_at?: string
           group_id: string
@@ -787,6 +821,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          pinned_at?: string | null
           content?: string
           created_at?: string
           group_id?: string
@@ -806,6 +841,8 @@ export type Database = {
       }
       groups: {
         Row: {
+          category: string | null
+          is_private: boolean
           created_at: string
           created_by: string
           description: string | null
@@ -816,6 +853,8 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          category?: string | null
+          is_private?: boolean
           created_at?: string
           created_by: string
           description?: string | null
@@ -826,6 +865,8 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          category?: string | null
+          is_private?: boolean
           created_at?: string
           created_by?: string
           description?: string | null
@@ -2528,6 +2569,30 @@ export type Database = {
       group_member_counts: {
         Args: { _group_ids: string[] }
         Returns: { group_id: string; member_count: number }[]
+      }
+      group_member_preview: {
+        Args: { _group: string; _limit?: number }
+        Returns: { user_id: string; full_name: string | null; avatar_url: string | null }[]
+      }
+      approve_group_request: {
+        Args: { _request: string }
+        Returns: undefined
+      }
+      set_group_post_pinned: {
+        Args: { _post: string; _pinned: boolean }
+        Returns: undefined
+      }
+      mute_group_member: {
+        Args: { _group: string; _user: string; _until: string | null }
+        Returns: undefined
+      }
+      is_group_admin: {
+        Args: { _user_id: string; _group_id: string }
+        Returns: boolean
+      }
+      set_group_settings: {
+        Args: { _group: string; _category: string | null; _is_private: boolean }
+        Returns: undefined
       }
     }
     Enums: {

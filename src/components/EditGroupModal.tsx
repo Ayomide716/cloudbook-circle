@@ -15,6 +15,9 @@ import { Loader2, ImagePlus } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { friendlyError } from "@/lib/utils";
+import { features } from "@/lib/features";
+import type { GroupCategory } from "@/lib/group-categories";
+import GroupSettingsFields from "@/components/groups/GroupSettingsFields";
 
 interface EditGroupModalProps {
   group: {
@@ -22,6 +25,8 @@ interface EditGroupModalProps {
     name: string;
     description: string | null;
     image_url: string | null;
+    category?: string | null;
+    is_private?: boolean;
   };
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -33,6 +38,7 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
   const [description, setDescription] = useState(group.description || "");
   const [imagePreview, setImagePreview] = useState<string | null>(group.image_url);
   const [newImage, setNewImage] = useState<File | null>(null);
+  const [settings, setSettings] = useState({ category: (group.category ?? "") as GroupCategory | "", isPrivate: !!group.is_private });
   const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -46,6 +52,7 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
       setDescription(group.description || "");
       setImagePreview(group.image_url);
       setNewImage(null);
+      setSettings({ category: (group.category ?? "") as GroupCategory | "", isPrivate: !!group.is_private });
     }
   }
 
@@ -109,6 +116,14 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
         if (direct) throw direct;
       } else if (error) {
         throw error;
+      }
+      if (features.groupsV2 && (settings.category !== (group.category ?? "") || settings.isPrivate !== !!group.is_private)) {
+        const { error: settingsError } = await supabase.rpc("set_group_settings", {
+          _group: group.id,
+          _category: settings.category || null,
+          _is_private: settings.isPrivate,
+        });
+        if (settingsError) throw settingsError;
       }
 
       onGroupUpdated();
@@ -181,6 +196,8 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
               className="min-h-[100px]"
             />
           </div>
+
+          {features.groupsV2 && <GroupSettingsFields category={settings.category} isPrivate={settings.isPrivate} onChange={setSettings} />}
 
           <div className="flex justify-end gap-2">
             <Button

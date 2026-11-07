@@ -8,8 +8,18 @@
  * Variables, then redeploy). The tests turn them on, since their database has every update.
  */
 const on = import.meta.env.VITE_DB_UPDATES_2026_10 === "true";
+/**
+ * November 2026's database updates (supabase/migrations/2026110*.sql). Same idea: off until
+ * they've been run, then VITE_DB_UPDATES_2026_11=true.
+ */
+const nov = import.meta.env.VITE_DB_UPDATES_2026_11 === "true";
 
 export const features = {
+  /**
+   * Groups: categories, private groups with join requests, pinned posts and muting
+   * (20261107090000_groups_v2.sql).
+   */
+  groupsV2: nov,
   /** "Lekki, Lagos · 2h" on posts, and the place field when posting. */
   postLocation: on,
   /** Hometown, birthday and relationship on profiles. */

@@ -54,8 +54,8 @@ test.describe("groups", () => {
 
     await expect(page.getByRole("heading", { level: 1, name })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Joined/ })).toBeVisible();
-    await page.getByRole("tab", { name: "Members" }).click();
-    await expect(page.getByRole("tabpanel")).toContainText(/admin/i);
+    await page.getByRole("group", { name: "Group sections" }).getByRole("button", { name: /^Members/ }).click();
+    await expect(page.getByText("Creator · admin")).toBeVisible();
   });
 
   test("nobody can make themselves admin of someone else's group", async ({ page, request }) => {

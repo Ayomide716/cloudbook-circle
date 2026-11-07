@@ -16,13 +16,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Loader2, Plus, Globe, ImagePlus, Check } from "@/components/icons";
+import { Loader2, Plus, Globe, ImagePlus, Check, Lock, Clock } from "@/components/icons";
 import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import GroupsSkeleton from "@/components/skeletons/GroupsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useGroupChats } from "@/lib/group-chats";
 import { GroupInviteCards } from "@/components/groups/GroupListItems";
 import GroupsHub from "@/components/groups/GroupsHub";
+import { features } from "@/lib/features";
+import { GROUP_CATEGORIES, categoryLabel, type GroupCategory } from "@/lib/group-categories";
+import GroupSettingsFields from "@/components/groups/GroupSettingsFields";
 
 interface Group {
   id: string;
@@ -30,6 +33,8 @@ interface Group {
   description: string | null;
   image_url: string | null;
   created_by: string;
+  category?: string | null;
+  is_private?: boolean;
   member_count?: number;
   is_member?: boolean;
 }
@@ -46,15 +51,21 @@ const Groups = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [view, setView] = useState<"all" | "mine" | "discover">("all");
+  // Feed: posts from your groups (Facebook's Groups tab). Your groups and Discover are lists.
+  const [view, setView] = useState<"feed" | "mine" | "discover">("feed");
+  const [category, setCategory] = useState<GroupCategory | "all">("all");
+  // Private groups you've asked to join.
+  const [requested, setRequested] = useState<Set<string>>(new Set());
   const [groupImage, setGroupImage] = useState<File | null>(null);
   const [groupImagePreview, setGroupImagePreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [joiningId, setJoiningId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{ name: string; description: string; category: GroupCategory | ""; isPrivate: boolean }>({
     name: "",
     description: "",
+    category: "",
+    isPrivate: false,
   });
 
   const checkAuth = useEffectEvent(async () => {
@@ -94,10 +105,14 @@ const Groups = () => {
     const ids = list.map((g) => g.id);
     // Two queries for the whole list instead of two per group. Only members can
     // see a group's member rows, so counts come from a server function when it's installed.
-    const [countsResult, mineResult] = await Promise.all([
+    const [countsResult, mineResult, requestsResult] = await Promise.all([
       ids.length ? supabase.rpc("group_member_counts", { _group_ids: ids }) : Promise.resolve({ data: [], error: null }),
       supabase.from("group_members").select("group_id").eq("user_id", currentUserId),
+      features.groupsV2
+        ? supabase.from("group_join_requests").select("group_id").eq("user_id", currentUserId)
+        : Promise.resolve({ data: [] as { group_id: string }[] }),
     ]);
+    setRequested(new Set((requestsResult.data || []).map((r) => r.group_id)));
     const myGroups = new Set((mineResult.data || []).map((m) => m.group_id));
     const counts = new Map<string, number>();
     if (!countsResult.error) {
@@ -121,16 +136,16 @@ const Groups = () => {
   }, [currentUserId, loadGroups]);
 
   // Filter groups based on search query
+  // Searching looks through every group; otherwise the list follows the chip you're on.
   const filteredGroups = useMemo(() => {
-    const byView = groups.filter((g) => view === "all" || (view === "mine" ? g.is_member : !g.is_member));
-    if (!searchQuery.trim()) return byView;
-
-    const query = searchQuery.toLowerCase();
-    return byView.filter(group =>
-      group.name.toLowerCase().includes(query) ||
-      group.description?.toLowerCase().includes(query)
+    const query = searchQuery.trim().toLowerCase();
+    if (query) {
+      return groups.filter((group) => group.name.toLowerCase().includes(query) || group.description?.toLowerCase().includes(query));
+    }
+    return groups.filter((g) =>
+      view === "mine" ? g.is_member : !g.is_member && (category === "all" || g.category === category)
     );
-  }, [groups, searchQuery, view]);
+  }, [groups, searchQuery, view, category]);
   const myCount = groups.filter((g) => g.is_member).length;
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -194,6 +209,7 @@ const Groups = () => {
         name,
         description: formData.description.trim() || null,
         created_by: currentUserId,
+        ...(features.groupsV2 ? { category: formData.category || null, is_private: formData.isPrivate } : {}),
       })
       .select()
       .single();
@@ -238,7 +254,7 @@ const Groups = () => {
       });
     }
     setIsCreating(false);
-    setFormData({ name: "", description: "" });
+    setFormData({ name: "", description: "", category: "", isPrivate: false });
     setGroupImage(null);
     setGroupImagePreview(null);
     setIsUploading(false);
@@ -250,6 +266,19 @@ const Groups = () => {
 
     if (!currentUserId || joiningId) return;
     setJoiningId(groupId);
+
+    // A private group: ask, and an admin lets you in.
+    if (groups.find((g) => g.id === groupId)?.is_private) {
+      const { error } = await supabase.from("group_join_requests").insert({ group_id: groupId, user_id: currentUserId });
+      setJoiningId(null);
+      if (error && error.code !== "23505") {
+        toast({ title: "Couldn't send your request", description: friendlyError(error), variant: "destructive" });
+        return;
+      }
+      setRequested((s) => new Set(s).add(groupId));
+      toast({ title: "Request sent", description: "You'll be told when an admin lets you in." });
+      return;
+    }
 
     const { error } = await supabase
       .from("group_members")
@@ -296,11 +325,20 @@ const Groups = () => {
             value={view}
             onChange={setView}
             options={[
-              { value: "all", label: "All" },
+              { value: "feed", label: "Feed" },
               { value: "mine", label: `Your groups${myCount ? ` · ${myCount}` : ""}` },
               { value: "discover", label: "Discover" },
             ]}
           />
+          {/* Discover by what a group is about. */}
+          {view === "discover" && !searchQuery && features.groupsV2 && (
+            <Chips
+              label="Category"
+              value={category}
+              onChange={setCategory}
+              options={[{ value: "all" as const, label: "All" }, ...GROUP_CATEGORIES.map((c) => ({ value: c.value, label: c.label }))]}
+            />
+          )}
           {searchQuery && (
             <p className="text-sm text-muted-foreground">
               {filteredGroups.length} {filteredGroups.length === 1 ? "group" : "groups"} found for "{searchQuery}"
@@ -317,22 +355,24 @@ const Groups = () => {
           </div>
         )}
 
-        {/* Facebook's Groups tab: your groups with new-post badges, then their latest posts. */}
-        {view === "all" && !searchQuery && currentUserId && (
-          <GroupsHub groups={groups.filter((g) => g.is_member)} userId={currentUserId} />
-        )}
-
-        {filteredGroups.length === 0 ? (
+        {/* Facebook's Groups tab: your groups as round tiles, then their latest posts. */}
+        {view === "feed" && !searchQuery && currentUserId ? (
+          <GroupsHub groups={groups.filter((g) => g.is_member)} userId={currentUserId} onDiscover={() => setView("discover")} />
+        ) : filteredGroups.length === 0 ? (
           <Card className="feed-section flat-list">
-            {searchQuery || view !== "all" ? (
+            {searchQuery || view === "mine" || category !== "all" ? (
               <EmptyState
                 emoji={searchQuery ? "search" : "people"}
-                title={searchQuery ? "No groups found" : view === "mine" ? "You haven't joined any groups yet" : "You've joined every group"}
-                text={searchQuery ? "Try a different search, or create a new group." : "Create one, or look through all groups."}
+                title={searchQuery ? "No groups found" : view === "mine" ? "You haven't joined any groups yet" : `No ${categoryLabel(category)?.toLowerCase()} groups yet`}
+                text={searchQuery ? "Try a different search, or create a new group." : view === "mine" ? "Find one in Discover, or start your own." : "Start the first one."}
                 action={
-                  <Button onClick={() => { setSearchQuery(""); setView("all"); }} variant="outline" className="rounded-full">
-                    {searchQuery ? "Clear search" : "Show all groups"}
-                  </Button>
+                  view === "mine" && !searchQuery ? (
+                    <Button onClick={() => setView("discover")} className="rounded-full px-5">Discover groups</Button>
+                  ) : searchQuery ? (
+                    <Button onClick={() => setSearchQuery("")} variant="outline" className="rounded-full">Clear search</Button>
+                  ) : (
+                    <Button onClick={() => setIsCreating(true)} className="rounded-full px-5"><Plus className="mr-2 h-4 w-4" />Create a group</Button>
+                  )
                 }
               />
             ) : (
@@ -380,14 +420,20 @@ const Groups = () => {
                   <h3 className="truncate text-[16px] font-semibold">{group.name}</h3>
                   <div className="flex items-center gap-1.5 text-[13px] text-muted-foreground">
                     {/* Without the count function, only members can count a group, so hide it. */}
+                    {group.is_private ? <Lock className="h-3 w-3 shrink-0" /> : <Globe className="h-3 w-3 shrink-0" />}
+                    <span>{group.is_private ? "Private" : "Public"}</span>
                     {group.member_count !== undefined && (
                       <>
-                        <span>{group.member_count} {group.member_count === 1 ? "member" : "members"}</span>
                         <span>·</span>
+                        <span className="shrink-0">{group.member_count.toLocaleString()} {group.member_count === 1 ? "member" : "members"}</span>
                       </>
                     )}
-                    <Globe className="h-3 w-3" />
-                    <span>Public</span>
+                    {categoryLabel(group.category) && (
+                      <>
+                        <span>·</span>
+                        <span className="truncate">{categoryLabel(group.category)}</span>
+                      </>
+                    )}
                   </div>
                   {group.description && (
                     <p className="mt-0.5 truncate text-[13px] text-muted-foreground">{group.description}</p>
@@ -395,6 +441,8 @@ const Groups = () => {
                 </div>
                 {group.is_member ? (
                   <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground"><Check className="h-3.5 w-3.5" aria-hidden="true" />Joined</span>
+                ) : requested.has(group.id) ? (
+                  <span className="flex shrink-0 items-center gap-1 text-xs font-medium text-muted-foreground"><Clock className="h-3.5 w-3.5" aria-hidden="true" />Requested</span>
                 ) : (
                   <Button
                     size="sm"
@@ -402,10 +450,10 @@ const Groups = () => {
                     onClick={(e) => handleJoinGroup(e, group.id)}
                     onKeyDown={(e) => e.stopPropagation()}
                     disabled={joiningId === group.id}
-                    aria-label={`Join ${group.name}`}
+                    aria-label={group.is_private ? `Ask to join ${group.name}` : `Join ${group.name}`}
                   >
                     {joiningId === group.id && <Loader2 className="h-4 w-4 mr-1 animate-spin" />}
-                    Join
+                    {group.is_private ? "Ask" : "Join"}
                   </Button>
                 )}
               </div>
@@ -425,7 +473,7 @@ const Groups = () => {
       }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Create New Group</DialogTitle>
+            <DialogTitle>Create a group</DialogTitle>
           </DialogHeader>
           
           <form onSubmit={handleCreateGroup} className="space-y-4">
@@ -481,6 +529,14 @@ const Groups = () => {
               />
             </div>
 
+            {features.groupsV2 && (
+              <GroupSettingsFields
+                category={formData.category}
+                isPrivate={formData.isPrivate}
+                onChange={(next) => setFormData({ ...formData, ...next })}
+              />
+            )}
+
             <div className="flex justify-end gap-2">
               <Button
                 type="button"
@@ -492,7 +548,7 @@ const Groups = () => {
               </Button>
               <Button type="submit" disabled={isUploading}>
                 {isUploading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Create Group
+                Create group
               </Button>
             </div>
           </form>
