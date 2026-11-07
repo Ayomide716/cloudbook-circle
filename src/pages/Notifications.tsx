@@ -6,7 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
-import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2, MoreHorizontal, BellOff, Trash2 } from "@/components/icons";
+import { Bell, MessageCircle, UserPlus, CheckCheck, Users, Share2, MoreHorizontal, BellOff, Trash2, AtSign, CalendarDays, AlertTriangle } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { ToastAction } from "@/components/ui/toast";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
@@ -162,6 +162,7 @@ const Notifications = () => {
       case "like":
       case "comment":
       case "tag":
+      case "mention":
         // Navigate to the post (related_id is post_id)
         if (notification.related_id) {
           navigate(`/post/${notification.related_id}`);
@@ -174,6 +175,12 @@ const Notifications = () => {
         break;
       case "group_added":
         if (notification.related_id) navigate(`/groups/${notification.related_id}`);
+        break;
+      case "event_reminder":
+        navigate("/events");
+        break;
+      case "usage_alert":
+        navigate("/admin");
         break;
       case "group_invite": {
         // Group chat invites are answered in Messages, community invites on the Groups tab.
@@ -209,6 +216,24 @@ const Notifications = () => {
         return (
           <div className={`${size} rounded-full bg-sky-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
             <UserPlus className={`${iconSize} text-white`} />
+          </div>
+        );
+      case "mention":
+        return (
+          <div className={`${size} rounded-full bg-primary flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
+            <AtSign className={`${iconSize} text-primary-foreground`} />
+          </div>
+        );
+      case "event_reminder":
+        return (
+          <div className={`${size} rounded-full bg-rose-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
+            <CalendarDays className={`${iconSize} text-white`} />
+          </div>
+        );
+      case "usage_alert":
+        return (
+          <div className={`${size} rounded-full bg-amber-500 flex items-center justify-center ${small ? "border-2 border-background" : ""}`}>
+            <AlertTriangle className={`${iconSize} text-white`} />
           </div>
         );
       case "friend_request":

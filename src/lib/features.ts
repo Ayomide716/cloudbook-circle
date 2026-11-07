@@ -22,6 +22,14 @@ export const features = {
   groupsV2: nov,
   /** Supabase usage on the Admin page, and the daily server check (20261108100000_usage_alerts.sql). */
   usageAlerts: nov,
+  /**
+   * @mentions saved with the person's id (linked, and they get a notification), close friends
+   * for stories, trending hashtags from the server, and event reminders
+   * (20261108110000_mentions_close_friends_trending_reminders.sql).
+   */
+  mentions: nov,
+  closeFriends: nov,
+  trendingHashtags: nov,
   /** "Lekki, Lagos · 2h" on posts, and the place field when posting. */
   postLocation: on,
   /** Hometown, birthday and relationship on profiles. */

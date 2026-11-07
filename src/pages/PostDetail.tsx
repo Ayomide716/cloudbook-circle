@@ -1,4 +1,5 @@
 import { useContext, useEffect, useState } from "react";
+import { plainMentions } from "@/lib/mentions";
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, FileQuestion } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
@@ -23,7 +24,7 @@ const PostDetail = () => {
 
   useSEO({
     title: post ? `${post.profiles.full_name || "Someone"} on Ember` : "Post",
-    description: post?.content.slice(0, 150) || "A post on Ember.",
+    description: plainMentions(post?.content ?? "").slice(0, 150) || "A post on Ember.",
   });
 
   useEffect(() => {
