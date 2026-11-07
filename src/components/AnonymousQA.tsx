@@ -8,6 +8,7 @@ import { MessageCircleQuestion, Send, Loader2, Trash2, Eye, EyeOff } from "@/com
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { friendlyError } from "@/lib/utils";
 
 interface AnonymousQAProps {
   profileId: string;
@@ -55,7 +56,7 @@ const AnonymousQA = ({ profileId, isOwnProfile, currentUserId }: AnonymousQAProp
       question: newQuestion.trim(),
     });
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
     } else {
       toast({ title: "Question sent", description: "They'll see it anonymously." });
       setNewQuestion("");

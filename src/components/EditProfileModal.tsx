@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2 } from "@/components/icons";
 import { RELATIONSHIP_OPTIONS } from "@/lib/profile-details";
 import { nameProblem, tidyName } from "@/lib/name-check";
+import { friendlyError } from "@/lib/utils";
 
 interface Profile {
   id: string;
@@ -69,7 +70,7 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
     if (error) {
       toast({
         title: "Error updating profile",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;

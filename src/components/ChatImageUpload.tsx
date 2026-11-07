@@ -6,7 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { X, Loader2, Paperclip, Camera } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { getErrorMessage } from "@/lib/utils";
+import { friendlyError } from "@/lib/utils";
 
 interface ChatMediaUploadProps {
   onMediaUploaded: (url: string, type: "image" | "video") => void;
@@ -90,7 +90,7 @@ const ChatMediaUpload = ({
     } catch (error) {
       toast({
         title: "Upload failed",
-        description: getErrorMessage(error),
+        description: friendlyError(error),
         variant: "destructive",
       });
     } finally {

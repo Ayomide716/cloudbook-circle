@@ -1040,7 +1040,7 @@ const Messages = () => {
                         </div>
                       )}
                       {messageContent.trim() || imageUrl ? (
-                        <Button type="submit" size="icon" disabled={isSending} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5">
+                        <Button type="submit" size="icon" variant="accent" disabled={isSending} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5">
                           {isSending ? <Loader2 className="animate-spin" /> : <Send className="translate-x-px" />}
                         </Button>
                       ) : (

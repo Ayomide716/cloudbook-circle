@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import ConversationRow from "@/components/ConversationRow";
 import type { ChatPrefs } from "@/lib/chat-prefs";
 import type { GroupChatSummary, GroupInvite } from "@/lib/group-chats";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { previewText } from "@/lib/stickers";
 
 /** A group in the chat list: picture, name, "Ada: latest message", time and unread count. */
@@ -56,7 +56,7 @@ export const GroupInviteCards = ({ invites, onAnswered }: { invites: GroupInvite
     const { error } = await supabase.rpc(accept ? "accept_group_invite" : "decline_group_invite", { _group: invite.group.id });
     setBusy(null);
     if (error) {
-      toast({ title: accept ? "Couldn't join the group" : "Couldn't decline", description: error.message, variant: "destructive" });
+      toast({ title: accept ? "Couldn't join the group" : "Couldn't decline", description: friendlyError(error), variant: "destructive" });
       return;
     }
     toast({ title: accept ? `You joined ${invite.group.name}` : "Invite declined" });

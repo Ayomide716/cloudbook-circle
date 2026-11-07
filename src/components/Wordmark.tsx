@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 const Wordmark = ({ className }: { className?: string }) => (
   <span className={cn("font-display font-extrabold leading-none tracking-[-0.035em] text-foreground", className)}>
     {APP_NAME.toLowerCase()}
-    <span className="text-primary">.</span>
+    <span className="text-brand">.</span>
   </span>
 );
 

@@ -26,7 +26,7 @@ import { enterMakesNewLine, sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import type { GroupInfo } from "@/lib/group-chats";
 import { playSound } from "@/lib/sounds";
 import { haptic } from "@/lib/haptics";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
 import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
@@ -316,7 +316,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
 
   const deleteMessage = async (m: GroupMessage) => {
     const { error } = await supabase.from("group_messages").delete().eq("id", m.id);
-    if (error) return toast({ title: "Couldn't delete the message", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Couldn't delete the message", description: friendlyError(error), variant: "destructive" });
     setMessages((prev) => prev.filter((x) => x.id !== m.id));
   };
 
@@ -339,7 +339,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     if (error || !data) {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       restore?.();
-      toast({ title: "Couldn't send message", description: error?.message, variant: "destructive" });
+      toast({ title: "Couldn't send message", description: error ? friendlyError(error) : undefined, variant: "destructive" });
       return;
     }
     setMessages((prev) => (prev.some((m) => m.id === data.id) ? prev.filter((m) => m.id !== tempId) : prev.map((m) => (m.id === tempId ? (data as GroupMessage) : m))));
@@ -547,7 +547,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
             </div>
           )}
           {text.trim() || media || editing ? (
-            <Button type="submit" size="icon" disabled={sending || uploading} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5">
+            <Button type="submit" size="icon" variant="accent" disabled={sending || uploading} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5">
               {uploading ? <Loader2 className="animate-spin" /> : <Send className="translate-x-px" />}
             </Button>
           ) : (

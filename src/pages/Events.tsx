@@ -25,7 +25,7 @@ import {
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import EventsSkeleton from "@/components/skeletons/EventsSkeleton";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { uploadWithProgress } from "@/lib/storage-upload";
@@ -151,7 +151,7 @@ const Events = () => {
       .order("start_date", { ascending: true });
 
     if (error) {
-      toast({ title: "Couldn't load events", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load events", description: friendlyError(error), variant: "destructive" });
       setIsLoading(false);
       return;
     }
@@ -247,7 +247,7 @@ const Events = () => {
 
     setIsCreating(false);
     if (error) {
-      toast({ title: "Couldn't create the event", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't create the event", description: friendlyError(error), variant: "destructive" });
       return;
     }
     setShowCreateDialog(false);

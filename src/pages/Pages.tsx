@@ -15,7 +15,7 @@ import { PageHeader, HeaderAction, PageSearch } from "@/components/layout/PageHe
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Plus, Users, Globe, Flag, Loader2 } from "@/components/icons";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useDebouncedValue } from "@/hooks/use-debounced-value";
@@ -124,7 +124,7 @@ const Pages = () => {
     }).select().single();
 
     if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
+      toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
     } else {
       setShowCreate(false);
       setCreateName("");

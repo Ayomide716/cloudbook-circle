@@ -16,6 +16,7 @@ import StorageStatusCard from "@/components/StorageStatusCard";
 import PushTestCard from "@/components/PushTestCard";
 import { formatDistanceToNow } from "date-fns";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { friendlyError } from "@/lib/utils";
 
 interface Report {
   id: string;
@@ -120,7 +121,7 @@ const AdminDashboard = () => {
     setPendingDeletePost(null);
     const { error } = await supabase.from("posts").delete().eq("id", report.reported_id);
     if (error) {
-      toast({ title: "Cannot delete this post", description: error.message, variant: "destructive" });
+      toast({ title: "Cannot delete this post", description: friendlyError(error), variant: "destructive" });
       return;
     }
     await setReportStatus(report, "resolved");

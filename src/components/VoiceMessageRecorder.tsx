@@ -3,7 +3,7 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, Square, Loader2, Play, Pause, X } from "@/components/icons";
 import { useToast } from "@/hooks/use-toast";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface VoiceMessageRecorderProps {
@@ -124,7 +124,7 @@ const VoiceMessageRecorder = ({ onVoiceMessageSent, disabled, onActiveChange, bu
       console.error("Voice message upload error:", error);
       toast({
         title: "Error sending voice message",
-        description: getErrorMessage(error) || "Failed to upload voice message",
+        description: friendlyError(error) || "Failed to upload voice message",
         variant: "destructive",
       });
     } finally {

@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { UserPlus, UserCheck, Loader2, X } from "@/components/icons";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -95,7 +95,7 @@ const FriendshipButton = ({ currentUserId, profileUserId, className, onFriendsCh
       setFriendshipStatus(previousStatus);
       toast({
         title: "Error removing friend",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -113,7 +113,7 @@ const FriendshipButton = ({ currentUserId, profileUserId, className, onFriendsCh
       .eq("friend_id", currentUserId);
     setIsLoading(false);
     if (error) {
-      toast({ title: "Couldn't accept the request", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't accept the request", description: friendlyError(error), variant: "destructive" });
       return;
     }
     setFriendshipStatus("friends");

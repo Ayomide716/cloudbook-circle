@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { friendlyError } from "@/lib/utils";
 
 interface Friend {
   id: string;
@@ -69,7 +70,7 @@ const AddGroupMembersDialog = ({ open, onOpenChange, groupId, groupName, current
       const missing = /function .*add_group_member|Could not find the function/i.test(error.message);
       toast({
         title: `Couldn't invite ${friend.full_name || "them"}`,
-        description: missing ? "Adding people needs the latest database update." : error.message,
+        description: missing ? "Adding people needs the latest database update." : friendlyError(error),
         variant: "destructive",
       });
       return;

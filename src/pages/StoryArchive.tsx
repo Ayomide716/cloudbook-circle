@@ -13,6 +13,7 @@ import { useSession } from "@/hooks/use-session";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { softImage } from "@/lib/soft-image";
+import { friendlyError } from "@/lib/utils";
 
 interface ArchivedStory {
   id: string;
@@ -52,7 +53,7 @@ const StoryArchive = () => {
     const { error } = await supabase.from("story_highlights").insert({ user_id: userId, title: title.trim(), story_ids: order });
     setSaving(false);
     if (error) {
-      toast({ title: "Couldn't save the highlight", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't save the highlight", description: friendlyError(error), variant: "destructive" });
       return;
     }
     toast({ title: "Highlight added to your profile" });

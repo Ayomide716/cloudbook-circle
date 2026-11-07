@@ -7,7 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Mail, Lock, User, ArrowRight } from "@/components/icons";
 import { motion, AnimatePresence } from "framer-motion";
-import { cn, getErrorMessage, safeRedirectPath } from "@/lib/utils";
+import { cn, friendlyError, safeRedirectPath } from "@/lib/utils";
 import AuthShell, { AuthBrand } from "@/components/auth/AuthShell";
 import AuthField from "@/components/auth/AuthField";
 import { nameProblem, tidyName } from "@/lib/name-check";
@@ -64,7 +64,7 @@ const Auth = () => {
         }
       }
     } catch (error) {
-      toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
+      toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
     } finally {
       setIsLoading(false);
     }
@@ -220,10 +220,10 @@ const Auth = () => {
                 await Browser.open({ url: data.url });
               }
               if (error) {
-                toast({ title: "Google sign in failed", description: error.message, variant: "destructive" });
+                toast({ title: "Google sign in failed", description: friendlyError(error), variant: "destructive" });
               }
             } catch (error) {
-              toast({ title: "Error", description: getErrorMessage(error), variant: "destructive" });
+              toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
             } finally {
               setIsGoogleLoading(false);
             }

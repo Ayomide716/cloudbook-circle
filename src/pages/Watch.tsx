@@ -31,7 +31,7 @@ import {
 import {
   ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger,
 } from "@/components/ui/action-menu";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -160,7 +160,7 @@ const Watch = () => {
 
     const { data, error } = await query.limit(50);
     if (error) {
-      toast({ title: "Couldn't load videos", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't load videos", description: friendlyError(error), variant: "destructive" });
       setIsLoading(false);
       return;
     }
@@ -321,7 +321,7 @@ const Watch = () => {
       setUploadFile(null);
       loadVideos(currentUserId);
     } catch (e) {
-      toast({ title: "Upload failed", description: e instanceof Error ? e.message : undefined, variant: "destructive" });
+      toast({ title: "Upload failed", description: friendlyError(e), variant: "destructive" });
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
@@ -332,7 +332,7 @@ const Watch = () => {
     setPendingDelete(null);
     const { error } = await supabase.from("watch_videos").delete().eq("id", video.id);
     if (error) {
-      toast({ title: "Couldn't delete the video", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't delete the video", description: friendlyError(error), variant: "destructive" });
       return;
     }
     // Remove the files too, so they don't keep using storage.

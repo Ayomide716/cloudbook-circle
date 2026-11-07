@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { friendlyError } from "@/lib/utils";
 
 interface Suggestion {
   id: string;
@@ -73,7 +74,7 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
     const { error } = await supabase.from("friendships").insert({ user_id: currentUserId, friend_id: person.id, status: "pending" });
     setBusy(null);
     if (error) {
-      toast({ title: "Couldn't send the request", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't send the request", description: friendlyError(error), variant: "destructive" });
       return;
     }
     setSent((s) => new Set(s).add(person.id));

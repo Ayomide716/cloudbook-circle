@@ -13,6 +13,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Link } from "react-router-dom";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
+import { friendlyError } from "@/lib/utils";
 
 interface FriendRequest {
   id: string;
@@ -53,7 +54,7 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
     if (error) {
       toast({
         title: "Error loading friend requests",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -97,7 +98,7 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
     if (error) {
       toast({
         title: "Error accepting request",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;
@@ -115,7 +116,7 @@ const FriendRequests = ({ userId }: FriendRequestsProps) => {
     if (error) {
       toast({
         title: "Error declining request",
-        description: error.message,
+        description: friendlyError(error),
         variant: "destructive",
       });
       return;

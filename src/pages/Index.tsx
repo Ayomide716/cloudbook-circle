@@ -302,11 +302,11 @@ const Index = () => {
                 ))}
               </div>
 
+              {/* At most one card above the first post, so friends' posts come first. Birthdays
+                  are about today, so they lead; the other cards sit between posts. A new
+                  account with nothing to read yet gets the profile prompt up here instead. */}
               <BirthdaysCard currentUserId={currentUser.id} />
-
-              <ProfileCompletionPrompt userId={currentUser.id} />
-
-              <OnThisDay currentUserId={currentUser.id} name={currentUser.full_name} avatarUrl={currentUser.avatar_url} />
+              {allPosts.length === 0 && <ProfileCompletionPrompt userId={currentUser.id} />}
 
               {allPosts.length === 0 ? (
                 // Nothing to show yet (new here, or no friends' posts): a welcome with ways in,
@@ -390,6 +390,16 @@ const Index = () => {
                             </div>
                           )}
                           {/* Rows between posts, as on Facebook */}
+                          {/* Short feeds still get them (above the last post at worst). (empty:hidden: a
+                              card that has nothing to show leaves no gap.) */}
+                          {index === Math.min(1, allPosts.length - 1) && (
+                            <div className="mb-2 empty:hidden sm:mb-4"><ProfileCompletionPrompt userId={currentUser.id} /></div>
+                          )}
+                          {index === Math.min(5, allPosts.length - 1) && (
+                            <div className="mb-2 empty:hidden sm:mb-4">
+                              <OnThisDay currentUserId={currentUser.id} name={currentUser.full_name} avatarUrl={currentUser.avatar_url} />
+                            </div>
+                          )}
                           {index === 3 && (
                             <div className="mb-2 sm:mb-4">
                               <PeopleYouMayKnow currentUserId={currentUser.id} />

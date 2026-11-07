@@ -30,7 +30,7 @@ const LiveRoomCard = ({ room }: { room: LiveRoom }) => {
       aria-label={`Join live voice room ${room.title} in ${room.groupName}, ${people.length} listening`}
     >
       {/* A live room as a story bubble: sound bars in a tangerine circle, with a LIVE tag. */}
-      <span className="relative block h-[66px] w-[66px] rounded-full bg-primary p-[2.5px]">
+      <span className="relative block h-[66px] w-[66px] rounded-full bg-brand p-[2.5px]">
         <span className="flex h-full w-full items-end justify-center gap-[3px] rounded-full border-[2.5px] border-background bg-primary pb-4" aria-hidden="true">
           {[0, 1, 2, 3].map((i) => (
             <span key={i} className="w-1 rounded-full bg-primary-foreground animate-sound-bar motion-reduce:animate-none" style={{ height: 14, animationDelay: `${i * 0.15}s` }} />

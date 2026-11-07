@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Send, Loader2, ArrowLeft, Bot, Sparkles } from "@/components/icons";
-import { cn, getErrorMessage } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import ReactMarkdown from "react-markdown";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -104,7 +104,7 @@ const AIChatCompanion = ({ onBack, mood }: AIChatCompanionProps) => {
         }
       }
     } catch (err) {
-      setMessages(prev => [...prev, { role: "assistant", content: getErrorMessage(err) || "Sorry, I'm having trouble connecting right now. Try again! 🙏" }]);
+      setMessages(prev => [...prev, { role: "assistant", content: friendlyError(err) || "Sorry, I'm having trouble connecting right now. Try again! 🙏" }]);
     } finally {
       setIsLoading(false);
     }

@@ -9,6 +9,7 @@ import AuthField from "@/components/auth/AuthField";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useSEO } from "@/hooks/useSEO";
+import { friendlyError } from "@/lib/utils";
 
 const RESEND_SECONDS = 30;
 
@@ -41,7 +42,7 @@ const ForgotPassword = () => {
     if (error) {
       toast({
         title: "Couldn't send the email",
-        description: /rate|seconds/i.test(error.message) ? "Please wait a minute before asking again." : error.message,
+        description: /rate|seconds/i.test(error.message) ? "Please wait a minute before asking again." : friendlyError(error),
         variant: "destructive",
       });
       return;

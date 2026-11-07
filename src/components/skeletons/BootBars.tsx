@@ -32,10 +32,16 @@ const BootBars = ({ path, children }: { path: string; children: ReactNode }) => 
         aria-hidden="true"
       >
         <div className="grid h-[58px] grid-cols-5 items-center px-1 text-foreground">
-          {[Home, Users, PlusCircle, Film].map((Icon, i) => (
-            <span key={i} className="flex justify-center"><Icon className={i === 2 ? "h-[31px] w-[31px]" : "h-[27px] w-[27px]"} fill={i === 0 && path === "/" ? "currentColor" : undefined} /></span>
+          {([[Home, "Home"], [Users, "Friends"], [PlusCircle, "Create"], [Film, "Reels"]] as const).map(([Icon, label], i) => (
+            <span key={label} className="flex flex-col items-center gap-0.5">
+              <Icon className="h-[25px] w-[25px]" fill={i === 0 && path === "/" ? "currentColor" : undefined} />
+              <span className={i === 0 && path === "/" ? "text-[11px] font-bold leading-none" : "text-[11px] font-medium leading-none text-muted-foreground"}>{label}</span>
+            </span>
           ))}
-          <span className="flex justify-center"><span className="h-7 w-7 rounded-full bg-secondary" /></span>
+          <span className="flex flex-col items-center gap-0.5">
+            <span className="h-[25px] w-[25px] rounded-full bg-secondary" />
+            <span className="text-[11px] font-medium leading-none text-muted-foreground">Menu</span>
+          </span>
         </div>
       </div>
     </>

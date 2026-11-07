@@ -14,7 +14,7 @@ import {
 import { Loader2, ImagePlus } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { getErrorMessage } from "@/lib/utils";
+import { friendlyError } from "@/lib/utils";
 
 interface EditGroupModalProps {
   group: {
@@ -75,7 +75,7 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
       console.error("Upload error:", uploadError);
       toast({
         title: "Image upload failed",
-        description: getErrorMessage(uploadError),
+        description: friendlyError(uploadError),
         variant: "destructive",
       });
       return group.image_url;
@@ -116,7 +116,7 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
     } catch (error) {
       toast({
         title: "Error updating group",
-        description: getErrorMessage(error),
+        description: friendlyError(error),
         variant: "destructive",
       });
     } finally {

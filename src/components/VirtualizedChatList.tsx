@@ -318,7 +318,7 @@ const VirtualizedChatList = ({
         >
           <ChevronDown className="h-5 w-5" />
           {unseen > 0 && (
-            <span className="absolute -top-1.5 -left-1.5 min-w-[20px] h-5 rounded-full bg-primary px-1 text-[11px] font-bold leading-5 text-primary-foreground text-center">
+            <span className="absolute -top-1.5 -left-1.5 min-w-[20px] h-5 rounded-full bg-badge px-1 text-[11px] font-bold leading-5 text-white text-center">
               {unseen > 99 ? "99+" : unseen}
             </span>
           )}

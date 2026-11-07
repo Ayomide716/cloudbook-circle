@@ -14,6 +14,7 @@ import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
 import EditGroupModal from "@/components/EditGroupModal";
 import { Switch } from "@/components/ui/switch";
 import type { GroupInfo } from "@/lib/group-chats";
+import { friendlyError } from "@/lib/utils";
 
 export interface GroupMember {
   id: string;
@@ -74,7 +75,7 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
 
   const leave = async () => {
     const { error } = await supabase.from("group_members").delete().eq("group_id", group.id).eq("user_id", currentUserId);
-    if (error) return toast({ title: "Couldn't leave the group", description: error.message, variant: "destructive" });
+    if (error) return toast({ title: "Couldn't leave the group", description: friendlyError(error), variant: "destructive" });
     toast({ title: `You left ${group.name}` });
     onLeft();
   };

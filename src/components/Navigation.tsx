@@ -306,9 +306,9 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       className="relative flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors active:bg-secondary"
                     >
                       {b.icon}
-                      {b.dot && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-background" aria-hidden="true" />}
+                      {b.dot && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" aria-hidden="true" />}
                       {!!b.count && (
-                        <span className="absolute right-0.5 top-0.5 min-w-[18px] h-[18px] rounded-full bg-primary px-1 text-center text-[10px] font-bold leading-[18px] text-destructive-foreground ring-2 ring-background" aria-hidden="true">
+                        <span className="absolute right-0.5 top-0.5 min-w-[18px] h-[18px] rounded-full bg-badge px-1 text-center text-[10px] font-bold leading-[18px] text-white ring-2 ring-background" aria-hidden="true">
                           {b.count > 9 ? "9+" : b.count}
                         </span>
                       )}
@@ -330,7 +330,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                         >
                           <UserPlus className="h-5 w-5" />
                           {pendingRequests > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center ring-2 ring-background">
+                            <span className="absolute -top-0.5 -right-0.5 bg-badge text-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center ring-2 ring-background">
                               {pendingRequests > 9 ? "9+" : pendingRequests}
                             </span>
                           )}
@@ -352,7 +352,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                         >
                           <Bell className="h-5 w-5" />
                           {unreadNotifications > 0 && (
-                            <span className="absolute -top-0.5 -right-0.5 bg-primary text-primary-foreground text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center ring-2 ring-background">
+                            <span className="absolute -top-0.5 -right-0.5 bg-badge text-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center ring-2 ring-background">
                               {unreadNotifications > 9 ? "9+" : unreadNotifications}
                             </span>
                           )}

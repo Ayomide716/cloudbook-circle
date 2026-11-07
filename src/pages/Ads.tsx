@@ -26,7 +26,7 @@ import { formatDistanceToNow } from "date-fns";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { safeWebsiteUrl } from "@/lib/safe-url";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 
 interface Campaign {
   id: string;
@@ -195,7 +195,7 @@ const Ads = () => {
     });
     if (error) {
       setCreating(false);
-      toast({ title: "Couldn't launch the campaign", description: error.message, variant: "destructive" });
+      toast({ title: "Couldn't launch the campaign", description: friendlyError(error), variant: "destructive" });
       return;
     }
     await changeCredits(-budgetNum, "spend", `Campaign: ${title.trim()}`);

@@ -62,7 +62,7 @@ const GroupsHub = ({ groups, userId }: { groups: HubGroup[]; userId: string }) =
                     <GroupInitials id={g.id} name={g.name} className="h-[68px] w-[68px] rounded-2xl text-lg" />
                   )}
                   {n > 0 && (
-                    <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-card bg-primary px-1 text-[10px] font-bold text-primary-foreground" aria-label={`${n} new posts`}>
+                    <span className="absolute -right-1.5 -top-1.5 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-card bg-badge px-1 text-[10px] font-bold text-white" aria-label={`${n} new posts`}>
                       {n > 9 ? "9+" : n}
                     </span>
                   )}
