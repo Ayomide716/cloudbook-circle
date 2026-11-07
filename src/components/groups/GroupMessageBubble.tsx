@@ -165,7 +165,7 @@ const GroupMessageBubble = ({
             </div>
           )}
           {sticker ? (
-            <img src={stickerSrc!} alt={ownSticker ? `${stickerName(ownSticker)} sticker` : "Sticker"} draggable={false} className="block h-32 w-32 select-none object-contain drop-shadow-md animate-sticker-pop" />
+            <img loading="lazy" decoding="async" src={stickerSrc!} alt={ownSticker ? `${stickerName(ownSticker)} sticker` : "Sticker"} draggable={false} className="block h-32 w-32 select-none object-contain drop-shadow-md animate-sticker-pop" />
           ) : voice ? (
             <VoiceMessagePlayer audioUrl={m.image_url!} duration={voiceSeconds(m.content)} isOwnMessage={mine} />
           ) : m.image_url && kind === "video" ? (

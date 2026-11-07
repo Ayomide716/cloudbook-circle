@@ -680,7 +680,7 @@ const GroupDetail = () => {
                   {post.content && <p className="mb-3 whitespace-pre-wrap break-words">{post.content}</p>}
 
                   {post.image_url && (
-                    <img
+                    <img decoding="async"
                       src={post.image_url}
                       alt=""
                       loading="lazy"

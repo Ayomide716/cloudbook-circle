@@ -442,41 +442,6 @@
   }
 }
 
-/* ===== Auth Page Premium Styles ===== */
-
-@keyframes auth-gradient {
-  0% { background-position: 0% 50%; }
-  50% { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-.auth-gradient-bg {
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.08) 0%,
-    hsl(var(--background)) 25%,
-    hsl(var(--gold) / 0.06) 50%,
-    hsl(var(--background)) 75%,
-    hsl(var(--primary) / 0.1) 100%
-  );
-  background-size: 400% 400%;
-  animation: auth-gradient 12s ease infinite;
-}
-
-.dark .auth-gradient-bg {
-  background: linear-gradient(
-    135deg,
-    hsl(var(--primary) / 0.15) 0%,
-    hsl(var(--background)) 25%,
-    hsl(var(--gold) / 0.1) 50%,
-    hsl(var(--background)) 75%,
-    hsl(var(--primary) / 0.18) 100%
-  );
-  background-size: 400% 400%;
-  animation: auth-gradient 12s ease infinite;
-}
 
 /* Shimmer animation for lazy image placeholders */
 @keyframes image-shimmer {

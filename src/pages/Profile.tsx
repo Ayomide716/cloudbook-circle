@@ -1153,7 +1153,7 @@ const Profile = () => {
                     
                           <div className="aspect-[4/3] overflow-hidden relative">
                             {coverPhoto ?
-                      <img src={coverPhoto} alt={album.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> :
+                      <img loading="lazy" decoding="async" src={coverPhoto} alt={album.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" /> :
 
                       <div className="w-full h-full gradient-brand-soft flex items-center justify-center">
                                 <FolderOpen className="h-12 w-12 text-primary/40" />

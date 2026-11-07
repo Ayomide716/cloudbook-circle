@@ -10,7 +10,7 @@ interface ReactionEmojiProps {
 }
 
 const ReactionEmoji = ({ type, className, label }: ReactionEmojiProps) => (
-  <img
+  <img loading="lazy"
     src={`/emoji/${EMOJI_FILES[type] ?? "like"}.webp`}
     alt={label ?? ""}
     aria-hidden={label ? undefined : true}
