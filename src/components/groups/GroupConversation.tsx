@@ -547,7 +547,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
             </div>
           )}
           {text.trim() || media || editing ? (
-            <Button type="submit" size="icon" disabled={sending || uploading} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5">
+            <Button type="submit" size="icon" variant="accent" disabled={sending || uploading} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5">
               {uploading ? <Loader2 className="animate-spin" /> : <Send className="translate-x-px" />}
             </Button>
           ) : (

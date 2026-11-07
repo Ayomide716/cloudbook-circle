@@ -70,7 +70,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
           <tab.icon className="h-[25px] w-[25px]" fill={active ? "currentColor" : undefined} />
           <span className={cn("text-[11px] leading-none", active ? "font-bold" : "font-medium text-muted-foreground")} aria-hidden="true">{tab.label}</span>
           {tab.badge > 0 && (
-            <span className="absolute -top-1.5 left-1/2 ml-1.5 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground text-center ring-2 ring-card">
+            <span className="absolute -top-1.5 left-1/2 ml-1.5 min-w-[18px] h-[18px] rounded-full bg-badge px-1 text-[10px] font-bold leading-[18px] text-white text-center ring-2 ring-card">
               {tab.badge > 9 ? "9+" : tab.badge}
             </span>
           )}

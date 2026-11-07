@@ -543,8 +543,8 @@ const Friends = () => {
                     ) : (
                       <Button
                         size="sm"
-                        variant="outline"
-                        className="h-8 shrink-0 gap-1 rounded-full border-primary/60 px-3 font-semibold text-primary hover:bg-primary/10 hover:text-primary"
+                        variant="accent"
+                        className="h-8 shrink-0 gap-1 rounded-lg px-3 font-semibold"
                         onClick={(e) => {
                           e.stopPropagation();
                           handleSendRequest(profile.id);
@@ -566,7 +566,7 @@ const Friends = () => {
             <TabsTrigger value="requests" className={FRIEND_CHIP}>
               Requests
               {pendingRequests.length > 0 && (
-                <span className="bg-destructive text-destructive-foreground text-[11px] rounded-full h-[18px] min-w-[18px] px-1 inline-flex items-center justify-center">
+                <span className="bg-badge text-white text-[11px] rounded-full h-[18px] min-w-[18px] px-1 inline-flex items-center justify-center">
                   {pendingRequests.length}
                 </span>
               )}
@@ -687,7 +687,7 @@ const Friends = () => {
                               {request.profiles.full_name || "Anonymous"}
                             </p>
                           </Link>
-                          <span className="shrink-0 rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-600 dark:text-amber-400">Pending</span>
+                          <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Pending</span>
                         </div>
                         <p className="text-xs text-muted-foreground">
                           Sent {formatDistanceToNow(new Date(request.created_at), {

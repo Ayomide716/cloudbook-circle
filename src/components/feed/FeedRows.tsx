@@ -161,18 +161,25 @@ export const OnThisDay = ({ currentUserId, name, avatarUrl }: { currentUserId: s
     const dismissedKey = `cloudbook_memory_seen_${format(new Date(), "yyyy-MM-dd")}`;
     try { if (localStorage.getItem(dismissedKey)) return; } catch { /* fine */ }
     (async () => {
-      const yearAgo = new Date();
-      yearAgo.setDate(yearAgo.getDate() - 300);
+      // Ask only for today's date (your local day) in each of the last ten years: one small
+      // request that returns at most one post, instead of downloading hundreds to search here.
+      const days = Array.from({ length: 10 }, (_, i) => {
+        const start = new Date();
+        start.setHours(0, 0, 0, 0);
+        start.setFullYear(start.getFullYear() - (i + 1));
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        return `and(created_at.gte.${start.toISOString()},created_at.lt.${end.toISOString()})`;
+      });
       const { data } = await supabase
         .from("posts")
         .select("id, content, image_url, created_at")
         .eq("user_id", currentUserId)
-        .lt("created_at", yearAgo.toISOString())
+        .or(days.join(","))
         .order("created_at", { ascending: false })
-        .limit(400);
-      const today = format(new Date(), "MM-dd");
-      const match = (data ?? []).find((p) => p.created_at && format(new Date(p.created_at), "MM-dd") === today);
-      if (!cancelled) setMemory(match ? { ...match, created_at: match.created_at! } : null);
+        .limit(1);
+      const match = data?.[0];
+      if (!cancelled) setMemory(match?.created_at ? { ...match, created_at: match.created_at } : null);
     })();
     return () => { cancelled = true; };
   }, [currentUserId]);

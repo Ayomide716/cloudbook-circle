@@ -31,6 +31,8 @@ export default {
         background: "hsl(var(--background))",
         foreground: "hsl(var(--foreground))",
         brand: "hsl(var(--brand))",
+        // Count badges (unread, requests): one red, with white text that passes AA in both themes.
+        badge: "hsl(0 72% 50%)",
         primary: {
           DEFAULT: "hsl(var(--primary))",
           foreground: "hsl(var(--primary-foreground))",

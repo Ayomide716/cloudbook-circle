@@ -82,7 +82,7 @@ export const HeaderAction = ({ icon: Icon, label, onClick, primary, badge }: Hea
     <Icon />
     {primary && <span className="hidden sm:inline">{label}</span>}
     {!!badge && badge > 0 && (
-      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-destructive px-1 text-[10px] font-bold leading-[18px] text-destructive-foreground">
+      <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full bg-badge px-1 text-[10px] font-bold leading-[18px] text-white">
         {badge > 9 ? "9+" : badge}
       </span>
     )}
