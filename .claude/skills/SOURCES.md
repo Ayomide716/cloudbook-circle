@@ -19,6 +19,8 @@ Notes:
 - Impeccable's optional always-on hooks (a check after every edit) are not installed; the skill
   works without them. Its engine binary is downloaded on first use and checked against
   `impeccable/scripts/engine-checksums.txt`.
+- `ui-ux-pro-max`: its search commands were changed from a plugin-only path (`${CLAUDE_PLUGIN_ROOT}/...`)
+  to `.claude/skills/ui-ux-pro-max/scripts/search.py`, run from the repository root.
 - Left out as not for this app: Emil's Swift/Expo/native skills, UI UX Pro Max's banner, brand
   and slides skills, and Anthropic's non-frontend skills.
 - Taste is built for marketing websites; for Ember's app screens, Impeccable, UI UX Pro Max and
