@@ -1,4 +1,5 @@
 import EmptyState from "@/components/EmptyState";
+import PullToRefresh from "@/components/PullToRefresh";
 import { uploadMedia } from "@/lib/media-upload";
 import { friendlyError } from "@/lib/utils";
 import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
@@ -53,6 +54,8 @@ const Groups = () => {
   const [searchQuery, setSearchQuery] = useState("");
   // Feed: posts from your groups (Facebook's Groups tab). Your groups and Discover are lists.
   const [view, setView] = useState<"feed" | "mine" | "discover">("feed");
+  // Pulling down to refresh also reloads the feed of posts from your groups.
+  const [hubKey, setHubKey] = useState(0);
   const [category, setCategory] = useState<GroupCategory | "all">("all");
   // Private groups you've asked to join.
   const [requested, setRequested] = useState<Set<string>>(new Set());
@@ -314,6 +317,7 @@ const Groups = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
+      <PullToRefresh onRefresh={async () => { await loadGroups(); setHubKey((k) => k + 1); }}>
       <div className="page-flush max-w-[1200px] mx-auto px-0 sm:px-4 lg:px-6 pb-6 sm:py-6 space-y-2 sm:space-y-0">
         <PageHeader
           title="Groups"
@@ -357,7 +361,7 @@ const Groups = () => {
 
         {/* Facebook's Groups tab: your groups as round tiles, then their latest posts. */}
         {view === "feed" && !searchQuery && currentUserId ? (
-          <GroupsHub groups={groups.filter((g) => g.is_member)} userId={currentUserId} onDiscover={() => setView("discover")} />
+          <GroupsHub key={hubKey} groups={groups.filter((g) => g.is_member)} userId={currentUserId} onDiscover={() => setView("discover")} />
         ) : filteredGroups.length === 0 ? (
           <Card className="feed-section flat-list">
             {searchQuery || view === "mine" || category !== "all" ? (
@@ -461,6 +465,7 @@ const Groups = () => {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
 
       {/* Create Group Dialog */}

@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { plainMentions } from "@/lib/mentions";
+import { encodeMentions, mentionName, plainMentions, type Mention } from "@/lib/mentions";
+import MentionInput from "@/components/MentionInput";
 import { cancelDelete, deleteLater, deleteNow, hideEverywhere, showAgain, useHiddenEverywhere } from "@/lib/pending-deletes";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { haptic } from "@/lib/haptics";
@@ -145,6 +146,8 @@ const PostCard = ({
   const [reportOpen, setReportOpen] = useState(false);
   const photos = postImages(post);
   const [commentContent, setCommentContent] = useState("");
+  // People picked from the @ suggestions (or the one you're replying to), saved with their ids.
+  const [commentMentions, setCommentMentions] = useState<Mention[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const postBackground = !post.image_url && !post.video_url && !post.poll ? backgroundCss(post.background) : null;
   const postLink = useMemo(() => firstLink(post.content ?? ""), [post.content]);
@@ -323,9 +326,10 @@ const PostCard = ({
     
     if (!commentContent.trim()) return;
 
+    const words = features.mentions ? encodeMentions(commentContent.trim(), commentMentions) : commentContent.trim();
     const optimisticComment = {
       id: `temp-${Date.now()}`,
-      content: commentContent.trim(),
+      content: words,
       created_at: new Date().toISOString(),
       parent_id: replyingTo?.id || null,
       post_id: post.id,
@@ -339,6 +343,7 @@ const PostCard = ({
 
     // Optimistic: show comment instantly
     setCommentContent("");
+    setCommentMentions([]);
     if (replyingTo) setOpenThreadId(replyingTo.id);
     setReplyingTo(null);
     setShowComments(true);
@@ -375,9 +380,17 @@ const PostCard = ({
   });
 
   // Replying to a reply stays in the same thread, starting with "@Name" (as on Instagram).
-  const startReply = (parent: PostComment, mention: string | null) => {
+  const startReply = (parent: PostComment, mention: string | null, mentionId?: string) => {
     setReplyingTo(parent);
-    setCommentContent(mention ? `@${mention.replace(/\s+/g, "")} ` : "");
+    if (features.mentions && mention && mentionId) {
+      // A real mention: their full name, linked to them, and they're told.
+      const name = mentionName(mention);
+      setCommentMentions([{ id: mentionId, name }]);
+      setCommentContent(`@${name} `);
+    } else {
+      setCommentMentions([]);
+      setCommentContent(mention ? `@${mention.replace(/\s+/g, "")} ` : "");
+    }
     setShowComments(true);
     requestAnimationFrame(() => commentBoxRef.current?.focus());
   };
@@ -395,7 +408,7 @@ const PostCard = ({
       {replyingTo && (
         <div className="ml-10 flex items-center gap-2 text-xs text-muted-foreground">
           <span>Replying to <strong>{replyingTo.profiles.full_name || "Anonymous"}</strong></span>
-          <button type="button" onClick={() => { setReplyingTo(null); setCommentContent(""); }} className="text-primary hover:underline">
+          <button type="button" onClick={() => { setReplyingTo(null); setCommentContent(""); setCommentMentions([]); }} className="text-primary hover:underline">
             Cancel
           </button>
         </div>
@@ -405,15 +418,18 @@ const PostCard = ({
           <AvatarImage src={myProfile?.avatar_url || undefined} alt="" />
           <AvatarFallback className="bg-secondary text-xs">{myProfile?.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
         </Avatar>
-        <Textarea
+        <MentionInput
           placeholder={replyingTo ? `Reply to ${replyingTo.profiles.full_name || "Anonymous"}...` : "Write a comment..."}
           value={commentContent}
           ref={commentBoxRef}
-          onChange={(e) => setCommentContent(e.target.value)}
+          onChange={setCommentContent}
+          rich={features.mentions}
+          onMention={(m) => setCommentMentions((list) => [...list.filter((x) => x.id !== m.id), m])}
+          wrapperClassName="flex-1"
           // Phones: Enter adds a line. Keyboards: Enter sends, Shift+Enter adds a line.
           onKeyDown={sendOnEnter}
           aria-label={replyingTo ? "Write a reply" : "Write a comment"}
-          className="min-h-[36px] flex-1 resize-none rounded-[18px] border-0 bg-secondary py-2 leading-5"
+          className="min-h-[36px] w-full resize-none rounded-[18px] border-0 bg-secondary py-2 leading-5"
           disabled={isSubmitting}
           rows={1}
         />

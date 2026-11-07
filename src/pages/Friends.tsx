@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import PullToRefresh from "@/components/PullToRefresh";
 import { m as motion } from "framer-motion";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -503,6 +504,7 @@ const Friends = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
+      <PullToRefresh onRefresh={async () => { await loadData(); }}>
       <div className="page-flush max-w-[1000px] mx-auto px-0 sm:px-4 pb-6 sm:py-6">
         <PageHeader title="Friends" className="sm:mb-4">
           <PageSearch value={searchQuery} onChange={setSearchQuery} placeholder="Search people" />
@@ -788,6 +790,7 @@ const Friends = () => {
           </TabsContent>
         </Tabs>
       </div>
+      </PullToRefresh>
 
       {/* Unfriend Confirmation Dialog */}
       <AlertDialog open={!!unfriendTarget} onOpenChange={(open) => !open && setUnfriendTarget(null)}>

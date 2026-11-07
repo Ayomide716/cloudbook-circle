@@ -1,16 +1,18 @@
-import { useState, useRef, useEffect } from "react";
+import { forwardRef, useImperativeHandle, useState, useRef, useEffect, type TextareaHTMLAttributes } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { mentionName, type Mention } from "@/lib/mentions";
 
-interface MentionInputProps {
+interface MentionInputProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElement>, "value" | "onChange"> {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
   className?: string;
   disabled?: boolean;
+  /** Classes for the box around the field (e.g. flex-1 in a row). */
+  wrapperClassName?: string;
   /** Mentions keep the full name and are reported through onMention (saved with the person's id). */
   rich?: boolean;
   onMention?: (mention: Mention) => void;
@@ -22,12 +24,14 @@ interface UserSuggestion {
   avatar_url: string | null;
 }
 
-const MentionInput = ({ value, onChange, placeholder, className, disabled, rich, onMention }: MentionInputProps) => {
+/** A text box where typing @ suggests people. Takes any textarea prop (ref, onKeyDown, rows…). */
+const MentionInput = forwardRef<HTMLTextAreaElement, MentionInputProps>(({ value, onChange, placeholder, className, disabled, rich, onMention, wrapperClassName, ...rest }, ref) => {
   const [suggestions, setSuggestions] = useState<UserSuggestion[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [mentionQuery, setMentionQuery] = useState("");
   const [cursorPosition, setCursorPosition] = useState(0);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  useImperativeHandle(ref, () => textareaRef.current as HTMLTextAreaElement);
 
   useEffect(() => {
     if (!mentionQuery || mentionQuery.length < 1) {
@@ -85,8 +89,9 @@ const MentionInput = ({ value, onChange, placeholder, className, disabled, rich,
   };
 
   return (
-    <div className="relative">
+    <div className={cn("relative", wrapperClassName)}>
       <Textarea
+        {...rest}
         ref={textareaRef}
         value={value}
         onChange={handleChange}
@@ -116,6 +121,8 @@ const MentionInput = ({ value, onChange, placeholder, className, disabled, rich,
       )}
     </div>
   );
-};
+});
+
+MentionInput.displayName = "MentionInput";
 
 export default MentionInput;
