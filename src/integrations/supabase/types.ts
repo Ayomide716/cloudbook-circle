@@ -2570,6 +2570,8 @@ export type Database = {
         Args: { _group_ids: string[] }
         Returns: { group_id: string; member_count: number }[]
       }
+      admin_usage: { Args: Record<string, never>; Returns: Json }
+      is_friend_of: { Args: { _other: string }; Returns: boolean }
       group_member_preview: {
         Args: { _group: string; _limit?: number }
         Returns: { user_id: string; full_name: string | null; avatar_url: string | null }[]
