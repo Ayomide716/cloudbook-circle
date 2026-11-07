@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import PullToRefresh from "@/components/PullToRefresh";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useSEO } from "@/hooks/useSEO";
@@ -332,6 +333,7 @@ const Notifications = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
+      <PullToRefresh onRefresh={async () => { await loadNotifications(); }}>
       <div className="page-flush max-w-[800px] mx-auto px-0 sm:px-4 pb-6 sm:py-6">
         <PageHeader
           title="Notifications"
@@ -469,6 +471,7 @@ const Notifications = () => {
           )}
         </Card>
       </div>
+      </PullToRefresh>
       
     </div>
   );

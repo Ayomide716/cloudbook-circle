@@ -32,6 +32,7 @@ import { playSound } from "@/lib/sounds";
 import { dbChannel } from "@/lib/realtime";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import BirthdaysCard from "@/components/BirthdaysCard";
+import MemoriesCard from "@/components/MemoriesCard";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -306,6 +307,7 @@ const Index = () => {
                   are about today, so they lead; the other cards sit between posts. A new
                   account with nothing to read yet gets the profile prompt up here instead. */}
               <BirthdaysCard currentUserId={currentUser.id} />
+              <MemoriesCard currentUserId={currentUser.id} />
               {allPosts.length === 0 && <ProfileCompletionPrompt userId={currentUser.id} />}
 
               {allPosts.length === 0 ? (

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import PullToRefresh from "@/components/PullToRefresh";
 import { features } from "@/lib/features";
 import { shrinkImage } from "@/lib/image-compress";
 import { isNative } from "@/lib/native/platform";
@@ -287,6 +288,7 @@ const Events = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
 
+      <PullToRefresh onRefresh={async () => { if (currentUserId) await loadEvents(currentUserId); }}>
       <div className="page-flush max-w-4xl mx-auto px-0 sm:px-4 pb-6 sm:py-6">
           <Dialog open={showCreateDialog} onOpenChange={(open) => !isCreating && setShowCreateDialog(open)}>
             <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
@@ -497,6 +499,7 @@ const Events = () => {
           </div>
         )}
       </div>
+      </PullToRefresh>
 
       <AlertDialog open={!!pendingDelete} onOpenChange={(open) => !open && setPendingDelete(null)}>
         <AlertDialogContent>

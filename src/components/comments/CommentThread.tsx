@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { plainMentions } from "@/lib/mentions";
+import MentionText from "@/components/MentionText";
 import { Link } from "react-router-dom";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -25,7 +26,8 @@ interface CommentThreadProps<T extends ThreadComment> {
   comments: T[];
   currentUserId?: string | null;
   /** Reply to a comment: `parent` is the top-level comment, `mention` who is being answered. */
-  onReply: (parent: T, mention: string | null) => void;
+  /** `mentionId`: who `mention` is, so the reply can mention them properly. */
+  onReply: (parent: T, mention: string | null, mentionId?: string) => void;
   onDelete?: (id: string) => void;
   onEdit?: (id: string, content: string) => Promise<void> | void;
   /** How many top-level comments to show before "View more comments". */
@@ -192,7 +194,7 @@ export function CommentThread<T extends ThreadComment>({
                 </div>
               </div>
             ) : (
-              <p className="whitespace-pre-wrap break-words text-sm">{plainMentions(c.content)}</p>
+              <p className="whitespace-pre-wrap break-words text-sm"><MentionText text={c.content} /></p>
             )}
           </div>
           <div className="ml-3 mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
@@ -207,7 +209,7 @@ export function CommentThread<T extends ThreadComment>({
                 Like
               </button>
             )}
-            <button type="button" className="font-semibold hover:text-foreground" onClick={() => onReply(parent, isReply ? name : null)}>
+            <button type="button" className="font-semibold hover:text-foreground" onClick={() => onReply(parent, isReply ? name : null, isReply ? authorId(c) || undefined : undefined)}>
               Reply
             </button>
             {mine && onEdit && !isReply && !isEditing && (

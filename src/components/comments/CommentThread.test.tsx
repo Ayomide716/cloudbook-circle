@@ -46,6 +46,6 @@ describe("CommentThread", () => {
     renderThread([comment("top", null), comment("r1", "top", "Ada Obi")], onReply);
     fireEvent.click(screen.getByRole("button", { name: /View 1 reply/ }));
     fireEvent.click(screen.getAllByRole("button", { name: "Reply" })[1]);
-    expect(onReply).toHaveBeenCalledWith(expect.objectContaining({ id: "top" }), "Ada Obi");
+    expect(onReply).toHaveBeenCalledWith(expect.objectContaining({ id: "top" }), "Ada Obi", "u-r1");
   });
 });
