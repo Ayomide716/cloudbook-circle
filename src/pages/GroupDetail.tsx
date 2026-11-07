@@ -1,7 +1,7 @@
 import EmptyState from "@/components/EmptyState";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
@@ -13,21 +13,23 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Pencil, Video, Phone, Radio, Trash2, Check, Globe, MoreHorizontal, ShieldCheck, ShieldOff, UserMinus } from "@/components/icons";
-import { HeaderAction } from "@/components/layout/PageHeader";
-import { formatDistanceToNow } from "date-fns";
+import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Pencil, Video, Phone, Radio, Check, Globe, Lock, Clock, MoreHorizontal, ShieldCheck, ShieldOff, UserMinus, VolumeX, Volume2, CalendarDays, MapPin } from "@/components/icons";
+import { HeaderAction, Chips } from "@/components/layout/PageHeader";
+import { format, formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import GroupConversation from "@/components/groups/GroupConversation";
+import GroupPostCard, { type GroupPostView } from "@/components/groups/GroupPostCard";
 import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
-import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
+import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { dbChannel } from "@/lib/realtime";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RowSkeleton } from "@/components/skeletons/parts";
 import { recordGroupVisit } from "@/lib/recent-groups";
 import { friendlyError } from "@/lib/utils";
+import { features } from "@/lib/features";
+import { categoryLabel } from "@/lib/group-categories";
 
 interface Group {
   id: string;
@@ -36,30 +38,40 @@ interface Group {
   image_url: string | null;
   created_by: string;
   created_at?: string;
+  category?: string | null;
+  is_private?: boolean;
 }
 
-interface GroupPost {
+interface Person {
   id: string;
-  content: string;
-  image_url: string | null;
-  created_at: string;
-  user_id: string;
-  profiles: {
-    id: string;
-    full_name: string | null;
-    avatar_url: string | null;
-  };
+  full_name: string | null;
+  avatar_url: string | null;
 }
 
 interface Member {
   id: string;
   role: string;
-  profiles: {
-    id: string;
-    full_name: string | null;
-    avatar_url: string | null;
-  };
+  muted_until?: string | null;
+  profiles: Person;
 }
+
+interface JoinRequest {
+  id: string;
+  created_at: string;
+  person: Person;
+}
+
+interface GroupEvent {
+  id: string;
+  name: string;
+  start_date: string;
+  location: string | null;
+  cover_image: string | null;
+}
+
+type Section = "discussion" | "chat" | "members" | "events" | "photos" | "about" | "voice";
+
+const isMuted = (m: Pick<Member, "muted_until">) => !!m.muted_until && Date.parse(m.muted_until) > Date.now();
 
 const GroupDetail = () => {
   const { groupId } = useParams();
@@ -69,8 +81,13 @@ const GroupDetail = () => {
   const { toast } = useToast();
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [group, setGroup] = useState<Group | null>(null);
-  const [posts, setPosts] = useState<GroupPost[]>([]);
+  const [posts, setPosts] = useState<GroupPostView[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
+  // Faces on the header for people who haven't joined (members see the real list).
+  const [preview, setPreview] = useState<Person[]>([]);
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
+  const [myRequest, setMyRequest] = useState(false);
+  const [events, setEvents] = useState<GroupEvent[] | null>(null);
   const [isMember, setIsMember] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [postContent, setPostContent] = useState("");
@@ -78,11 +95,13 @@ const GroupDetail = () => {
   const [isPosting, setIsPosting] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [mutedUntil, setMutedUntil] = useState<string | null>(null);
   // Non-members can't see the member list, so the count comes from the server.
   const [memberCount, setMemberCount] = useState<number | null>(null);
   const [isJoining, setIsJoining] = useState(false);
-  const [confirm, setConfirm] = useState<{ kind: "leave" } | { kind: "post"; id: string } | { kind: "remove"; member: Member } | null>(null);
+  const [confirm, setConfirm] = useState<{ kind: "leave" } | { kind: "post"; post: GroupPostView } | { kind: "remove"; member: Member } | null>(null);
   const [showAddPeople, setShowAddPeople] = useState(false);
+  const [section, setSection] = useState<Section>("discussion");
   const isAdmin = userRole === "admin";
   const { startGroupCall: startCall, joinGroupCall, activeGroupId } = useCalls();
   const inThisCall = !!groupId && activeGroupId === groupId;
@@ -133,6 +152,8 @@ const GroupDetail = () => {
       loadMembers(),
       checkMembership(),
       loadMemberCount(),
+      loadPreview(),
+      loadMyRequest(),
     ]);
     setIsLoading(false);
   });
@@ -167,7 +188,7 @@ const GroupDetail = () => {
   // One query for every author or member instead of one each.
   const fetchProfiles = async (ids: string[]) => {
     const unique = [...new Set(ids)];
-    const map = new Map<string, Member["profiles"]>();
+    const map = new Map<string, Person>();
     if (!unique.length) return map;
     const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").in("id", unique);
     for (const p of data || []) map.set(p.id, p);
@@ -179,6 +200,42 @@ const GroupDetail = () => {
     const { data, error } = await supabase.rpc("group_member_counts", { _group_ids: [groupId] });
     if (!error) setMemberCount(Number(data?.[0]?.member_count ?? 0));
   };
+
+  const loadPreview = async () => {
+    if (!groupId || !features.groupsV2) return;
+    const { data } = await supabase.rpc("group_member_preview", { _group: groupId, _limit: 6 });
+    setPreview((data ?? []).map((p) => ({ id: p.user_id, full_name: p.full_name, avatar_url: p.avatar_url })));
+  };
+
+  const loadMyRequest = async () => {
+    if (!groupId || !currentUserId || !features.groupsV2) return;
+    const { data } = await supabase.from("group_join_requests").select("id").eq("group_id", groupId).eq("user_id", currentUserId).maybeSingle();
+    setMyRequest(!!data);
+  };
+
+  const loadRequests = async () => {
+    if (!groupId || !features.groupsV2) return;
+    const { data } = await supabase.from("group_join_requests").select("id, user_id, created_at").eq("group_id", groupId).order("created_at");
+    const people = await fetchProfiles((data ?? []).map((r) => r.user_id));
+    setRequests((data ?? []).map((r) => ({ id: r.id, created_at: r.created_at, person: people.get(r.user_id) ?? { id: r.user_id, full_name: null, avatar_url: null } })));
+  };
+
+  const loadEvents = async () => {
+    if (!groupId) return;
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+    const { data } = await supabase
+      .from("events")
+      .select("id, name, start_date, location, cover_image")
+      .eq("group_id", groupId)
+      .gte("start_date", since)
+      .order("start_date")
+      .limit(20);
+    setEvents(data ?? []);
+  };
+
+  // Admins see who's asking to join; the events list loads when you open it.
+  useEffect(() => { if (isAdmin) void loadRequests(); }, [isAdmin, groupId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { if (section === "events" && events === null) void loadEvents(); }, [section]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadPosts = async () => {
     if (!groupId) return;
@@ -193,24 +250,17 @@ const GroupDetail = () => {
       return;
     }
 
-    if (!postsData) {
-      setPosts([]);
-      return;
-    }
-
-    const profiles = await fetchProfiles(postsData.map((p) => p.user_id));
-    const postsWithProfiles = postsData.map((post) => ({
+    const profiles = await fetchProfiles((postsData ?? []).map((p) => p.user_id));
+    setPosts((postsData ?? []).map((post) => ({
       ...post,
-      profiles: profiles.get(post.user_id) || { id: post.user_id, full_name: null, avatar_url: null },
-    }));
-
-    setPosts(postsWithProfiles);
+      author: profiles.get(post.user_id) ?? { full_name: null, avatar_url: null },
+    })));
   };
 
   const managementError = (error: { message: string }) =>
     /Could not find the function|function .*group_member/i.test(error.message)
       ? "Managing members needs the latest database update."
-      : error.message;
+      : friendlyError(error);
 
   const removeMember = async (member: Member) => {
     if (!groupId) return;
@@ -234,11 +284,36 @@ const GroupDetail = () => {
     loadMembers();
   };
 
+  const muteMember = async (member: Member, hours: number | null) => {
+    if (!groupId) return;
+    const until = hours === null ? null : new Date(Date.now() + hours * 3600 * 1000).toISOString();
+    const { error } = await supabase.rpc("mute_group_member", { _group: groupId, _user: member.profiles.id, _until: until });
+    if (error) {
+      toast({ title: "Couldn't change that", description: friendlyError(error), variant: "destructive" });
+      return;
+    }
+    const who = member.profiles.full_name || "They";
+    toast({ title: hours === null ? `${who} can post again` : `${who} can't post for ${hours === 24 ? "a day" : "a week"}` });
+    loadMembers();
+  };
+
+  const answerRequest = async (request: JoinRequest, approve: boolean) => {
+    const { error } = approve
+      ? await supabase.rpc("approve_group_request", { _request: request.id })
+      : await supabase.from("group_join_requests").delete().eq("id", request.id);
+    if (error) {
+      toast({ title: "Couldn't answer that request", description: friendlyError(error), variant: "destructive" });
+      return;
+    }
+    setRequests((list) => list.filter((r) => r.id !== request.id));
+    if (approve) loadMembers();
+  };
+
   const loadMembers = async () => {
     if (!groupId) return;
     const { data: membersData, error } = await supabase
       .from("group_members")
-      .select("id, role, user_id")
+      .select("*")
       .eq("group_id", groupId);
 
     if (error) {
@@ -246,25 +321,19 @@ const GroupDetail = () => {
       return;
     }
 
-    if (!membersData) {
-      setMembers([]);
-      return;
-    }
-
-    const profiles = await fetchProfiles(membersData.map((m) => m.user_id));
-    const membersWithProfiles = membersData
+    const profiles = await fetchProfiles((membersData ?? []).map((m) => m.user_id));
+    setMembers((membersData ?? [])
       .map((member) => ({
         id: member.id,
         role: member.role,
+        muted_until: (member as { muted_until?: string | null }).muted_until ?? null,
         profiles: profiles.get(member.user_id) || { id: member.user_id, full_name: null, avatar_url: null },
       }))
       // Admins first, then by name.
       .sort((a, b) =>
         (a.role === "admin" ? 0 : 1) - (b.role === "admin" ? 0 : 1) ||
         (a.profiles.full_name || "").localeCompare(b.profiles.full_name || "")
-      );
-
-    setMembers(membersWithProfiles);
+      ));
     loadMemberCount();
   };
 
@@ -273,18 +342,32 @@ const GroupDetail = () => {
 
     const { data } = await supabase
       .from("group_members")
-      .select("id, role")
+      .select("*")
       .eq("group_id", groupId)
       .eq("user_id", currentUserId)
       .maybeSingle();
 
     setIsMember(!!data);
     setUserRole(data?.role || null);
+    setMutedUntil((data as { muted_until?: string | null } | null)?.muted_until ?? null);
   };
 
   const handleJoinGroup = async () => {
     if (!currentUserId || !groupId || isJoining) return;
     setIsJoining(true);
+
+    // Private group: ask, and an admin lets you in.
+    if (group?.is_private) {
+      const { error } = await supabase.from("group_join_requests").insert({ group_id: groupId, user_id: currentUserId });
+      setIsJoining(false);
+      if (error && error.code !== "23505") {
+        toast({ title: "Couldn't send your request", description: friendlyError(error), variant: "destructive" });
+        return;
+      }
+      setMyRequest(true);
+      toast({ title: "Request sent", description: "You'll be told when an admin lets you in." });
+      return;
+    }
 
     const { error } = await supabase
       .from("group_members")
@@ -309,6 +392,16 @@ const GroupDetail = () => {
     loadPosts();
   };
 
+  const cancelRequest = async () => {
+    if (!currentUserId || !groupId) return;
+    const { error } = await supabase.from("group_join_requests").delete().eq("group_id", groupId).eq("user_id", currentUserId);
+    if (error) {
+      toast({ title: "Couldn't cancel your request", description: friendlyError(error), variant: "destructive" });
+      return;
+    }
+    setMyRequest(false);
+  };
+
   const handleLeaveGroup = async () => {
     if (!currentUserId || !groupId) return;
     const { error } = await supabase
@@ -330,13 +423,23 @@ const GroupDetail = () => {
     loadMemberCount();
   };
 
-  const handleDeletePost = async (postId: string) => {
-    const { error } = await supabase.from("group_posts").delete().eq("id", postId);
+  const handleDeletePost = async (post: GroupPostView) => {
+    const { error } = await supabase.from("group_posts").delete().eq("id", post.id);
     if (error) {
       toast({ title: "Couldn't delete post", description: friendlyError(error), variant: "destructive" });
       return;
     }
-    setPosts((prev) => prev.filter((p) => p.id !== postId));
+    setPosts((prev) => prev.filter((p) => p.id !== post.id));
+  };
+
+  const togglePin = async (post: GroupPostView) => {
+    const { error } = await supabase.rpc("set_group_post_pinned", { _post: post.id, _pinned: !post.pinned_at });
+    if (error) {
+      toast({ title: "Couldn't change that", description: friendlyError(error), variant: "destructive" });
+      return;
+    }
+    toast({ title: post.pinned_at ? "Unpinned" : "Pinned to the top of the group" });
+    loadPosts();
   };
 
   // Extra taps while this is saving do nothing (no double posts on a slow network).
@@ -375,6 +478,11 @@ const GroupDetail = () => {
     loadPosts();
   });
 
+  // Pinned posts first (newest pin on top), then everything else, newest first.
+  const pinned = useMemo(() => posts.filter((p) => p.pinned_at).sort((a, b) => Date.parse(b.pinned_at!) - Date.parse(a.pinned_at!)), [posts]);
+  const rest = useMemo(() => posts.filter((p) => !p.pinned_at), [posts]);
+  const photos = useMemo(() => posts.filter((p) => p.image_url), [posts]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background">
@@ -396,15 +504,13 @@ const GroupDetail = () => {
     return (
       <div className="min-h-screen bg-background">
         <Navigation currentUserId={currentUserId || undefined} />
-        <div className="container mx-auto px-4 py-12 text-center">
-          <Users className="h-12 w-12 mx-auto text-muted-foreground/50 mb-3" />
-          <p className="text-lg font-semibold mb-1">Group not found</p>
-          <p className="text-muted-foreground mb-4">It may have been deleted, or the link is wrong.</p>
-          <Button variant="outline" onClick={() => navigate("/groups")}>
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Groups
-          </Button>
-        </div>
+        <EmptyState
+          emoji="people"
+          title="This group isn't available"
+          text="It may have been deleted, or the link is wrong."
+          className="min-h-[60vh] justify-center"
+          action={<Button onClick={() => navigate("/groups")} className="rounded-full px-6">Back to Groups</Button>}
+        />
       </div>
     );
   }
@@ -412,25 +518,50 @@ const GroupDetail = () => {
   // Only the group's admins (and whoever made it) can change its name, description and photo.
   // The database checks this too (update_group_details).
   const canEdit = isMember && (isAdmin || group.created_by === currentUserId);
+  const faces = isMember ? members.map((m) => m.profiles) : preview;
+  const count = isMember ? members.length : memberCount;
+  const privacy = group.is_private ? "Private group" : "Public group";
+  const meMuted = isMuted({ muted_until: mutedUntil });
+  // A private group's posts, members and chat are for members only.
+  const lockedOut = !isMember;
+
+  const sections: { value: Section; label: string }[] = [
+    { value: "discussion", label: "Discussion" },
+    { value: "chat", label: "Chat" },
+    { value: "members", label: requests.length ? `Members · ${requests.length} new` : "Members" },
+    { value: "events", label: "Events" },
+    { value: "photos", label: "Photos" },
+    { value: "about", label: "About" },
+    { value: "voice", label: "Voice" },
+  ];
+
+  const joinPrompt = (what: string) => (
+    <Card className="feed-section">
+      <EmptyState
+        emoji={group.is_private ? "people" : "chat"}
+        title={group.is_private ? "This group is private" : `Join to see ${what}`}
+        text={group.is_private ? `Ask to join and an admin will let you in. Then you'll see ${what}.` : undefined}
+      />
+    </Card>
+  );
 
   return (
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
-      
-      <div className="page-flush mx-auto max-w-4xl px-0 sm:px-4 pb-6 sm:py-6">
-        {/* Group header, Facebook style: cover, name, members, actions */}
-        <section className="feed-section mb-2 sm:mb-5 overflow-hidden rounded-2xl border border-border bg-card">
+
+      <div className="page-flush mx-auto max-w-4xl px-0 pb-6 sm:px-4 sm:py-6">
+        {/* Group header, Facebook style: cover, name, privacy and members, one clear button */}
+        <section className="feed-section mb-2 overflow-hidden border-b border-border bg-card sm:mb-4 sm:rounded-2xl sm:border">
           <div className="relative">
             {group.image_url ? (
-              <img src={group.image_url} alt="" className="h-40 w-full object-cover sm:h-56" />
+              <img src={group.image_url} alt="" className="h-44 w-full object-cover sm:h-60" />
             ) : (
-              // No photo yet: the same soft ember glow as a profile without a cover.
               <div className="h-24 w-full bg-secondary sm:h-32" />
             )}
             <button
               type="button"
               onClick={() => navigate("/groups")}
-              className="absolute left-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60"
+              className="absolute left-3 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60 md:top-3"
               aria-label="Back to groups"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -439,73 +570,80 @@ const GroupDetail = () => {
               <button
                 type="button"
                 onClick={() => setShowEditModal(true)}
-                className="absolute right-3 top-3 flex h-10 items-center gap-1.5 rounded-full bg-black/45 px-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/60"
-                aria-label="Edit group name, description and photo"
+                className="absolute right-3 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] flex h-10 items-center gap-1.5 rounded-full bg-black/45 px-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/60 md:top-3"
+                aria-label="Edit group"
               >
                 <Pencil className="h-4 w-4" /> Edit
               </button>
             )}
           </div>
 
-          <div className="space-y-3 p-4 sm:p-5">
+          <div className="space-y-3 px-4 pb-4 pt-3 sm:px-5">
             <div>
-              <h1 className="font-display text-2xl font-bold leading-tight sm:text-3xl [overflow-wrap:anywhere]">{group.name}</h1>
-              <p className="mt-1 flex items-center gap-1.5 text-sm text-muted-foreground">
-                <Globe className="h-4 w-4" />
-                Public group
-                {(() => {
-                  const n = isMember ? members.length : memberCount;
-                  return n === null ? null : <> · <strong className="font-semibold text-foreground">{n}</strong> {n === 1 ? "member" : "members"}</>;
-                })()}
+              <h1 className="font-display text-[26px] font-extrabold leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-3xl">{group.name}</h1>
+              <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
+                {group.is_private ? <Lock className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
+                <span>{privacy}</span>
+                {count !== null && <><span aria-hidden="true">·</span><span><strong className="font-semibold text-foreground">{count.toLocaleString()}</strong> {count === 1 ? "member" : "members"}</span></>}
+                {categoryLabel(group.category) && <><span aria-hidden="true">·</span><span>{categoryLabel(group.category)}</span></>}
               </p>
             </div>
 
-            {isMember && members.length > 0 && (
-              <div className="flex -space-x-2" aria-hidden="true">
-                {members.slice(0, 8).map((m) => (
-                  <Avatar key={m.id} className="h-8 w-8 ring-2 ring-card">
-                    <AvatarImage src={m.profiles.avatar_url || undefined} alt="" />
-                    <AvatarFallback className="text-[10px]">{m.profiles.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+            {faces.length > 0 && (
+              <button type="button" onClick={() => setSection("members")} className="flex -space-x-2" aria-label="See members">
+                {faces.slice(0, 8).map((p) => (
+                  <Avatar key={p.id} className="h-8 w-8 ring-2 ring-card">
+                    <AvatarImage src={p.avatar_url || undefined} alt="" />
+                    <AvatarFallback className="text-[10px]">{p.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
                   </Avatar>
                 ))}
-              </div>
-            )}
-
-            {group.description && (
-              <p className="text-[15px] leading-relaxed whitespace-pre-wrap break-words">{group.description}</p>
+              </button>
             )}
 
             <div className="flex items-center gap-2">
               {isMember ? (
                 <>
-                  <Button variant="secondary" className="flex-1 sm:flex-none rounded-xl" onClick={() => setConfirm({ kind: "leave" })} aria-label="Joined. Leave group?">
-                    <Check className="mr-2 h-4 w-4" /> Joined
+                  <ActionMenu>
+                    <ActionMenuTrigger asChild>
+                      <Button variant="secondary" className="flex-1 rounded-xl sm:flex-none" aria-label="Joined. Group options">
+                        <Check className="mr-2 h-4 w-4" /> Joined
+                      </Button>
+                    </ActionMenuTrigger>
+                    <ActionMenuContent align="start" title={group.name}>
+                      <ActionMenuItem className="text-destructive focus:text-destructive" onSelect={() => setConfirm({ kind: "leave" })}>
+                        <UserMinus className="mr-2 h-4 w-4" /> Leave group
+                      </ActionMenuItem>
+                    </ActionMenuContent>
+                  </ActionMenu>
+                  <Button variant="accent" className="flex-1 rounded-xl sm:flex-none" onClick={() => setShowAddPeople(true)}>
+                    <UserPlus className="mr-2 h-4 w-4" /> Invite
                   </Button>
-                  <Button className="flex-1 sm:flex-none rounded-xl" onClick={() => setShowAddPeople(true)}>
-                    <UserPlus className="mr-2 h-4 w-4" /> Add people
-                  </Button>
-                </>
-              ) : (
-                <Button className="flex-1 sm:flex-none rounded-xl" onClick={handleJoinGroup} disabled={isJoining}>
-                  {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
-                  Join group
-                </Button>
-              )}
-              {isMember && (
-                <>
                   <HeaderAction icon={Phone} label="Start group voice call" onClick={() => startGroupCall(true)} />
                   <HeaderAction icon={Video} label="Start group video call" onClick={() => startGroupCall(false)} />
                 </>
+              ) : myRequest ? (
+                <Button variant="secondary" className="flex-1 rounded-xl sm:flex-none" onClick={cancelRequest} aria-label="Requested. Cancel request?">
+                  <Clock className="mr-2 h-4 w-4" /> Requested
+                </Button>
+              ) : (
+                <Button variant="accent" className="flex-1 rounded-xl sm:flex-none" onClick={handleJoinGroup} disabled={isJoining}>
+                  {isJoining ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus className="mr-2 h-4 w-4" />}
+                  {group.is_private ? "Ask to join" : "Join group"}
+                </Button>
               )}
             </div>
+          </div>
+
+          <div className="px-4 pb-3 sm:px-5">
+            <Chips label="Group sections" value={section} onChange={setSection} options={sections} />
           </div>
         </section>
 
         {/* A call is running in this group: offer to join it */}
-        {callParticipants.length > 0 && group && (
-          <Card className="feed-section p-3 sm:p-4 mb-2 sm:mb-4 border-primary/40 bg-primary/5">
+        {callParticipants.length > 0 && (
+          <Card className="feed-section mb-2 border-primary/40 bg-primary/5 p-3 sm:mb-4 sm:p-4">
             <div className="flex items-center gap-3">
-              <div className="flex -space-x-2 shrink-0">
+              <div className="flex shrink-0 -space-x-2">
                 {callParticipants.slice(0, 3).map((p) => (
                   <Avatar key={p.userId} className="h-9 w-9 ring-2 ring-background">
                     <AvatarImage src={p.avatar || undefined} alt="" />
@@ -513,253 +651,292 @@ const GroupDetail = () => {
                   </Avatar>
                 ))}
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm flex items-center gap-1.5">
-                  <span className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="min-w-0 flex-1">
+                <p className="flex items-center gap-1.5 text-sm font-semibold">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-green-500" />
                   {callParticipants.some((p) => p.video) ? "Video" : "Voice"} call in progress
                 </p>
-                <p className="text-xs text-muted-foreground truncate">
-                  {callParticipants.map((p) => p.name).join(", ")}
-                </p>
+                <p className="truncate text-xs text-muted-foreground">{callParticipants.map((p) => p.name).join(", ")}</p>
               </div>
-              <Button
-                size="sm"
-                onClick={() => joinGroupCall({ id: group.id, name: group.name }, !callParticipants.some((p) => p.video))}
-                className="gradient-brand text-primary-foreground rounded-full px-4 shrink-0"
-              >
+              <Button size="sm" variant="accent" onClick={() => joinGroupCall({ id: group.id, name: group.name }, !callParticipants.some((p) => p.video))} className="shrink-0 rounded-full px-4">
                 Join
               </Button>
             </div>
           </Card>
         )}
 
-        {/* Edit Group Modal */}
-        {canEdit && (
-          <EditGroupModal
-            group={group}
-            open={showEditModal}
-            onOpenChange={setShowEditModal}
-            onGroupUpdated={loadGroup}
-          />
-        )}
+        {canEdit && <EditGroupModal group={group} open={showEditModal} onOpenChange={setShowEditModal} onGroupUpdated={loadGroup} />}
 
-        {/* Opens on the group's posts, as on Facebook. */}
-        <Tabs defaultValue="posts" className="space-y-2 sm:space-y-4">
-          <TabsList className="feed-section grid w-full grid-cols-4 bg-card sm:bg-transparent">
-            <TabsTrigger value="posts">Posts</TabsTrigger>
-            <TabsTrigger value="chat" className="flex items-center gap-1">
-              <MessageCircle className="h-4 w-4" />
-              Chat
-            </TabsTrigger>
-            <TabsTrigger value="voice" className="flex items-center gap-1">
-              <Radio className="h-4 w-4" />
-              Voice
-            </TabsTrigger>
-            <TabsTrigger value="members">Members</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="chat">
-            {isMember ? (
-              // The community's own chat, in the same style as Messages (it doesn't go in your chat list).
-              // Phones: as tall as the screen between these tabs and the tab bar (the top bar slides away),
-              // so the message box sits just above the tab bar instead of behind it.
-              <div className="feed-section h-[calc(100dvh-10rem-env(safe-area-inset-bottom,0px))] min-h-[380px] overflow-hidden rounded-[1.125rem] border bg-card md:h-[calc(100dvh-22rem)] md:min-h-[420px]">
-                <GroupConversation
-                  embedded
-                  group={{ ...group, created_at: group.created_at ?? new Date().toISOString() }}
-                  currentUserId={currentUserId!}
-                  onBack={() => {}}
-                  onSeen={() => {}}
-                  onLeft={() => {}}
-                />
-              </div>
-            ) : (
-              <Card className="feed-section p-12 text-center">
-                <MessageCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">
-                  Join the group to participate in the chat
-                </p>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="voice">
-            {isMember && currentUserId ? (
-              <VoiceRooms groupId={groupId!} currentUserId={currentUserId} />
-            ) : (
-              <Card className="feed-section p-12 text-center">
-                <Radio className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Join the group to access voice rooms</p>
-              </Card>
-            )}
-          </TabsContent>
-
-          <TabsContent value="posts" className="space-y-4">
-            {isMember && (
+        {section === "discussion" && (
+          <div className="space-y-2 sm:space-y-3">
+            {isMember && !meMuted && (
               <Card className="feed-section p-4">
-                <form onSubmit={handleCreatePost} className="space-y-4">
+                <form onSubmit={handleCreatePost} className="space-y-3">
                   <Textarea
-                    placeholder="Share something with the group..."
+                    placeholder="Write something to the group…"
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
-                    className="min-h-[100px]"
+                    className="min-h-[80px] border-0 bg-secondary/60 text-[15px] focus-visible:ring-1"
                     disabled={isPosting}
                   />
-                  
-                  <ImageUpload
-                    bucket="post-images"
-                    userId={currentUserId!}
-                    onUploadComplete={setPostImage}
-                    currentImage={postImage}
-                    label="Add Photo"
-                  />
-
-                  <div className="flex justify-end">
-                    <Button
-                      type="submit"
-                      disabled={isPosting || (!postContent.trim() && !postImage)}
-                    >
-                      {isPosting ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Posting...
-                        </>
-                      ) : (
-                        "Post"
-                      )}
+                  <div className="flex items-end justify-between gap-3">
+                    <ImageUpload bucket="post-images" userId={currentUserId!} onUploadComplete={setPostImage} currentImage={postImage} label="Photo" />
+                    <Button type="submit" className="shrink-0 rounded-full px-5" disabled={isPosting || (!postContent.trim() && !postImage)}>
+                      {isPosting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
                     </Button>
                   </div>
                 </form>
               </Card>
             )}
+            {isMember && meMuted && (
+              <p className="feed-section flex items-center gap-2 bg-secondary px-4 py-3 text-sm text-muted-foreground sm:rounded-xl">
+                <VolumeX className="h-4 w-4 shrink-0" /> An admin has paused your posting until {format(new Date(mutedUntil!), "d MMM, h:mm a")}.
+              </p>
+            )}
 
-            {!isMember ? (
-              <Card className="feed-section p-12 text-center">
-                <p className="text-muted-foreground">Join the group to see and share posts</p>
-              </Card>
-            ) : posts.length === 0 ? (
+            {lockedOut ? joinPrompt("posts") : posts.length === 0 ? (
               <Card className="feed-section">
-                <EmptyState emoji="chat" title="No posts yet" text={isMember ? "Be the first to share something!" : undefined} />
+                <EmptyState emoji="chat" title="No posts yet" text="Be the first to share something." />
               </Card>
             ) : (
-              posts.map((post) => (
-                <Card key={post.id} className="feed-section p-4">
-                  <div className="flex items-start gap-3 mb-3">
-                    <Avatar className="cursor-pointer" onClick={() => navigate(`/profile/${post.user_id}`)}>
-                      <AvatarImage src={post.profiles.avatar_url || undefined} alt="" />
-                      <AvatarFallback>
-                        {post.profiles.full_name?.[0]?.toUpperCase() || "U"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1 min-w-0">
-                      <button
-                        type="button"
-                        className="font-semibold hover:underline text-left truncate max-w-full"
-                        onClick={() => navigate(`/profile/${post.user_id}`)}
-                      >
-                        {post.profiles.full_name || "Anonymous"}
-                      </button>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDistanceToNow(new Date(post.created_at), {
-                          addSuffix: true,
-                        })}
-                      </p>
-                    </div>
-                    {post.user_id === currentUserId && (
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 shrink-0 text-muted-foreground"
-                        onClick={() => setConfirm({ kind: "post", id: post.id })}
-                        aria-label="Delete post"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    )}
+              <>
+                {pinned.map((p) => (
+                  <GroupPostCard key={p.id} post={p} currentUserId={currentUserId!} canManage={isAdmin} onDelete={(post) => setConfirm({ kind: "post", post })} onTogglePin={togglePin} />
+                ))}
+                {rest.map((p) => (
+                  <GroupPostCard key={p.id} post={p} currentUserId={currentUserId!} canManage={isAdmin} onDelete={(post) => setConfirm({ kind: "post", post })} onTogglePin={features.groupsV2 ? togglePin : undefined} />
+                ))}
+              </>
+            )}
+          </div>
+        )}
+
+        {section === "chat" && (
+          lockedOut ? joinPrompt("the chat") : (
+            // The community's own chat, in the same style as Messages (it doesn't go in your chat list).
+            <div className="feed-section h-[calc(100dvh-10rem-env(safe-area-inset-bottom,0px))] min-h-[380px] overflow-hidden rounded-[1.125rem] border bg-card md:h-[calc(100dvh-22rem)] md:min-h-[420px]">
+              <GroupConversation
+                embedded
+                group={{ ...group, created_at: group.created_at ?? new Date().toISOString() }}
+                currentUserId={currentUserId!}
+                onBack={() => {}}
+                onSeen={() => {}}
+                onLeft={() => {}}
+              />
+            </div>
+          )
+        )}
+
+        {section === "voice" && (
+          lockedOut || !currentUserId ? joinPrompt("voice rooms") : <VoiceRooms groupId={groupId!} currentUserId={currentUserId} />
+        )}
+
+        {section === "members" && (
+          lockedOut ? joinPrompt("who's in it") : (
+            <div className="space-y-2 sm:space-y-3">
+              {isAdmin && requests.length > 0 && (
+                <section className="feed-section border-y border-border/60 bg-card sm:rounded-2xl sm:border" aria-label="Requests to join">
+                  <h2 className="px-4 pt-3 text-[15px] font-semibold">Requests to join · {requests.length}</h2>
+                  <div className="divide-y divide-border">
+                    {requests.map((r) => (
+                      <div key={r.id} className="flex items-center gap-3 px-4 py-3">
+                        <Link to={`/profile/${r.person.id}`} className="shrink-0">
+                          <Avatar className="h-11 w-11">
+                            <AvatarImage src={r.person.avatar_url || undefined} alt="" />
+                            <AvatarFallback>{r.person.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                          </Avatar>
+                        </Link>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate font-semibold">{r.person.full_name || "Someone"}</p>
+                          <p className="text-xs text-muted-foreground">Asked {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</p>
+                        </div>
+                        <Button size="sm" variant="accent" className="h-9 rounded-lg px-3" onClick={() => answerRequest(r, true)}>Approve</Button>
+                        <Button size="sm" variant="secondary" className="h-9 rounded-lg px-3" onClick={() => answerRequest(r, false)}>Decline</Button>
+                      </div>
+                    ))}
                   </div>
+                </section>
+              )}
 
-                  {post.content && <p className="mb-3 whitespace-pre-wrap break-words">{post.content}</p>}
+              <section className="feed-section border-y border-border/60 bg-card sm:rounded-2xl sm:border" aria-label="Members">
+                <div className="flex items-center justify-between px-4 pt-3">
+                  <h2 className="text-[15px] font-semibold">Members · {members.length}</h2>
+                  <Button variant="secondary" size="sm" className="h-8 rounded-lg" onClick={() => setShowAddPeople(true)}>
+                    <UserPlus className="mr-1.5 h-4 w-4" /> Invite
+                  </Button>
+                </div>
+                <div className="divide-y divide-border">
+                  {members.map((member) => {
+                    const muted = isMuted(member);
+                    const manageable = isAdmin && member.profiles.id !== currentUserId && member.profiles.id !== group.created_by &&
+                      (member.role !== "admin" || group.created_by === currentUserId);
+                    return (
+                      <div key={member.id} className="flex items-center">
+                        <button
+                          type="button"
+                          onClick={() => navigate(`/profile/${member.profiles.id}`)}
+                          className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/50"
+                        >
+                          <Avatar className="h-11 w-11">
+                            <AvatarImage src={member.profiles.avatar_url || undefined} alt="" />
+                            <AvatarFallback>{member.profiles.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold">
+                              {member.profiles.full_name || "Anonymous"}
+                              {member.profiles.id === currentUserId && <span className="font-normal text-muted-foreground"> (you)</span>}
+                            </p>
+                            <p className="flex items-center gap-1 text-sm text-muted-foreground">
+                              {member.profiles.id === group.created_by ? "Creator · admin" : member.role === "admin" ? "Admin" : "Member"}
+                              {muted && <><span aria-hidden="true">·</span><VolumeX className="h-3.5 w-3.5" /> Muted</>}
+                            </p>
+                          </div>
+                        </button>
+                        {/* Admins manage others: the creator can't be changed, and only the creator
+                            removes or demotes other admins (the database checks the same rules). */}
+                        {manageable && (
+                          <ActionMenu>
+                            <ActionMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="mr-2 h-9 w-9 shrink-0 rounded-full" aria-label={`Manage ${member.profiles.full_name || "member"}`}>
+                                <MoreHorizontal className="h-5 w-5" />
+                              </Button>
+                            </ActionMenuTrigger>
+                            <ActionMenuContent align="end" title={member.profiles.full_name || "Member"}>
+                              {member.role === "admin" ? (
+                                <ActionMenuItem onSelect={() => changeRole(member, "member")}>
+                                  <ShieldOff className="mr-2 h-4 w-4" /> Remove as admin
+                                </ActionMenuItem>
+                              ) : (
+                                <ActionMenuItem onSelect={() => changeRole(member, "admin")}>
+                                  <ShieldCheck className="mr-2 h-4 w-4" /> Make admin
+                                </ActionMenuItem>
+                              )}
+                              {features.groupsV2 && member.role !== "admin" && (
+                                muted ? (
+                                  <ActionMenuItem onSelect={() => muteMember(member, null)}>
+                                    <Volume2 className="mr-2 h-4 w-4" /> Let them post again
+                                  </ActionMenuItem>
+                                ) : (
+                                  <>
+                                    <ActionMenuItem onSelect={() => muteMember(member, 24)}>
+                                      <VolumeX className="mr-2 h-4 w-4" /> Mute for a day
+                                    </ActionMenuItem>
+                                    <ActionMenuItem onSelect={() => muteMember(member, 24 * 7)}>
+                                      <VolumeX className="mr-2 h-4 w-4" /> Mute for a week
+                                    </ActionMenuItem>
+                                  </>
+                                )
+                              )}
+                              <ActionMenuSeparator />
+                              <ActionMenuItem className="text-destructive focus:text-destructive" onSelect={() => setConfirm({ kind: "remove", member })}>
+                                <UserMinus className="mr-2 h-4 w-4" /> Remove from group
+                              </ActionMenuItem>
+                            </ActionMenuContent>
+                          </ActionMenu>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </section>
+            </div>
+          )
+        )}
 
-                  {post.image_url && (
-                    <img decoding="async"
-                      src={post.image_url}
-                      alt=""
-                      loading="lazy"
-                      className="w-full rounded-lg max-h-96 object-cover"
-                    />
-                  )}
-                </Card>
-              ))
+        {section === "events" && (
+          <section className="feed-section border-y border-border/60 bg-card sm:rounded-2xl sm:border" aria-label="Events">
+            {events === null ? (
+              [0, 1].map((r) => <RowSkeleton key={r} />)
+            ) : events.length === 0 ? (
+              <EmptyState
+                emoji="calendar"
+                title="No upcoming events"
+                text="Plan a meetup, a service or a match for the group."
+                action={isMember ? <Button onClick={() => navigate("/events")} className="rounded-full px-5">Create an event</Button> : undefined}
+              />
+            ) : (
+              <div className="divide-y divide-border">
+                {events.map((ev) => {
+                  const d = new Date(ev.start_date);
+                  return (
+                    <Link key={ev.id} to="/events" className="flex items-center gap-3 px-4 py-3 transition-colors hover:bg-secondary/50">
+                      <span className="flex h-12 w-12 shrink-0 flex-col items-center justify-center rounded-xl bg-secondary">
+                        <span className="text-[11px] font-bold uppercase text-primary">{format(d, "MMM")}</span>
+                        <span className="text-lg font-bold leading-none">{format(d, "d")}</span>
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">{ev.name}</span>
+                        <span className="flex items-center gap-1 truncate text-sm text-muted-foreground">
+                          <CalendarDays className="h-3.5 w-3.5 shrink-0" />{format(d, "EEE, h:mm a")}
+                          {ev.location && <><span aria-hidden="true">·</span><MapPin className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{ev.location}</span></>}
+                        </span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
             )}
-          </TabsContent>
+          </section>
+        )}
 
-          <TabsContent value="members" className="space-y-4">
-            {!isMember && (
-              <Card className="feed-section p-12 text-center">
-                <Users className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">Join the group to see who's in it</p>
-              </Card>
+        {section === "photos" && (
+          lockedOut ? joinPrompt("photos") : photos.length === 0 ? (
+            <Card className="feed-section"><EmptyState emoji="camera" title="No photos yet" text="Photos shared in the group's posts show up here." /></Card>
+          ) : (
+            <div className="feed-section grid grid-cols-3 gap-0.5 overflow-hidden sm:gap-1 sm:rounded-2xl">
+              {photos.map((p) => (
+                <a key={p.id} href={p.image_url!} target="_blank" rel="noreferrer" className="aspect-square bg-secondary">
+                  <img src={p.image_url!} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
+                </a>
+              ))}
+            </div>
+          )
+        )}
+
+        {section === "about" && (
+          <section className="feed-section space-y-4 border-y border-border/60 bg-card p-4 sm:rounded-2xl sm:border sm:p-5" aria-label="About this group">
+            <div>
+              <h2 className="text-[17px] font-bold">About</h2>
+              <p className="mt-1 whitespace-pre-wrap break-words text-[15px] leading-relaxed text-foreground/90">
+                {group.description || "No description yet."}
+              </p>
+            </div>
+            <ul className="space-y-3 text-[15px]">
+              <li className="flex gap-3">
+                {group.is_private ? <Lock className="mt-0.5 h-5 w-5 shrink-0" /> : <Globe className="mt-0.5 h-5 w-5 shrink-0" />}
+                <span>
+                  <span className="block font-semibold">{privacy}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {group.is_private ? "Only members see posts, members and the chat. People ask to join and admins let them in." : "Anyone on Ember can join and see posts."}
+                  </span>
+                </span>
+              </li>
+              {categoryLabel(group.category) && (
+                <li className="flex gap-3"><Users className="mt-0.5 h-5 w-5 shrink-0" /><span className="font-semibold">{categoryLabel(group.category)}</span></li>
+              )}
+              {group.created_at && (
+                <li className="flex gap-3"><CalendarDays className="mt-0.5 h-5 w-5 shrink-0" /><span>Created {format(new Date(group.created_at), "d MMMM yyyy")}</span></li>
+              )}
+            </ul>
+            {isMember && members.some((m) => m.role === "admin") && (
+              <div>
+                <h3 className="mb-2 text-[15px] font-semibold">Admins</h3>
+                <div className="flex flex-wrap gap-2">
+                  {members.filter((m) => m.role === "admin").map((m) => (
+                    <Link key={m.id} to={`/profile/${m.profiles.id}`} className="flex items-center gap-2 rounded-full bg-secondary py-1 pl-1 pr-3 text-sm font-medium">
+                      <Avatar className="h-7 w-7">
+                        <AvatarImage src={m.profiles.avatar_url || undefined} alt="" />
+                        <AvatarFallback className="text-[10px]">{m.profiles.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                      </Avatar>
+                      {m.profiles.full_name || "Admin"}
+                    </Link>
+                  ))}
+                </div>
+              </div>
             )}
-            {isMember && (
-              <Button variant="secondary" className="w-full rounded-xl" onClick={() => setShowAddPeople(true)}>
-                <UserPlus className="mr-2 h-4 w-4" /> Add people
-              </Button>
-            )}
-            {members.map((member) => (
-              <Card key={member.id} className="feed-section p-0 overflow-hidden flex items-center">
-                <button
-                  type="button"
-                  onClick={() => navigate(`/profile/${member.profiles.id}`)}
-                  className="min-w-0 flex-1 p-4 flex items-center gap-3 text-left hover:bg-secondary/50 transition-colors"
-                >
-                  <Avatar>
-                    <AvatarImage src={member.profiles.avatar_url || undefined} alt="" />
-                    <AvatarFallback>
-                      {member.profiles.full_name?.[0]?.toUpperCase() || "U"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-semibold truncate">
-                      {member.profiles.full_name || "Anonymous"}
-                      {member.profiles.id === currentUserId && <span className="text-muted-foreground font-normal"> (you)</span>}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      {member.profiles.id === group.created_by ? "Creator · admin" : member.role === "admin" ? "Admin" : "Member"}
-                    </p>
-                  </div>
-                </button>
-                {/* Admins manage others: the creator can't be changed, and only the creator
-                    removes or demotes other admins (the database checks the same rules). */}
-                {isAdmin && member.profiles.id !== currentUserId && member.profiles.id !== group.created_by &&
-                  (member.role !== "admin" || group.created_by === currentUserId) && (
-                  <ActionMenu>
-                    <ActionMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="mr-2 h-9 w-9 shrink-0 rounded-full" aria-label={`Manage ${member.profiles.full_name || "member"}`}>
-                        <MoreHorizontal className="h-5 w-5" />
-                      </Button>
-                    </ActionMenuTrigger>
-                    <ActionMenuContent align="end" title={member.profiles.full_name || "Member"}>
-                      {member.role === "admin" ? (
-                        <ActionMenuItem onSelect={() => changeRole(member, "member")}>
-                          <ShieldOff className="h-4 w-4 mr-2" /> Remove as admin
-                        </ActionMenuItem>
-                      ) : (
-                        <ActionMenuItem onSelect={() => changeRole(member, "admin")}>
-                          <ShieldCheck className="h-4 w-4 mr-2" /> Make admin
-                        </ActionMenuItem>
-                      )}
-                      <ActionMenuItem className="text-destructive focus:text-destructive" onSelect={() => setConfirm({ kind: "remove", member })}>
-                        <UserMinus className="h-4 w-4 mr-2" /> Remove from group
-                      </ActionMenuItem>
-                    </ActionMenuContent>
-                  </ActionMenu>
-                )}
-              </Card>
-            ))}
-          </TabsContent>
-        </Tabs>
+          </section>
+        )}
       </div>
-
 
       <ConfirmDialog
         open={!!confirm}
@@ -773,16 +950,20 @@ const GroupDetail = () => {
           confirm?.kind === "leave"
             ? group.created_by === currentUserId
               ? "You created this group. You can join again later, and you'll still be able to edit it."
-              : "You'll lose access to the chat, voice rooms and posts until you join again."
+              : group.is_private
+                ? "It's a private group: you'll need to ask again to get back in."
+                : "You'll lose access to the chat, voice rooms and posts until you join again."
             : confirm?.kind === "remove"
-              ? "They'll lose access to the group's posts, chat and voice rooms. They can join again if the group is public."
+              ? group.is_private
+                ? "They'll lose access to the group's posts, chat and voice rooms, and would have to ask to join again."
+                : "They'll lose access to the group's posts, chat and voice rooms. They can join again if the group is public."
               : "This can't be undone."
         }
         confirmLabel={confirm?.kind === "leave" ? "Leave" : confirm?.kind === "remove" ? "Remove" : "Delete"}
         onConfirm={() => {
           if (confirm?.kind === "leave") handleLeaveGroup();
           else if (confirm?.kind === "remove") removeMember(confirm.member);
-          else if (confirm?.kind === "post") handleDeletePost(confirm.id);
+          else if (confirm?.kind === "post") handleDeletePost(confirm.post);
           setConfirm(null);
         }}
       />
