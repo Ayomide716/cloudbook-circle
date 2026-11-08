@@ -32,9 +32,16 @@ const MemoriesCard = ({ currentUserId }: { currentUserId: string }) => {
       .order("created_at", { ascending: true }) // the oldest memory first
       .limit(5)
       .then(({ data }) => {
-        if (cancelled || !data?.length) return;
+        if (cancelled) return;
+        // Only this date in an earlier year (never today's posts, whatever the server returned).
+        const now = new Date();
+        const past = (data ?? []).filter((p) => {
+          const d = new Date(p.created_at ?? "");
+          return d.getFullYear() < now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+        });
+        if (!past.length) return;
         // A post with a photo makes the better memory.
-        setMemory(data.find((p) => p.image_url) ?? data[0]);
+        setMemory(past.find((p) => p.image_url) ?? past[0]);
       });
     return () => { cancelled = true; };
   }, [currentUserId, hidden]);

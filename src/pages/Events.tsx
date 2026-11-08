@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
+import LoadErrorCard from "@/components/LoadErrorCard";
 import PullToRefresh from "@/components/PullToRefresh";
 import { features } from "@/lib/features";
 import { shrinkImage } from "@/lib/image-compress";
@@ -20,7 +21,7 @@ import {
   CalendarPlus, MapPin, Clock, Users, Plus, Loader2, Check, Star, MoreHorizontal, Trash2, ImagePlus, X,
 } from "@/components/icons";
 import { format, isSameDay } from "date-fns";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, fullScreenOnPhones } from "@/components/ui/dialog";
 import { PageHeader, HeaderAction, Chips } from "@/components/layout/PageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -116,6 +117,7 @@ const Events = () => {
   const [rsvps, setRsvps] = useState<Record<string, RsvpStatus>>({});
   const [rsvpCounts, setRsvpCounts] = useState<Record<string, { going: number; interested: number }>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [filter, setFilter] = useState<Filter>("upcoming");
   const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [newEvent, setNewEvent] = useState(emptyForm);
@@ -153,10 +155,11 @@ const Events = () => {
       .order("start_date", { ascending: true });
 
     if (error) {
-      toast({ title: "Couldn't load events", description: friendlyError(error), variant: "destructive" });
+      setLoadFailed(true);
       setIsLoading(false);
       return;
     }
+    setLoadFailed(false);
 
     const list = eventsData ?? [];
     setEvents(list);
@@ -291,7 +294,7 @@ const Events = () => {
       <PullToRefresh onRefresh={async () => { if (currentUserId) await loadEvents(currentUserId); }}>
       <div className="page-flush max-w-4xl mx-auto px-0 sm:px-4 pb-6 sm:py-6">
           <Dialog open={showCreateDialog} onOpenChange={(open) => !isCreating && setShowCreateDialog(open)}>
-            <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
+            <DialogContent hideHandle className={`sm:max-w-lg ${fullScreenOnPhones}`}>
               <DialogHeader>
                 <DialogTitle>Create event</DialogTitle>
                 <DialogDescription>Everyone on Ember can see and RSVP to it.</DialogDescription>
@@ -348,14 +351,16 @@ const Events = () => {
                   </div>
                 </div>
                 {dateError && <p className="text-sm text-destructive" role="alert">{dateError}</p>}
-                <Button
-                  onClick={handleCreateEvent}
-                  disabled={isCreating || !newEvent.name.trim() || !newEvent.start_date || !!dateError}
-                  className="w-full"
-                >
-                  {isCreating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
-                  Create event
-                </Button>
+                <DialogFooter>
+                  <Button
+                    onClick={handleCreateEvent}
+                    disabled={isCreating || !newEvent.name.trim() || !newEvent.start_date || !!dateError}
+                    className="w-full"
+                  >
+                    {isCreating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Create event
+                  </Button>
+                </DialogFooter>
               </div>
             </DialogContent>
           </Dialog>
@@ -378,7 +383,9 @@ const Events = () => {
           />
         </PageHeader>
 
-        {visible.length === 0 ? (
+        {loadFailed && events.length === 0 ? (
+          <LoadErrorCard what="events" onRetry={async () => { if (currentUserId) await loadEvents(currentUserId); }} />
+        ) : visible.length === 0 ? (
           <EmptyState
             emoji="calendar"
             title={filter === "going" ? "You haven't RSVP'd to anything yet" : filter === "hosting" ? "You aren't hosting any events" : "No upcoming events"}

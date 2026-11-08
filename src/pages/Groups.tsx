@@ -1,4 +1,5 @@
 import EmptyState from "@/components/EmptyState";
+import LoadErrorCard from "@/components/LoadErrorCard";
 import PullToRefresh from "@/components/PullToRefresh";
 import { uploadMedia } from "@/lib/media-upload";
 import { friendlyError } from "@/lib/utils";
@@ -13,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import Navigation from "@/components/Navigation";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -50,6 +51,7 @@ const Groups = () => {
   const { invites, reload: reloadInvites } = useGroupChats(currentUserId);
   const communityInvites = invites.filter((i) => i.group.is_chat !== true);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   // Feed: posts from your groups (Facebook's Groups tab). Your groups and Discover are lists.
@@ -94,14 +96,11 @@ const Groups = () => {
       .order("created_at", { ascending: false });
 
     if (error) {
-      toast({
-        title: "Error loading groups",
-        description: friendlyError(error),
-        variant: "destructive",
-      });
+      setLoadFailed(true);
       setIsLoading(false);
       return;
     }
+    setLoadFailed(false);
 
     // Group chats (made in Messages) aren't communities, so they don't show here.
     const list = (groupsData || []).filter((g) => (g as { is_chat?: boolean }).is_chat !== true);
@@ -360,7 +359,9 @@ const Groups = () => {
         )}
 
         {/* Facebook's Groups tab: your groups as round tiles, then their latest posts. */}
-        {view === "feed" && !searchQuery && currentUserId ? (
+        {loadFailed && groups.length === 0 ? (
+          <LoadErrorCard what="groups" onRetry={() => loadGroups()} />
+        ) : view === "feed" && !searchQuery && currentUserId ? (
           <GroupsHub key={hubKey} groups={groups.filter((g) => g.is_member)} userId={currentUserId} onDiscover={() => setView("discover")} />
         ) : filteredGroups.length === 0 ? (
           <Card className="feed-section flat-list">
@@ -542,7 +543,7 @@ const Groups = () => {
               />
             )}
 
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button
                 type="button"
                 variant="outline"
@@ -555,7 +556,7 @@ const Groups = () => {
                 {isUploading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
                 Create group
               </Button>
-            </div>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>

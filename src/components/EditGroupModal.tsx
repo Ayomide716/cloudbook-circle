@@ -9,8 +9,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Loader2, ImagePlus } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -199,7 +198,7 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
 
           {features.groupsV2 && <GroupSettingsFields category={settings.category} isPrivate={settings.isPrivate} onChange={setSettings} />}
 
-          <div className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -212,7 +211,7 @@ const EditGroupModal = ({ group, open, onOpenChange, onGroupUpdated }: EditGroup
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>

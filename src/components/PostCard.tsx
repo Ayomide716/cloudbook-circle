@@ -424,6 +424,7 @@ const PostCard = ({
           ref={commentBoxRef}
           onChange={setCommentContent}
           rich={features.mentions}
+          mentions={commentMentions}
           onMention={(m) => setCommentMentions((list) => [...list.filter((x) => x.id !== m.id), m])}
           wrapperClassName="flex-1"
           // Phones: Enter adds a line. Keyboards: Enter sends, Shift+Enter adds a line.

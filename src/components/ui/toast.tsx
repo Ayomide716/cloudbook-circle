@@ -6,13 +6,21 @@ import { X } from "@/components/icons";
 import { cn } from "@/lib/utils";
 
 /**
- * Toasts are Facebook-style snackbars: a dark bar at the bottom of the screen, just above the
- * tab bar (and any "Posting…" bar), with an optional text action like Undo. Swipe down to close.
- * --dock-space / --posting-space are set by BottomNav and PostingBar while they're showing.
+ * Toasts are short dark bars with an optional text action like Undo. Phones: at the top, under
+ * the status bar (swipe up to close), so they never cover the keyboard or the composer. Bigger
+ * screens: bottom left, above any "Posting…" bar (--posting-space, set by PostingBar).
  */
-const ToastProvider = ({ swipeDirection = "down", duration = 4000, ...props }: React.ComponentProps<typeof ToastPrimitives.Provider>) => (
-  <ToastPrimitives.Provider swipeDirection={swipeDirection} duration={duration} {...props} />
-);
+// Swiped away towards the edge it sits at: up on phones (top), down on bigger screens (bottom).
+const ToastProvider = ({ swipeDirection, duration = 4000, ...props }: React.ComponentProps<typeof ToastPrimitives.Provider>) => {
+  const [phone, setPhone] = React.useState(() => typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const on = () => setPhone(mq.matches);
+    mq.addEventListener("change", on);
+    return () => mq.removeEventListener("change", on);
+  }, []);
+  return <ToastPrimitives.Provider swipeDirection={swipeDirection ?? (phone ? "up" : "down")} duration={duration} {...props} />;
+};
 
 const ToastViewport = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Viewport>,
@@ -22,9 +30,11 @@ const ToastViewport = React.forwardRef<
     ref={ref}
     className={cn(
       "fixed inset-x-0 z-[100] mx-auto flex w-full max-w-md flex-col gap-2 px-3 outline-none",
-      "bottom-[calc(var(--dock-space,0px)+var(--posting-space,0px)+var(--offline-space,0px)+0.5rem+env(safe-area-inset-bottom,0px))]",
+      // Phones: at the top, under the status bar, where it never covers the keyboard, the
+      // composer or the tab bar.
+      "top-[calc(env(safe-area-inset-top,0px)+0.5rem)]",
       // Bigger screens: bottom left, as on facebook.com.
-      "md:inset-x-auto md:bottom-[calc(var(--posting-space,0px)+var(--offline-space,0px)+1.5rem)] md:left-6 md:mx-0 md:w-auto md:max-w-sm md:px-0",
+      "md:inset-x-auto md:top-auto md:bottom-[calc(var(--posting-space,0px)+var(--offline-space,0px)+1.5rem)] md:left-6 md:mx-0 md:w-auto md:max-w-sm md:px-0",
       className,
     )}
     {...props}
@@ -38,8 +48,8 @@ const toastVariants = cva(
     // Dark on light pages, a lighter grey on dark ones (as Facebook does), so it always stands out.
     "bg-[#1c1e21] text-white dark:bg-[#3a3b3c]",
     "transition-all data-[swipe=cancel]:translate-y-0 data-[swipe=end]:translate-y-[var(--radix-toast-swipe-end-y)] data-[swipe=move]:translate-y-[var(--radix-toast-swipe-move-y)] data-[swipe=move]:transition-none",
-    "data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:slide-in-from-bottom-4 data-[state=open]:duration-200",
-    "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:slide-out-to-bottom-2 data-[swipe=end]:animate-out data-[swipe=end]:fade-out-0",
+    "data-[state=open]:animate-in data-[state=open]:fade-in-0 max-md:data-[state=open]:slide-in-from-top-4 md:data-[state=open]:slide-in-from-bottom-4 data-[state=open]:duration-200",
+    "data-[state=closed]:animate-out data-[state=closed]:fade-out-0 max-md:data-[state=closed]:slide-out-to-top-2 md:data-[state=closed]:slide-out-to-bottom-2 data-[swipe=end]:animate-out data-[swipe=end]:fade-out-0",
   ].join(" "),
   {
     variants: {
@@ -101,7 +111,7 @@ const ToastTitle = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Title>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Title>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitives.Title ref={ref} className={cn("text-[15px] font-medium leading-snug", className)} {...props} />
+  <ToastPrimitives.Title ref={ref} className={cn("line-clamp-2 text-[15px] font-medium leading-snug", className)} {...props} />
 ));
 ToastTitle.displayName = ToastPrimitives.Title.displayName;
 
@@ -109,7 +119,7 @@ const ToastDescription = React.forwardRef<
   React.ElementRef<typeof ToastPrimitives.Description>,
   React.ComponentPropsWithoutRef<typeof ToastPrimitives.Description>
 >(({ className, ...props }, ref) => (
-  <ToastPrimitives.Description ref={ref} className={cn("text-[13px] leading-snug text-white/70", className)} {...props} />
+  <ToastPrimitives.Description ref={ref} className={cn("line-clamp-2 text-[13px] leading-snug text-white/70", className)} {...props} />
 ));
 ToastDescription.displayName = ToastPrimitives.Description.displayName;
 

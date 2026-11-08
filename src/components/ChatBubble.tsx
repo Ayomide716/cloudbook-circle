@@ -1,4 +1,5 @@
 import { useState } from "react";
+import PhotoViewer from "@/components/PhotoViewer";
 import { cn } from "@/lib/utils";
 import { SWIPE_REPLY_THRESHOLD, useSwipeToReply } from "@/hooks/use-swipe-to-reply";
 import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus, Forward, Star, StarOff } from "@/components/icons";
@@ -82,6 +83,8 @@ const ChatBubble = ({
 }: ChatBubbleProps) => {
   // WhatsApp's message menu: press and hold on phones, the buttons by the message on computers.
   const [menuOpen, setMenuOpen] = useState(false);
+  // The photo, full screen (pinch to zoom, pull down to close).
+  const [viewing, setViewing] = useState<number | null>(null);
   const colors = themeColors[theme] || themeColors.default;
   const { reactions, mine, react } = useMessageReactions(message.id, currentUserId);
   const longPress = useLongPress(() => setMenuOpen(true));
@@ -287,8 +290,11 @@ const ChatBubble = ({
               src={message.image_url}
               alt="Shared"
               className="rounded-md max-w-full cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => window.open(message.image_url!, "_blank")}
+              onClick={() => setViewing(0)}
             />
+          )}
+          {isMedia && !isVideo && !isGif && message.image_url && (
+            <PhotoViewer images={[message.image_url]} index={viewing} onIndexChange={setViewing} />
           )}
           {/* Text (time and ticks float at its end, like most messengers) */}
           {hasText ? (

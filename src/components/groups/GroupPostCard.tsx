@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
+import PhotoViewer from "@/components/PhotoViewer";
 import { formatDistanceToNowStrict } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -33,6 +35,7 @@ const GroupPostCard = ({ post, currentUserId, canManage, onDelete, onTogglePin }
   const canDelete = !!onDelete && (mine || canManage);
   const canPin = !!onTogglePin && canManage;
   const name = post.author.full_name || "Someone";
+  const [viewing, setViewing] = useState<number | null>(null);
 
   return (
     <article className="feed-section border-y border-border/60 bg-card sm:rounded-2xl sm:border">
@@ -89,7 +92,12 @@ const GroupPostCard = ({ post, currentUserId, canManage, onDelete, onTogglePin }
 
       {post.content && <p className="whitespace-pre-wrap break-words px-4 pt-2 text-[15px] leading-relaxed">{post.content}</p>}
       {post.image_url ? (
-        <img src={post.image_url} alt="" loading="lazy" decoding="async" className="mt-3 max-h-[560px] w-full bg-secondary object-cover sm:rounded-b-2xl" />
+        <>
+          <button type="button" onClick={() => setViewing(0)} className="mt-3 block w-full" aria-label="View photo">
+            <img src={post.image_url} alt="" loading="lazy" decoding="async" className="max-h-[560px] w-full bg-secondary object-cover sm:rounded-b-2xl" />
+          </button>
+          <PhotoViewer images={[post.image_url]} index={viewing} onIndexChange={setViewing} caption={name} />
+        </>
       ) : (
         <div className="pb-3" />
       )}

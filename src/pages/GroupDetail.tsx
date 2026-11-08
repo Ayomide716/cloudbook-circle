@@ -1,4 +1,5 @@
 import EmptyState from "@/components/EmptyState";
+import PhotoViewer from "@/components/PhotoViewer";
 import { useEffect, useMemo, useState } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -103,6 +104,8 @@ const GroupDetail = () => {
   const [confirm, setConfirm] = useState<{ kind: "leave" } | { kind: "post"; post: GroupPostView } | { kind: "remove"; member: Member } | null>(null);
   const [showAddPeople, setShowAddPeople] = useState(false);
   const [section, setSection] = useState<Section>("discussion");
+  // A photo from the Photos tab, full screen (swipe through the group's photos).
+  const [viewingPhoto, setViewingPhoto] = useState<number | null>(null);
   const isAdmin = userRole === "admin";
   const { startGroupCall: startCall, joinGroupCall, activeGroupId } = useCalls();
   const inThisCall = !!groupId && activeGroupId === groupId;
@@ -895,11 +898,12 @@ const GroupDetail = () => {
             <Card className="feed-section"><EmptyState emoji="camera" title="No photos yet" text="Photos shared in the group's posts show up here." /></Card>
           ) : (
             <div className="feed-section grid grid-cols-3 gap-0.5 overflow-hidden sm:gap-1 sm:rounded-2xl">
-              {photos.map((p) => (
-                <a key={p.id} href={p.image_url!} target="_blank" rel="noreferrer" className="aspect-square bg-secondary">
+              {photos.map((p, i) => (
+                <button key={p.id} type="button" onClick={() => setViewingPhoto(i)} className="aspect-square bg-secondary" aria-label="View photo">
                   <img src={p.image_url!} alt="" loading="lazy" decoding="async" className="h-full w-full object-cover" />
-                </a>
+                </button>
               ))}
+              <PhotoViewer images={photos.map((p) => p.image_url!)} index={viewingPhoto} onIndexChange={setViewingPhoto} />
             </div>
           )
         )}

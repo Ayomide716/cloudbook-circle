@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import LoadErrorCard from "@/components/LoadErrorCard";
 import PullToRefresh from "@/components/PullToRefresh";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -41,6 +42,7 @@ const Notifications = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [notifications, setNotifications] = useState<NotificationRow[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [filter, setFilter] = useState<"all" | "unread">("all");
   // 30 at a time, with "See previous notifications" at the bottom, as Facebook does.
   const [limit, setLimit] = useState(PAGE);
@@ -71,13 +73,13 @@ const Notifications = () => {
       .limit(limit + 1);
 
     if (error) {
-      toast({
-        title: "Error loading notifications",
-        description: friendlyError(error),
-        variant: "destructive",
-      });
+      // Keep what's on screen if there is something; otherwise say it didn't load.
+      setLoadFailed(true);
+      setIsLoading(false);
+      setLoadingMore(false);
       return;
     }
+    setLoadFailed(false);
 
     // One extra row tells us whether there are older ones.
     setHasMore((data?.length ?? 0) > limit);
@@ -358,6 +360,9 @@ const Notifications = () => {
 
         <EnablePushBanner />
 
+        {loadFailed && notifications.length === 0 ? (
+          <LoadErrorCard what="your notifications" onRetry={() => loadNotifications()} className="mt-2 sm:mt-0" />
+        ) : (
         <Card className="feed-section flat-list overflow-hidden mt-2 sm:mt-0">
           {shown.length === 0 ? (
             <EmptyState
@@ -470,6 +475,7 @@ const Notifications = () => {
             </div>
           )}
         </Card>
+        )}
       </div>
       </PullToRefresh>
       
