@@ -453,7 +453,7 @@ const Friends = () => {
   const hideSuggestion = (id: string) => setHiddenSuggestions((prev) => new Set(prev).add(id));
   const suggestionRow = (profile: SuggestedProfile) => (
     <div key={profile.id} className="flex items-start gap-3 sm:gap-4 px-4 py-3">
-      <Link to={`/profile/${profile.id}`}>
+      <Link to={`/profile/${profile.id}`} aria-label={profile.full_name || "Profile"}>
         <Avatar className="h-[72px] w-[72px]">
           <AvatarImage src={profile.avatar_url || undefined} />
           <AvatarFallback>
@@ -593,7 +593,7 @@ const Friends = () => {
                     const mutual = requestMutuals[request.user_id] ?? 0;
                     return (
                       <div key={request.id} className="flex items-start gap-3 sm:gap-4 px-4 py-3">
-                        <Link to={`/profile/${request.profiles.id}`}>
+                        <Link to={`/profile/${request.profiles.id}`} aria-label={request.profiles.full_name || "Profile"}>
                           <Avatar className="h-[72px] w-[72px]">
                             <AvatarImage src={request.profiles.avatar_url || undefined} />
                             <AvatarFallback>
@@ -674,7 +674,7 @@ const Friends = () => {
                 <div className="divide-y">
                   {sentRequests.map((request) => (
                     <div key={request.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-                      <Link to={`/profile/${request.profiles.id}`}>
+                      <Link to={`/profile/${request.profiles.id}`} aria-label={request.profiles.full_name || "Profile"}>
                         <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
                           <AvatarImage src={request.profiles.avatar_url || undefined} />
                           <AvatarFallback>
@@ -726,7 +726,7 @@ const Friends = () => {
                       key={friendship.id}
                       className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
                     >
-                      <Link to={`/profile/${friendship.friend.id}`} className="relative shrink-0">
+                      <Link to={`/profile/${friendship.friend.id}`} className="relative shrink-0" aria-label={friendship.friend.full_name || "Profile"}>
                         <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
                           <AvatarImage src={friendship.friend.avatar_url || undefined} />
                           <AvatarFallback>

@@ -31,6 +31,7 @@ const LinkPreview = ({ url, className }: { url: string; className?: string }) =>
             loading="lazy"
             className="h-full w-full object-cover"
             onError={() => setThumbFailed(true)}
+            data-no-fallback=""
           />
           <span className="absolute inset-0 flex items-center justify-center">
             <span className="flex h-12 w-16 items-center justify-center rounded-2xl bg-[#ff0000] shadow-lg">

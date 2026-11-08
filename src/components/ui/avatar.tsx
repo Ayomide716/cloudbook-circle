@@ -18,8 +18,9 @@ Avatar.displayName = AvatarPrimitive.Root.displayName;
 const AvatarImage = React.forwardRef<
   React.ElementRef<typeof AvatarPrimitive.Image>,
   React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
->(({ className, ...props }, ref) => (
-  <AvatarPrimitive.Image ref={ref} className={cn("aspect-square h-full w-full object-cover", className)} {...props} />
+>(({ className, alt = "", ...props }, ref) => (
+  // A profile photo sits beside the person's name, so screen readers skip it unless given an alt.
+  <AvatarPrimitive.Image ref={ref} alt={alt} className={cn("aspect-square h-full w-full object-cover", className)} {...props} />
 ));
 AvatarImage.displayName = AvatarPrimitive.Image.displayName;
 

@@ -11,7 +11,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban } from "@/components/icons";
+import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban, BarChart3 } from "@/components/icons";
+import PostInsightsDialog from "./PostInsightsDialog";
 import { Heart, MessageCircle, MoreHorizontal, Share2, X as XIcon } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { supabase } from "@/integrations/supabase/client";
@@ -146,6 +147,7 @@ const PostCard = ({
   const [reportOpen, setReportOpen] = useState(false);
   const photos = postImages(post);
   const [commentContent, setCommentContent] = useState("");
+  const [showInsights, setShowInsights] = useState(false);
   // People picked from the @ suggestions (or the one you're replying to), saved with their ids.
   const [commentMentions, setCommentMentions] = useState<Mention[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -540,7 +542,7 @@ const PostCard = ({
       {/* Header */}
       <div className="px-4 pb-2.5 pt-3 sm:p-4">
         <div className="flex items-start gap-2.5 sm:gap-3">
-          <Link to={`/profile/${post.profiles.id}`}>
+          <Link to={`/profile/${post.profiles.id}`} aria-label={post.profiles.full_name || "Profile"}>
             <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
               <AvatarImage src={post.profiles.avatar_url || undefined} />
               <AvatarFallback className="bg-secondary">
@@ -596,6 +598,10 @@ const PostCard = ({
                </ActionMenuItem>
                 {currentUserId === post.user_id && (
                   <>
+                    <ActionMenuItem onSelect={() => setShowInsights(true)}>
+                      <BarChart3 className="h-4 w-4 mr-2" />
+                      View insights
+                    </ActionMenuItem>
                     <ActionMenuItem onClick={() => { setIsEditing(true); setEditContent(plainMentions(post.content ?? "")); }}>
                       <Pencil className="h-4 w-4 mr-2" />
                       Edit Post
@@ -707,6 +713,7 @@ const PostCard = ({
             />
             {heartBurst > 0 && <HeartBurst key={heartBurst} />}
           </div>
+          {currentUserId === post.user_id && <PostInsightsDialog postId={post.id} open={showInsights} onOpenChange={setShowInsights} />}
           <PhotoViewer
             images={photos}
             index={viewerIndex}

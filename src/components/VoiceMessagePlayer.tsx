@@ -10,7 +10,17 @@ interface VoiceMessagePlayerProps {
   isOwnMessage?: boolean;
 }
 
-const BARS = 36;
+const BARS = 34;
+const HEARD_KEY = "ember:voice-heard";
+const hasHeard = (url: string) => {
+  try { return (JSON.parse(localStorage.getItem(HEARD_KEY) || "[]") as string[]).includes(url); } catch { return false; }
+};
+const rememberHeard = (url: string) => {
+  try {
+    const list = (JSON.parse(localStorage.getItem(HEARD_KEY) || "[]") as string[]).filter((u) => u !== url);
+    localStorage.setItem(HEARD_KEY, JSON.stringify([url, ...list].slice(0, 300)));
+  } catch { /* not remembered */ }
+};
 const SPEEDS = [1, 1.5, 2] as const;
 
 const formatTime = (seconds: number) => {
@@ -21,8 +31,9 @@ const formatTime = (seconds: number) => {
 };
 
 /**
- * A voice note as WhatsApp shows it: play/pause, the recording's waveform (tap or drag along it
- * to jump back or forward), the time, and a 1× / 1.5× / 2× speed button.
+ * A voice note: a round play button, the recording's waveform filling in as it plays (tap or drag
+ * along it to jump), the time, a dot until you've played someone else's note, and a 1× / 1.5× / 2×
+ * speed button once it's playing.
  */
 const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePlayerProps) => {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -33,6 +44,9 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
   const [peaks, setPeaks] = useState<number[]>(() => fallbackPeaks(audioUrl, BARS));
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
   const [scrubbing, setScrubbing] = useState(false);
+  // Whether you've played it (remembered on this phone), for the "not played yet" dot.
+  const [heard, setHeard] = useState(() => hasHeard(audioUrl));
+  const markHeard = () => { if (!heard) { setHeard(true); rememberHeard(audioUrl); } };
 
   // The real shape of the recording, once it's downloaded (the placeholder shows until then).
   useEffect(() => {
@@ -99,22 +113,31 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
   }, [audioDuration]);
 
   const progress = audioDuration > 0 ? Math.min(1, currentTime / audioDuration) : 0;
-  const showTime = isPlaying || currentTime > 0 ? currentTime : audioDuration;
+  const started = isPlaying || currentTime > 0;
+  const showTime = started ? currentTime : audioDuration;
+
+  // The waveform's bars; drawn twice (faint, then full colour clipped to how far it's played)
+  // so the colour fills smoothly instead of one bar at a time.
+  const bars = (tone: string) => peaks.map((peak, i) => (
+    <span key={i} className={cn("w-[2.5px] shrink-0 rounded-full", tone)} style={{ height: `${Math.max(14, Math.round(peak * 100))}%` }} />
+  ));
 
   return (
-    <div className="flex min-w-[220px] items-center gap-2 py-0.5">
+    <div className="flex min-w-[232px] items-center gap-2.5 py-1">
       <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" />
 
       <button
         type="button"
-        onClick={togglePlayback}
+        onClick={() => { markHeard(); togglePlayback(); }}
         aria-label={isPlaying ? "Pause voice message" : "Play voice message"}
         className={cn(
-          "flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full transition-colors",
-          isOwnMessage ? "bg-white/20 hover:bg-white/30" : "bg-foreground/10 hover:bg-foreground/20"
+          "relative flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-full shadow-sm transition-transform active:scale-95",
+          isOwnMessage ? "bg-white text-primary" : "bg-primary text-primary-foreground"
         )}
       >
-        {isPlaying ? <Pause className="h-5 w-5 fill-current" /> : <Play className="ml-0.5 h-5 w-5 fill-current" />}
+        {/* A soft ring breathes while it plays. */}
+        {isPlaying && <span className={cn("absolute inset-0 rounded-full motion-safe:animate-ping opacity-30", isOwnMessage ? "bg-white" : "bg-primary")} aria-hidden="true" />}
+        {isPlaying ? <Pause className="relative h-5 w-5 fill-current" /> : <Play className="relative ml-0.5 h-5 w-5 fill-current" />}
       </button>
 
       <div className="flex min-w-0 flex-1 flex-col gap-1">
@@ -127,7 +150,7 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
           aria-valuemax={Math.round(audioDuration)}
           aria-valuenow={Math.round(currentTime)}
           aria-valuetext={`${formatTime(currentTime)} of ${formatTime(audioDuration)}`}
-          className="relative flex h-8 cursor-pointer touch-none items-center gap-[2px] outline-none"
+          className="relative h-8 cursor-pointer touch-none outline-none focus-visible:ring-2 focus-visible:ring-ring rounded"
           // Keep the drag from also swiping the message (swipe to reply).
           onTouchStart={(e) => e.stopPropagation()}
           onTouchMove={(e) => e.stopPropagation()}
@@ -135,6 +158,7 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
             e.stopPropagation();
             e.currentTarget.setPointerCapture(e.pointerId);
             setScrubbing(true);
+            markHeard();
             seekTo(e.clientX);
           }}
           onPointerMove={(e) => { if (scrubbing) seekTo(e.clientX); }}
@@ -151,43 +175,36 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
             }
           }}
         >
-          {peaks.map((peak, i) => {
-            const played = (i + 0.5) / peaks.length <= progress;
-            return (
-              <span
-                key={i}
-                className={cn(
-                  "w-[3px] flex-1 rounded-full transition-colors",
-                  played
-                    ? isOwnMessage ? "bg-white" : "bg-primary"
-                    : isOwnMessage ? "bg-white/40" : "bg-foreground/25"
-                )}
-                style={{ height: `${Math.max(12, Math.round(peak * 100))}%` }}
-              />
-            );
-          })}
-          {/* The playhead */}
-          <span
-            className={cn("pointer-events-none absolute top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow", isOwnMessage ? "bg-white" : "bg-primary")}
-            style={{ left: `${progress * 100}%` }}
+          <div className="absolute inset-0 flex items-center justify-between" aria-hidden="true">
+            {bars(isOwnMessage ? "bg-white/35" : "bg-foreground/20")}
+          </div>
+          <div
+            className="absolute inset-0 flex items-center justify-between"
+            style={{ clipPath: `inset(0 ${100 - progress * 100}% 0 0)`, transition: scrubbing || !isPlaying ? "none" : "clip-path 0.25s linear" }}
             aria-hidden="true"
-          />
+          >
+            {bars(isOwnMessage ? "bg-white" : "bg-primary")}
+          </div>
         </div>
-        <div className="flex items-center justify-between">
-          <span className={cn("text-[11px] tabular-nums", isOwnMessage ? "text-white/75" : "text-muted-foreground")}>
+        <div className="flex h-[18px] items-center gap-1.5">
+          <span className={cn("text-[11px] font-medium tabular-nums", isOwnMessage ? "text-white/80" : "text-muted-foreground")}>
             {formatTime(showTime)}
           </span>
-          <button
-            type="button"
-            onClick={() => setSpeed((s) => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length])}
-            aria-label={`Playback speed ${speed} times`}
-            className={cn(
-              "rounded-full px-1.5 text-[11px] font-bold leading-[18px]",
-              isOwnMessage ? "bg-white/20 text-white" : "bg-foreground/10 text-foreground"
-            )}
-          >
-            {speed}×
-          </button>
+          {/* Not listened to yet (someone else's), as on WhatsApp. */}
+          {!isOwnMessage && !heard && <span className="h-1.5 w-1.5 rounded-full bg-primary" aria-label="Not played yet" />}
+          {started && (
+            <button
+              type="button"
+              onClick={() => setSpeed((s) => SPEEDS[(SPEEDS.indexOf(s) + 1) % SPEEDS.length])}
+              aria-label={`Playback speed ${speed} times`}
+              className={cn(
+                "ml-auto rounded-full px-2 text-[11px] font-bold leading-[18px] animate-in fade-in-0 zoom-in-95",
+                isOwnMessage ? "bg-white/25 text-white" : "bg-foreground/10 text-foreground"
+              )}
+            >
+              {speed}×
+            </button>
+          )}
         </div>
       </div>
     </div>

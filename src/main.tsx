@@ -6,6 +6,7 @@ import { reloadOnNewVersion, watchForUpdates } from "./lib/app-updates";
 import { isNative } from "./lib/native/platform";
 import { initNative } from "./lib/native";
 import { captureReferral } from "./lib/referral";
+import { installBrokenImageFallback } from "./lib/broken-images";
 
 // Opened from someone's invite link (?ref=…): remember who, for after sign-up.
 captureReferral();
@@ -27,6 +28,9 @@ if (isNative) {
 
   watchForUpdates();
 }
+
+// Photos that fail to load show a grey placeholder (tap to retry), not a broken-image mark.
+installBrokenImageFallback();
 
 createRoot(document.getElementById("root")!).render(<App />);
 

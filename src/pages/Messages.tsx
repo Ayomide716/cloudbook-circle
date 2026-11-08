@@ -50,6 +50,7 @@ import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
 import EmptyState from "@/components/EmptyState";
 import ActiveNow from "@/components/chat/ActiveNow";
 import { useOnlineFriends } from "@/hooks/use-online-friends";
+import { useInboxTyping } from "@/hooks/use-inbox-typing";
 
 interface Profile {
   id: string;
@@ -100,6 +101,8 @@ const Messages = () => {
   const [chatQuery, setChatQuery] = useState("");
   const [composeOpen, setComposeOpen] = useState(false);
   const onlineFriends = useOnlineFriends(currentUserId);
+  // "typing…" under a name in the chat list.
+  const inboxTyping = useInboxTyping(currentUserId);
   const onlineIds = useMemo(() => new Set(onlineFriends.map((f) => f.id)), [onlineFriends]);
   const [currentUserName, setCurrentUserName] = useState("");
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -451,13 +454,15 @@ const Messages = () => {
     if (!isTypingRef.current) {
       isTypingRef.current = true;
       typingChannelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: true });
+      if (selectedConversation) inboxTyping.announce(selectedConversation.id, true);
     }
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
     typingTimeoutRef.current = setTimeout(() => {
       isTypingRef.current = false;
       typingChannelRef.current?.track({ userId: currentUserId, userName: currentUserName, isTyping: false });
+      if (selectedConversation) inboxTyping.announce(selectedConversation.id, false);
     }, 2500);
-  }, [currentUserId, currentUserName]);
+  }, [currentUserId, currentUserName, selectedConversation, inboxTyping]);
 
   // The message box grows with what you type (Enter adds lines on phones), up to about 6 lines.
   const messageBoxRef = useRef<HTMLTextAreaElement>(null);
@@ -869,6 +874,7 @@ const Messages = () => {
                           archived={chatPrefs.archived.includes(row.conv.profile.id)}
                           time={row.conv.lastMessage ? shortTime(row.conv.lastMessage.created_at) : undefined}
                           online={onlineIds.has(row.conv.profile.id)}
+                          typing={inboxTyping.isTyping(row.conv.profile.id)}
                           onOpen={() => openPerson(row.conv.profile)}
                           onToggle={(list) => toggleChatPref(list, row.conv.profile.id)}
                           draft={selectedConversation?.id === row.conv.profile.id ? undefined : drafts[row.conv.profile.id]}

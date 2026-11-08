@@ -27,6 +27,8 @@ interface ConversationRowProps {
   fallback?: ReactNode;
   /** A green dot on the picture: they're active now. */
   online?: boolean;
+  /** They're typing to you right now: "typing…" instead of the last message. */
+  typing?: boolean;
 }
 
 /**
@@ -34,7 +36,7 @@ interface ConversationRowProps {
  * are unread messages. Press and hold (or the ⌄ button on bigger screens) to pin, mute or archive.
  */
 const ConversationRow = ({
-  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback, online,
+  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback, online, typing,
 }: ConversationRowProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pressTimer = useRef<number>();
@@ -84,13 +86,15 @@ const ConversationRow = ({
           )}
         </div>
         <div className="mt-0.5 flex items-center gap-1">
-          {!draft && lastMessage?.sender_id === currentUserId && (
+          {!draft && !typing && lastMessage?.sender_id === currentUserId && (
             <span className="flex-shrink-0">
               {lastMessage.read ? <CheckCheck className="h-3.5 w-3.5 text-sky-400" aria-label="Read" /> : lastMessage.delivered_at ? <CheckCheck className="h-3.5 w-3.5 text-muted-foreground" aria-label="Delivered" /> : <Check className="h-3.5 w-3.5 text-muted-foreground" aria-label="Sent" />}
             </span>
           )}
           <p className={cn("flex-1 truncate text-sm", unread ? "font-medium text-foreground" : "text-muted-foreground")}>
-            {draft ? (
+            {typing ? (
+              <span className="font-medium text-primary">typing…</span>
+            ) : draft ? (
               <><span className="font-medium text-primary">Draft: </span>{draft}</>
             ) : preview ?? (lastMessage ? (lastMessage.deleted_at ? "Message unsent" : previewText(lastMessage.content)) : "")}
           </p>

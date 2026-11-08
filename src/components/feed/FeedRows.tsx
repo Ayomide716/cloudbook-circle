@@ -122,7 +122,7 @@ export const GroupsRow = ({ currentUserId }: { currentUserId: string }) => {
     <RowShell title="Groups you might like" link="/groups" label="Groups you might like">
       {groups.map((g) => (
         <div key={g.id} className="w-[150px] flex-shrink-0 snap-start overflow-hidden rounded-xl border bg-secondary/40">
-          <Link to={`/groups/${g.id}`} className="block">
+          <Link to={`/groups/${g.id}`} className="block" aria-label={g.name}>
             {g.image_url ? (
               <img src={g.image_url} alt="" loading="lazy" className="h-[90px] w-full object-cover" />
             ) : (

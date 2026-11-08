@@ -175,7 +175,7 @@ const Menu = () => {
             style={profile?.cover_url ? { backgroundImage: `url(${profile.cover_url})` } : undefined}
           />
           <div className="flex items-end gap-3 px-4 pb-4">
-            <button type="button" onClick={() => userId && navigate(`/profile/${userId}`)} className="-mt-8 shrink-0 rounded-full">
+            <button type="button" onClick={() => userId && navigate(`/profile/${userId}`)} className="-mt-8 shrink-0 rounded-full" aria-label="Your profile">
               <Avatar className="h-[72px] w-[72px] ring-4 ring-card">
                 <AvatarImage src={profile?.avatar_url || undefined} alt="" />
                 <AvatarFallback className={cn("text-xl font-bold", profile ? "bg-secondary text-foreground" : "animate-pulse bg-muted text-transparent")}>{initial}</AvatarFallback>

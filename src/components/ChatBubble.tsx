@@ -5,6 +5,9 @@ import { SWIPE_REPLY_THRESHOLD, useSwipeToReply } from "@/hooks/use-swipe-to-rep
 import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus, Forward, Star, StarOff } from "@/components/icons";
 import { format, isToday, isYesterday } from "date-fns";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
+import LinkPreview from "./LinkPreview";
+import LinkedText from "./LinkedText";
+import { firstLink } from "@/lib/links";
 import MessageActionSheet, { type MessageAction } from "@/components/chat/MessageActionSheet";
 import ReactionChips from "@/components/chat/ReactionChips";
 import { useMessageReactions } from "@/hooks/use-message-reactions";
@@ -124,6 +127,8 @@ const ChatBubble = ({
     ...(isCurrentUser ? [{ label: "Unsend", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onUnsend(message.id), destructive: true }] : []),
   ];
 
+  // The first link in the message, shown as a card under it.
+  const chatLink = hasText ? firstLink(message.content) : null;
   const sentAt = new Date(message.created_at);
   const time = format(sentAt, "HH:mm");
   const fullTime = isToday(sentAt) ? `Today ${time}` : isYesterday(sentAt) ? `Yesterday ${time}` : format(sentAt, "d MMM yyyy, HH:mm");
@@ -298,10 +303,13 @@ const ChatBubble = ({
           )}
           {/* Text (time and ticks float at its end, like most messengers) */}
           {hasText ? (
-            <p className={cn("text-[15px] leading-snug break-words whitespace-pre-wrap", isMedia && "px-2 pt-1 pb-1")}>
-              {message.content}
-              {meta}
-            </p>
+            <>
+              <p className={cn("text-[15px] leading-snug break-words whitespace-pre-wrap", isMedia && "px-2 pt-1 pb-1")}>
+                <LinkedText text={message.content} className={isCurrentUser ? "underline decoration-current/60" : "text-primary underline decoration-primary/40"} />
+                {meta}
+              </p>
+              {chatLink && !isMedia && <LinkPreview url={chatLink} className="mt-1.5 mb-0.5 max-w-[280px] bg-background/90 text-foreground" />}
+            </>
           ) : isVoice ? (
             <div className="flex justify-end px-1 pb-0.5">{meta}</div>
           ) : (
