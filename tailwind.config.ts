@@ -5,6 +5,9 @@ export default {
   darkMode: ["class"],
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
+  // Hover colours only where there's a real mouse: on a phone they stuck after a tap, like a
+  // grey flash that stayed (index.css gives touch screens a press colour instead).
+  future: { hoverOnlyWhenSupported: true },
   theme: {
     container: {
       center: true,

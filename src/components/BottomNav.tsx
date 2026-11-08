@@ -11,6 +11,7 @@ import { prefetchRoute } from "@/lib/prefetch";
 import { m as motion } from "framer-motion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useBottomSpace } from "@/hooks/use-bottom-space";
+import { haptic } from "@/lib/haptics";
 
 /** Sent when the current tab is tapped again while already at the top of the page. */
 export const TAB_RESELECT_EVENT = "cloudbook:tab-reselect";
@@ -58,7 +59,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
     return (
       <motion.button
         key={tab.label}
-        onClick={() => (active ? reselect() : navigate(tab.path))}
+        onClick={() => { haptic(8); if (active) reselect(); else navigate(tab.path); }}
         onTouchStart={() => prefetchRoute(tab.path)}
         whileTap={{ scale: 0.9 }}
         aria-current={active ? "page" : undefined}
@@ -124,7 +125,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
 
         {/* Menu: your photo, as Facebook's last tab. */}
         <motion.button
-          onClick={() => (location.pathname === "/menu" ? reselect() : navigate("/menu"))}
+          onClick={() => { haptic(8); if (location.pathname === "/menu") reselect(); else navigate("/menu"); }}
           onTouchStart={() => prefetchRoute("/menu")}
           whileTap={{ scale: 0.9 }}
           aria-current={menuActive ? "page" : undefined}

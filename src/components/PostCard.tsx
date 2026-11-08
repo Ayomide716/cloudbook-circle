@@ -11,7 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useMyProfile } from "@/hooks/use-my-profile";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban, BarChart3 } from "@/components/icons";
+import { Loader2, Trash2, Bookmark, BookmarkCheck, Pencil, Clock, Flag, Undo2, Ban, BarChart3, Copy } from "@/components/icons";
 import PostInsightsDialog from "./PostInsightsDialog";
 import { Heart, MessageCircle, MoreHorizontal, Share2, X as XIcon } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
@@ -596,6 +596,13 @@ const PostCard = ({
                    </>
                  )}
                </ActionMenuItem>
+                {/* In the app a long press doesn't select text, so copying is here. */}
+                {!!post.content?.trim() && (
+                  <ActionMenuItem onSelect={() => { void navigator.clipboard?.writeText(plainMentions(post.content ?? "")); toast({ title: "Copied" }); }}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Copy text
+                  </ActionMenuItem>
+                )}
                 {currentUserId === post.user_id && (
                   <>
                     <ActionMenuItem onSelect={() => setShowInsights(true)}>
