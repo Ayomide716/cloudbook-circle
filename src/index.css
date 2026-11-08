@@ -134,6 +134,38 @@
     -moz-osx-font-smoothing: grayscale;
   }
 
+  /* In the Android app, nothing gives away that it's a web page: a long press never selects
+     text or pops up the browser's menu, links and photos can't be dragged out, and taps never
+     flash grey. Text you type stays selectable, and so does anything marked .select-text
+     (e.g. a post or bio you might want to copy). */
+  html.native-app,
+  html.native-app * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  html.native-app :is(input, textarea, [contenteditable="true"], .select-text, .select-text *) {
+    -webkit-user-select: text;
+    user-select: text;
+    -webkit-touch-callout: default;
+  }
+  html.native-app :is(img, a, video) {
+    -webkit-user-drag: none;
+  }
+  /* No blue box around a button after tapping it; the keyboard focus ring still shows. */
+  html.native-app :focus:not(:focus-visible) {
+    outline: none;
+  }
+
+  /* Touch screens: things that change colour under a mouse darken while your finger is on
+     them instead, then let go cleanly (hover colours are mouse-only: tailwind.config.ts). */
+  @media (hover: none) {
+    :is(a, button, label, [role="button"], [role="menuitem"], [role="option"], [role="tab"])[class*="hover:bg-"]:not(:disabled):not([class*="bg-gradient"]):active {
+      background-image: linear-gradient(hsl(var(--foreground) / 0.08), hsl(var(--foreground) / 0.08));
+    }
+  }
+
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Figtree Variable', 'Figtree', system-ui, sans-serif;
     letter-spacing: -0.015em;

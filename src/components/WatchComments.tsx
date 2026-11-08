@@ -140,7 +140,7 @@ const WatchComments = ({ videoId, currentUserId }: WatchCommentsProps) => {
                       {c.user_id === currentUserId && (
                         <button
                           onClick={() => handleDelete(c.id)}
-                          className="text-[10px] text-muted-foreground hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="text-[10px] text-muted-foreground hover:text-destructive transition-opacity [@media(hover:hover)]:opacity-0 [@media(hover:hover)]:group-hover:opacity-100 focus-visible:opacity-100"
                         >
                           Delete
                         </button>

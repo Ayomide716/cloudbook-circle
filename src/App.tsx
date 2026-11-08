@@ -70,11 +70,10 @@ const FriendsSkeleton = lazy(() => import("./components/skeletons/FriendsSkeleto
 
 const queryClient = new QueryClient();
 
-// Quick fade-in for each page. There is no exit animation, so the next page
-// never waits for the previous one to animate out.
+// Page changes as in Android's own apps: a new page slides in from the right, going back slides
+// the page in from the left, and the main tabs fade through in place (a small lift). There is no
+// exit animation, so the next page never waits for the previous one to animate out.
 // (Plain CSS, so the animation library isn't needed before the first paint.)
-// The main tabs swap in place; other pages slide in from the right going forward and from the
-// left coming back, as in native apps.
 const TAB_ROOTS = ["/", "/friends", "/groups", "/notifications", "/menu", "/messages"];
 
 const AnimatedPage = ({ children }: { children: React.ReactNode }) => {
@@ -82,11 +81,12 @@ const AnimatedPage = ({ children }: { children: React.ReactNode }) => {
   const { pathname } = useLocation();
   const motion =
     navigationType === "POP"
-      ? "motion-safe:slide-in-from-left-10"
+      ? "motion-safe:slide-in-from-left-[18%] duration-300"
       : TAB_ROOTS.includes(pathname)
-        ? "motion-safe:slide-in-from-bottom-1"
-        : "motion-safe:slide-in-from-right-10";
-  return <div className={`animate-in fade-in-0 duration-200 ease-out ${motion}`}>{children}</div>;
+        ? "motion-safe:slide-in-from-bottom-2 duration-200"
+        : "motion-safe:slide-in-from-right-[18%] duration-300";
+  // overflow-x-clip: the sliding page never makes the screen scroll sideways.
+  return <div className={`animate-in fade-in-0 overflow-x-clip ease-[cubic-bezier(0.2,0,0,1)] ${motion}`}>{children}</div>;
 };
 
 /** Signed-in pages: wait for the session (showing the page skeleton), then render or redirect. */
