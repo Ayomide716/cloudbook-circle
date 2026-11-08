@@ -301,10 +301,15 @@ const GroupDetail = () => {
     loadMembers();
   };
 
+  // Which request is being answered, so a second tap on a slow connection does nothing.
+  const [answering, setAnswering] = useState<string | null>(null);
   const answerRequest = async (request: JoinRequest, approve: boolean) => {
+    if (answering) return;
+    setAnswering(request.id);
     const { error } = approve
       ? await supabase.rpc("approve_group_request", { _request: request.id })
       : await supabase.from("group_join_requests").delete().eq("id", request.id);
+    setAnswering(null);
     if (error) {
       toast({ title: "Couldn't answer that request", description: friendlyError(error), variant: "destructive" });
       return;
@@ -688,6 +693,7 @@ const GroupDetail = () => {
                 <form onSubmit={handleCreatePost} className="space-y-3">
                   <Textarea
                     placeholder="Write something to the group…"
+                    aria-label="Write something to the group"
                     value={postContent}
                     onChange={(e) => setPostContent(e.target.value)}
                     className="min-h-[80px] border-0 bg-secondary/60 text-[15px] focus-visible:ring-1"
@@ -764,8 +770,8 @@ const GroupDetail = () => {
                           <p className="truncate font-semibold">{r.person.full_name || "Someone"}</p>
                           <p className="text-xs text-muted-foreground">Asked {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</p>
                         </div>
-                        <Button size="sm" variant="accent" className="h-9 rounded-lg px-3" onClick={() => answerRequest(r, true)}>Approve</Button>
-                        <Button size="sm" variant="secondary" className="h-9 rounded-lg px-3" onClick={() => answerRequest(r, false)}>Decline</Button>
+                        <Button size="sm" variant="accent" className="h-9 rounded-lg px-3" disabled={answering === r.id} onClick={() => answerRequest(r, true)}>Approve</Button>
+                        <Button size="sm" variant="secondary" className="h-9 rounded-lg px-3" disabled={answering === r.id} onClick={() => answerRequest(r, false)}>Decline</Button>
                       </div>
                     ))}
                   </div>

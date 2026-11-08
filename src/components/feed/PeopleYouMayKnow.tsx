@@ -104,7 +104,7 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
             >
               <X className="h-4 w-4" />
             </button>
-            <Link to={`/profile/${p.id}`} className="block">
+            <Link to={`/profile/${p.id}`} className="block" aria-label={p.full_name || "Profile"}>
               <Avatar className="h-[130px] w-full rounded-none">
                 <AvatarImage src={p.avatar_url || undefined} className="object-cover" />
                 <AvatarFallback className="rounded-none text-3xl">{p.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>

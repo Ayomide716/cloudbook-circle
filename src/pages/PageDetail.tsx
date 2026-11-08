@@ -1,7 +1,7 @@
 import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
 import { IMAGE_SIZES, shrinkImage } from "@/lib/image-compress";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -171,7 +171,14 @@ const PageDetail = () => {
     }
   }, [currentUserId, pageId, checkFollowing, loadPage, loadPosts]);
 
+  // A second tap while the first is still saving does nothing (it would follow and unfollow).
+  const followBusy = useRef(false);
   const toggleFollow = async () => {
+    if (!currentUserId || !page || followBusy.current) return;
+    followBusy.current = true;
+    try { await toggleFollowNow(); } finally { followBusy.current = false; }
+  };
+  const toggleFollowNow = async () => {
     if (!currentUserId || !page) return;
     const was = isFollowing;
     const apply = (following: boolean) => {

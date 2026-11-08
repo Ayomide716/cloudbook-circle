@@ -33,6 +33,7 @@ import { dbChannel } from "@/lib/realtime";
 import ReactionEmoji from "@/components/reactions/ReactionEmoji";
 import BirthdaysCard from "@/components/BirthdaysCard";
 import MemoriesCard from "@/components/MemoriesCard";
+import WelcomeFlow from "@/components/WelcomeFlow";
 
 const StoriesBar = lazy(() => import("@/components/StoriesBar"));
 
@@ -40,6 +41,7 @@ interface Profile {
   id: string;
   full_name: string | null;
   avatar_url: string | null;
+  created_at?: string | null;
 }
 
 const FEED_SCROLL_KEY = "cloudbook_feed_scroll";
@@ -308,6 +310,7 @@ const Index = () => {
                   account with nothing to read yet gets the profile prompt up here instead. */}
               <BirthdaysCard currentUserId={currentUser.id} />
               <MemoriesCard currentUserId={currentUser.id} />
+              <WelcomeFlow me={currentUser} />
               {allPosts.length === 0 && <ProfileCompletionPrompt userId={currentUser.id} />}
 
               {allPosts.length === 0 ? (

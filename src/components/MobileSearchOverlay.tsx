@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { features } from "@/lib/features";
 import { plainMentions } from "@/lib/mentions";
 import { useNavigate } from "react-router-dom";
 import { Search, X, ArrowLeft, User, FileText, Users, Clock } from "@/components/icons";
@@ -28,6 +29,7 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
   // Before you type: people you aren't friends with yet, and groups to look at.
   const [people, setPeople] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[]>([]);
   const [groups, setGroups] = useState<{ id: string; name: string; image_url: string | null }[]>([]);
+  const [trending, setTrending] = useState<string[]>([]);
 
   useEffect(() => {
     if (!open) return;
@@ -45,6 +47,11 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
       const known = new Set((friendships.data ?? []).map((f) => (f.user_id === me ? f.friend_id : f.user_id)));
       setPeople((profiles.data ?? []).filter((p) => !known.has(p.id)).slice(0, 8));
       setGroups(groupRows.data ?? []);
+      // What people are posting about this week.
+      if (features.trendingHashtags) {
+        const { data: tags } = await supabase.rpc("trending_hashtags", { _days: 7, _limit: 8 });
+        if (!cancelled) setTrending((tags ?? []).map((t) => `#${t.tag}`));
+      }
     })();
     return () => { cancelled = true; };
   }, [open]);
@@ -218,6 +225,19 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
               </section>
             )}
 
+            {trending.length > 0 && (
+              <section>
+                <h3 className="mb-2 px-4 text-[15px] font-semibold">Trending</h3>
+                <div className="flex flex-wrap gap-2 px-4">
+                  {trending.map((tag) => (
+                    <button key={tag} type="button" onClick={() => setQuery(tag)} className="h-8 rounded-full bg-secondary px-3 text-[13px] font-semibold text-foreground hover:bg-secondary/80">
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
             {people.length > 0 && (
               <section>
                 <h3 className="mb-2 px-4 text-[15px] font-semibold">People you may know</h3>
@@ -250,7 +270,7 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
               </section>
             )}
 
-            {recentSearches.length === 0 && people.length === 0 && groups.length === 0 && (
+            {recentSearches.length === 0 && trending.length === 0 && people.length === 0 && groups.length === 0 && (
               <EmptyState emoji="search" title="Find people, posts and groups" text="Start typing a name or a word." />
             )}
           </div>

@@ -1,4 +1,5 @@
 import { memo, useState } from "react";
+import LinkedText from "@/components/LinkedText";
 import { format } from "date-fns";
 import { Copy, CornerUpLeft, Forward, MoreHorizontal, Pencil, SmilePlus, Star, StarOff, Trash2 } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -177,7 +178,7 @@ const GroupMessageBubble = ({
           ) : null}
           {showText && (
             <p className={cn("whitespace-pre-wrap break-words text-[15px] leading-snug", m.image_url && "mt-1")}>
-              {m.content}
+              <LinkedText text={m.content} className={mine ? "underline decoration-current/60" : "text-primary underline decoration-primary/40"} />
               {/* Room for the time, which sits in the bottom corner. */}
               <span className={cn("ml-2 inline-block", m.edited_at ? "w-[4.5rem]" : "w-9", starred && "pl-4")} aria-hidden="true" />
             </p>
