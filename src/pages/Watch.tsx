@@ -13,7 +13,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -350,7 +350,7 @@ const Watch = () => {
       <div className="flex-1">
         <div className="page-flush max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-6 pb-6 sm:py-6">
             <Dialog open={showUpload} onOpenChange={(open) => !isUploading && setShowUpload(open)}>
-              <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
+              <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                   <DialogTitle>Upload a video</DialogTitle>
                 </DialogHeader>
@@ -405,9 +405,11 @@ const Watch = () => {
                       </p>
                     </div>
                   )}
-                  <Button className="w-full" onClick={handleUpload} disabled={!uploadTitle.trim() || !uploadFile || isUploading}>
-                    {isUploading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Uploading…</> : "Upload video"}
-                  </Button>
+                  <DialogFooter>
+                    <Button className="w-full" onClick={handleUpload} disabled={!uploadTitle.trim() || !uploadFile || isUploading}>
+                      {isUploading ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Uploading…</> : "Upload video"}
+                    </Button>
+                  </DialogFooter>
                 </div>
               </DialogContent>
             </Dialog>

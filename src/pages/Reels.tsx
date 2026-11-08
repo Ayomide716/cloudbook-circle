@@ -16,8 +16,7 @@ import VideoUpload from "@/components/VideoUpload";
 // Navigation removed - Reels uses its own minimal top bar
 import ReelCard from "@/components/ReelCard";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle,
-} from "@/components/ui/dialog";
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AvatarImage } from "@/components/ui/avatar";
 import {
 } from "@/components/ui/alert-dialog";
@@ -545,7 +544,9 @@ export default function Reels() {
               <label className="text-sm font-medium text-foreground">Caption</label>
               <Textarea aria-label="Caption" maxLength={300} placeholder="Write something fun..." value={uploadCaption} onChange={(e) => setUploadCaption(e.target.value)} className="mt-1" rows={3} />
             </div>
-            <Button onClick={handleUpload} className="w-full" disabled={!uploadVideoUrl}>Post Reel</Button>
+            <DialogFooter>
+              <Button onClick={handleUpload} className="w-full" disabled={!uploadVideoUrl}>Post Reel</Button>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

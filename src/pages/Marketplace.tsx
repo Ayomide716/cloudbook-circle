@@ -14,7 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { PageHeader, HeaderAction, PageSearch, Chips } from "@/components/layout/PageHeader";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
@@ -223,7 +223,7 @@ const Marketplace = () => {
 
       <div className="page-flush max-w-[1200px] mx-auto px-0 sm:px-4 pb-6 sm:py-6">
           <Dialog open={createOpen} onOpenChange={(open) => !submitting && setCreateOpen(open)}>
-            <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
+            <DialogContent className="sm:max-w-lg">
               <DialogHeader>
                 <DialogTitle className="font-display">Create listing</DialogTitle>
                 <DialogDescription>Buyers can message you straight from your listing.</DialogDescription>
@@ -303,9 +303,11 @@ const Marketplace = () => {
                   </div>
                 </div>
 
-                <Button onClick={handleCreateListing} disabled={submitting || !newTitle.trim() || !newPrice || !!priceError} className="w-full rounded-xl">
-                  {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Posting…</> : "Post listing"}
-                </Button>
+                <DialogFooter>
+                  <Button onClick={handleCreateListing} disabled={submitting || !newTitle.trim() || !newPrice || !!priceError} className="w-full rounded-xl">
+                    {submitting ? <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Posting…</> : "Post listing"}
+                  </Button>
+                </DialogFooter>
               </div>
             </DialogContent>
           </Dialog>
@@ -418,7 +420,7 @@ const Marketplace = () => {
 
       {/* Detail Dialog */}
       <Dialog open={!!detailListing} onOpenChange={(open) => !open && setDetailListing(null)}>
-        <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg">
           {detailListing && (
             <>
               <DialogHeader>

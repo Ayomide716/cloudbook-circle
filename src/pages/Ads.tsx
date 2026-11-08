@@ -14,7 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -418,7 +418,7 @@ const Ads = () => {
 
         {/* Create Campaign Dialog */}
         <Dialog open={showCreate} onOpenChange={(open) => !creating && setShowCreate(open)}>
-          <DialogContent className="sm:max-w-2xl max-h-[90dvh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl">
             <DialogHeader>
               <DialogTitle>Create ad campaign</DialogTitle>
               <DialogDescription>Your ad appears as a sponsored post in people's feeds.</DialogDescription>
@@ -476,13 +476,15 @@ const Ads = () => {
                 />
               </div>
             </div>
-            <Button
-              className="w-full rounded-xl"
-              onClick={handleCreateCampaign}
-              disabled={creating || !title.trim() || !content.trim() || !!budgetError || linkInvalid || imageInvalid}
-            >
-              {creating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Launching…</> : `Launch campaign (${fmt(budgetNum || 0)} credits)`}
-            </Button>
+            <DialogFooter>
+              <Button
+                className="w-full rounded-xl"
+                onClick={handleCreateCampaign}
+                disabled={creating || !title.trim() || !content.trim() || !!budgetError || linkInvalid || imageInvalid}
+              >
+                {creating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Launching…</> : `Launch campaign (${fmt(budgetNum || 0)} credits)`}
+              </Button>
+            </DialogFooter>
           </DialogContent>
         </Dialog>
 

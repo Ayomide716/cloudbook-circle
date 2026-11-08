@@ -15,7 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
   AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -584,7 +584,7 @@ const PageDetail = () => {
 
       {/* Edit dialog */}
       <Dialog open={showEdit} onOpenChange={setShowEdit}>
-        <DialogContent className="sm:max-w-lg max-h-[90dvh] overflow-y-auto">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit page</DialogTitle>
             <DialogDescription>This is what visitors see on your page.</DialogDescription>
@@ -616,9 +616,11 @@ const PageDetail = () => {
               <div><Label htmlFor="pg-phone">Phone</Label><Input id="pg-phone" type="tel" value={edit.phone} onChange={(e) => setEdit((p) => ({ ...p, phone: e.target.value }))} className="mt-1" /></div>
               <div><Label htmlFor="pg-loc">Location</Label><Input id="pg-loc" value={edit.location} onChange={(e) => setEdit((p) => ({ ...p, location: e.target.value }))} className="mt-1" /></div>
             </div>
-            <Button className="w-full" onClick={saveEdit} disabled={isSavingEdit || !edit.name.trim() || websiteInvalid || emailInvalid}>
-              {isSavingEdit && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Save changes
-            </Button>
+            <DialogFooter>
+              <Button className="w-full" onClick={saveEdit} disabled={isSavingEdit || !edit.name.trim() || websiteInvalid || emailInvalid}>
+                {isSavingEdit && <Loader2 className="h-4 w-4 animate-spin mr-2" />} Save changes
+              </Button>
+            </DialogFooter>
             <div className="pt-3 border-t">
               <Button variant="ghost" className="w-full text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => { setShowEdit(false); setConfirm({ kind: "page" }); }}>
                 <Trash2 className="h-4 w-4 mr-2" /> Delete this page

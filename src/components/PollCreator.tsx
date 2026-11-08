@@ -7,8 +7,7 @@
    DialogContent,
    DialogHeader,
    DialogTitle,
-   DialogTrigger,
- } from "@/components/ui/dialog";
+   DialogTrigger, DialogFooter } from "@/components/ui/dialog";
  
  interface PollCreatorProps {
    onCreatePoll: (question: string, options: string[]) => void;
@@ -104,13 +103,15 @@
              </Button>
            )}
  
-           <Button
-             onClick={handleCreate}
-             disabled={!isValid}
-             className="w-full"
-           >
-             Create Poll
-           </Button>
+           <DialogFooter>
+             <Button
+               onClick={handleCreate}
+               disabled={!isValid}
+               className="w-full"
+             >
+               Create Poll
+             </Button>
+           </DialogFooter>
          </div>
        </DialogContent>
      </Dialog>

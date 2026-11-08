@@ -7,8 +7,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
+  DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -110,13 +109,15 @@ const ReportDialog = ({ reportedType, reportedId, currentUserId, open: openProp,
               rows={3}
             />
           </div>
-          <Button
-            onClick={handleSubmit}
-            disabled={!reason || isSubmitting}
-            className="w-full rounded-xl"
-          >
-            Submit Report
-          </Button>
+          <DialogFooter>
+            <Button
+              onClick={handleSubmit}
+              disabled={!reason || isSubmitting}
+              className="w-full rounded-xl"
+            >
+              Submit Report
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

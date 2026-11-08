@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Chips, HeaderAction, PageHeader, PageSearch } from "@/components/layout/PageHeader";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -168,9 +168,11 @@ const Pages = () => {
                     <Label htmlFor="page-desc">Description</Label>
                     <Textarea id="page-desc" value={createDesc} onChange={(e) => setCreateDesc(e.target.value)} placeholder="Tell people about your page" className="mt-1" rows={3} />
                   </div>
-                  <Button className="w-full" onClick={handleCreate} disabled={!createName.trim() || isCreating}>
-                    {isCreating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creating...</> : "Create Page"}
-                  </Button>
+                  <DialogFooter>
+                    <Button className="w-full" onClick={handleCreate} disabled={!createName.trim() || isCreating}>
+                      {isCreating ? <><Loader2 className="h-4 w-4 animate-spin mr-2" /> Creating...</> : "Create Page"}
+                    </Button>
+                  </DialogFooter>
                 </div>
               </DialogContent>
             </Dialog>
