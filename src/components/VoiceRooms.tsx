@@ -7,7 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card } from "@/components/ui/card";
 import { Mic, MicOff, PhoneOff, Plus, Radio, Users } from "@/components/icons";
 import { cn } from "@/lib/utils";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { useCalls } from "@/hooks/use-calls";
 import { useGroupCallParticipants } from "@/hooks/use-group-call-participants";
@@ -222,12 +222,12 @@ const VoiceRooms = ({ groupId, currentUserId }: VoiceRoomsProps) => {
               onChange={(e) => setNewTitle(e.target.value)}
               onKeyDown={(e) => e.key === "Enter" && createRoom()}
             />
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button variant="outline" onClick={() => setShowCreate(false)}>Cancel</Button>
               <Button onClick={createRoom} disabled={!newTitle.trim()} className="">
                 Create and join
               </Button>
-            </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

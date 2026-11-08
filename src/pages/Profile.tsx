@@ -1,4 +1,5 @@
 import StoryHighlights from "@/components/stories/StoryHighlights";
+import PhotoViewer from "@/components/PhotoViewer";
 import ProfileQrDialog from "@/components/ProfileQrDialog";
 import EmptyState from "@/components/EmptyState";
 import { uploadMedia } from "@/lib/media-upload";
@@ -154,7 +155,8 @@ const Profile = () => {
   const [createAlbumOpen, setCreateAlbumOpen] = useState(false);
   const photoInputRef = useRef<HTMLInputElement>(null);
   const [confirm, setConfirm] = useState<{ kind: "album"; id: string } | { kind: "photo"; id: string } | null>(null);
-  const [viewPhoto, setViewPhoto] = useState<string | null>(null);
+  // An album's photos in the full-screen viewer (swipe between them, pinch to zoom).
+  const [viewPhotos, setViewPhotos] = useState<{ images: string[]; index: number } | null>(null);
 
 
   // Mutual friends state
@@ -1099,7 +1101,7 @@ const Profile = () => {
                   transition={{ ...spring, delay: Math.min(i * 0.04, 0.3) }}
                   className="aspect-square rounded-2xl overflow-hidden bento-card relative group">
                   
-                          <button className="w-full h-full" onClick={() => setViewPhoto(photo.image_url)} aria-label="View photo">
+                          <button className="w-full h-full" onClick={() => setViewPhotos({ images: photos.map((x) => x.image_url), index: i })} aria-label="View photo">
                             <img src={photo.image_url} alt={photo.caption || ""} loading="lazy" className="w-full h-full object-cover" />
                           </button>
                           {isOwnProfile &&
@@ -1237,12 +1239,11 @@ const Profile = () => {
         }}
       />
 
-      <Dialog open={!!viewPhoto} onOpenChange={(open) => !open && setViewPhoto(null)}>
-        <DialogContent className="max-w-3xl p-2 bg-black border-0">
-          <DialogHeader className="sr-only"><DialogTitle>Photo</DialogTitle></DialogHeader>
-          {viewPhoto && <img src={viewPhoto} alt="" className="w-full max-h-[80dvh] object-contain rounded-md" />}
-        </DialogContent>
-      </Dialog>
+      <PhotoViewer
+        images={viewPhotos?.images ?? []}
+        index={viewPhotos?.index ?? null}
+        onIndexChange={(i) => setViewPhotos((v) => (v && i !== null ? { ...v, index: i } : null))}
+      />
 
       {!isOwnProfile && currentUserId &&
       <>

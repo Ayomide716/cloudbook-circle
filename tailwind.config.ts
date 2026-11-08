@@ -92,6 +92,15 @@ export default {
       },
       keyframes: {
         // A sticker landing in the chat.
+        // The bell when something new arrives: a quick swing from the top, then still.
+        "bell-ring": {
+          "0%, 100%": { transform: "rotate(0)" },
+          "15%": { transform: "rotate(14deg)" },
+          "30%": { transform: "rotate(-12deg)" },
+          "45%": { transform: "rotate(8deg)" },
+          "60%": { transform: "rotate(-5deg)" },
+          "75%": { transform: "rotate(2deg)" },
+        },
         "sticker-pop": {
           "0%": { transform: "scale(0.4) rotate(-12deg)", opacity: "0" },
           "60%": { transform: "scale(1.08) rotate(3deg)", opacity: "1" },
@@ -181,6 +190,7 @@ export default {
         },
       },
       animation: {
+        "bell-ring": "bell-ring 0.8s cubic-bezier(.36,.07,.19,.97) both",
         "sticker-pop": "sticker-pop 0.45s cubic-bezier(.2,.8,.3,1.2) both",
         marquee: "marquee 9s linear infinite",
         "sound-bar": "sound-bar 0.9s ease-in-out infinite",

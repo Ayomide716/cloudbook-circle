@@ -7,7 +7,7 @@ import { useSearchParams } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, fullScreenOnPhones } from "@/components/ui/dialog";
 import { Plus, X, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX, User } from "@/components/icons";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
@@ -485,9 +485,9 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
 
       {/* Create Story Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent hideHandle className={`sm:max-w-md ${fullScreenOnPhones}`}>
           <div className="space-y-4">
-            <h2 className="text-xl font-bold">Create Story</h2>
+            <h2 className="text-xl font-bold">Create story</h2>
             {!storyVideo && (
               <ImageUpload bucket="post-images" userId={currentUserId} onUploadComplete={setStoryImage} currentImage={storyImage} label="Upload Story Image" />
             )}
@@ -527,10 +527,10 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                 <button type="button" onClick={() => setEditingCloseFriends(true)} className="text-sm font-semibold text-primary hover:underline">Edit close friends</button>
               </div>
             )}
-            <div className="flex justify-end gap-2">
+            <DialogFooter>
               <Button variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
               <Button onClick={handleCreateStory} disabled={!storyImage && !storyVideo}>Share Story</Button>
-            </div>
+            </DialogFooter>
           </div>
         </DialogContent>
       </Dialog>

@@ -330,7 +330,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         {/* Phones: a full page, like Facebook's "New post" (✕ on the left, title in the middle);
             bigger screens: a centred window. */}
-        <DialogContent className="sm:max-w-lg max-sm:top-0 max-sm:h-[calc(100dvh-var(--keyboard-inset,0px))] max-sm:max-h-none max-sm:content-start max-sm:rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)] max-sm:[&>button:last-child]:hidden max-sm:flex max-sm:flex-col max-sm:gap-0 max-sm:overflow-hidden max-sm:pb-0">
+        <DialogContent hideHandle className="sm:max-w-lg max-sm:top-0 max-sm:h-[calc(100dvh-var(--keyboard-inset,0px))] max-sm:max-h-none max-sm:content-start max-sm:rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)] max-sm:[&>button:last-child]:hidden max-sm:flex max-sm:flex-col max-sm:gap-0 max-sm:overflow-hidden max-sm:pb-0">
           <DialogHeader className="max-sm:-mx-4 max-sm:h-14 max-sm:flex-row max-sm:items-center max-sm:space-y-0 max-sm:border-b max-sm:border-border max-sm:px-2">
             <DialogClose asChild>
               <button type="button" className="sm:hidden flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary" aria-label="Close">
@@ -389,6 +389,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 value={content}
                 onChange={setContent}
                 rich={features.mentions}
+                mentions={mentions}
                 onMention={(m) => setMentions((list) => [...list.filter((x) => x.id !== m.id), m])}
                 className={cn(
                   // A little room on the sides so the first letter isn't clipped at the edge.

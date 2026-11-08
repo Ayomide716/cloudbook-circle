@@ -50,6 +50,13 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   const location = useLocation();
   const { toast } = useToast();
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  // The bell swings once when the count goes up (a new notification), not on first load.
+  const [bellRing, setBellRing] = useState(0);
+  const lastUnread = useRef<number | null>(null);
+  useEffect(() => {
+    if (lastUnread.current !== null && unreadNotifications > lastUnread.current) setBellRing((n) => n + 1);
+    lastUnread.current = unreadNotifications;
+  }, [unreadNotifications]);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [mobileSearchOpen, setMobileSearchOpen] = useState(false);
   const [pendingRequests, setPendingRequests] = useState(0);
@@ -287,7 +294,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                     // Notifications: the bell, with how many are new (Create is the ➕ in the tab bar).
                     {
                       label: unreadNotifications > 0 ? `Notifications, ${unreadNotifications} new` : "Notifications",
-                      icon: <Bell className="h-6 w-6" fill={location.pathname === "/notifications" ? "currentColor" : undefined} />,
+                      icon: <Bell key={bellRing} className={cn("h-6 w-6 origin-top", bellRing > 0 && "motion-safe:animate-bell-ring")} fill={location.pathname === "/notifications" ? "currentColor" : undefined} />,
                       onClick: () => navigate("/notifications"),
                       count: unreadNotifications,
                     },
@@ -350,7 +357,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                           onClick={() => navigate("/notifications")}
                           onMouseEnter={() => prefetchRoute("/notifications")}
                         >
-                          <Bell className="h-5 w-5" />
+                          <Bell key={bellRing} className={cn("h-5 w-5 origin-top", bellRing > 0 && "motion-safe:animate-bell-ring")} />
                           {unreadNotifications > 0 && (
                             <span className="absolute -top-0.5 -right-0.5 bg-badge text-white text-[10px] font-bold rounded-full h-5 min-w-5 px-1 flex items-center justify-center ring-2 ring-background">
                               {unreadNotifications > 9 ? "9+" : unreadNotifications}

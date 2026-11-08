@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { features } from "@/lib/features";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -199,7 +199,7 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
             </>
           )}
 
-          <div className="flex justify-end gap-2">
+          <DialogFooter>
             <Button
               type="button"
               variant="outline"
@@ -212,7 +212,7 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
               {isLoading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Save Changes
             </Button>
-          </div>
+          </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
