@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -117,9 +117,11 @@ const TipButton = ({ postId, receiverId, currentUserId, compact = false }: TipBu
             onChange={(e) => setMessage(e.target.value)}
             maxLength={100}
           />
-          <Button className="w-full" onClick={sendTip} disabled={loading}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : `Send ${amount} Credits`}
-          </Button>
+          <DialogFooter>
+            <Button className="w-full" onClick={sendTip} disabled={loading}>
+              {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : `Send ${amount} Credits`}
+            </Button>
+          </DialogFooter>
         </div>
       </DialogContent>
     </Dialog>

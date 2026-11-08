@@ -112,7 +112,7 @@ const ForwardDialog = ({ message, currentUserId, onOpenChange }: ForwardDialogPr
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
+      <DialogContent className="flex max-h-[calc(85dvh-var(--keyboard-inset,0px))] flex-col gap-0 overflow-hidden p-0 sm:max-w-md">
         <DialogHeader className="border-b px-4 pb-3 pt-4">
           <DialogTitle>Forward to…</DialogTitle>
           <div className="relative mt-3">

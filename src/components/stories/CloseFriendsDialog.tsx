@@ -52,7 +52,7 @@ const CloseFriendsDialog = ({ open, onOpenChange, currentUserId }: { open: boole
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85dvh] flex-col sm:max-w-md">
+      <DialogContent className="flex max-h-[calc(85dvh-var(--keyboard-inset,0px))] flex-col sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Close friends</DialogTitle>
           <DialogDescription>Only these friends see stories you share to Close friends. Nobody can see this list.</DialogDescription>

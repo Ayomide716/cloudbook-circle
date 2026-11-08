@@ -82,7 +82,7 @@ const EditProfileModal = ({ profile, isOpen, onClose, onUpdate }: EditProfileMod
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl sm:max-h-[80vh]">
         <DialogHeader>
           <DialogTitle>Edit Profile</DialogTitle>
         </DialogHeader>
