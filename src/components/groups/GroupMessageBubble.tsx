@@ -65,6 +65,7 @@ const GroupMessageBubble = ({
   const showText = !voice && !sticker && !(m.image_url && MEDIA_PLACEHOLDERS.includes(m.content));
   const mineReaction = reactions.find((r) => r.user_id === currentUserId)?.reaction_type ?? null;
   const time = format(new Date(m.created_at), "HH:mm");
+  const justArrived = m.id.startsWith("temp-") || (!mine && Date.now() - new Date(m.created_at).getTime() < 3000);
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(m) },
@@ -77,7 +78,14 @@ const GroupMessageBubble = ({
 
   return (
     <div
-      className={cn("group relative flex touch-pan-y items-end gap-1.5", mine ? "justify-end" : "justify-start", firstInRun ? "pt-2" : "pt-0.5")}
+      className={cn(
+        "group relative flex touch-pan-y items-end gap-1.5",
+        mine ? "justify-end" : "justify-start",
+        firstInRun ? "pt-2" : "pt-0.5",
+        // Just sent or just arrived: pops up from its corner.
+        justArrived && "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-bottom-2 duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
+        justArrived && (mine ? "origin-bottom-right" : "origin-bottom-left"),
+      )}
       {...swipe.handlers}
     >
       {swipe.swiping && (

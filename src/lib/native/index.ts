@@ -23,14 +23,19 @@ async function handleBackButton() {
   });
 }
 
-/** Light status bar icons on the dark theme, dark icons on the light one. */
+/**
+ * Light status bar icons on the dark theme, dark icons on the light one, and light icons over
+ * full-screen dark views (Reels, stories, photos, calls) whatever the theme.
+ */
 async function matchSystemBarsToTheme() {
   const { SystemBars, SystemBarsStyle } = await import("@capacitor/core");
+  const { onStatusBarChange, statusBarForcedDark } = await import("@/lib/status-bar");
   const apply = () => {
-    const dark = document.documentElement.classList.contains("dark");
+    const dark = statusBarForcedDark() || document.documentElement.classList.contains("dark");
     SystemBars.setStyle({ style: dark ? SystemBarsStyle.Dark : SystemBarsStyle.Light }).catch(() => {});
   };
   apply();
+  onStatusBarChange(apply);
   new MutationObserver(apply).observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
 }
 
@@ -115,6 +120,24 @@ async function trackKeyboard() {
   });
 }
 
+/**
+ * The phone's text size setting (Settings > Display > Font size) applies in the app, as in
+ * native apps, up to 1.3x: beyond that, rows and buttons built for a phone screen would break,
+ * and Android's own magnifier is there for more.
+ */
+const MAX_TEXT_ZOOM = 1.3;
+async function followPhoneTextSize() {
+  const { TextZoom } = await import("@capacitor/text-zoom");
+  const apply = async () => {
+    const { value } = await TextZoom.getPreferred();
+    await TextZoom.set({ value: Math.min(Math.max(value, 1), MAX_TEXT_ZOOM) });
+  };
+  await apply();
+  // Changed in Settings while Ember was in the background.
+  const { App } = await import("@capacitor/app");
+  App.addListener("resume", () => { apply().catch(() => {}); });
+}
+
 /** The native splash hides once the app's own first screen (index.html's splash) is painted. */
 async function hideSplashWhenPainted() {
   const { SplashScreen } = await import("@capacitor/splash-screen");
@@ -133,5 +156,5 @@ export async function initNative() {
     window.dispatchEvent(new PopStateEvent("popstate"));
   };
   const { initNativePush } = await import("./push");
-  await Promise.all([initNativePush(openPath).catch(() => {}), handleBackButton(), matchSystemBarsToTheme(), provideShareSheet(), handleSignInReturn(), handleCallLinks(), trackKeyboard(), hideSplashWhenPainted()]).catch(() => {});
+  await Promise.all([initNativePush(openPath).catch(() => {}), handleBackButton(), matchSystemBarsToTheme(), provideShareSheet(), handleSignInReturn(), handleCallLinks(), trackKeyboard(), hideSplashWhenPainted(), followPhoneTextSize().catch(() => {})]).catch(() => {});
 }

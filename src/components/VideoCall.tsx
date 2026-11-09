@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { canShareScreen, formatCallDuration, getIceServers, loadIceServers } from "@/lib/webrtc";
 import { useDraggable } from "@/hooks/use-draggable";
 import { CallButton, StreamAudio, StreamVideo } from "@/components/calls/CallControls";
+import DarkStatusBar from "@/components/DarkStatusBar";
 
 export type CallEndReason = "hangup" | "no-answer" | "failed" | "no-media";
 
@@ -541,6 +542,7 @@ const VideoCall = ({
             isVoiceOnly ? "bg-gradient-to-b from-neutral-900 via-neutral-950 to-black" : "bg-black"
           )}
         >
+          <DarkStatusBar />
           {/* Header */}
           <div className="absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-2 px-4 pb-6 pt-[calc(env(safe-area-inset-top)+0.75rem)] bg-gradient-to-b from-black/70 to-transparent">
             <div className="flex items-center gap-2 min-w-0">

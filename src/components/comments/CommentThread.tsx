@@ -151,8 +151,10 @@ export function CommentThread<T extends ThreadComment>({
     const name = c.profiles.full_name || "Anonymous";
     const profileLink = authorId(c) ? `/profile/${authorId(c)}` : undefined;
     const isEditing = editing?.id === c.id;
+    // Your comment shows straight away, faded, until it's saved.
+    const sending = c.id.startsWith("temp-");
     return (
-      <div key={c.id} className="flex gap-2">
+      <div key={c.id} className={cn("flex gap-2", sending && "opacity-60 motion-safe:animate-in motion-safe:fade-in-0 motion-safe:slide-in-from-bottom-1")}>
         {profileLink ? (
           <Link to={profileLink} className="flex-shrink-0">
             <Avatar className={isReply ? "h-7 w-7" : "h-8 w-8"}>
@@ -197,6 +199,9 @@ export function CommentThread<T extends ThreadComment>({
               <p className="whitespace-pre-wrap break-words text-sm"><MentionText text={c.content} /></p>
             )}
           </div>
+          {sending ? (
+            <p className="ml-3 mt-0.5 text-xs text-muted-foreground">{c.id.startsWith("temp-offline-") ? "Waiting for connection…" : "Sending…"}</p>
+          ) : (
           <div className="ml-3 mt-0.5 flex items-center gap-3 text-xs text-muted-foreground">
             <span>{ago(c.created_at)}</span>
             {likes && currentUserId && (
@@ -234,6 +239,7 @@ export function CommentThread<T extends ThreadComment>({
               </span>
             )}
           </div>
+          )}
         </div>
       </div>
     );

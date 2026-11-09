@@ -332,7 +332,7 @@ const Notifications = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="content-fade min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
       <PullToRefresh onRefresh={async () => { await loadNotifications(); }}>
@@ -446,7 +446,7 @@ const Notifications = () => {
                 </button>
                   <ActionMenu>
                     <ActionMenuTrigger asChild>
-                      <button type="button" aria-label="Notification options" className="mr-2 mt-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-accent">
+                      <button type="button" aria-label="Notification options" className="tap-target mr-2 mt-4 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-muted-foreground hover:bg-accent">
                         <MoreHorizontal className="h-5 w-5" />
                       </button>
                     </ActionMenuTrigger>

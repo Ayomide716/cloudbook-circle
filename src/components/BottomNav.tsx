@@ -101,7 +101,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 aria-label="Create"
-                className="flex flex-col items-center justify-center gap-0.5 text-foreground"
+                className="flex min-h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl text-foreground"
               >
                 <PlusCircle className="h-[25px] w-[25px]" />
                 <span className="text-[11px] font-medium leading-none text-muted-foreground" aria-hidden="true">Create</span>

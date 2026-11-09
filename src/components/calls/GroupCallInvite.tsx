@@ -34,7 +34,7 @@ const GroupCallInvite = ({ groupName, fromName, fromAvatar, isVoiceOnly, onJoin,
       <Button size="sm" onClick={onJoin} className="gradient-brand text-primary-foreground rounded-full px-4 shrink-0">
         Join
       </Button>
-      <Button size="icon" variant="ghost" onClick={onDismiss} className="h-8 w-8 rounded-full shrink-0" aria-label="Dismiss">
+      <Button size="icon" variant="ghost" onClick={onDismiss} className="tap-target h-8 w-8 rounded-full shrink-0" aria-label="Dismiss">
         <X className="h-4 w-4" />
       </Button>
     </div>

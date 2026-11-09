@@ -260,7 +260,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="content-fade min-h-screen bg-background flex flex-col">
       <Navigation currentUserId={currentUser.id} />
       <NewPostsBanner onRefresh={handleRefresh} lastFetchTime={lastFetchTime} currentUserId={currentUser?.id} />
 

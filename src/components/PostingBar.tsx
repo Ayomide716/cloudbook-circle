@@ -52,7 +52,7 @@ const PostingBar = () => {
                   <button type="button" onClick={() => retryPosting(j.id)} className="flex h-8 items-center gap-1 rounded-full bg-primary px-3 text-xs font-semibold text-primary-foreground">
                     <RotateCcw className="h-3.5 w-3.5" /> Try again
                   </button>
-                  <button type="button" onClick={() => dismissPosting(j.id)} aria-label="Dismiss" className="flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary">
+                  <button type="button" onClick={() => dismissPosting(j.id)} aria-label="Dismiss" className="tap-target flex h-8 w-8 items-center justify-center rounded-full text-muted-foreground hover:bg-secondary">
                     <X className="h-4 w-4" />
                   </button>
                 </>

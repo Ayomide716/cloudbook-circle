@@ -627,7 +627,7 @@ const Profile = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="content-fade min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} hideMobileTopBar />
 
       {/* ─── Cover: runs to the top of the screen on phones, with back / more / search over it ─── */}

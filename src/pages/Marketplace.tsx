@@ -364,7 +364,10 @@ const Marketplace = () => {
           <EmptyState
             emoji={debouncedSearch ? "search" : "shop"}
             title={debouncedSearch ? "No listings match your search" : view === "mine" ? "You haven't listed anything yet" : "No listings yet"}
-            text={view === "mine" ? "Tap “Sell item” to list something." : "Be the first to sell something!"}
+            text={debouncedSearch ? "Try another word, or browse everything." : view === "mine" ? "Sell something you no longer need to people nearby." : "Be the first to sell something!"}
+            action={debouncedSearch
+              ? <Button variant="secondary" onClick={() => setSearchQuery("")} className="rounded-full px-5">Clear search</Button>
+              : <Button onClick={() => setCreateOpen(true)} className="rounded-full px-5">Sell an item</Button>}
           />
         ) : (
           <motion.div layout className={cn("grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 px-2 sm:px-0 sm:gap-4 transition-opacity", loading && "opacity-60")}>

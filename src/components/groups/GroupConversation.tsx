@@ -30,6 +30,7 @@ import { cn, friendlyError } from "@/lib/utils";
 import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
 import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
+import TypingBubble from "@/components/chat/TypingBubble";
 
 interface GroupConversationProps {
   group: GroupInfo;
@@ -482,6 +483,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
           }}
           isLoadingMore={loadingMore}
           hasMore={hasMore}
+          footer={typing.length > 0 ? <TypingBubble name={typing.length === 1 ? typing[0].name : `${typing.length} people`} /> : null}
         />
       )}
 

@@ -25,6 +25,8 @@ import BootBars from "@/components/skeletons/BootBars";
 
 // Shown after a delay, so it shouldn't weigh down the first load.
 const InstallPrompt = lazy(() => import("@/components/InstallPrompt"));
+// Hold a profile or post link to peek at it.
+const LinkPeek = lazy(() => import("@/components/LinkPeek"));
 
 // Lazy-loaded page components
 const Index = lazy(() => import("./pages/Index"));
@@ -160,6 +162,7 @@ const AppShell = ({ children }: { children: ReactNode }) => {
     <NavShellContext.Provider value={active ? shell : null}>
       {active && <AppNavigation currentUserId={session.user.id} hideMobileTopBar={hideMobileTopBar} />}
       {session && <EdgeSwipeBack />}
+      {session && <Suspense fallback={null}><LinkPeek /></Suspense>}
       {children}
     </NavShellContext.Provider>
   );

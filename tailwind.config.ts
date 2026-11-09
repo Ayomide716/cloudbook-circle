@@ -6,7 +6,7 @@ export default {
   content: ["./pages/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}", "./app/**/*.{ts,tsx}", "./src/**/*.{ts,tsx}"],
   prefix: "",
   // Hover colours only where there's a real mouse: on a phone they stuck after a tap, like a
-  // grey flash that stayed (index.css gives touch screens a press colour instead).
+  // grey flash that stayed (touch screens get a ripple instead: src/lib/ripple.ts).
   future: { hoverOnlyWhenSupported: true },
   theme: {
     container: {
@@ -89,11 +89,18 @@ export default {
         },
       },
       borderRadius: {
+        // Plain "rounded" (badges, chips, small images): 8px rather than a near-square 4px.
+        DEFAULT: "0.5rem",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        // Typing dots: a soft wave (each dot brightens and lifts a little), not a bounce.
+        "typing-dot": {
+          "0%, 60%, 100%": { opacity: "0.35", transform: "translateY(0)" },
+          "30%": { opacity: "1", transform: "translateY(-3px)" },
+        },
         // A sticker landing in the chat.
         // The bell when something new arrives: a quick swing from the top, then still.
         "bell-ring": {
@@ -193,6 +200,7 @@ export default {
         },
       },
       animation: {
+        "typing-dot": "typing-dot 1.2s ease-in-out infinite",
         "bell-ring": "bell-ring 0.8s cubic-bezier(.36,.07,.19,.97) both",
         "sticker-pop": "sticker-pop 0.45s cubic-bezier(.2,.8,.3,1.2) both",
         marquee: "marquee 9s linear infinite",

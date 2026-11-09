@@ -33,6 +33,8 @@ import { useDebouncedValue } from "@/hooks/use-debounced-value";
 import { dbChannel } from "@/lib/realtime";
 import EmptyState from "@/components/EmptyState";
 import InviteFriends from "@/components/InviteFriends";
+import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
+import PersonRow from "@/components/PersonRow";
 
 /** The Requests / Sent / Friends / Suggested tabs as round chips. */
 const FRIEND_CHIP =
@@ -104,6 +106,7 @@ const Friends = () => {
   const [heldRequests, setHeldRequests] = useState<FriendRequest[] | null>(null);
   const shownRequests = heldRequests ?? pendingRequests;
   const [unfriendTarget, setUnfriendTarget] = useState<Friendship | null>(null);
+  const unfriending = useRef(new Set<string>());
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<Profile[]>([]);
@@ -211,7 +214,7 @@ const Friends = () => {
     );
     setFriends(
       (friendships ?? [])
-        .filter((f) => byId.has(otherId(f)))
+        .filter((f) => byId.has(otherId(f)) && !unfriending.current.has(f.id))
         .map((f) => ({ id: f.id, friend: byId.get(otherId(f))!, created_at: f.created_at }))
         .sort((a, b) => (a.friend.full_name ?? "").localeCompare(b.friend.full_name ?? ""))
     );
@@ -277,23 +280,30 @@ const Friends = () => {
     }
   }, [currentUserId, loadData, setupRealtimeSubscription]);
 
+  // Shown as accepted at once; put back if saving fails.
   const handleAccept = async (requestId: string) => {
+    setHeldRequests((held) => held ?? pendingRequests);
+    setJustAccepted((s) => new Set(s).add(requestId));
     const { error } = await supabase
       .from("friendships")
       .update({ status: "accepted" })
       .eq("id", requestId);
 
     if (error) {
+      setJustAccepted((s) => {
+        const next = new Set(s);
+        next.delete(requestId);
+        if (next.size === 0) setHeldRequests(null);
+        return next;
+      });
       toast({
-        title: "Error",
+        title: "Couldn't accept the request",
         description: friendlyError(error),
         variant: "destructive",
       });
       return;
     }
 
-    setHeldRequests((held) => held ?? pendingRequests);
-    setJustAccepted((s) => new Set(s).add(requestId));
     window.setTimeout(() => {
       setJustAccepted((s) => {
         const next = new Set(s);
@@ -306,14 +316,18 @@ const Friends = () => {
   };
 
   const handleDecline = async (requestId: string) => {
+    // Gone from the list at once; back if it fails.
+    const before = pendingRequests;
+    setPendingRequests((list) => list.filter((r) => r.id !== requestId));
     const { error } = await supabase
       .from("friendships")
       .delete()
       .eq("id", requestId);
 
     if (error) {
+      setPendingRequests(before);
       toast({
-        title: "Error",
+        title: "Couldn't decline the request",
         description: friendlyError(error),
         variant: "destructive",
       });
@@ -379,14 +393,17 @@ const Friends = () => {
   };
 
   const handleCancelRequest = async (requestId: string) => {
+    const before = sentRequests;
+    setSentRequests((list) => list.filter((r) => r.id !== requestId));
     const { error } = await supabase
       .from("friendships")
       .delete()
       .eq("id", requestId);
 
     if (error) {
+      setSentRequests(before);
       toast({
-        title: "Error",
+        title: "Couldn't cancel the request",
         description: friendlyError(error),
         variant: "destructive",
       });
@@ -396,20 +413,32 @@ const Friends = () => {
     loadData();
   };
 
+  // Gone from the list at once, with Undo for 5 seconds; only really removed after that.
   const handleUnfriend = async () => {
     if (!unfriendTarget) return;
-    const { error } = await supabase
-      .from("friendships")
-      .delete()
-      .eq("id", unfriendTarget.id);
-
-    if (error) {
-      toast({ title: "Error", description: friendlyError(error), variant: "destructive" });
-    } else {
-      toast({ title: `Unfriended ${unfriendTarget.friend.full_name || "user"}` });
-      loadData();
-    }
+    const target = unfriendTarget;
     setUnfriendTarget(null);
+    // Kept out of the list even if it reloads meanwhile.
+    unfriending.current.add(target.id);
+    setFriends((list) => list.filter((f) => f.id !== target.id));
+    const key = `unfriend:${target.id}`;
+    deleteLater(key, 5000, {
+      run: async () => {
+        const { error } = await supabase.from("friendships").delete().eq("id", target.id);
+        unfriending.current.delete(target.id);
+        if (error) toast({ title: "Couldn't remove friend", description: friendlyError(error), variant: "destructive" });
+        loadData();
+      },
+    });
+    toast({
+      title: `Removed ${target.friend.full_name || "friend"}`,
+      duration: 5000,
+      action: (
+        <ToastAction altText="Undo remove friend" onClick={() => { cancelDelete(key); unfriending.current.delete(target.id); loadData(); }}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   // Search waits for typing to pause, ignores replies to older searches, and leaves you out.
@@ -501,7 +530,7 @@ const Friends = () => {
   );
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="content-fade min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
       <PullToRefresh onRefresh={async () => { await loadData(); }}>
@@ -673,39 +702,18 @@ const Friends = () => {
               ) : (
                 <div className="divide-y">
                   {sentRequests.map((request) => (
-                    <div key={request.id} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-                      <Link to={`/profile/${request.profiles.id}`} aria-label={request.profiles.full_name || "Profile"}>
-                        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
-                          <AvatarImage src={request.profiles.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {request.profiles.full_name?.[0]?.toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                      </Link>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex min-w-0 items-center gap-1.5">
-                          <Link to={`/profile/${request.profiles.id}`} className="min-w-0">
-                            <p className="font-semibold truncate hover:underline">
-                              {request.profiles.full_name || "Anonymous"}
-                            </p>
-                          </Link>
-                          <span className="shrink-0 rounded-full bg-secondary px-2 py-0.5 text-[11px] font-semibold text-muted-foreground">Pending</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground">
-                          Sent {formatDistanceToNow(new Date(request.created_at), {
-                            addSuffix: true,
-                          })}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleCancelRequest(request.id)}
-                        className="h-8 shrink-0 rounded-full px-3 font-semibold"
-                      >
-                        Cancel
-                      </Button>
-                    </div>
+                    <PersonRow
+                      key={request.id}
+                      id={request.profiles.id}
+                      name={request.profiles.full_name}
+                      avatarUrl={request.profiles.avatar_url}
+                      subtitle={`Request sent ${formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}`}
+                      actions={
+                        <Button size="sm" variant="secondary" onClick={() => handleCancelRequest(request.id)} className="h-9 rounded-full px-3.5 font-semibold">
+                          Cancel
+                        </Button>
+                      }
+                    />
                   ))}
                 </div>
               )}
@@ -722,45 +730,29 @@ const Friends = () => {
               ) : (
                 <div className="divide-y">
                   {friends.map((friendship) => (
-                    <div
+                    <PersonRow
                       key={friendship.id}
-                      className="flex items-center gap-4 p-4 hover:bg-accent/50 transition-colors"
-                    >
-                      <Link to={`/profile/${friendship.friend.id}`} className="relative shrink-0" aria-label={friendship.friend.full_name || "Profile"}>
-                        <Avatar className="h-12 w-12 sm:h-14 sm:w-14">
-                          <AvatarImage src={friendship.friend.avatar_url || undefined} />
-                          <AvatarFallback>
-                            {friendship.friend.full_name?.[0]?.toUpperCase() || "U"}
-                          </AvatarFallback>
-                        </Avatar>
-                        {isOnline(friendship.friend) && (
-                          <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full bg-emerald-500 ring-2 ring-card" aria-hidden />
-                        )}
-                      </Link>
-                      <div className="flex-1 min-w-0">
-                        <Link to={`/profile/${friendship.friend.id}`}>
-                          <p className="font-semibold truncate hover:underline">
-                            {friendship.friend.full_name || "Anonymous"}
-                          </p>
-                        </Link>
-                        <p className={cn("text-xs", isOnline(friendship.friend) ? "font-medium text-emerald-600 dark:text-emerald-400" : "text-muted-foreground")}>
-                          {isOnline(friendship.friend)
-                            ? "Online"
-                            : friendship.friend.last_seen
-                              ? lastSeen(friendship.friend.last_seen)
-                              : `Friends since ${formatDistanceToNow(toDate(friendship.created_at), { addSuffix: true })}`}
-                        </p>
-                      </div>
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        className="text-muted-foreground hover:text-destructive"
-                        onClick={() => setUnfriendTarget(friendship)}
-                        aria-label={`Unfriend ${friendship.friend.full_name || "this person"}`}
-                      >
-                        <UserMinus className="h-4 w-4" />
-                      </Button>
-                    </div>
+                      id={friendship.friend.id}
+                      name={friendship.friend.full_name}
+                      avatarUrl={friendship.friend.avatar_url}
+                      online={isOnline(friendship.friend)}
+                      subtitle={isOnline(friendship.friend)
+                        ? "Online"
+                        : friendship.friend.last_seen
+                          ? lastSeen(friendship.friend.last_seen)
+                          : `Friends since ${formatDistanceToNow(toDate(friendship.created_at), { addSuffix: true })}`}
+                      actions={
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-10 w-10 rounded-full text-muted-foreground hover:text-destructive"
+                          onClick={() => setUnfriendTarget(friendship)}
+                          aria-label={`Unfriend ${friendship.friend.full_name || "this person"}`}
+                        >
+                          <UserMinus className="h-5 w-5" />
+                        </Button>
+                      }
+                    />
                   ))}
                 </div>
               )}

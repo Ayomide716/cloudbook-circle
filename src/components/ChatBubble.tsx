@@ -161,9 +161,19 @@ const ChatBubble = ({
     </span>
   );
 
+  // A message you just sent pops up from the corner; a new one from them slides in.
+  const justArrived = isCurrentUser
+    ? message.id.startsWith("temp-")
+    : !!message.created_at && Date.now() - new Date(message.created_at).getTime() < 3000;
+
   return (
     <div
-      className={cn("flex group relative touch-pan-y", isCurrentUser ? "justify-end" : "justify-start")}
+      className={cn(
+        "flex group relative touch-pan-y",
+        isCurrentUser ? "justify-end" : "justify-start",
+        justArrived && "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-bottom-2 duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
+        justArrived && (isCurrentUser ? "origin-bottom-right" : "origin-bottom-left"),
+      )}
       {...swipe.handlers}
     >
       {swipe.swiping && (

@@ -105,7 +105,7 @@ const ProfileCompletionPrompt = ({ userId }: ProfileCompletionPromptProps) => {
         </Button>
         <button
           onClick={() => { write(dismissKey); setDismissed(true); }}
-          className="-mr-1 shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+          className="tap-target -mr-1 shrink-0 rounded-full p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
           aria-label="Dismiss"
         >
           <X className="h-4 w-4" />

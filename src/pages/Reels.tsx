@@ -29,6 +29,7 @@ import { cn, friendlyError } from "@/lib/utils";
 import { m as motion } from "framer-motion";
 import { POSTED_EVENT, isVideoJobRef, postWhenReady } from "@/lib/video-jobs";
 import { deleteWithUndo } from "@/lib/undo-delete";
+import { useDarkStatusBar } from "@/lib/status-bar";
 
 interface Reel {
   id: string;
@@ -51,6 +52,8 @@ interface Reel {
 }
 
 export default function Reels() {
+  // Black status bar with light icons over the reels, whatever the theme.
+  useDarkStatusBar();
   const navigate = useNavigate();
   const { reelId: paramReelId } = useParams();
   useSEO({ title: "Reels", description: "Watch short videos on Ember." });

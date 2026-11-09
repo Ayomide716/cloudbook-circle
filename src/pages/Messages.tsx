@@ -51,6 +51,7 @@ import EmptyState from "@/components/EmptyState";
 import ActiveNow from "@/components/chat/ActiveNow";
 import { useOnlineFriends } from "@/hooks/use-online-friends";
 import { useInboxTyping } from "@/hooks/use-inbox-typing";
+import TypingBubble from "@/components/chat/TypingBubble";
 
 interface Profile {
   id: string;
@@ -708,7 +709,7 @@ const Messages = () => {
     // Starts under the app's header (drawn once for all pages) and ends above the keyboard.
     // Phones have no app header here: the chat list starts under the status bar.
     <div className={cn(
-      "fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] max-md:top-[env(safe-area-inset-top,0px)] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background",
+      "content-fade fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] max-md:top-[env(safe-area-inset-top,0px)] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background",
       // Phones: an open chat takes the whole screen, as in WhatsApp.
       (selectedConversation || showAIChat || selectedGroup) && "max-md:top-0"
     )}>
@@ -1008,18 +1009,7 @@ const Messages = () => {
                     hasMore={hasMoreMessages}
                     footer={
                       typingUsers.length > 0 ? (
-                        <div className="flex justify-start animate-fade-in px-3 pb-2">
-                          <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-2.5">
-                            <div className="flex items-center gap-1">
-                              <div className="flex gap-1">
-                                {[0, 150, 300].map((d) => (
-                                  <span key={d} className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                                ))}
-                              </div>
-                              <span className="text-xs text-muted-foreground ml-2">{typingUsers[0].name} is typing...</span>
-                            </div>
-                          </div>
-                        </div>
+                        <TypingBubble name={typingUsers[0].name} />
                       ) : null
                     }
                   />

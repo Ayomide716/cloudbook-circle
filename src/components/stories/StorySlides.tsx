@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Trash2, X } from "@/components/icons";
 import { BLANK_POSTER } from "@/lib/video-poster";
+import DarkStatusBar from "@/components/DarkStatusBar";
 
 export interface Slide {
   id: string;
@@ -67,6 +68,7 @@ const StorySlides = ({ title, slides, onClose, onDelete }: StorySlidesProps) => 
 
   return createPortal(
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black text-white" role="dialog" aria-label={title}>
+      <DarkStatusBar />
       <div className="absolute inset-x-0 top-0 z-20 space-y-2 px-2 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)]">
         <div className="flex gap-0.5">
           {slides.map((s, i) => (

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -209,6 +209,8 @@ const Pages = () => {
                   onNavigate={(id) => navigate(`/pages/${id}`)}
                   getCategoryLabel={getCategoryLabel}
                   emptyMessage="No pages yet"
+                  emptyText="Pages are for businesses, shops, churches and communities."
+                  emptyAction={<Button onClick={() => setShowCreate(true)} className="rounded-full px-5">Create a page</Button>}
                 />
               )}
             </TabsContent>
@@ -223,6 +225,8 @@ const Pages = () => {
                   onNavigate={(id) => navigate(`/pages/${id}`)}
                   getCategoryLabel={getCategoryLabel}
                   emptyMessage="You're not following any pages yet."
+                  emptyText="Follow a page to see its posts and news here."
+                  emptyAction={<Button onClick={() => setActiveTab("discover")} className="rounded-full px-5">Discover pages</Button>}
                 />
               )}
             </TabsContent>
@@ -237,6 +241,8 @@ const Pages = () => {
                   onNavigate={(id) => navigate(`/pages/${id}`)}
                   getCategoryLabel={getCategoryLabel}
                   emptyMessage="You haven't created any pages yet."
+                  emptyText="Give your business or community its own page."
+                  emptyAction={<Button onClick={() => setShowCreate(true)} className="rounded-full px-5">Create a page</Button>}
                   isOwner
                 />
               )}
@@ -256,13 +262,16 @@ interface PageGridProps {
   onNavigate: (id: string) => void;
   getCategoryLabel: (v: string) => string;
   emptyMessage: string;
+  emptyText?: string;
+  /** The next step from an empty list, e.g. "Create a page". */
+  emptyAction?: ReactNode;
   isOwner?: boolean;
 }
 
-const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNavigate, getCategoryLabel, emptyMessage, isOwner }: PageGridProps) => {
+const PageGrid = ({ pages, followedPageIds, currentUserId, onToggleFollow, onNavigate, getCategoryLabel, emptyMessage, emptyText, emptyAction, isOwner }: PageGridProps) => {
   if (pages.length === 0) {
     return (
-      <EmptyState emoji="flag" title={emptyMessage} />
+      <EmptyState emoji="flag" title={emptyMessage} text={emptyText} action={emptyAction} />
     );
   }
 

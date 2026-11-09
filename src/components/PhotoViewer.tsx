@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { ChevronLeft, ChevronRight, X } from "@/components/icons";
+import DarkStatusBar from "@/components/DarkStatusBar";
+import { takeTapOrigin } from "@/lib/tap-origin";
 
 interface PhotoViewerProps {
   images: string[];
@@ -31,6 +33,30 @@ const PhotoViewer = ({ images, index, onIndexChange, caption }: PhotoViewerProps
   const [touching, setTouching] = useState(false);
   const gesture = useRef<{ start: Point; pan: Point; zoom: number; dist: number; pinched: boolean } | null>(null);
   const lastTap = useRef(0);
+
+  // Opening: the photo grows out of the thumbnail you tapped, then the viewer is as before.
+  const origin = useRef<ReturnType<typeof takeTapOrigin>>(null);
+  useEffect(() => {
+    origin.current = open ? takeTapOrigin() : null;
+  }, [open]);
+  const growFromOrigin = (img: HTMLImageElement) => {
+    const from = origin.current;
+    origin.current = null;
+    // Not if the photo took a while to arrive: growing it then would only delay it.
+    if (!from || Date.now() - from.at > 1500 || matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const to = img.getBoundingClientRect();
+    if (!to.width || !to.height) return;
+    const scale = Math.max(from.rect.width / to.width, from.rect.height / to.height);
+    const dx = from.rect.left + from.rect.width / 2 - (to.left + to.width / 2);
+    const dy = from.rect.top + from.rect.height / 2 - (to.top + to.height / 2);
+    img.animate(
+      [
+        { transform: `translate(${dx}px, ${dy}px) scale(${scale})`, borderRadius: from.radius },
+        { transform: "none", borderRadius: "0px" },
+      ],
+      { duration: 300, easing: "cubic-bezier(0.2, 0, 0, 1)" },
+    );
+  };
 
   // Each photo starts whole.
   useEffect(() => {
@@ -130,8 +156,9 @@ const PhotoViewer = ({ images, index, onIndexChange, caption }: PhotoViewerProps
     <DialogPrimitive.Root open={open} onOpenChange={(o) => !o && onIndexChange(null)}>
       <DialogPrimitive.Portal>
         {/* The black fades as you pull the photo down, showing the page behind. */}
-        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black" style={{ opacity: 1 - Math.min(pull / 400, 0.7) }} />
+        <DialogPrimitive.Overlay className="fixed inset-0 z-50 bg-black animate-in fade-in-0 duration-200" style={{ opacity: 1 - Math.min(pull / 400, 0.7) }} />
         <DialogPrimitive.Content className="fixed inset-0 z-50 flex flex-col text-white outline-none">
+          <DarkStatusBar />
           <DialogPrimitive.Title className="sr-only">Photo viewer</DialogPrimitive.Title>
           <DialogPrimitive.Description className="sr-only">
             Photo {current + 1} of {images.length}. Use the arrow keys or swipe to see the others.
@@ -163,7 +190,10 @@ const PhotoViewer = ({ images, index, onIndexChange, caption }: PhotoViewerProps
               key={images[current]}
               src={images[current]}
               alt={`Photo ${current + 1} of ${images.length}`}
-              onLoad={() => setLoaded((prev) => ({ ...prev, [images[current]]: true }))}
+              onLoad={(e) => {
+                setLoaded((prev) => ({ ...prev, [images[current]]: true }));
+                growFromOrigin(e.currentTarget);
+              }}
               className="max-h-full max-w-full select-none object-contain"
               style={{
                 transform: `translate(${pan.x}px, ${pan.y + pull}px) scale(${zoom * (1 - Math.min(pull / 1500, 0.2))})`,

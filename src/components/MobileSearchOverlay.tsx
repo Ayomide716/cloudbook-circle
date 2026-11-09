@@ -6,6 +6,7 @@ import { Search, X, ArrowLeft, User, FileText, Users, Clock } from "@/components
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import EmptyState from "@/components/EmptyState";
+import PersonRow from "@/components/PersonRow";
 
 interface SearchResult {
   type: "user" | "post" | "group";
@@ -177,25 +178,34 @@ export default function MobileSearchOverlay({ open, onClose }: MobileSearchOverl
           <EmptyState emoji="search" title={`Nothing for “${query}”`} text="Try a different name or word." />
         ) : results.length > 0 ? (
           <div className="py-2">
-            {results.map((item) => (
+            {results.map((item) => item.type === "user" ? (
+              <PersonRow
+                key={`${item.type}-${item.id}`}
+                id={item.id}
+                name={item.title}
+                avatarUrl={item.avatar || null}
+                subtitle="Person"
+                onSelect={() => handleSelect(item)}
+              />
+            ) : (
               <button
                 key={`${item.type}-${item.id}`}
                 onClick={() => handleSelect(item)}
-                className="w-full flex items-center gap-3 px-4 py-3 hover:bg-accent active:bg-accent/80 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-accent transition-colors text-left"
               >
-                {item.type === "user" || item.type === "group" ? (
-                  <Avatar className="h-11 w-11">
+                {item.type === "group" ? (
+                  <Avatar className="h-12 w-12">
                     <AvatarImage src={item.avatar || ""} />
                     <AvatarFallback className="bg-secondary text-sm">{item.title[0]?.toUpperCase()}</AvatarFallback>
                   </Avatar>
                 ) : (
-                  <div className="h-11 w-11 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
+                  <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center text-muted-foreground">
                     {getIcon(item.type)}
                   </div>
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{item.title}</p>
-                  <p className="text-xs text-muted-foreground capitalize">{item.type}</p>
+                  <p className="text-[15px] font-semibold truncate">{item.title}</p>
+                  <p className="text-[13px] text-muted-foreground capitalize">{item.type}</p>
                 </div>
               </button>
             ))}

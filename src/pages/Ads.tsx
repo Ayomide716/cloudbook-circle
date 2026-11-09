@@ -1,5 +1,5 @@
 import EmptyState from "@/components/EmptyState";
-import { HeaderAction, PageHeader } from "@/components/layout/PageHeader";
+import { HeaderAction, PageHeader, Chips } from "@/components/layout/PageHeader";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,7 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
@@ -77,6 +77,7 @@ const Ads = () => {
   const [stats, setStats] = useState<Record<string, CampaignStats>>({});
   const [loading, setLoading] = useState(true);
   const [showCreate, setShowCreate] = useState(false);
+  const [adsTab, setAdsTab] = useState<"campaigns" | "analytics" | "credits">("campaigns");
   const [pendingDelete, setPendingDelete] = useState<Campaign | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
 
@@ -288,13 +289,25 @@ const Ads = () => {
     <div className="min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
 
-      <div className="max-w-4xl mx-auto px-4 py-6 pb-28 md:pb-8 space-y-6">
+      {/* The same top as every other page: header at the top on phones, chips for sections. */}
+      <div className="max-w-4xl mx-auto px-4 pb-28 sm:py-6 md:pb-8 space-y-4 sm:space-y-6">
         <PageHeader
           back
           title="Ad Manager"
-          className="!mb-0 !pb-0"
+          className="-mx-4 !mb-0 sm:mx-0"
           actions={<HeaderAction icon={Plus} label="New campaign" primary onClick={() => setShowCreate(true)} />}
-        />
+        >
+          <Chips
+            label="Show"
+            value={adsTab}
+            onChange={setAdsTab}
+            options={[
+              { value: "campaigns", label: "Campaigns" },
+              { value: "analytics", label: "Analytics" },
+              { value: "credits", label: "Credits" },
+            ]}
+          />
+        </PageHeader>
 
         {/* Stats Overview */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -307,12 +320,8 @@ const Ads = () => {
           ))}
         </div>
 
-        <Tabs defaultValue="campaigns">
-          <TabsList className="w-full">
-            <TabsTrigger value="campaigns" className="flex-1">Campaigns</TabsTrigger>
-            <TabsTrigger value="analytics" className="flex-1">Analytics</TabsTrigger>
-            <TabsTrigger value="credits" className="flex-1">Credits</TabsTrigger>
-          </TabsList>
+        <Tabs value={adsTab} onValueChange={(v) => setAdsTab(v as typeof adsTab)}>
+
 
           <TabsContent value="campaigns" className="space-y-3 mt-4">
             {campaigns.length === 0 ? (

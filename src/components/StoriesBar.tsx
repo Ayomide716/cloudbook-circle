@@ -29,6 +29,7 @@ import { cn, friendlyError } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
 import StoryReplyBar from "@/components/stories/StoryReplyBar";
+import DarkStatusBar from "@/components/DarkStatusBar";
 
 /** The emoji for each face, in the message the story's owner gets. */
 const REACTION_CHARS: Record<string, string> = {
@@ -544,6 +545,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           animations) can offset the full-screen viewer. */}
       {viewerOpen && activeGroup && activeStory && createPortal(
         <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] z-[100] bg-black flex items-center justify-center">
+          <DarkStatusBar />
           {/* Progress bars */}
           {/* Below the phone's status bar (the Android app and installed apps draw under it). */}
           <div className="absolute top-0 left-0 right-0 z-20 flex gap-0.5 px-2 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] sm:px-4">
@@ -581,7 +583,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-white/20 h-8 w-8"
+                  className="tap-target text-white hover:bg-white/20 h-10 w-10 rounded-full [&_svg]:size-5"
                   onClick={() => { setIsPaused(true); setConfirmDelete(true); }}
                   aria-label="Delete story"
                 >
@@ -589,14 +591,14 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                 </Button>
               )}
               {activeStory.media_type === "video" && (
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setStoryMuted((m) => !m)} aria-label={storyMuted ? "Turn sound on" : "Mute"}>
+                <Button variant="ghost" size="icon" className="tap-target text-white hover:bg-white/20 h-10 w-10 rounded-full [&_svg]:size-5" onClick={() => setStoryMuted((m) => !m)} aria-label={storyMuted ? "Turn sound on" : "Mute"}>
                   {storyMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
               )}
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setIsPaused(p => !p)} aria-label={isPaused ? "Play" : "Pause"}>
+              <Button variant="ghost" size="icon" className="tap-target text-white hover:bg-white/20 h-10 w-10 rounded-full [&_svg]:size-5" onClick={() => setIsPaused(p => !p)} aria-label={isPaused ? "Play" : "Pause"}>
                 {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               </Button>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setViewerOpen(false)} aria-label="Close">
+              <Button variant="ghost" size="icon" className="tap-target text-white hover:bg-white/20 h-10 w-10 rounded-full [&_svg]:size-5" onClick={() => setViewerOpen(false)} aria-label="Close">
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -742,7 +744,7 @@ const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: 
           type="button"
           onClick={onAdd ?? onClick}
           aria-label="Add to your story"
-          className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"
+          className="tap-target absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={3} />
         </button>
