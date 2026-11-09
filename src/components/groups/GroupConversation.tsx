@@ -42,6 +42,8 @@ import ChatAlbum from "@/components/chat/ChatAlbum";
 import { EventComposer, PollComposer } from "@/components/chat/ChatComposers";
 import { DeleteMessageDialog, PinnedBar } from "@/components/chat/MessageDialogs";
 import GroupReadInfo from "@/components/groups/GroupReadInfo";
+import WallpaperDialog, { WallpaperLayer } from "@/components/chat/ChatWallpaper";
+import { useWallpaper } from "@/lib/chat-wallpaper";
 import { useKeyboard } from "@/lib/keyboard-height";
 import { groupSeenAt, nameColour } from "@/lib/group-chats";
 import type { ChatEvent, ChatFile, ChatPoll } from "@/lib/chat-extras";
@@ -139,6 +141,9 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
   const [pollOpen, setPollOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
   const [selection, setSelection] = useState<string[] | null>(null);
+  // Your own photo behind this chat (or all chats), as on WhatsApp.
+  const wallpaper = useWallpaper(currentUserId, `g:${group.id}`);
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
   // When you last looked at this chat (before now): the "unread messages" line goes there.
   const [seenBefore] = useState(() => groupSeenAt(currentUserId, group.id));
   useAutoGrow(boxRef, text, 150);
@@ -763,7 +768,8 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     : "Only you");
 
   return (
-    <div className="relative flex h-full min-h-0 flex-col">
+    <div className={cn("relative isolate flex h-full min-h-0 flex-col", wallpaper && "photo-wallpaper")}>
+      <WallpaperLayer wallpaper={wallpaper} />
       {/* Picking messages: what you can do with them, in the header's place (as on WhatsApp). */}
       {selection && (
         <div role="toolbar" aria-label="Selected messages" className="flex flex-shrink-0 items-center gap-1 border-b bg-card px-1.5 py-1.5 pt-[max(0.375rem,env(safe-area-inset-top))] sm:px-3">
@@ -976,6 +982,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
         onForEveryone={() => { if (askDelete) void deleteMessage(askDelete); }}
         onForMe={() => { if (askDelete) void deleteForMe(askDelete); }}
       />
+      <WallpaperDialog open={wallpaperOpen} onOpenChange={setWallpaperOpen} userId={currentUserId} chatKey={`g:${group.id}`} chatName={group.name} />
       <GroupReadInfo message={infoFor} members={members} readTimes={readTimes} currentUserId={currentUserId} onClose={() => setInfoFor(null)} />
 
       <PhotoViewer images={viewer ? [viewer.url] : []} index={viewer ? 0 : null} onIndexChange={(i) => { if (i === null) setViewer(null); }} />
@@ -993,6 +1000,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
           onToggleMute={onToggleMute}
           onGroupUpdated={onGroupUpdated}
           onOpenGallery={(tab) => { setShowInfo(false); setGallery(tab); }}
+          onWallpaper={() => { setShowInfo(false); setWallpaperOpen(true); }}
         />
       )}
 

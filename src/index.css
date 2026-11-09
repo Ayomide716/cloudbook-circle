@@ -555,3 +555,9 @@
   animation: seek-flash 0.7s ease-out forwards;
 }
 
+
+/* A photo as the chat's wallpaper (components/chat/ChatWallpaper): the patterned background
+   steps aside so the photo shows through behind the messages and the message bar. */
+.photo-wallpaper .chat-wallpaper {
+  background: transparent !important;
+}
