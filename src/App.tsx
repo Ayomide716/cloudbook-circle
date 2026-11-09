@@ -21,6 +21,7 @@ import { useSession } from "@/hooks/use-session";
 import { NavShellContext } from "@/lib/nav-shell";
 import { AppNavigation } from "@/components/Navigation";
 import EdgeSwipeBack from "@/components/EdgeSwipeBack";
+import TabSwipe from "@/components/TabSwipe";
 import BootBars from "@/components/skeletons/BootBars";
 
 // Shown after a delay, so it shouldn't weigh down the first load.
@@ -80,9 +81,15 @@ const TAB_ROOTS = ["/", "/friends", "/groups", "/notifications", "/menu", "/mess
 
 const AnimatedPage = ({ children }: { children: React.ReactNode }) => {
   const navigationType = useNavigationType();
-  const { pathname } = useLocation();
+  const { pathname, state } = useLocation();
+  // Swiping between the main tabs slides the way your finger went.
+  const tabSwipe = (state as { tabSwipe?: "next" | "prev" } | null)?.tabSwipe;
   const motion =
-    navigationType === "POP"
+    tabSwipe === "next"
+      ? "motion-safe:slide-in-from-right-[18%] duration-300"
+      : tabSwipe === "prev"
+        ? "motion-safe:slide-in-from-left-[18%] duration-300"
+        : navigationType === "POP"
       ? "motion-safe:slide-in-from-left-[18%] duration-300"
       : TAB_ROOTS.includes(pathname)
         ? "motion-safe:slide-in-from-bottom-2 duration-200"
@@ -162,6 +169,7 @@ const AppShell = ({ children }: { children: ReactNode }) => {
     <NavShellContext.Provider value={active ? shell : null}>
       {active && <AppNavigation currentUserId={session.user.id} hideMobileTopBar={hideMobileTopBar} />}
       {session && <EdgeSwipeBack />}
+      {session && <TabSwipe />}
       {session && <Suspense fallback={null}><LinkPeek /></Suspense>}
       {children}
     </NavShellContext.Provider>

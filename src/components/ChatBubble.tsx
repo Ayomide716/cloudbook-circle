@@ -14,6 +14,8 @@ import { useMessageReactions } from "@/hooks/use-message-reactions";
 import { useLongPress } from "@/hooks/use-long-press";
 import { GIPHY_STICKER, previewText, stickerId, stickerName, stickerUrl } from "@/lib/stickers";
 import { isGiphyMedia } from "@/lib/giphy";
+import ViewOnceBubble from "@/components/chat/ViewOnceBubble";
+import { isViewOnce } from "@/lib/view-once";
 
 /** The length saved in a voice note's text, "🎤 Voice message (1:05)" → 65. */
 const voiceSeconds = (content: string) => {
@@ -36,6 +38,9 @@ interface ChatMessage {
   forwarded?: boolean;
   /** When it reached the other person's app (two grey ticks). */
   delivered_at?: string | null;
+  /** A view-once photo (lib/view-once), and when they opened it. */
+  view_once?: boolean;
+  view_once_opened_at?: string | null;
 }
 
 interface ChatBubbleProps {
@@ -116,11 +121,12 @@ const ChatBubble = ({
   const isMedia = message.image_url && !stickerSrc && !message.content?.startsWith("🎤");
   const isVideo = isMedia && (message.image_url?.includes('.mp4') || message.image_url?.includes('.mov') || message.image_url?.includes('.webm'));
   const isGif = isMedia && (message.image_url?.includes('giphy.com') || message.image_url?.includes('tenor.com'));
-  const hasText = !stickerSrc && !!message.content && message.content !== "Sent an image" && !message.content.startsWith("🎤");
+  const once = isViewOnce(message);
+  const hasText = !once && !stickerSrc && !!message.content && message.content !== "Sent an image" && !message.content.startsWith("🎤");
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(message) },
-    ...(onForward ? [{ label: "Forward", icon: <Forward className="mr-2 h-4 w-4" />, onSelect: () => onForward(message) }] : []),
+    ...(onForward && !once ? [{ label: "Forward", icon: <Forward className="mr-2 h-4 w-4" />, onSelect: () => onForward(message) }] : []),
     ...(onToggleStar ? [{ label: starred ? "Unstar" : "Star", icon: starred ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />, onSelect: () => onToggleStar(message) }] : []),
     ...(hasText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(message.content) }] : []),
     ...(isCurrentUser && !isMedia && !isVoice && !stickerSrc ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(message) }] : []),
@@ -311,8 +317,11 @@ const ChatBubble = ({
           {isMedia && !isVideo && !isGif && message.image_url && (
             <PhotoViewer images={[message.image_url]} index={viewing} onIndexChange={setViewing} />
           )}
+          {once && (
+            <ViewOnceBubble messageId={message.id} mine={isCurrentUser} openedAt={message.view_once_opened_at} meta={meta} />
+          )}
           {/* Text (time and ticks float at its end, like most messengers) */}
-          {hasText ? (
+          {once ? null : hasText ? (
             <>
               <p className={cn("text-[15px] leading-snug break-words whitespace-pre-wrap", isMedia && "px-2 pt-1 pb-1")}>
                 <LinkedText text={message.content} className={isCurrentUser ? "underline decoration-current/60" : "text-primary underline decoration-primary/40"} />

@@ -49,6 +49,7 @@ import TipButton from "./TipButton";
 import { isPostSaved } from "@/lib/saved-posts";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import ReactorsSheet from "@/components/ReactorsSheet";
+import AnimatedCount from "@/components/AnimatedCount";
 
 export interface PostComment {
   id: string;
@@ -888,7 +889,7 @@ const PostCard = ({
               className="-ml-1.5 flex h-11 items-center rounded-full px-1.5 text-[14px] font-semibold tabular-nums hover:underline"
               aria-label={`See who reacted: ${reactionSummary}`}
             >
-              {compactCount(totalReactions)}
+              <AnimatedCount value={totalReactions} format={compactCount} />
             </button>
           )}
 
@@ -900,7 +901,7 @@ const PostCard = ({
             aria-label={`Comment${shownComments.length ? `, ${shownComments.length} ${shownComments.length === 1 ? "comment" : "comments"}` : ""}`}
           >
             <MessageCircle className="h-6 w-6" />
-            {shownComments.length > 0 && <span className="tabular-nums">{compactCount(shownComments.length)}</span>}
+            {shownComments.length > 0 && <AnimatedCount value={shownComments.length} format={compactCount} />}
           </Button>
 
           <Button

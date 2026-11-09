@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Loader2, X, MapPin, Globe, BarChart3 } from "@/components/icons";
+import { Loader2, X, MapPin, Globe, BarChart3, SlidersHorizontal } from "@/components/icons";
 import { Image as ImageIcon, Video as VideoIcon } from "@/components/icons";
 import TagFriends, { type TaggedFriend } from "@/components/TagFriends";
 import { previewsFor } from "@/lib/photo-previews";
@@ -18,8 +18,10 @@ import VideoJobStatus from "./VideoJobStatus";
 import { POSTED_EVENT, cancelVideoJob, isVideoJobRef, postWhenReady, useVideoJob } from "@/lib/video-jobs";
 import PollCreator from "./PollCreator";
 import MultiImageUpload from "./MultiImageUpload";
+import { uploadPhoto } from "@/lib/upload-photo";
+import PhotoEditor from "@/components/PhotoEditor";
 import MentionInput from "./MentionInput";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { BACKGROUND_MAX_LENGTH, POST_BACKGROUNDS, backgroundCss } from "@/lib/post-backgrounds";
 import { features } from "@/lib/features";
 import { encodeMentions, plainMentions, type Mention } from "@/lib/mentions";
@@ -45,6 +47,36 @@ interface CreatePostProps {
 const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
   const [content, setContent] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  // The picked photos, to edit (crop, filters…) after they're attached.
+  const originals = useRef<Record<string, File>>({});
+  const [editing, setEditing] = useState<string | null>(null);
+  const [savingEdit, setSavingEdit] = useState<string | null>(null);
+  const applyEdit = async (oldUrl: string, edited: File) => {
+    setEditing(null);
+    setSavingEdit(oldUrl);
+    try {
+      const url = await uploadPhoto("post-images", currentUser.id, edited);
+      originals.current[url] = edited;
+      setImageUrls((list) => list.map((u) => (u === oldUrl ? url : u)));
+    } catch (error) {
+      toast({ title: "Couldn't save the edited photo", description: friendlyError(error), variant: "destructive" });
+    } finally {
+      setSavingEdit(null);
+    }
+  };
+  // An "Edit" button on an attached photo.
+  const editButton = (url: string, small?: boolean) => (
+    <button
+      type="button"
+      onClick={() => setEditing(url)}
+      disabled={savingEdit === url}
+      className={cn("absolute left-2 top-2 flex items-center gap-1 rounded-full bg-black/60 px-2.5 font-semibold text-white hover:bg-black/75", small ? "h-7 text-[12px]" : "h-8 text-[13px]")}
+      aria-label="Edit photo"
+    >
+      {savingEdit === url ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <SlidersHorizontal className="h-3.5 w-3.5" />}
+      {!small && "Edit"}
+    </button>
+  );
   const [videoUrl, setVideoUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showDialog, setShowDialog] = useState(false);
@@ -327,7 +359,13 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         {/* Phones: a full page, like Facebook's "New post" (✕ on the left, title in the middle);
             bigger screens: a centred window. */}
-        <DialogContent hideHandle className="sm:max-w-lg max-sm:top-0 max-sm:h-[calc(100dvh-var(--keyboard-inset,0px))] max-sm:max-h-none max-sm:content-start max-sm:rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)] max-sm:[&>button:last-child]:hidden max-sm:flex max-sm:flex-col max-sm:gap-0 max-sm:overflow-hidden max-sm:pb-0">
+        <DialogContent
+          hideHandle
+          // The photo editor opens over this: its taps aren't "outside" the composer.
+          onPointerDownOutside={(e) => { if (editing) e.preventDefault(); }}
+          onInteractOutside={(e) => { if (editing) e.preventDefault(); }}
+          onEscapeKeyDown={(e) => { if (editing) { e.preventDefault(); setEditing(null); } }}
+          className="sm:max-w-lg max-sm:top-0 max-sm:h-[calc(100dvh-var(--keyboard-inset,0px))] max-sm:max-h-none max-sm:content-start max-sm:rounded-none max-sm:border-0 max-sm:pt-[env(safe-area-inset-top)] max-sm:[&>button:last-child]:hidden max-sm:flex max-sm:flex-col max-sm:gap-0 max-sm:overflow-hidden max-sm:pb-0">
           <DialogHeader className="max-sm:-mx-4 max-sm:h-14 max-sm:flex-row max-sm:items-center max-sm:space-y-0 max-sm:border-b max-sm:border-border max-sm:px-2">
             <DialogClose asChild>
               <button type="button" className="sm:hidden flex h-10 w-10 items-center justify-center rounded-full hover:bg-secondary" aria-label="Close">
@@ -510,6 +548,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
             {imageUrls.length === 1 && (
               <div className="relative rounded-xl overflow-hidden bg-muted">
                 <img src={imageUrls[0]} alt="Attached photo" className="w-full max-h-80 object-contain" />
+                {editButton(imageUrls[0])}
                 <button
                   type="button"
                   className="absolute top-2 right-2 h-8 w-8 rounded-full bg-black/60 text-white flex items-center justify-center hover:bg-black/75 transition-colors"
@@ -525,6 +564,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 {imageUrls.map((url, i) => (
                   <div key={url} className="relative aspect-square rounded-xl overflow-hidden bg-muted">
                     <img src={url} alt={`Attached photo ${i + 1}`} className="h-full w-full object-cover" />
+                    {editButton(url, true)}
                     {i === 0 && (
                       <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/60 px-1.5 py-0.5 text-[11px] font-semibold text-white">Cover</span>
                     )}
@@ -552,6 +592,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                   bucket="post-images"
                   userId={currentUser.id}
                   onUploadComplete={(urls) => { setImageUrls(urls); if (urls.length > 0) removeVideo(); }}
+                  onOriginals={(files) => { originals.current = { ...originals.current, ...files }; }}
                   currentImages={imageUrls}
                   showPreview={false}
                 />
@@ -594,6 +635,9 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
           </form>
         </DialogContent>
       </Dialog>
+      {editing && (
+        <PhotoEditor source={originals.current[editing] ?? editing} onCancel={() => setEditing(null)} onDone={(file) => void applyEdit(editing, file)} />
+      )}
     </>
   );
 };

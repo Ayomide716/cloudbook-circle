@@ -1,12 +1,15 @@
 package app.ember.social;
 
+import android.app.PictureInPictureParams;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.view.WindowManager;
 import android.webkit.WebView;
+import androidx.annotation.RequiresApi;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebChromeClient;
 
@@ -20,6 +23,7 @@ public class MainActivity extends BridgeActivity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        registerPlugin(EmberWindowPlugin.class);
         super.onCreate(savedInstanceState);
         EmberChannels.create(this);
         handleCall(getIntent());
@@ -41,6 +45,31 @@ public class MainActivity extends BridgeActivity {
     public void onPause() {
         super.onPause();
         visible = false;
+    }
+
+    /**
+     * Leaving the app while a video plays: carry on in a small floating window. (Android 12 and
+     * later do this by themselves, from setAutoEnterEnabled in EmberWindowPlugin.)
+     */
+    @Override
+    protected void onUserLeaveHint() {
+        super.onUserLeaveHint();
+        if (EmberWindowPlugin.pipAspect != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            enterPip(EmberWindowPlugin.pipAspect);
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.O)
+    private void enterPip(android.util.Rational aspect) {
+        try {
+            enterPictureInPictureMode(new PictureInPictureParams.Builder().setAspectRatio(aspect).build());
+        } catch (Exception ignored) { }
+    }
+
+    @Override
+    public void onPictureInPictureModeChanged(boolean isInPictureInPictureMode, Configuration newConfig) {
+        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig);
+        EmberWindowPlugin.notifyPictureInPicture(isInPictureInPictureMode);
     }
 
     /** Opened from a call notification: show over the lock screen, and the app takes over ringing. */

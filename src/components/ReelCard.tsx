@@ -23,6 +23,7 @@ import { isUploadedMedia } from "@/lib/media-upload";
 import { BLANK_POSTER } from "@/lib/video-poster";
 import { useDataSaver } from "@/lib/data-saver";
 import { offlineObjectUrl, offlineSupported, removeOffline, saveOffline, useOfflineVideos } from "@/lib/offline-videos";
+import AnimatedCount from "@/components/AnimatedCount";
 
 interface ReelCardProps {
   reel: {
@@ -517,14 +518,14 @@ export default function ReelCard({
                 )}
               </AnimatePresence>
             </motion.span>
-            <span className="mt-1 text-xs font-semibold text-white">{reel.reel_likes.length ? formatCount(reel.reel_likes.length) : "Like"}</span>
+            <span className="mt-1 text-xs font-semibold text-white">{reel.reel_likes.length ? <AnimatedCount value={reel.reel_likes.length} format={formatCount} /> : "Like"}</span>
           </button>
 
           <button onClick={() => onComment(reel.id)} className="flex flex-col items-center" aria-label="Comments">
             <motion.span whileTap={{ scale: 0.82 }} className={railButton}>
               <ChatCircle className="h-7 w-7" weight="bold" />
             </motion.span>
-            <span className="mt-1 text-xs font-semibold text-white">{reel.reel_comments.length ? formatCount(reel.reel_comments.length) : "Comment"}</span>
+            <span className="mt-1 text-xs font-semibold text-white">{reel.reel_comments.length ? <AnimatedCount value={reel.reel_comments.length} format={formatCount} /> : "Comment"}</span>
           </button>
 
           <button onClick={() => onShare(reel.id)} className="flex flex-col items-center" aria-label="Share">
