@@ -86,7 +86,9 @@ jobs:
         with:
           name: Ember-${{ steps.apk.outputs.version }}
           path: ${{ steps.apk.outputs.file }}
-          retention-days: 30
+          # One day: the APKs to install are on the Releases page (which doesn't count against
+          # the account's 0.5 GB of Actions storage). Thirty days of 10 MB APKs filled it up.
+          retention-days: 1
 
       - name: Publish it as the latest release
         if: github.event_name != 'pull_request'
