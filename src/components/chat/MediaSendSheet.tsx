@@ -28,9 +28,15 @@ const MediaSendSheet = ({ files, toName, onCancel, onSend }: MediaSendSheetProps
   useEffect(() => { if (current >= list.length) setCurrent(Math.max(0, list.length - 1)); }, [list, current]);
   useEffect(() => { if (list.length === 0) onCancel(); }, [list, onCancel]);
   const canOnce = features.viewOnce && list.length === 1;
+  // Android's back button (sent as Escape) closes this, not the chat behind it.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") { e.stopImmediatePropagation(); onCancel(); } };
+    document.addEventListener("keydown", onKey, true);
+    return () => document.removeEventListener("keydown", onKey, true);
+  }, [onCancel]);
 
   return createPortal(
-    <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] z-[130] flex flex-col bg-black text-white animate-in fade-in-0 duration-200" role="dialog" aria-label="Send photos">
+    <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] z-[130] flex flex-col bg-black text-white animate-in fade-in-0 duration-200" role="dialog" data-state="open" aria-label="Send photos">
       <DarkStatusBar />
       <div className="flex items-center justify-between px-2 pt-[calc(env(safe-area-inset-top)+0.25rem)]">
         <button type="button" onClick={onCancel} className="flex h-11 w-11 items-center justify-center rounded-full hover:bg-white/10" aria-label="Cancel">

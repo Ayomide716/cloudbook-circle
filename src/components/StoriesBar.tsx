@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useRef } from "react";
+import { storyReplyImage } from "@/lib/story-reply";
 import { features } from "@/lib/features";
 import CloseFriendsDialog from "@/components/stories/CloseFriendsDialog";
 import { useSingleFlight } from "@/hooks/use-single-flight";
@@ -472,6 +473,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
       sender_id: currentUserId,
       receiver_id: activeStory.user_id,
       content: `💬 Replied to your story: "${text}"`,
+      image_url: storyReplyImage(activeStory.media_url, activeStory.media_type),
     });
     toast(error ? { title: "Couldn't send your reply", variant: "destructive" } : { title: "Reply sent" });
   };
@@ -487,6 +489,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         sender_id: currentUserId,
         receiver_id: story.user_id,
         content: `${REACTION_CHARS[type] ?? "❤️"} Reacted to your story`,
+        image_url: storyReplyImage(story.media_url, story.media_type),
       }),
     ]);
     if (error) toast({ title: "Couldn't send that", variant: "destructive" });

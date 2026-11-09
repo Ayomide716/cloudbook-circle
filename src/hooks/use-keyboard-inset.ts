@@ -24,11 +24,16 @@ export function useKeyboardInset() {
     const coarse = window.matchMedia("(pointer: coarse)");
     const root = document.documentElement;
 
+    // The page's height with no keyboard: Android Chrome makes the page shorter instead of
+    // covering it, so the keyboard's height is how much shorter it got.
+    let fullHeight = window.innerHeight;
     const update = () => {
       // The Android app gets the keyboard's height from Android itself (lib/native).
       if (isNative) return;
       const inset = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
       root.style.setProperty("--keyboard-inset", `${inset}px`);
+      if (!isEditable(document.activeElement) || window.innerHeight > fullHeight) fullHeight = window.innerHeight;
+      root.style.setProperty("--keyboard-height", `${Math.max(inset, fullHeight - window.innerHeight)}px`);
       const typing = coarse.matches && isEditable(document.activeElement);
       document.body.classList.toggle("keyboard-open", typing || inset > 80);
     };
@@ -54,6 +59,7 @@ export function useKeyboardInset() {
 
     update();
     vv?.addEventListener("resize", update);
+    window.addEventListener("resize", update);
     vv?.addEventListener("scroll", update);
     document.addEventListener("focusin", onFocusIn);
     document.addEventListener("focusout", onFocusOut);
@@ -62,10 +68,12 @@ export function useKeyboardInset() {
       window.removeEventListener(KEYBOARD_SHOWN_EVENT, onKeyboardShown);
       clearTimeout(scrollTimer);
       vv?.removeEventListener("resize", update);
+      window.removeEventListener("resize", update);
       vv?.removeEventListener("scroll", update);
       document.removeEventListener("focusin", onFocusIn);
       document.removeEventListener("focusout", onFocusOut);
       root.style.removeProperty("--keyboard-inset");
+      root.style.removeProperty("--keyboard-height");
       document.body.classList.remove("keyboard-open");
     };
   }, []);

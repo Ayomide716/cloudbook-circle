@@ -11,6 +11,10 @@ interface VirtualizedChatListProps {
   /** The newest message is yours: scroll down to it even if you had scrolled up. */
   lastIsMine?: boolean;
   scrollToIndex?: number;
+  /** Open at this row (the first unread message) instead of the newest, as on WhatsApp. */
+  startAtIndex?: number;
+  /** The day label for a row ("Today", "12 March"), floated at the top while scrolling. */
+  dayLabelAt?: (index: number) => string | null;
   /** Identity of the first item. If it changes when items are added, older items were prepended
    *  (keep the reader's position); otherwise new items were appended (scroll to the bottom). */
   firstItemKey?: string;
@@ -42,6 +46,8 @@ const VirtualizedChatList = ({
   scrollToBottomKey,
   lastIsMine,
   scrollToIndex,
+  startAtIndex,
+  dayLabelAt,
   firstItemKey,
   onLoadMore,
   isLoadingMore,
@@ -73,6 +79,10 @@ const VirtualizedChatList = ({
   const userScrollingUntilRef = useRef(0);
   const [showJump, setShowJump] = useState(false);
   const [unseen, setUnseen] = useState(0);
+  // The day of the messages at the top, shown while scrolling (as on WhatsApp).
+  const [floatingDay, setFloatingDay] = useState<string | null>(null);
+  const dayLabelRef = useRef(dayLabelAt);
+  dayLabelRef.current = dayLabelAt;
 
   // Scroll to bottom on initial load and new messages appended at bottom
   useEffect(() => {
@@ -109,7 +119,19 @@ const VirtualizedChatList = ({
         return;
       }
 
+      const wasInitial = isInitialLoad.current;
       isInitialLoad.current = false;
+      // Opening with unread messages: start at the first of them (unless they all fit below).
+      if (wasInitial && startAtIndex !== undefined && startAtIndex > 0) {
+        const goTo = () => {
+          try { listRef.current?.scrollToRow({ index: startAtIndex, align: "start", behavior: "instant" }); } catch { /* not there yet */ }
+          const el = getListEl();
+          if (el) atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+        };
+        requestAnimationFrame(goTo);
+        const settles = [120, 400].map((ms) => setTimeout(() => { if (Date.now() >= userScrollingUntilRef.current) goTo(); }, ms));
+        return () => settles.forEach(clearTimeout);
+      }
       const scrollToEnd = () => {
         try {
           listRef.current?.scrollToRow({
@@ -218,7 +240,17 @@ const VirtualizedChatList = ({
       else if (fromBottom < 80) atBottomRef.current = true;
       setShowJump(fromBottom > 300);
       if (atBottomRef.current) setUnseen(0);
+      if (active && dayLabelRef.current) {
+        const listTop = listEl.getBoundingClientRect().top;
+        const rows = Array.from(listEl.querySelectorAll<HTMLElement>("[data-message-row]"));
+        const top = rows.filter((r) => r.getBoundingClientRect().bottom > listTop + 8).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+        const label = top ? dayLabelRef.current(Number(top.dataset.messageRow)) : null;
+        setFloatingDay(label);
+        clearTimeout(dayTimer);
+        dayTimer = setTimeout(() => setFloatingDay(null), 1200);
+      }
     };
+    let dayTimer: ReturnType<typeof setTimeout> | undefined;
     listEl.addEventListener("touchstart", onTouchStart, { passive: true });
     listEl.addEventListener("touchmove", onTouchMove, { passive: true });
     listEl.addEventListener("touchend", onTouchEnd, { passive: true });
@@ -238,6 +270,7 @@ const VirtualizedChatList = ({
       listEl.removeEventListener("pointerdown", onPointerDown);
       window.removeEventListener("pointerup", onPointerUp);
       listEl.removeEventListener("scroll", onScroll);
+      clearTimeout(dayTimer);
     };
     // hasItems: the list element only exists once there are messages to show.
   }, [listRef, hasItems, getListEl]);
@@ -304,6 +337,11 @@ const VirtualizedChatList = ({
         <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-card/90 backdrop-blur rounded-full px-3 py-1.5 shadow-md flex items-center gap-2">
           <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
           <span className="text-xs text-muted-foreground">Loading older messages…</span>
+        </div>
+      )}
+      {floatingDay && (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center animate-in fade-in-0 duration-150">
+          <span className="rounded-lg bg-card/95 px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur dark:bg-[#1c2530]/95">{floatingDay}</span>
         </div>
       )}
       <List

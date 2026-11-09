@@ -20,7 +20,8 @@ interface Target {
 const MAX = 5;
 
 interface ForwardDialogProps {
-  message: ForwardableMessage | null;
+  /** One message, or several (picked with Select), sent in order. */
+  message: ForwardableMessage | ForwardableMessage[] | null;
   currentUserId: string;
   onOpenChange: (open: boolean) => void;
 }
@@ -96,15 +97,17 @@ const ForwardDialog = ({ message, currentUserId, onOpenChange }: ForwardDialogPr
   const send = async () => {
     if (!message || picked.length === 0) return;
     setSending(true);
-    const failed = await forwardMessage(message, picked, currentUserId);
+    const list = Array.isArray(message) ? message : [message];
+    let failed = 0;
+    for (const m of list) failed += await forwardMessage(m, picked, currentUserId);
     setSending(false);
-    if (failed === picked.length) {
+    if (failed === picked.length * list.length) {
       toast({ title: "Couldn't forward the message", variant: "destructive" });
       return;
     }
     haptic();
     toast({
-      title: picked.length === 1 ? `Forwarded to ${picked[0].name}` : `Forwarded to ${picked.length - failed} chats`,
+      title: picked.length === 1 ? `Forwarded to ${picked[0].name}` : `Forwarded to ${picked.length} chats`,
       description: failed ? `${failed} couldn't be sent.` : undefined,
     });
     onOpenChange(false);

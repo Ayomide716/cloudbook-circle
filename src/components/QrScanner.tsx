@@ -76,9 +76,16 @@ const QrScanner = ({ open, onClose }: QrScannerProps) => {
     };
   }, [open, navigate, onClose]);
 
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
   if (!open) return null;
   return createPortal(
-    <div className="fixed inset-0 z-[130] flex flex-col bg-black text-white animate-in fade-in-0 duration-200" role="dialog" aria-label="Scan a QR code">
+    <div className="fixed inset-0 z-[130] flex flex-col bg-black text-white animate-in fade-in-0 duration-200" role="dialog" data-state="open" aria-label="Scan a QR code">
       <DarkStatusBar />
       <video ref={videoRef} playsInline muted className="absolute inset-0 h-full w-full object-cover" />
       <div className="relative flex items-center justify-between px-2 pt-[calc(env(safe-area-inset-top)+0.25rem)]">
