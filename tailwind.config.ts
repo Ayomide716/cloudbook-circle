@@ -96,6 +96,11 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       keyframes: {
+        // Your story's ring by "What's on your mind?": a slow, soft glow.
+        "story-glow": {
+          "0%, 100%": { filter: "brightness(1)", boxShadow: "0 0 8px 0 hsl(var(--primary) / 0.45)" },
+          "50%": { filter: "brightness(1.12)", boxShadow: "0 0 14px 2px hsl(var(--primary) / 0.6)" },
+        },
         // Typing dots: a soft wave (each dot brightens and lifts a little), not a bounce.
         "typing-dot": {
           "0%, 60%, 100%": { opacity: "0.35", transform: "translateY(0)" },
@@ -200,6 +205,7 @@ export default {
         },
       },
       animation: {
+        "story-glow": "story-glow 2.4s ease-in-out infinite",
         "typing-dot": "typing-dot 1.2s ease-in-out infinite",
         "bell-ring": "bell-ring 0.8s cubic-bezier(.36,.07,.19,.97) both",
         "sticker-pop": "sticker-pop 0.45s cubic-bezier(.2,.8,.3,1.2) both",

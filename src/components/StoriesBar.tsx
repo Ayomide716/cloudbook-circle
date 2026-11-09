@@ -30,6 +30,7 @@ import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
 import StoryReplyBar from "@/components/stories/StoryReplyBar";
 import DarkStatusBar from "@/components/DarkStatusBar";
+import { MY_STORY_EVENT, setMyStory } from "@/lib/my-story";
 
 /** The emoji for each face, in the message the story's owner gets. */
 const REACTION_CHARS: Record<string, string> = {
@@ -75,6 +76,12 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const myProfile = useMyProfile();
   const [storyGroups, setStoryGroups] = useState<UserStoryGroup[]>([]);
   const myGroup = storyGroups.find((g) => g.userId === currentUserId);
+  const othersHaveStories = storyGroups.some((g) => g.userId !== currentUserId);
+  // Your photo by "What's on your mind?" glows while your story is up, and opens it from there.
+  useEffect(() => {
+    setMyStory({ has: !!myGroup, closeFriends: !!myGroup?.closeFriends });
+  }, [myGroup]);
+  useEffect(() => () => setMyStory({ has: false, closeFriends: false }), []);
   const [isCreating, setIsCreating] = useState(false);
   const [storyImage, setStoryImage] = useState("");
   // A video story (its address, or a "videojob:…" reference while it's prepared in the background).
@@ -419,6 +426,17 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     setViewerOpen(true);
   };
 
+  useEffect(() => {
+    const onRequest = (e: Event) => {
+      const action = (e as CustomEvent<"view" | "create">).detail;
+      const mine = storyGroups.findIndex((g) => g.userId === currentUserId);
+      if (action === "view" && mine >= 0) openViewer(mine);
+      else setIsCreating(true);
+    };
+    window.addEventListener(MY_STORY_EVENT, onRequest);
+    return () => window.removeEventListener(MY_STORY_EVENT, onRequest);
+  });
+
   const handleSendReply = async (text: string) => {
     if (!activeStory) return;
     const { error } = await supabase.from("messages").insert({
@@ -449,6 +467,14 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     <>
       {/* Stories as round bubbles, as on Instagram: yours first (tap + to add one), a coloured
           ring on anything you haven't watched, and the name underneath. */}
+      {/* Only when friends have stories: with none, the row would just repeat your own photo
+          (which is by "What's on your mind?" anyway, with your story's ring and a +). Live
+          voice rooms still show on their own. */}
+      {!othersHaveStories ? (
+        <div className="flex gap-3.5 overflow-x-auto px-3 py-2 scrollbar-hide empty:hidden sm:px-1">
+          <LiveRoomStories currentUserId={currentUserId} />
+        </div>
+      ) : (
       <div className="feed-stories sm:mb-4">
         <div className="flex gap-3.5 overflow-x-auto px-3 py-2 scrollbar-hide sm:px-1">
           {!myGroup && (
@@ -483,6 +509,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           })}
         </div>
       </div>
+      )}
 
       {/* Create Story Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>

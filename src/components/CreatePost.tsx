@@ -24,6 +24,7 @@ import { BACKGROUND_MAX_LENGTH, POST_BACKGROUNDS, backgroundCss } from "@/lib/po
 import { features } from "@/lib/features";
 import { encodeMentions, plainMentions, type Mention } from "@/lib/mentions";
 import { clearDraft, loadDraft, saveDraft } from "@/lib/post-draft";
+import MyStoryAvatar from "@/components/stories/MyStoryAvatar";
 import {
   Dialog,
   DialogClose,
@@ -262,12 +263,8 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
       {/* Your photo, a grey prompt field, then photo and video. */}
       <Card className="feed-section p-3 px-4 sm:p-4">
         <div className="flex items-center gap-3">
-          <Avatar className="h-9 w-9 sm:h-10 sm:w-10 flex-shrink-0">
-            <AvatarImage src={currentUser.avatar_url || undefined} />
-            <AvatarFallback className="bg-secondary text-secondary-foreground">
-              {currentUser.full_name?.[0]?.toUpperCase() || "U"}
-            </AvatarFallback>
-          </Avatar>
+          {/* Your photo is also your story: a glowing ring while it's up, a + to add one. */}
+          <MyStoryAvatar avatarUrl={currentUser.avatar_url} name={currentUser.full_name} />
           
           <button
             onClick={() => setShowDialog(true)}

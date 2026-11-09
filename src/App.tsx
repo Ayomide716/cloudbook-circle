@@ -88,7 +88,7 @@ const AnimatedPage = ({ children }: { children: React.ReactNode }) => {
         ? "motion-safe:slide-in-from-bottom-2 duration-200"
         : "motion-safe:slide-in-from-right-[18%] duration-300";
   // overflow-x-clip: the sliding page never makes the screen scroll sideways.
-  return <div className={`animate-in fade-in-0 overflow-x-clip ease-[cubic-bezier(0.2,0,0,1)] ${motion}`}>{children}</div>;
+  return <div className={`animate-in fade-in-0 overflow-x-clip [animation-timing-function:cubic-bezier(0.2,0,0,1)] ${motion}`}>{children}</div>;
 };
 
 /** Signed-in pages: wait for the session (showing the page skeleton), then render or redirect. */

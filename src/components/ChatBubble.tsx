@@ -171,7 +171,7 @@ const ChatBubble = ({
       className={cn(
         "flex group relative touch-pan-y",
         isCurrentUser ? "justify-end" : "justify-start",
-        justArrived && "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-bottom-2 duration-200 ease-[cubic-bezier(0.2,0,0,1)]",
+        justArrived && "motion-safe:animate-in motion-safe:fade-in-0 motion-safe:zoom-in-95 motion-safe:slide-in-from-bottom-2 duration-200 [animation-timing-function:cubic-bezier(0.2,0,0,1)]",
         justArrived && (isCurrentUser ? "origin-bottom-right" : "origin-bottom-left"),
       )}
       {...swipe.handlers}
