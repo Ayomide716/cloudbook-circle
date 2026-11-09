@@ -48,7 +48,8 @@
     --input: 0 0% 86%;
     --ring: 0 0% 55%;
 
-    --radius: 0.75rem;
+    /* Softer, rounder corners everywhere, as in Android's own apps (cards 16px, fields 14px). */
+    --radius: 1rem;
 
     /* Gradient tokens */
     --gradient-brand: linear-gradient(hsl(16 86% 44%), hsl(16 86% 44%));
@@ -158,13 +159,8 @@
     outline: none;
   }
 
-  /* Touch screens: things that change colour under a mouse darken while your finger is on
-     them instead, then let go cleanly (hover colours are mouse-only: tailwind.config.ts). */
-  @media (hover: none) {
-    :is(a, button, label, [role="button"], [role="menuitem"], [role="option"], [role="tab"])[class*="hover:bg-"]:not(:disabled):not([class*="bg-gradient"]):active {
-      background-image: linear-gradient(hsl(var(--foreground) / 0.08), hsl(var(--foreground) / 0.08));
-    }
-  }
+  /* Touch screens get Android's ripple instead of hover colours (src/lib/ripple.ts; hover
+     colours are mouse-only: tailwind.config.ts). */
 
   h1, h2, h3, h4, h5, h6 {
     font-family: 'Figtree Variable', 'Figtree', system-ui, sans-serif;
@@ -194,6 +190,14 @@
 }
 
 @layer components {
+  /* A page's content fades in over its loading skeleton instead of replacing it abruptly. */
+  .content-fade {
+    animation: content-fade 0.28s ease-out backwards;
+  }
+  @keyframes content-fade {
+    from { opacity: 0; }
+  }
+
   /* Pop-ups, menus and sheets (tailwindcss-animate) otherwise run on the browser's soft default
      curve; this strong ease-out makes them feel immediate. An ease-* utility still overrides it. */
   /* Grows a small control's tap area to 44px without changing how it looks. Positioned

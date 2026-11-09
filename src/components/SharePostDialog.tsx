@@ -3,7 +3,10 @@ import { useSingleFlight } from "@/hooks/use-single-flight";
  import { useState, useEffect } from "react";
  import { Button } from "@/components/ui/button";
  import { Textarea } from "@/components/ui/textarea";
- import { Share2, Loader2, Link2, Send } from "@/components/icons";
+ import { Share2, Loader2, Link2, Send, CircleDashed } from "@/components/icons";
+import { features } from "@/lib/features";
+import { sharePostToStory } from "@/lib/share-to-story";
+import { friendlyError } from "@/lib/utils";
  import {
    Dialog,
    DialogContent,
@@ -39,6 +42,7 @@ import { useSingleFlight } from "@/hooks/use-single-flight";
    const [shareTarget, setShareTarget] = useState("profile");
    const [groups, setGroups] = useState<Group[]>([]);
    const [isLoading, setIsLoading] = useState(false);
+   const [addingToStory, setAddingToStory] = useState(false);
    const { toast } = useToast();
  
    const loadUserGroups = useEffectEvent(async () => {
@@ -160,6 +164,25 @@ import { useSingleFlight } from "@/hooks/use-single-flight";
              )}
              Share Now
            </Button>
+
+           {/* As on Instagram: the post as a card on your story ("View post" opens it). */}
+           {features.storyStickers && (
+             <Button type="button" variant="secondary" className="w-full" disabled={addingToStory} onClick={async () => {
+               setAddingToStory(true);
+               try {
+                 await sharePostToStory(postId, currentUserId);
+                 toast({ title: "Added to your story" });
+                 onOpenChange(false);
+               } catch (e) {
+                 toast({ title: "Couldn't add it to your story", description: friendlyError(e), variant: "destructive" });
+               } finally {
+                 setAddingToStory(false);
+               }
+             }}>
+               {addingToStory ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <CircleDashed className="h-4 w-4 mr-2" />}
+               Add to your story
+             </Button>
+           )}
 
            {/* Outside Ember: the phone's own share menu (WhatsApp, Instagram, X…), or the link. */}
            <div className={canShareOutside ? "grid grid-cols-2 gap-2 border-t pt-4" : "grid border-t pt-4"}>

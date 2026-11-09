@@ -4,8 +4,9 @@ import { toast } from "@/hooks/use-toast";
 import { useBottomSpace } from "@/hooks/use-bottom-space";
 
 /**
- * "No internet connection" while the phone is offline, as in Facebook's and Instagram's apps, so
- * a post or message that won't send isn't a mystery. "Back online" when it returns.
+ * "No internet connection" while the phone is offline, as in Facebook's and Instagram's apps:
+ * what you see is what was saved (the feed is kept on the phone: useFeedQuery), and likes and
+ * comments wait to be sent (lib/offline-queue). "Back online" when it returns.
  */
 const ConnectionBar = () => {
   const [offline, setOffline] = useState(() => typeof navigator !== "undefined" && navigator.onLine === false);
@@ -38,7 +39,7 @@ const ConnectionBar = () => {
       <WifiOff className="h-5 w-5 shrink-0 text-white/80" aria-hidden="true" />
       <div className="min-w-0">
         <p className="text-[15px] font-medium leading-snug">No internet connection</p>
-        <p className="text-[13px] leading-snug text-white/70">You can still look around. Things you send will need a connection.</p>
+        <p className="text-[13px] leading-snug text-white/70">Showing what was saved on your phone. Likes and comments will send when you're back online.</p>
       </div>
     </div>
   );

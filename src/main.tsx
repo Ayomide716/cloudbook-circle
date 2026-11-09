@@ -7,6 +7,9 @@ import { isNative } from "./lib/native/platform";
 import { initNative } from "./lib/native";
 import { captureReferral } from "./lib/referral";
 import { installBrokenImageFallback } from "./lib/broken-images";
+import { installTapOrigin } from "./lib/tap-origin";
+import { installRipple } from "./lib/ripple";
+import { installOfflineQueue } from "./lib/offline-queue";
 
 // Opened from someone's invite link (?ref=…): remember who, for after sign-up.
 captureReferral();
@@ -31,6 +34,12 @@ if (isNative) {
 
 // Photos that fail to load show a grey placeholder (tap to retry), not a broken-image mark.
 installBrokenImageFallback();
+// Photo viewers grow the photo out of where you tapped it.
+installTapOrigin();
+// Android's touch ripple on buttons and rows.
+installRipple();
+// Comments and reactions made offline are sent once you're back online.
+installOfflineQueue();
 
 createRoot(document.getElementById("root")!).render(<App />);
 

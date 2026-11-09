@@ -32,6 +32,9 @@ import { recordGroupVisit } from "@/lib/recent-groups";
 import { friendlyError } from "@/lib/utils";
 import { features } from "@/lib/features";
 import { categoryLabel } from "@/lib/group-categories";
+import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
+import { ToastAction } from "@/components/ui/toast";
+import PersonRow from "@/components/PersonRow";
 
 interface Group {
   id: string;
@@ -365,19 +368,23 @@ const GroupDetail = () => {
     if (!currentUserId || !groupId || isJoining) return;
     setIsJoining(true);
 
-    // Private group: ask, and an admin lets you in.
+    // Private group: ask, and an admin lets you in. (Shown as asked at once.)
     if (group?.is_private) {
+      setMyRequest(true);
       const { error } = await supabase.from("group_join_requests").insert({ group_id: groupId, user_id: currentUserId });
       setIsJoining(false);
       if (error && error.code !== "23505") {
+        setMyRequest(false);
         toast({ title: "Couldn't send your request", description: friendlyError(error), variant: "destructive" });
         return;
       }
-      setMyRequest(true);
       toast({ title: "Request sent", description: "You'll be told when an admin lets you in." });
       return;
     }
 
+    // You're in at once; put back if it fails.
+    setIsMember(true);
+    setUserRole("member");
     const { error } = await supabase
       .from("group_members")
       .insert({
@@ -388,6 +395,8 @@ const GroupDetail = () => {
 
     setIsJoining(false);
     if (error) {
+      setIsMember(false);
+      setUserRole(null);
       toast({
         title: "Error joining group",
         description: friendlyError(error),
@@ -411,25 +420,42 @@ const GroupDetail = () => {
     setMyRequest(false);
   };
 
+  // You're out at once, with Undo for 5 seconds; you only really leave after that (or at once
+  // if the app is closed first).
   const handleLeaveGroup = async () => {
     if (!currentUserId || !groupId) return;
-    const { error } = await supabase
-      .from("group_members")
-      .delete()
-      .eq("group_id", groupId)
-      .eq("user_id", currentUserId);
-
-    if (error) {
-      toast({ title: "Couldn't leave the group", description: friendlyError(error), variant: "destructive" });
-      return;
-    }
-    toast({ title: `You left ${group?.name ?? "the group"}` });
+    const role = userRole;
+    const key = `leave-group:${groupId}`;
     setIsMember(false);
     setUserRole(null);
-    // Members-only content is no longer visible.
-    setMembers([]);
-    setPosts([]);
-    loadMemberCount();
+    deleteLater(key, 5000, {
+      run: async () => {
+        const { error } = await supabase
+          .from("group_members")
+          .delete()
+          .eq("group_id", groupId)
+          .eq("user_id", currentUserId);
+        if (error) {
+          setIsMember(true);
+          setUserRole(role);
+          toast({ title: "Couldn't leave the group", description: friendlyError(error), variant: "destructive" });
+          return;
+        }
+        // Members-only content is no longer visible.
+        setMembers([]);
+        setPosts([]);
+        loadMemberCount();
+      },
+    });
+    toast({
+      title: `You left ${group?.name ?? "the group"}`,
+      duration: 5000,
+      action: (
+        <ToastAction altText="Undo leave group" onClick={() => { cancelDelete(key); setIsMember(true); setUserRole(role); }}>
+          Undo
+        </ToastAction>
+      ),
+    });
   };
 
   const handleDeletePost = async (post: GroupPostView) => {
@@ -759,20 +785,18 @@ const GroupDetail = () => {
                   <h2 className="px-4 pt-3 text-[15px] font-semibold">Requests to join · {requests.length}</h2>
                   <div className="divide-y divide-border">
                     {requests.map((r) => (
-                      <div key={r.id} className="flex items-center gap-3 px-4 py-3">
-                        <Link to={`/profile/${r.person.id}`} className="shrink-0">
-                          <Avatar className="h-11 w-11">
-                            <AvatarImage src={r.person.avatar_url || undefined} alt="" />
-                            <AvatarFallback>{r.person.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                          </Avatar>
-                        </Link>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate font-semibold">{r.person.full_name || "Someone"}</p>
-                          <p className="text-xs text-muted-foreground">Asked {formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}</p>
-                        </div>
-                        <Button size="sm" variant="accent" className="h-9 rounded-lg px-3" disabled={answering === r.id} onClick={() => answerRequest(r, true)}>Approve</Button>
-                        <Button size="sm" variant="secondary" className="h-9 rounded-lg px-3" disabled={answering === r.id} onClick={() => answerRequest(r, false)}>Decline</Button>
-                      </div>
+                      <PersonRow
+                        key={r.id}
+                        id={r.person.id}
+                        name={r.person.full_name}
+                        avatarUrl={r.person.avatar_url}
+                        subtitle={`Asked ${formatDistanceToNow(new Date(r.created_at), { addSuffix: true })}`}
+                        className="py-2.5"
+                        actions={<>
+                          <Button size="sm" variant="accent" className="h-9 rounded-lg px-3" disabled={answering === r.id} onClick={() => answerRequest(r, true)}>Approve</Button>
+                          <Button size="sm" variant="secondary" className="h-9 rounded-lg px-3" disabled={answering === r.id} onClick={() => answerRequest(r, false)}>Decline</Button>
+                        </>}
+                      />
                     ))}
                   </div>
                 </section>
@@ -792,26 +816,16 @@ const GroupDetail = () => {
                       (member.role !== "admin" || group.created_by === currentUserId);
                     return (
                       <div key={member.id} className="flex items-center">
-                        <button
-                          type="button"
-                          onClick={() => navigate(`/profile/${member.profiles.id}`)}
-                          className="flex min-w-0 flex-1 items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-secondary/50"
-                        >
-                          <Avatar className="h-11 w-11">
-                            <AvatarImage src={member.profiles.avatar_url || undefined} alt="" />
-                            <AvatarFallback>{member.profiles.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                          </Avatar>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate font-semibold">
-                              {member.profiles.full_name || "Anonymous"}
-                              {member.profiles.id === currentUserId && <span className="font-normal text-muted-foreground"> (you)</span>}
-                            </p>
-                            <p className="flex items-center gap-1 text-sm text-muted-foreground">
-                              {member.profiles.id === group.created_by ? "Creator · admin" : member.role === "admin" ? "Admin" : "Member"}
-                              {muted && <><span aria-hidden="true">·</span><VolumeX className="h-3.5 w-3.5" /> Muted</>}
-                            </p>
-                          </div>
-                        </button>
+                        <PersonRow
+                          id={member.profiles.id}
+                          name={member.profiles.id === currentUserId ? `${member.profiles.full_name || "You"} (you)` : member.profiles.full_name}
+                          avatarUrl={member.profiles.avatar_url}
+                          subtitle={<span className="flex items-center gap-1">
+                            {member.profiles.id === group.created_by ? "Creator · admin" : member.role === "admin" ? "Admin" : "Member"}
+                            {muted && <><span aria-hidden="true">·</span><VolumeX className="h-3.5 w-3.5" /> Muted</>}
+                          </span>}
+                          className="min-w-0 flex-1 py-2.5"
+                        />
                         {/* Admins manage others: the creator can't be changed, and only the creator
                             removes or demotes other admins (the database checks the same rules). */}
                         {manageable && (

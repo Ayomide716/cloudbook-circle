@@ -1,7 +1,8 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Bookmark,
+  ScanLine,
   CalendarDays,
   ChevronRight,
   Compass,
@@ -32,6 +33,7 @@ import { features } from "@/lib/features";
 import { disablePush } from "@/lib/web-push";
 import InviteFriends from "@/components/InviteFriends";
 import GroupShortcuts from "@/components/GroupShortcuts";
+import QrScanner from "@/components/QrScanner";
 
 interface Shortcut {
   icon: LucideIcon;
@@ -147,6 +149,9 @@ const Menu = () => {
     return () => window.removeEventListener("online", retry);
   }, [load]);
 
+  const [scanning, setScanning] = useState(false);
+  const closeScanner = useCallback(() => setScanning(false), []);
+
   const handleLogout = async () => {
     // This phone stops getting the account's alerts once you've logged out.
     await disablePush();
@@ -228,7 +233,10 @@ const Menu = () => {
           {SHORTCUTS.filter((s) => (!s.adminOnly || isAdmin) && (!s.extra || features.extras)).map((s) => (
             <MenuRow key={s.path} icon={s.icon} label={s.label} onClick={() => navigate(s.path)} />
           ))}
+          {/* Point the camera at a friend's Ember QR code to open their profile. */}
+          <MenuRow icon={ScanLine} label="Scan a QR code" onClick={() => setScanning(true)} />
         </nav>
+        <QrScanner open={scanning} onClose={closeScanner} />
 
         {userId && <InviteFriends userId={userId} className="feed-section" />}
 

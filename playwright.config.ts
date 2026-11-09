@@ -36,6 +36,7 @@ export default defineConfig({
       // The test database has every update, so test the features that need them too.
       VITE_DB_UPDATES_2026_10: "true",
       VITE_DB_UPDATES_2026_11: "true",
+      VITE_DB_UPDATES_2026_11B: "true",
       // Test accounts are brand new: no welcome flow over the pages being tested.
       VITE_E2E: "true",
     },

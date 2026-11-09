@@ -7,6 +7,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import ConfirmDialog from "@/components/ConfirmDialog";
 import { explainError } from "@/lib/blocking";
+import { ToastAction } from "@/components/ui/toast";
+import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
 
 interface FriendshipButtonProps {
   currentUserId: string;
@@ -82,8 +84,36 @@ const FriendshipButton = ({ currentUserId, profileUserId, className, onFriendsCh
     // Optimistic update
     const previousStatus = friendshipStatus;
     setFriendshipStatus('none');
-    setIsLoading(true);
 
+    // Unfriending can be undone for 5 seconds: it's only really done after that (or at once
+    // if the app is closed first).
+    if (previousStatus === "friends") {
+      const key = `unfriend:${profileUserId}`;
+      deleteLater(key, 5000, {
+        run: async () => {
+          const { error } = await supabase
+            .from("friendships")
+            .delete()
+            .or(`and(user_id.eq.${currentUserId},friend_id.eq.${profileUserId}),and(user_id.eq.${profileUserId},friend_id.eq.${currentUserId})`);
+          if (error) {
+            setFriendshipStatus("friends");
+            toast({ title: "Couldn't remove friend", description: friendlyError(error), variant: "destructive" });
+          }
+        },
+      });
+      toast({
+        title: "Friend removed",
+        duration: 5000,
+        action: (
+          <ToastAction altText="Undo remove friend" onClick={() => { cancelDelete(key); setFriendshipStatus("friends"); }}>
+            Undo
+          </ToastAction>
+        ),
+      });
+      return;
+    }
+
+    setIsLoading(true);
     const { error } = await supabase
       .from("friendships")
       .delete()
@@ -104,19 +134,18 @@ const FriendshipButton = ({ currentUserId, profileUserId, className, onFriendsCh
     toast({ title: previousStatus === "pending_sent" ? "Request cancelled" : previousStatus === "pending_received" ? "Request declined" : "Friend removed" });
   }, [currentUserId, profileUserId, friendshipStatus, toast]);
 
+  // Shown as friends at once; put back if it fails.
   const acceptRequest = async () => {
-    setIsLoading(true);
+    setFriendshipStatus("friends");
     const { error } = await supabase
       .from("friendships")
       .update({ status: "accepted" })
       .eq("user_id", profileUserId)
       .eq("friend_id", currentUserId);
-    setIsLoading(false);
     if (error) {
+      setFriendshipStatus("pending_received");
       toast({ title: "Couldn't accept the request", description: friendlyError(error), variant: "destructive" });
-      return;
     }
-    setFriendshipStatus("friends");
   };
 
   if (friendshipStatus === null) {

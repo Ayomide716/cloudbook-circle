@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Phone, PhoneOff, Video } from "@/components/icons";
 import { cn } from "@/lib/utils";
+import DarkStatusBar from "@/components/DarkStatusBar";
 
 interface IncomingCallOverlayProps {
   callerName: string;
@@ -20,6 +21,7 @@ const IncomingCallOverlay = ({
 }: IncomingCallOverlayProps) => {
   return (
     <div role="alertdialog" aria-label={`Incoming ${isVoiceOnly ? "voice" : "video"} call from ${callerName}`} className="fixed inset-0 z-[60] bg-black/80 backdrop-blur-md flex items-center justify-center px-6">
+      <DarkStatusBar />
       <div className="text-center space-y-8 animate-fade-in">
         {/* Pulsing rings */}
         <div className="relative mx-auto w-36 h-36">

@@ -2,9 +2,12 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
+import { saveSharedTheme } from "@/lib/chat-themes";
+import { toast } from "@/hooks/use-toast";
 import { Palette, Timer, Check } from "@/components/icons";
 import { useEffectEvent } from "@/hooks/use-effect-event";
+import { features } from "@/lib/features";
 
 interface ChatSettingsModalProps {
   open: boolean;
@@ -73,6 +76,10 @@ const ChatSettingsModal = ({ open, onClose, currentUserId, otherUserId, onSettin
         .insert({ user_id: currentUserId, other_user_id: otherUserId, theme: selectedTheme, disappearing_minutes: disappearing });
     }
 
+    // The theme is the same for both of you.
+    const error = await saveSharedTheme(currentUserId, otherUserId, selectedTheme);
+    if (error) toast({ title: "Couldn't change the theme for both of you", description: friendlyError(error), variant: "destructive" });
+
     onSettingsChanged(selectedTheme, disappearing);
     onClose();
   };
@@ -90,7 +97,8 @@ const ChatSettingsModal = ({ open, onClose, currentUserId, otherUserId, onSettin
         <div className="space-y-6">
           {/* Theme selector */}
           <div>
-            <h4 className="text-sm font-semibold mb-3">Chat Theme</h4>
+            <h4 className="text-sm font-semibold mb-1">Chat Theme</h4>
+            {features.chatThemes && <p className="mb-3 text-xs text-muted-foreground">Both of you see the theme you pick.</p>}
             <div className="grid grid-cols-4 gap-3">
               {themes.map((t) => (
                 <button

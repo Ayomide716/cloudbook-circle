@@ -15,6 +15,8 @@ import EditGroupModal from "@/components/EditGroupModal";
 import { Switch } from "@/components/ui/switch";
 import type { GroupInfo } from "@/lib/group-chats";
 import { friendlyError } from "@/lib/utils";
+import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
+import { ToastAction } from "@/components/ui/toast";
 
 export interface GroupMember {
   id: string;
@@ -73,10 +75,24 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
     onChanged();
   };
 
+  // Undo for 5 seconds: you only really leave after that (or at once if the app is closed).
   const leave = async () => {
-    const { error } = await supabase.from("group_members").delete().eq("group_id", group.id).eq("user_id", currentUserId);
-    if (error) return toast({ title: "Couldn't leave the group", description: friendlyError(error), variant: "destructive" });
-    toast({ title: `You left ${group.name}` });
+    const key = `leave-group:${group.id}`;
+    deleteLater(key, 5000, {
+      run: async () => {
+        const { error } = await supabase.from("group_members").delete().eq("group_id", group.id).eq("user_id", currentUserId);
+        if (error) toast({ title: "Couldn't leave the group", description: friendlyError(error), variant: "destructive" });
+      },
+    });
+    toast({
+      title: `You left ${group.name}`,
+      duration: 5000,
+      action: (
+        <ToastAction altText="Undo leave group" onClick={() => { cancelDelete(key); navigate(`/messages?group=${group.id}`); }}>
+          Undo
+        </ToastAction>
+      ),
+    });
     onLeft();
   };
 

@@ -1,6 +1,4 @@
-import { uploadMedia, type MediaFolder } from "@/lib/media-upload";
-import { makePreview, rememberPreview } from "@/lib/photo-previews";
-import { shrinkImage } from "@/lib/image-compress";
+import { uploadPhoto } from "@/lib/upload-photo";
 import { useState, useId } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +14,11 @@ interface MultiImageUploadProps {
   /** Set false when the parent renders its own preview (e.g. the post composer). */
   showPreview?: boolean;
   maxImages?: number;
+  /** The picked files, by their uploaded address (so the composer can edit a photo later). */
+  onOriginals?: (files: Record<string, File>) => void;
 }
 
-const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, maxImages = 10, showPreview = true }: MultiImageUploadProps) => {
+const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, maxImages = 10, showPreview = true, onOriginals }: MultiImageUploadProps) => {
   const inputId = `multi-image-upload-${useId()}`;
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
@@ -55,16 +55,15 @@ const MultiImageUpload = ({ bucket, userId, onUploadComplete, currentImages, max
 
     try {
       // Upload together, keeping the order the photos were picked in.
+      const originals: Record<string, File> = {};
       const newUrls = await Promise.all(
         files.map(async (picked) => {
-          const file = await shrinkImage(picked);
-          const fileExt = file.name.split(".").pop();
-          const fileName = `${userId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${fileExt}`;
-          const [url, preview] = await Promise.all([uploadMedia(bucket as MediaFolder, fileName, file), makePreview(file)]);
-          rememberPreview(url, preview);
+          const url = await uploadPhoto(bucket, userId, picked);
+          originals[url] = picked;
           return url;
         })
       );
+      onOriginals?.(originals);
 
       onUploadComplete([...currentImages, ...newUrls]);
     } catch (error) {

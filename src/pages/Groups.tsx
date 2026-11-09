@@ -313,7 +313,7 @@ const Groups = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="content-fade min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
       
       <PullToRefresh onRefresh={async () => { await loadGroups(); setHubKey((k) => k + 1); }}>

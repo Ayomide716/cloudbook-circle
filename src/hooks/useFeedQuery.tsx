@@ -176,10 +176,44 @@ export function dedupeFeedPages<D extends { pages: { posts: { id: string }[] }[]
   };
 }
 
+// The top of your feed, kept on the phone: opening the app offline (or on a slow network)
+// shows what you saw last time, then the fresh feed replaces it.
+const FEED_CACHE_POSTS = 15;
+const feedCacheKey = (userId: string, feedFilter: FeedFilter) => `ember:feed-cache:${userId}:${feedFilter}`;
+
+function readFeedCache(userId: string | null, feedFilter: FeedFilter) {
+  if (!userId) return undefined;
+  try {
+    const raw = localStorage.getItem(feedCacheKey(userId, feedFilter));
+    if (!raw) return undefined;
+    const page = JSON.parse(raw) as FeedPage;
+    return { pages: [page], pageParams: [null] };
+  } catch {
+    return undefined;
+  }
+}
+
+function writeFeedCache(userId: string, feedFilter: FeedFilter, page: FeedPage) {
+  try {
+    const posts = page.posts.slice(0, FEED_CACHE_POSTS);
+    // A shortened page: scrolling on fetches the rest from where the cached part ends.
+    const last = posts[posts.length - 1];
+    const nextCursor = posts.length < page.posts.length && last ? { score: last.engagement_score ?? 0, id: last.id } : page.nextCursor;
+    localStorage.setItem(feedCacheKey(userId, feedFilter), JSON.stringify({ posts, nextCursor }));
+  } catch { /* full or blocked: just no cache */ }
+}
+
 export function useFeedQuery(userId: string | null, feedFilter: FeedFilter) {
   return useInfiniteQuery({
     queryKey: ["feed", userId, feedFilter],
-    queryFn: ({ pageParam }) => fetchFeedPage(userId!, feedFilter, pageParam),
+    queryFn: async ({ pageParam }) => {
+      const page = await fetchFeedPage(userId!, feedFilter, pageParam);
+      if (pageParam === null) writeFeedCache(userId!, feedFilter, page);
+      return page;
+    },
+    // What you saw last time, at once; always fetched again straight away (updated "long ago").
+    initialData: () => readFeedCache(userId, feedFilter),
+    initialDataUpdatedAt: 0,
     select: dedupeFeedPages,
     initialPageParam: null as { score: number; id: string } | null,
     getNextPageParam: (lastPage) => lastPage.nextCursor,

@@ -37,7 +37,7 @@ import { GroupChatRow, GroupInviteCards } from "@/components/groups/GroupListIte
 import NewGroupChatDialog from "@/components/groups/NewGroupChatDialog";
 import MessagesSkeleton from "@/components/skeletons/MessagesSkeleton";
 import { format, isThisWeek, isToday, isYesterday } from "date-fns";
-import { cn } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import type { TablesInsert } from "@/integrations/supabase/types";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { explainError } from "@/lib/blocking";
@@ -47,10 +47,14 @@ import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
 import EnablePushBanner from "@/components/EnablePushBanner";
 import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
+import { VIEW_ONCE } from "@/lib/view-once";
+import { THEME_WASH, useSharedTheme } from "@/lib/chat-themes";
+import { isGiphyMedia } from "@/lib/giphy";
 import EmptyState from "@/components/EmptyState";
 import ActiveNow from "@/components/chat/ActiveNow";
 import { useOnlineFriends } from "@/hooks/use-online-friends";
 import { useInboxTyping } from "@/hooks/use-inbox-typing";
+import TypingBubble from "@/components/chat/TypingBubble";
 
 interface Profile {
   id: string;
@@ -152,6 +156,7 @@ const Messages = () => {
   const [voiceActive, setVoiceActive] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [mediaType, setMediaType] = useState<"image" | "video" | null>(null);
+  const [viewOnce, setViewOnce] = useState(false);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   
   // New Messenger features
@@ -167,7 +172,10 @@ const Messages = () => {
   // A message to show once its chat has opened (from Starred messages).
   const [pendingJump, setPendingJump] = useState<{ chatId: string; messageId: string } | null>(null);
   const [groupFocus, setGroupFocus] = useState<string | null>(null);
-  const [chatTheme, setChatTheme] = useState("default");
+  const [ownTheme, setChatTheme] = useState("default");
+  // The theme both of you see (once either of you has picked one), else your own choice.
+  const sharedTheme = useSharedTheme(currentUserId, selectedConversation?.id);
+  const chatTheme = sharedTheme ?? ownTheme;
   const [disappearingMinutes, setDisappearingMinutes] = useState<number | null>(null);
   const [showChatSettings, setShowChatSettings] = useState(false);
   const [showMessageSearch, setShowMessageSearch] = useState(false);
@@ -486,7 +494,9 @@ const Messages = () => {
       return;
     }
 
-    const content = messageContent.trim() || (imageUrl ? "Sent an image" : "");
+    // A view-once photo: the message carries no picture; it's kept apart and opened once.
+    const once = features.viewOnce && viewOnce && !!imageUrl && mediaType === "image";
+    const content = once ? VIEW_ONCE : messageContent.trim() || (imageUrl ? "Sent an image" : "");
     const sendKey = `${selectedConversation.id}|${content}|${imageUrl ?? ""}`;
     if (isRepeatSend(lastSendRef.current, sendKey)) return;
     lastSendRef.current = { text: sendKey, at: Date.now() };
@@ -501,15 +511,19 @@ const Messages = () => {
       sender_id: currentUserId,
       receiver_id: selectedConversation.id,
       content,
-      image_url: imageUrl,
+      image_url: once ? null : imageUrl,
+      view_once: once || undefined,
       created_at: new Date().toISOString(),
       read: false,
       reply_to: replyingTo?.id || null,
     };
+    const sentUrl = imageUrl;
 
     setMessages((prev) => [...prev, optimisticMessage]);
-    setMessageContent("");
+    // A view-once photo goes on its own; any text typed stays in the box to send next.
+    if (!once) setMessageContent("");
     setImageUrl(null);
+    setViewOnce(false);
     setReplyingTo(null);
     setIsSending(true);
 
@@ -517,9 +531,10 @@ const Messages = () => {
       sender_id: currentUserId,
       receiver_id: selectedConversation.id,
       content,
-      image_url: imageUrl,
+      image_url: once ? null : imageUrl,
       reply_to: replyingTo?.id || null,
     };
+    if (once) insertObj.view_once = true;
     if (expiresAt) insertObj.expires_at = expiresAt;
 
     const { data, error } = await supabase.from("messages").insert(insertObj).select().single();
@@ -529,6 +544,16 @@ const Messages = () => {
       setMessages((prev) => prev.filter((m) => m.id !== tempId));
       toast({ title: "Couldn't send message", description: await explainError(error, selectedConversation.id), variant: "destructive" });
       return;
+    }
+    if (once && data && sentUrl) {
+      const { error: mediaError } = await supabase.from("view_once_media").insert({ message_id: data.id, url: sentUrl });
+      if (mediaError) {
+        // Without its photo the message is empty: take it back.
+        await supabase.from("messages").update({ deleted_at: new Date().toISOString() }).eq("id", data.id);
+        setMessages((prev) => prev.filter((m) => m.id !== tempId));
+        toast({ title: "Couldn't send the photo", description: friendlyError(mediaError), variant: "destructive" });
+        return;
+      }
     }
     playSound("send");
     haptic();
@@ -708,7 +733,7 @@ const Messages = () => {
     // Starts under the app's header (drawn once for all pages) and ends above the keyboard.
     // Phones have no app header here: the chat list starts under the status bar.
     <div className={cn(
-      "fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] max-md:top-[env(safe-area-inset-top,0px)] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background",
+      "content-fade fixed inset-x-0 top-[calc(var(--nav-height)+env(safe-area-inset-top,0px))] max-md:top-[env(safe-area-inset-top,0px)] bottom-[var(--keyboard-inset,0px)] flex flex-col bg-background",
       // Phones: an open chat takes the whole screen, as in WhatsApp.
       (selectedConversation || showAIChat || selectedGroup) && "max-md:top-0"
     )}>
@@ -877,6 +902,10 @@ const Messages = () => {
                           typing={inboxTyping.isTyping(row.conv.profile.id)}
                           onOpen={() => openPerson(row.conv.profile)}
                           onToggle={(list) => toggleChatPref(list, row.conv.profile.id)}
+                          onMarkRead={async () => {
+                            await supabase.from("messages").update({ read: true }).eq("sender_id", row.conv.profile.id).eq("receiver_id", currentUserId!).eq("read", false);
+                            loadConversations();
+                          }}
                           draft={selectedConversation?.id === row.conv.profile.id ? undefined : drafts[row.conv.profile.id]}
                         />
                       )
@@ -1001,40 +1030,46 @@ const Messages = () => {
                     firstItemKey={visibleMessages[0]?.id}
                     scrollToIndex={highlightedMessageId ? visibleMessages.findIndex(m => m.id === highlightedMessageId) : undefined}
                     estimatedItemSize={80}
-                    className="flex-1 overflow-hidden chat-wallpaper"
+                    className={cn("flex-1 overflow-hidden chat-wallpaper transition-colors duration-300", THEME_WASH[chatTheme])}
                     renderItem={renderMessage}
                     onLoadMore={loadOlderMessages}
                     isLoadingMore={isLoadingMore}
                     hasMore={hasMoreMessages}
                     footer={
                       typingUsers.length > 0 ? (
-                        <div className="flex justify-start animate-fade-in px-3 pb-2">
-                          <div className="bg-secondary rounded-2xl rounded-bl-md px-4 py-2.5">
-                            <div className="flex items-center gap-1">
-                              <div className="flex gap-1">
-                                {[0, 150, 300].map((d) => (
-                                  <span key={d} className="w-2 h-2 bg-muted-foreground/60 rounded-full animate-bounce" style={{ animationDelay: `${d}ms` }} />
-                                ))}
-                              </div>
-                              <span className="text-xs text-muted-foreground ml-2">{typingUsers[0].name} is typing...</span>
-                            </div>
-                          </div>
-                        </div>
+                        <TypingBubble name={typingUsers[0].name} />
                       ) : null
                     }
                   />
 
                   {/* Message bar, as in WhatsApp: a pill with emoji, text, attach and camera, and a round
                       button beside it that records a voice note, or sends once there's something to send. */}
-                  <form onSubmit={handleSendMessage} className="chat-wallpaper px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex-shrink-0">
+                  <form onSubmit={handleSendMessage} className={cn("chat-wallpaper transition-colors duration-300 px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))] flex-shrink-0", THEME_WASH[chatTheme])}>
                     {imageUrl && (
-                      <div className="mb-2 ml-2 relative inline-block">
-                        {mediaType === "video" ? (
-                          <video src={imageUrl} className="h-20 rounded-lg" />
-                        ) : (
-                          <img src={imageUrl} alt="Preview" className="h-20 rounded-lg" />
+                      <div className="mb-2 ml-2 flex items-end gap-2">
+                        <div className="relative inline-block">
+                          {mediaType === "video" ? (
+                            <video src={imageUrl} className="h-20 rounded-lg" />
+                          ) : (
+                            <img src={imageUrl} alt="Preview" className="h-20 rounded-lg" />
+                          )}
+                          <button type="button" onClick={() => { setImageUrl(null); setMediaType(null); setViewOnce(false); }} className="tap-target absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs" aria-label="Remove attachment">✕</button>
+                        </div>
+                        {/* View once, as on WhatsApp: they can open the photo one time. */}
+                        {features.viewOnce && mediaType === "image" && !isGiphyMedia(imageUrl) && (
+                          <button
+                            type="button"
+                            onClick={() => { setViewOnce((v) => !v); haptic(8); }}
+                            aria-pressed={viewOnce}
+                            className={cn(
+                              "flex h-9 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors",
+                              viewOnce ? "bg-primary text-primary-foreground" : "bg-chat-surface text-foreground shadow-sm"
+                            )}
+                          >
+                            <span className={cn("flex h-5 w-5 items-center justify-center rounded-full border-2 text-[10px] font-bold", viewOnce ? "border-current" : "border-dashed border-current")}>1</span>
+                            {viewOnce ? "View once" : "View once off"}
+                          </button>
                         )}
-                        <button type="button" onClick={() => { setImageUrl(null); setMediaType(null); }} className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 text-xs" aria-label="Remove attachment">✕</button>
                       </div>
                     )}
                     {/* Replying to (or editing) a message: a quote above the box, as in WhatsApp. */}

@@ -75,7 +75,7 @@ export const HeaderAction = ({ icon: Icon, label, onClick, primary, badge }: Hea
     aria-label={label}
     title={label}
     className={cn(
-      "relative h-8 w-8 shrink-0 rounded-full p-0 bg-secondary text-foreground hover:bg-secondary/70 sm:h-10 sm:w-10 [&_svg]:size-4",
+      "relative h-10 w-10 shrink-0 rounded-full p-0 bg-secondary text-foreground hover:bg-secondary/70 [&_svg]:size-5 sm:[&_svg]:size-4",
       primary && "sm:w-auto sm:px-4 sm:bg-foreground sm:text-background sm:hover:bg-foreground/90"
     )}
   >

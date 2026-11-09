@@ -85,7 +85,6 @@ export const GroupsRow = ({ currentUserId }: { currentUserId: string }) => {
   const { toast } = useToast();
   const [groups, setGroups] = useState<GroupSuggestion[]>([]);
   const [joined, setJoined] = useState<Set<string>>(new Set());
-  const [busy, setBusy] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,12 +108,14 @@ export const GroupsRow = ({ currentUserId }: { currentUserId: string }) => {
     return () => { cancelled = true; };
   }, [currentUserId]);
 
+  // Shown as joined at once; put back if it fails.
   const join = async (g: GroupSuggestion) => {
-    setBusy(g.id);
-    const { error } = await supabase.from("group_members").insert({ group_id: g.id, user_id: currentUserId, role: "member" });
-    setBusy(null);
-    if (error) return toast({ title: "Couldn't join", description: friendlyError(error), variant: "destructive" });
     setJoined((s) => new Set(s).add(g.id));
+    const { error } = await supabase.from("group_members").insert({ group_id: g.id, user_id: currentUserId, role: "member" });
+    if (error) {
+      setJoined((s) => { const next = new Set(s); next.delete(g.id); return next; });
+      return toast({ title: "Couldn't join", description: friendlyError(error), variant: "destructive" });
+    }
   };
 
   if (groups.length === 0) return null;
@@ -135,8 +136,8 @@ export const GroupsRow = ({ currentUserId }: { currentUserId: string }) => {
             {joined.has(g.id) ? (
               <Button size="sm" variant="secondary" disabled className="mt-2 h-8 w-full rounded-lg"><Check className="mr-1 h-4 w-4" /> Joined</Button>
             ) : (
-              <Button size="sm" className="mt-2 h-8 w-full rounded-lg" disabled={busy === g.id} onClick={() => join(g)} aria-label={`Join ${g.name}`}>
-                {busy === g.id ? <Loader2 className="h-4 w-4 animate-spin" /> : "Join group"}
+              <Button size="sm" className="mt-2 h-8 w-full rounded-lg" onClick={() => join(g)} aria-label={`Join ${g.name}`}>
+                Join group
               </Button>
             )}
           </div>

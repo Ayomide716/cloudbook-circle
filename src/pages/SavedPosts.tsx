@@ -126,7 +126,7 @@ import { Button } from "@/components/ui/button";
    }
  
    return (
-     <div className="min-h-screen bg-background">
+     <div className="content-fade min-h-screen bg-background">
        <Navigation currentUserId={currentUserId} />
  
        <div className="page-flush max-w-2xl mx-auto px-0 sm:px-4 pb-6 sm:py-6">

@@ -73,4 +73,5 @@ export const stickerUrl = (id: string) => `/stickers/${id}.webp`;
 export const stickerName = (id: string) => NAMES.get(id) ?? "Sticker";
 
 /** What a sticker message reads as in chat lists and replies. */
-export const previewText = (content: string) => (content?.startsWith(STICKER_PREFIX) ? "Sticker" : content);
+export const previewText = (content: string) =>
+  content?.startsWith(STICKER_PREFIX) ? "Sticker" : content === "[view-once]" ? "📷 View-once photo" : content;

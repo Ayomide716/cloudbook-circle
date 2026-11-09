@@ -1,9 +1,14 @@
 import { useEffect, useRef, useState } from "react";
-import { Maximize, Pause, Play, Volume2, VolumeX } from "@/components/icons";
+import { Maximize, Pause, PictureInPicture2, Play, Volume2, VolumeX } from "@/components/icons";
 import { cn } from "@/lib/utils";
 import { isDataSaver, useDataSaver } from "@/lib/data-saver";
 import { SEEK_SECONDS, seekBy, seekSideAt } from "@/lib/video-seek";
 import SeekFlash from "@/components/SeekFlash";
+import { isNative } from "@/lib/native/platform";
+import { onPictureInPicture, setVideoPip } from "@/lib/native/ember-window";
+
+// The one feed video that may go into the floating window (the last one playing with sound).
+let pipOwner: symbol | null = null;
 
 interface FeedVideoProps {
   src: string;
@@ -64,6 +69,29 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
     return () => observer.disconnect();
   }, []);
 
+  // Picture in picture: a video playing with sound keeps going in a small floating window
+  // when you leave the app (Android). The app's whole window shrinks, so the video fills it.
+  const me = useRef(Symbol("feed-video"));
+  const [inPip, setInPip] = useState(false);
+  useEffect(() => {
+    const v = videoRef.current;
+    if (playing && !muted && v) {
+      pipOwner = me.current;
+      setVideoPip({ width: v.videoWidth || 16, height: v.videoHeight || 9 });
+    } else if (pipOwner === me.current) {
+      pipOwner = null;
+      setVideoPip(null);
+    }
+  }, [playing, muted]);
+  useEffect(() => () => { if (pipOwner === me.current) { pipOwner = null; setVideoPip(null); } }, []);
+  useEffect(() => onPictureInPicture((active) => setInPip(active && pipOwner === me.current)), []);
+  // In a browser that has it (Chrome), a button for the browser's own floating player.
+  const webPip = !isNative && typeof document !== "undefined" && "pictureInPictureEnabled" in document && (document as Document & { pictureInPictureEnabled?: boolean }).pictureInPictureEnabled;
+  const floatVideo = () => {
+    const v = videoRef.current as (HTMLVideoElement & { requestPictureInPicture?: () => Promise<unknown> }) | null;
+    void v?.requestPictureInPicture?.().catch(() => {});
+  };
+
   const pokeBar = () => {
     setShowBar(true);
     window.clearTimeout(hideTimer.current);
@@ -116,7 +144,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
   };
 
   return (
-    <div ref={containerRef} className={cn("relative select-none bg-black", className)}>
+    <div ref={containerRef} className={cn("relative select-none bg-black", inPip && "!fixed inset-0 z-[400] flex items-center", className)}>
       <video
         ref={videoRef}
         // "#t=0.1" makes phones (iOS especially) show the first frame instead of a black box.
@@ -132,12 +160,12 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
         onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
         onDurationChange={(e) => Number.isFinite(e.currentTarget.duration) && setDuration(e.currentTarget.duration)}
         onEnded={() => setShowBar(true)}
-        className="block max-h-[600px] w-full object-contain"
-        style={{ aspectRatio: "16/9" }}
+        className={cn("block w-full object-contain", inPip ? "h-full" : "max-h-[600px]")}
+        style={inPip ? undefined : { aspectRatio: "16/9" }}
       />
 
       {/* The whole picture is the tap target (play / pause, or like on a double tap). */}
-      <button
+      {!inPip && <button
         type="button"
         aria-label={playing ? (muted ? "Turn sound on" : "Pause video") : "Play video"}
         className="no-press absolute inset-0 flex items-center justify-center"
@@ -149,7 +177,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
             <Play className="ml-1 h-8 w-8 fill-white" />
           </span>
         )}
-      </button>
+      </button>}
 
       {/* How long it is ("0:24"), so it reads as a video at a glance. */}
       {!playing && duration > 0 && (
@@ -170,7 +198,7 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
       <div
         className={cn(
           "absolute inset-x-0 bottom-0 flex items-center gap-2 bg-gradient-to-t from-black/70 to-transparent px-3 pb-2 pt-6 text-white transition-opacity duration-200",
-          showBar ? "opacity-100" : "pointer-events-none opacity-0"
+          showBar && !inPip ? "opacity-100" : "pointer-events-none opacity-0"
         )}
       >
         <button type="button" onClick={togglePlay} aria-label={playing ? "Pause" : "Play"} className="flex h-8 w-8 items-center justify-center rounded-full">
@@ -196,6 +224,11 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
         <button type="button" onClick={() => { setMuted((m) => !m); pokeBar(); }} aria-label={muted ? "Unmute" : "Mute"} className="flex h-8 w-8 items-center justify-center rounded-full">
           {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
         </button>
+        {webPip && (
+          <button type="button" onClick={floatVideo} aria-label="Picture in picture" className="flex h-8 w-8 items-center justify-center rounded-full">
+            <PictureInPicture2 className="h-4 w-4" />
+          </button>
+        )}
         <button type="button" onClick={fullscreen} aria-label="Full screen" className="flex h-8 w-8 items-center justify-center rounded-full">
           <Maximize className="h-4 w-4" />
         </button>

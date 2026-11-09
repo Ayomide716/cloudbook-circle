@@ -100,7 +100,7 @@ const PeopleYouMayKnow = ({ currentUserId }: { currentUserId: string }) => {
               type="button"
               onClick={() => dismiss(p.id)}
               aria-label={`Don't suggest ${p.full_name || "this person"}`}
-              className="absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white"
+              className="tap-target absolute right-1.5 top-1.5 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white"
             >
               <X className="h-4 w-4" />
             </button>

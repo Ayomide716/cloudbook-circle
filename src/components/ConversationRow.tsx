@@ -29,14 +29,18 @@ interface ConversationRowProps {
   online?: boolean;
   /** They're typing to you right now: "typing…" instead of the last message. */
   typing?: boolean;
+  /** "Read" in the swipe actions: marks their messages as read without opening the chat. */
+  onMarkRead?: () => void;
 }
+
+const SWIPE_ACTION_WIDTH = 76;
 
 /**
  * One chat in the list, WhatsApp style: the time turns tangerine and a round count shows while there
  * are unread messages. Press and hold (or the ⌄ button on bigger screens) to pin, mute or archive.
  */
 const ConversationRow = ({
-  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback, online, typing,
+  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback, online, typing, onMarkRead,
 }: ConversationRowProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pressTimer = useRef<number>();
@@ -44,15 +48,79 @@ const ConversationRow = ({
   const unread = unreadCount > 0;
   const name = profile.full_name || "Anonymous";
 
+  // Swipe the row left to show Read (or Unread count gone), Mute and Archive, as in WhatsApp.
+  const actions = [
+    ...(onMarkRead && unread ? [{ key: "read", label: "Read", icon: <CheckCheck className="h-5 w-5" />, className: "bg-sky-600", run: onMarkRead }] : []),
+    { key: "mute", label: muted ? "Unmute" : "Mute", icon: muted ? <BellRing className="h-5 w-5" /> : <BellOff className="h-5 w-5" />, className: "bg-neutral-500", run: () => onToggle("muted") },
+    { key: "archive", label: archived ? "Unarchive" : "Archive", icon: archived ? <ArchiveRestore className="h-5 w-5" /> : <Archive className="h-5 w-5" />, className: "bg-primary", run: () => onToggle("archived") },
+  ];
+  const openWidth = actions.length * SWIPE_ACTION_WIDTH;
+  const [offset, setOffset] = useState(0);
+  const [dragging, setDragging] = useState(false);
+  const swipe = useRef<{ x: number; y: number; base: number; horizontal: boolean | null } | null>(null);
+  const swiped = useRef(false);
+  const close = () => setOffset(0);
+
   return (
+    <div className="relative overflow-hidden">
+      {/* The actions behind the row, shown as it slides left. */}
+      <div className="absolute inset-y-0 right-0 flex" aria-hidden={offset === 0} style={{ width: openWidth }}>
+        {actions.map((a) => (
+          <button
+            key={a.key}
+            type="button"
+            tabIndex={offset === 0 ? -1 : 0}
+            onClick={() => { haptic(10); a.run(); close(); }}
+            className={cn("flex h-full flex-col items-center justify-center gap-1 text-[12px] font-semibold text-white", a.className)}
+            style={{ width: SWIPE_ACTION_WIDTH }}
+          >
+            {a.icon}
+            {a.label}
+          </button>
+        ))}
+      </div>
     <div
       className={cn(
-        "group relative flex cursor-pointer select-none items-center gap-3 p-3 transition-colors sm:p-4 [-webkit-touch-callout:none]",
-        selected ? "bg-accent" : "hover:bg-accent/50 active:bg-accent/60"
+        "group relative flex cursor-pointer select-none items-center gap-3 p-3 sm:p-4 [-webkit-touch-callout:none] touch-pan-y",
+        selected ? "bg-accent" : "bg-background hover:bg-accent/50 active:bg-accent/60",
+        !dragging && "transition-[transform,background-color] duration-200 [animation-timing-function:cubic-bezier(0.2,0,0,1)]"
       )}
+      style={{ transform: offset ? `translateX(${offset}px)` : undefined }}
       onClick={() => {
+        if (swiped.current) { swiped.current = false; return; }
+        if (offset) { close(); return; }
         if (longPressed.current) { longPressed.current = false; return; }
         onOpen();
+      }}
+      onTouchStart={(e) => {
+        const t = e.touches[0];
+        swipe.current = { x: t.clientX, y: t.clientY, base: offset, horizontal: null };
+      }}
+      onTouchMove={(e) => {
+        const g = swipe.current;
+        if (!g) return;
+        const t = e.touches[0];
+        const dx = t.clientX - g.x, dy = t.clientY - g.y;
+        if (g.horizontal === null && Math.hypot(dx, dy) > 8) g.horizontal = Math.abs(dx) > Math.abs(dy) * 1.2;
+        if (!g.horizontal) return;
+        window.clearTimeout(pressTimer.current);
+        setDragging(true);
+        // Past the buttons it pulls with resistance.
+        const next = Math.min(0, g.base + dx);
+        setOffset(next < -openWidth ? -openWidth + (next + openWidth) * 0.3 : next);
+      }}
+      onTouchEnd={() => {
+        const g = swipe.current;
+        swipe.current = null;
+        if (!g?.horizontal) return;
+        swiped.current = true;
+        setDragging(false);
+        setOffset((o) => {
+          const open = o < -SWIPE_ACTION_WIDTH * 0.8;
+          if (open && g.base === 0) haptic(8);
+          return open ? -openWidth : 0;
+        });
+        window.setTimeout(() => { swiped.current = false; }, 400);
       }}
       onPointerDown={(e) => {
         if (e.pointerType === "mouse") return;
@@ -142,6 +210,7 @@ const ConversationRow = ({
         </ActionMenuContent>
       </ActionMenu>
       </div>
+    </div>
     </div>
   );
 };

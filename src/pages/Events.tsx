@@ -288,7 +288,7 @@ const Events = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="content-fade min-h-screen bg-background">
       <Navigation currentUserId={currentUserId || undefined} />
 
       <PullToRefresh onRefresh={async () => { if (currentUserId) await loadEvents(currentUserId); }}>

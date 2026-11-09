@@ -9,6 +9,7 @@ import { canShareScreen, formatCallDuration, getIceServers, loadIceServers } fro
 import { freshChannel } from "@/lib/realtime-broadcast";
 import { CallButton, StreamAudio, StreamVideo } from "@/components/calls/CallControls";
 import { toast } from "@/hooks/use-toast";
+import DarkStatusBar from "@/components/DarkStatusBar";
 
 interface GroupVideoCallProps {
   groupId: string;
@@ -388,6 +389,7 @@ const GroupVideoCall = ({
 
       {isFullscreen ? (
         <div role="dialog" aria-label={`Group call in ${groupName}`} className="fixed inset-0 z-50 flex flex-col bg-neutral-950 text-white animate-in fade-in-0 duration-200">
+          <DarkStatusBar />
           <div className="flex items-center justify-between gap-2 px-4 pb-2 pt-[calc(env(safe-area-inset-top)+0.75rem)]">
             <div className="flex min-w-0 items-center gap-2">
               <span className="flex items-center gap-1.5 rounded-full bg-white/10 px-2.5 py-1 text-sm">

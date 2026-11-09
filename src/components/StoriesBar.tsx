@@ -8,14 +8,13 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogFooter, fullScreenOnPhones } from "@/components/ui/dialog";
-import { Plus, X, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX, User } from "@/components/icons";
+import { Plus, X, Loader2, ChevronLeft, ChevronRight, Pause, Play, Trash2, Volume2, VolumeX, User, ImagePlus, Type, BarChart3 } from "@/components/icons";
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import ImageUpload from "./ImageUpload";
 import VideoUpload from "./VideoUpload";
 import StoryViewers from "@/components/stories/StoryViewers";
 import SeekFlash from "@/components/SeekFlash";
@@ -29,6 +28,14 @@ import { cn, friendlyError } from "@/lib/utils";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
 import StoryReplyBar from "@/components/stories/StoryReplyBar";
+import DarkStatusBar from "@/components/DarkStatusBar";
+import { MY_STORY_EVENT, setMyStory } from "@/lib/my-story";
+import StoryEditor from "@/components/stories/StoryEditor";
+import { uploadPhoto } from "@/lib/upload-photo";
+import { readOverlay, STORY_BACKGROUNDS, type StoryOverlay } from "@/lib/story-overlay";
+import type { Json } from "@/integrations/supabase/types";
+import StoryOverlayLayer from "@/components/stories/StoryOverlayLayer";
+import { useNavigate } from "react-router-dom";
 
 /** The emoji for each face, in the message the story's owner gets. */
 const REACTION_CHARS: Record<string, string> = {
@@ -44,6 +51,8 @@ interface Story {
   created_at: string;
   /** "close_friends": only your close friends see it (green ring). */
   audience?: string;
+  /** Polls, mentions and a shared post to tap (lib/story-overlay). */
+  overlay?: unknown;
   profiles: {
     id: string;
     full_name: string | null;
@@ -71,9 +80,16 @@ const STORY_DURATION = 5000; // 5 seconds per photo story
 const STORY_MAX_SECONDS = 60;
 
 const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
+  const navigate = useNavigate();
   const myProfile = useMyProfile();
   const [storyGroups, setStoryGroups] = useState<UserStoryGroup[]>([]);
   const myGroup = storyGroups.find((g) => g.userId === currentUserId);
+  const othersHaveStories = storyGroups.some((g) => g.userId !== currentUserId);
+  // Your photo by "What's on your mind?" glows while your story is up, and opens it from there.
+  useEffect(() => {
+    setMyStory({ has: !!myGroup, closeFriends: !!myGroup?.closeFriends });
+  }, [myGroup]);
+  useEffect(() => () => setMyStory({ has: false, closeFriends: false }), []);
   const [isCreating, setIsCreating] = useState(false);
   const [storyImage, setStoryImage] = useState("");
   // A video story (its address, or a "videojob:…" reference while it's prepared in the background).
@@ -204,6 +220,25 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     return () => window.removeEventListener(POSTED_EVENT, onPosted);
   }, [loadStories]);
 
+  // The story editor (photo or text story): the create sheet steps aside while it's open.
+  const [editorPhoto, setEditorPhoto] = useState<File | null | undefined>(undefined);
+  const [storyOverlay, setStoryOverlay] = useState<StoryOverlay | null>(null);
+  const [uploadingStory, setUploadingStory] = useState(false);
+  const openEditor = (file: File | null) => { setIsCreating(false); setEditorPhoto(file); };
+  const editorDone = async ({ file, overlay }: { file: File; overlay: StoryOverlay | null }) => {
+    setEditorPhoto(undefined);
+    setIsCreating(true);
+    setUploadingStory(true);
+    try {
+      setStoryImage(await uploadPhoto("post-images", currentUserId, file));
+      setStoryOverlay(overlay);
+    } catch (e) {
+      toast({ title: "Couldn't upload your story", description: friendlyError(e), variant: "destructive" });
+    } finally {
+      setUploadingStory(false);
+    }
+  };
+
   // Extra taps while this is saving do nothing (no double posts on a slow network).
   const onceHandleCreateStory = useSingleFlight();
   const handleCreateStory = onceHandleCreateStory(async () => {
@@ -213,14 +248,16 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     }
     const caption = storyCaption || null;
     const audience = storyAudience;
+    const overlay = storyOverlay;
     const save = async (mediaUrl: string, type: "image" | "video") => {
       const { error } = await supabase.from("stories").insert({
         user_id: currentUserId, media_url: mediaUrl, media_type: type, caption,
         ...(features.closeFriends ? { audience } : {}),
+        ...(features.storyStickers && overlay && type === "image" ? { overlay: overlay as unknown as Json } : {}),
       });
       if (error) throw error;
     };
-    const done = () => { setIsCreating(false); setStoryImage(""); setStoryVideo(""); setStoryCaption(""); setStoryAudience("everyone"); };
+    const done = () => { setIsCreating(false); setStoryImage(""); setStoryVideo(""); setStoryCaption(""); setStoryAudience("everyone"); setStoryOverlay(null); };
     // A video still being prepared or uploaded: posted from the background when it's ready.
     if (isVideoJobRef(storyVideo)) {
       postWhenReady(storyVideo, "story", (url) => save(url, "video"));
@@ -418,6 +455,17 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     setViewerOpen(true);
   };
 
+  useEffect(() => {
+    const onRequest = (e: Event) => {
+      const action = (e as CustomEvent<"view" | "create">).detail;
+      const mine = storyGroups.findIndex((g) => g.userId === currentUserId);
+      if (action === "view" && mine >= 0) openViewer(mine);
+      else setIsCreating(true);
+    };
+    window.addEventListener(MY_STORY_EVENT, onRequest);
+    return () => window.removeEventListener(MY_STORY_EVENT, onRequest);
+  });
+
   const handleSendReply = async (text: string) => {
     if (!activeStory) return;
     const { error } = await supabase.from("messages").insert({
@@ -448,6 +496,14 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     <>
       {/* Stories as round bubbles, as on Instagram: yours first (tap + to add one), a coloured
           ring on anything you haven't watched, and the name underneath. */}
+      {/* Only when friends have stories: with none, the row would just repeat your own photo
+          (which is by "What's on your mind?" anyway, with your story's ring and a +). Live
+          voice rooms still show on their own. */}
+      {!othersHaveStories ? (
+        <div className="flex gap-3.5 overflow-x-auto px-3 py-2 scrollbar-hide empty:hidden sm:px-1">
+          <LiveRoomStories currentUserId={currentUserId} />
+        </div>
+      ) : (
       <div className="feed-stories sm:mb-4">
         <div className="flex gap-3.5 overflow-x-auto px-3 py-2 scrollbar-hide sm:px-1">
           {!myGroup && (
@@ -482,15 +538,36 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           })}
         </div>
       </div>
+      )}
 
       {/* Create Story Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>
         <DialogContent hideHandle className={`sm:max-w-md ${fullScreenOnPhones}`}>
           <div className="space-y-4">
             <h2 className="text-xl font-bold">Create story</h2>
-            {!storyVideo && (
-              <ImageUpload bucket="post-images" userId={currentUserId} onUploadComplete={setStoryImage} currentImage={storyImage} label="Upload Story Image" />
-            )}
+            {/* A photo or a text story goes through the editor (text, drawing, stickers). */}
+            {!storyVideo && (storyImage ? (
+              <div className="relative mx-auto w-40 overflow-hidden rounded-2xl bg-black">
+                <img src={storyImage} alt="Your story" className="aspect-[9/16] w-full object-cover" />
+                <button type="button" onClick={() => { setStoryImage(""); setStoryOverlay(null); }} className="tap-target absolute right-1.5 top-1.5 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white" aria-label="Remove">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+            ) : uploadingStory ? (
+              <div className="flex h-28 items-center justify-center"><Loader2 className="h-6 w-6 animate-spin text-muted-foreground" /></div>
+            ) : (
+              <div className="grid grid-cols-2 gap-2">
+                <label className="flex h-28 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl bg-secondary text-sm font-semibold hover:bg-secondary/80">
+                  <ImagePlus className="h-7 w-7" />
+                  Photo
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) openEditor(f); }} />
+                </label>
+                <button type="button" onClick={() => openEditor(null)} className="flex h-28 flex-col items-center justify-center gap-2 rounded-2xl text-sm font-semibold text-white" style={{ background: STORY_BACKGROUNDS[0] }}>
+                  <Type className="h-7 w-7" />
+                  Text
+                </button>
+              </div>
+            ))}
             {!storyImage && (
               <div className="flex items-center justify-between gap-3 rounded-lg border p-3">
                 {!storyVideo && <p className="text-sm text-muted-foreground">Or a video (up to {STORY_MAX_SECONDS} seconds)</p>}
@@ -535,6 +612,15 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
         </DialogContent>
       </Dialog>
 
+      {editorPhoto !== undefined && (
+        <StoryEditor
+          photo={editorPhoto}
+          currentUserId={currentUserId}
+          onCancel={() => { setEditorPhoto(undefined); setIsCreating(true); }}
+          onDone={(r) => void editorDone(r)}
+        />
+      )}
+
       {features.closeFriends && (
         <CloseFriendsDialog open={editingCloseFriends} onOpenChange={setEditingCloseFriends} currentUserId={currentUserId} />
       )}
@@ -544,6 +630,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           animations) can offset the full-screen viewer. */}
       {viewerOpen && activeGroup && activeStory && createPortal(
         <div className="fixed inset-x-0 top-0 bottom-[var(--keyboard-inset,0px)] z-[100] bg-black flex items-center justify-center">
+          <DarkStatusBar />
           {/* Progress bars */}
           {/* Below the phone's status bar (the Android app and installed apps draw under it). */}
           <div className="absolute top-0 left-0 right-0 z-20 flex gap-0.5 px-2 pt-[calc(env(safe-area-inset-top,0px)+0.5rem)] sm:pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] sm:px-4">
@@ -581,7 +668,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="text-white hover:bg-white/20 h-8 w-8"
+                  className="tap-target text-white hover:bg-white/20 h-10 w-10 rounded-full [&_svg]:size-5"
                   onClick={() => { setIsPaused(true); setConfirmDelete(true); }}
                   aria-label="Delete story"
                 >
@@ -589,14 +676,14 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
                 </Button>
               )}
               {activeStory.media_type === "video" && (
-                <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setStoryMuted((m) => !m)} aria-label={storyMuted ? "Turn sound on" : "Mute"}>
+                <Button variant="ghost" size="icon" className="tap-target text-white hover:bg-white/20 h-10 w-10 rounded-full [&_svg]:size-5" onClick={() => setStoryMuted((m) => !m)} aria-label={storyMuted ? "Turn sound on" : "Mute"}>
                   {storyMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
               )}
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setIsPaused(p => !p)} aria-label={isPaused ? "Play" : "Pause"}>
+              <Button variant="ghost" size="icon" className="tap-target text-white hover:bg-white/20 h-10 w-10 rounded-full [&_svg]:size-5" onClick={() => setIsPaused(p => !p)} aria-label={isPaused ? "Play" : "Pause"}>
                 {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
               </Button>
-              <Button variant="ghost" size="icon" className="text-white hover:bg-white/20 h-8 w-8" onClick={() => setViewerOpen(false)} aria-label="Close">
+              <Button variant="ghost" size="icon" className="tap-target text-white hover:bg-white/20 h-10 w-10 rounded-full [&_svg]:size-5" onClick={() => setViewerOpen(false)} aria-label="Close">
                 <X className="h-5 w-5" />
               </Button>
             </div>
@@ -620,11 +707,22 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
               onError={() => goNext()}
             />
           ) : (
-            <img
-              src={activeStory.media_url}
-              alt="Story"
-              className="max-w-full max-h-full object-contain select-none"
-            />
+            // The photo, with what can be tapped on it (poll, mentions, a shared post) placed on top.
+            // Above the tap areas, but only its stickers catch taps.
+            <div className="pointer-events-none relative z-[15]">
+              <img
+                src={activeStory.media_url}
+                alt="Story"
+                className="block max-h-[100dvh] max-w-[100vw] select-none object-contain"
+              />
+              <StoryOverlayLayer
+                storyId={activeStory.id}
+                overlay={readOverlay(activeStory.overlay)}
+                isOwn={isOwnStory}
+                onPause={(p) => setIsPaused(p)}
+                onOpen={(path) => { setViewerOpen(false); navigate(path); }}
+              />
+            </div>
           )}
 
           {/* Caption */}
@@ -742,7 +840,7 @@ const StoryBubble = ({ label, ariaLabel, onClick, ring, add, onAdd, children }: 
           type="button"
           onClick={onAdd ?? onClick}
           aria-label="Add to your story"
-          className="absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"
+          className="tap-target absolute -bottom-0.5 -right-0.5 flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-primary text-primary-foreground"
         >
           <Plus className="h-3.5 w-3.5" strokeWidth={3} />
         </button>

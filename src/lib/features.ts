@@ -13,8 +13,19 @@ const on = import.meta.env.VITE_DB_UPDATES_2026_10 === "true";
  * they've been run, then VITE_DB_UPDATES_2026_11=true.
  */
 const nov = import.meta.env.VITE_DB_UPDATES_2026_11 === "true";
+/**
+ * The second November update (20261109090000_stories_stickers_view_once_chat_themes.sql):
+ * VITE_DB_UPDATES_2026_11B=true once it's been run.
+ */
+const nov2 = import.meta.env.VITE_DB_UPDATES_2026_11B === "true";
 
 export const features = {
+  /** Polls and mentions you can tap on stories, and posts shared to a story (stories.overlay). */
+  storyStickers: nov2,
+  /** View-once photos in chats. */
+  viewOnce: nov2,
+  /** A theme per chat that both people see. */
+  chatThemes: nov2,
   /**
    * Groups: categories, private groups with join requests, pinned posts and muting
    * (20261107090000_groups_v2.sql).

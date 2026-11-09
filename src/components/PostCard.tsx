@@ -4,6 +4,7 @@ import MentionInput from "@/components/MentionInput";
 import { cancelDelete, deleteLater, deleteNow, hideEverywhere, showAgain, useHiddenEverywhere } from "@/lib/pending-deletes";
 import { useSingleFlight } from "@/hooks/use-single-flight";
 import { haptic } from "@/lib/haptics";
+import { enqueue, isOffline, QUEUE_FLUSHED_EVENT } from "@/lib/offline-queue";
 import { playSound } from "@/lib/sounds";
 import { features } from "@/lib/features";
 import { Card } from "@/components/ui/card";
@@ -47,6 +48,8 @@ import { postImages } from "@/lib/post-images";
 import TipButton from "./TipButton";
 import { isPostSaved } from "@/lib/saved-posts";
 import type { TablesInsert } from "@/integrations/supabase/types";
+import ReactorsSheet from "@/components/ReactorsSheet";
+import AnimatedCount from "@/components/AnimatedCount";
 
 export interface PostComment {
   id: string;
@@ -137,6 +140,20 @@ const PostCard = ({
     post.user_id,
   );
   const myProfile = useMyProfile();
+  const [floatingReaction, setFloatingReaction] = useState<{ type: string; key: number } | null>(null);
+  const [showReactors, setShowReactors] = useState(false);
+  // Comments you've just sent: shown at once (faded, "Sending…") until the saved ones arrive.
+  const [pendingComments, setPendingComments] = useState<PostComment[]>([]);
+  useEffect(() => {
+    setPendingComments((list) => list.filter((p) => !comments.some((c) => c.content === p.content && c.profiles.id === currentUserId)));
+  }, [comments, currentUserId]);
+  useEffect(() => {
+    if (!pendingComments.some((c) => c.id.startsWith("temp-offline-"))) return;
+    const refresh = () => onCommentAdded();
+    window.addEventListener(QUEUE_FLUSHED_EVENT, refresh);
+    return () => window.removeEventListener(QUEUE_FLUSHED_EVENT, refresh);
+  }, [pendingComments, onCommentAdded]);
+  const shownComments = useMemo(() => (pendingComments.length ? [...comments, ...pendingComments] : comments), [comments, pendingComments]);
   const [viewerIndex, setViewerIndex] = useState<number | null>(null);
   const [heartBurst, setHeartBurst] = useState(0);
   // Hidden with ✕: the card turns into Facebook's "Why aren't you interested?" panel.
@@ -239,8 +256,17 @@ const PostCard = ({
     const previous = userReaction;
     const removing = previous === reactionType;
     // A pop when you like or react (not when you take it back), as on Facebook.
-    if (!removing) { playSound("like"); haptic(); }
+    if (!removing) { playSound("like"); haptic(); setFloatingReaction({ type: reactionType, key: Date.now() }); }
     onReactionToggle(reactionType);
+
+    // Offline: kept on the phone and sent once you're back online.
+    if (isOffline()) {
+      enqueue(removing
+        ? { kind: "delete", table: "reactions", match: { post_id: post.id, user_id: currentUserId } }
+        : { kind: "upsert", table: "reactions", values: { post_id: post.id, user_id: currentUserId, reaction_type: reactionType }, onConflict: "post_id,user_id" });
+      reactionBusy.current = false;
+      return;
+    }
 
     try {
       // Adding or changing is one "insert or update", so it can't trip over a reaction that
@@ -338,10 +364,23 @@ const PostCard = ({
       user_id: currentUserId,
       profiles: {
         id: currentUserId,
-        full_name: "You",
-        avatar_url: null,
+        full_name: myProfile?.full_name || "You",
+        avatar_url: myProfile?.avatar_url ?? null,
       },
     };
+    // Offline: kept on the phone and sent once you're back online ("Waiting for connection").
+    if (isOffline()) {
+      const queued = { ...optimisticComment, id: `temp-offline-${Date.now()}` };
+      setPendingComments((list) => [...list, queued]);
+      enqueue({ kind: "insert", table: "comments", values: { post_id: post.id, user_id: currentUserId, content: words, ...(queued.parent_id ? { parent_id: queued.parent_id } : {}) } });
+      setCommentContent("");
+      setCommentMentions([]);
+      if (replyingTo) setOpenThreadId(replyingTo.id);
+      setReplyingTo(null);
+      setShowComments(true);
+      return;
+    }
+    setPendingComments((list) => [...list, optimisticComment]);
 
     // Optimistic: show comment instantly
     setCommentContent("");
@@ -368,6 +407,9 @@ const PostCard = ({
     setIsSubmitting(false);
 
     if (error) {
+      // Take it back out and give you your words back to try again.
+      setPendingComments((list) => list.filter((c) => c.id !== optimisticComment.id));
+      setCommentContent((text) => text || plainMentions(optimisticComment.content));
       toast({
         title: "Couldn't post comment",
         description: await explainError(error, post.user_id),
@@ -433,11 +475,10 @@ const PostCard = ({
           onKeyDown={sendOnEnter}
           aria-label={replyingTo ? "Write a reply" : "Write a comment"}
           className="min-h-[36px] w-full resize-none rounded-[18px] border-0 bg-secondary py-2 leading-5"
-          disabled={isSubmitting}
           rows={1}
         />
-        <Button type="submit" size="sm" disabled={isSubmitting || !commentContent.trim()} className="h-9 rounded-full px-4">
-          {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : "Post"}
+        <Button type="submit" size="sm" disabled={!commentContent.trim()} className="h-9 rounded-full px-4">
+          Post
         </Button>
       </div>
     </form>
@@ -446,7 +487,7 @@ const PostCard = ({
   const commentList = (initialCount: number) => (
     <CommentThread
       latest
-      comments={comments}
+      comments={shownComments}
       currentUserId={currentUserId}
       onReply={startReply}
       onDelete={handleDeleteComment}
@@ -824,19 +865,43 @@ const PostCard = ({
               ) : (
                 <Heart className="h-6 w-6" />
               )}
-              {totalReactions > 0 && <span className="tabular-nums">{compactCount(totalReactions)}</span>}
             </Button>
+            {/* The reaction you just picked floats up and fades, as on Facebook. */}
+            {floatingReaction && (
+              <motion.span
+                key={floatingReaction.key}
+                initial={{ y: 0, opacity: 1, scale: 0.7 }}
+                animate={{ y: -56, opacity: 0, scale: 1.5 }}
+                transition={{ duration: 0.75, ease: "easeOut" }}
+                onAnimationComplete={() => setFloatingReaction(null)}
+                className="pointer-events-none absolute bottom-6 left-2 z-10 motion-reduce:hidden"
+                aria-hidden="true"
+              >
+                <ReactionEmoji type={floatingReaction.type} className="h-8 w-8" />
+              </motion.span>
+            )}
           </div>
+          {/* The count opens who reacted. */}
+          {totalReactions > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowReactors(true)}
+              className="-ml-1.5 flex h-11 items-center rounded-full px-1.5 text-[14px] font-semibold tabular-nums hover:underline"
+              aria-label={`See who reacted: ${reactionSummary}`}
+            >
+              <AnimatedCount value={totalReactions} format={compactCount} />
+            </button>
+          )}
 
           <Button
             variant="ghost"
             className="h-11 gap-1.5 rounded-full px-2.5 text-[14px] font-semibold text-foreground hover:bg-accent [&_svg]:size-6"
             onClick={toggleComments}
             aria-expanded={showComments}
-            aria-label={`Comment${comments.length ? `, ${comments.length} ${comments.length === 1 ? "comment" : "comments"}` : ""}`}
+            aria-label={`Comment${shownComments.length ? `, ${shownComments.length} ${shownComments.length === 1 ? "comment" : "comments"}` : ""}`}
           >
             <MessageCircle className="h-6 w-6" />
-            {comments.length > 0 && <span className="tabular-nums">{compactCount(comments.length)}</span>}
+            {shownComments.length > 0 && <AnimatedCount value={shownComments.length} format={compactCount} />}
           </Button>
 
           <Button
@@ -875,8 +940,8 @@ const PostCard = ({
             <span className="font-semibold">{latestComment.profiles.full_name || "Someone"}</span>{" "}
             <span className="text-foreground/85">{plainMentions(latestComment.content)}</span>
           </span>
-          {comments.length > 1 && (
-            <span className="mt-0.5 block text-muted-foreground">View all {compactCount(comments.length)} comments</span>
+          {shownComments.length > 1 && (
+            <span className="mt-0.5 block text-muted-foreground">View all {compactCount(shownComments.length)} comments</span>
           )}
         </button>
       )}
@@ -893,7 +958,7 @@ const PostCard = ({
           box at the bottom. "View more comments" brings in more without leaving the feed. */}
       {showComments && (
         <div className="space-y-3 border-t border-border px-4 pb-3 pt-2.5">
-          {comments.length === 0 ? (
+          {shownComments.length === 0 ? (
             <p className="py-1 text-center text-sm text-muted-foreground">No comments yet. Be the first to comment.</p>
           ) : (
             commentList(inlineComments ? 50 : 3)
@@ -901,8 +966,9 @@ const PostCard = ({
           {commentForm}
         </div>
       )}
+      {showReactors && <ReactorsSheet postId={post.id} open={showReactors} onOpenChange={setShowReactors} />}
       {currentUserId !== post.user_id && (
-        <ReportDialog reportedType="post" reportedId={post.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />
+      <ReportDialog reportedType="post" reportedId={post.id} currentUserId={currentUserId} open={reportOpen} onOpenChange={setReportOpen} />
       )}
       {features.blocking && currentUserId !== post.user_id && (
         <BlockDialog

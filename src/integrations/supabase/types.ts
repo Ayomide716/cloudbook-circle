@@ -1043,6 +1043,8 @@ export type Database = {
       }
       messages: {
         Row: {
+          view_once: boolean
+          view_once_opened_at: string | null
           content: string
           created_at: string | null
           deleted_at: string | null
@@ -1058,6 +1060,8 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          view_once?: boolean
+          view_once_opened_at?: string | null
           content: string
           created_at?: string | null
           deleted_at?: string | null
@@ -1073,6 +1077,8 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          view_once?: boolean
+          view_once_opened_at?: string | null
           content?: string
           created_at?: string | null
           deleted_at?: string | null
@@ -2070,6 +2076,7 @@ export type Database = {
       }
       stories: {
         Row: {
+          overlay: Json | null
           audience: string
           caption: string | null
           created_at: string
@@ -2080,6 +2087,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          overlay?: Json | null
           audience?: string
           caption?: string | null
           created_at?: string
@@ -2090,6 +2098,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          overlay?: Json | null
           audience?: string
           caption?: string | null
           created_at?: string
@@ -2469,11 +2478,82 @@ export type Database = {
           },
         ]
       }
+      chat_themes: {
+        Row: {
+          theme: string
+          updated_at: string
+          updated_by: string | null
+          user_a: string
+          user_b: string
+        }
+        Insert: {
+          theme: string
+          updated_at?: string
+          updated_by?: string | null
+          user_a: string
+          user_b: string
+        }
+        Update: {
+          theme?: string
+          updated_at?: string
+          updated_by?: string | null
+          user_a?: string
+          user_b?: string
+        }
+        Relationships: []
+      }
+      story_poll_votes: {
+        Row: {
+          created_at: string
+          option: number
+          story_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          option: number
+          story_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          option?: number
+          story_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      view_once_media: {
+        Row: {
+          created_at: string
+          message_id: string
+          url: string
+        }
+        Insert: {
+          created_at?: string
+          message_id: string
+          url: string
+        }
+        Update: {
+          created_at?: string
+          message_id?: string
+          url?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      open_view_once: {
+        Args: { _message: string }
+        Returns: string | null
+      }
+      story_poll_results: {
+        Args: { _story: string }
+        Returns: { option: number; votes: number }[]
+      }
       mark_messages_delivered: {
         Args: never
         Returns: undefined

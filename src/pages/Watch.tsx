@@ -454,7 +454,12 @@ const Watch = () => {
                 activeCategory === "following" ? "No videos from your friends yet" :
                 debouncedSearch ? "No videos match your search" :
                 "No videos yet"}
-              text={!debouncedSearch && activeCategory !== "saved" && activeCategory !== "following" ? "Be the first to upload one!" : undefined}
+              text={debouncedSearch ? "Try another word." : activeCategory === "saved" ? "Save a video to watch it later." : activeCategory === "following" ? "When friends post videos, they'll show here." : "Be the first to upload one!"}
+              action={debouncedSearch
+                ? <Button variant="secondary" onClick={() => setSearchQuery("")} className="rounded-full px-5">Clear search</Button>
+                : activeCategory === "saved" || activeCategory === "following"
+                  ? undefined
+                  : <Button onClick={() => setShowUpload(true)} className="rounded-full px-5">Upload a video</Button>}
             />
           ) : (
             <motion.div
