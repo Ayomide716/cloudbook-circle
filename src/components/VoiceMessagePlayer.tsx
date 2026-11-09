@@ -66,9 +66,20 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
     const onMeta = () => {
       if (!duration && Number.isFinite(audio.duration) && audio.duration > 0) setAudioDuration(audio.duration);
     };
-    const onEnded = () => { setIsPlaying(false); setCurrentTime(0); };
+    const onEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+      // The next voice note in the chat plays on by itself, as on WhatsApp.
+      const all = Array.from(document.querySelectorAll<HTMLAudioElement>("audio[data-voice-note]"));
+      const next = all[all.indexOf(audio) + 1];
+      if (next) { next.playbackRate = audio.playbackRate; void next.play().catch(() => {}); }
+    };
     const onPause = () => setIsPlaying(false);
-    const onPlay = () => setIsPlaying(true);
+    const onPlay = () => {
+      setIsPlaying(true);
+      // One at a time: starting this one stops any other.
+      document.querySelectorAll<HTMLAudioElement>("audio[data-voice-note]").forEach((a) => { if (a !== audio && !a.paused) a.pause(); });
+    };
     audio.addEventListener("timeupdate", onTime);
     audio.addEventListener("loadedmetadata", onMeta);
     audio.addEventListener("durationchange", onMeta);
@@ -124,7 +135,7 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
 
   return (
     <div className="flex min-w-[232px] items-center gap-2.5 py-1">
-      <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" />
+      <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" data-voice-note="" />
 
       <button
         type="button"

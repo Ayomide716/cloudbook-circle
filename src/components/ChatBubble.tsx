@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import PhotoViewer from "@/components/PhotoViewer";
 import { cn } from "@/lib/utils";
 import { SWIPE_REPLY_THRESHOLD, useSwipeToReply } from "@/hooks/use-swipe-to-reply";
-import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus, Forward, Star, StarOff } from "@/components/icons";
+import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus, Forward, Star, StarOff, Clock, AlertCircle, RotateCcw, CheckCircle2, Ban, Pin, PinOff, Info } from "@/components/icons";
 import { format, isToday, isYesterday } from "date-fns";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
 import LinkPreview from "./LinkPreview";
@@ -16,6 +16,13 @@ import { GIPHY_STICKER, previewText, stickerId, stickerName, stickerUrl } from "
 import { isGiphyMedia } from "@/lib/giphy";
 import ViewOnceBubble from "@/components/chat/ViewOnceBubble";
 import { isViewOnce } from "@/lib/view-once";
+import { mediaSize } from "@/lib/chat-media";
+import { themeColors } from "@/lib/chat-colors";
+import { emojiOnlyCount } from "@/lib/emoji-only";
+import { storyReplyOf } from "@/lib/story-reply";
+import { readEvent, readFile, readPoll, readQuote } from "@/lib/chat-extras";
+import { EventCard, FileCard, PollCard, QuoteBlock } from "@/components/chat/MessageExtras";
+import UploadRing from "@/components/chat/UploadRing";
 
 /** The length saved in a voice note's text, "🎤 Voice message (1:05)" → 65. */
 const voiceSeconds = (content: string) => {
@@ -41,6 +48,20 @@ interface ChatMessage {
   /** A view-once photo (lib/view-once), and when they opened it. */
   view_once?: boolean;
   view_once_opened_at?: string | null;
+  // Only on this phone, while a message you sent is on its way:
+  /** Sending (with its upload, 0-100, for a photo or video), or couldn't send. */
+  _status?: "sending" | "failed";
+  _progress?: number;
+  /** The photo or video from the phone, shown while (and after) it uploads. */
+  _preview?: string;
+  _video?: boolean;
+  /** When they read it (Message info). */
+  read_at?: string | null;
+  /** A document, a poll, an event, or a quote from a group (lib/chat-extras). */
+  file?: unknown;
+  poll?: unknown;
+  event?: unknown;
+  quote?: unknown;
 }
 
 interface ChatBubbleProps {
@@ -61,18 +82,21 @@ interface ChatBubbleProps {
   starred?: boolean;
   onToggleStar?: (message: ChatMessage) => void;
   onForward?: (message: ChatMessage) => void;
+  /** Try again to send a message that couldn't go. */
+  onRetry?: (message: ChatMessage) => void;
+  /** Start picking messages, with this one (Select in the menu). */
+  onSelect?: (message: ChatMessage) => void;
+  /** Delete: for me, or for everyone (asks which). Without it, Unsend deletes for everyone. */
+  onDelete?: (message: ChatMessage) => void;
+  /** Pin to the top of the chat, or unpin. */
+  onPin?: (message: ChatMessage) => void;
+  pinned?: boolean;
+  /** Message info: when it was delivered and read. */
+  onInfo?: (message: ChatMessage) => void;
+  /** Blue ticks: off when either of you turned read receipts off. */
+  showRead?: boolean;
 }
 
-const themeColors: Record<string, { sent: string; received: string }> = {
-  // Dark mode: a deep ember for your messages and a raised warm grey for theirs.
-  default: { sent: "bg-chat-sent text-primary-foreground dark:text-white", received: "bg-chat-surface text-foreground" },
-  ocean: { sent: "bg-blue-600 text-white", received: "bg-blue-100 dark:bg-blue-900/40 text-foreground" },
-  sunset: { sent: "bg-orange-700 text-white", received: "bg-orange-100 dark:bg-orange-900/40 text-foreground" },
-  forest: { sent: "bg-green-700 text-white", received: "bg-green-100 dark:bg-green-900/40 text-foreground" },
-  lavender: { sent: "bg-purple-600 text-white", received: "bg-purple-100 dark:bg-purple-900/40 text-foreground" },
-  crimson: { sent: "bg-red-600 text-white", received: "bg-red-100 dark:bg-red-900/40 text-foreground" },
-  midnight: { sent: "bg-indigo-600 text-white", received: "bg-indigo-100 dark:bg-indigo-900/40 text-foreground" },
-};
 
 const ChatBubble = ({
   message,
@@ -88,6 +112,13 @@ const ChatBubble = ({
   starred = false,
   onToggleStar,
   onForward,
+  onRetry,
+  onSelect,
+  onDelete,
+  onPin,
+  pinned = false,
+  onInfo,
+  showRead = true,
 }: ChatBubbleProps) => {
   // WhatsApp's message menu: press and hold on phones, the buttons by the message on computers.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -96,6 +127,7 @@ const ChatBubble = ({
   const colors = themeColors[theme] || themeColors.default;
   const { reactions, mine, react } = useMessageReactions(message.id, currentUserId);
   const longPress = useLongPress(() => setMenuOpen(true));
+  const bubbleRef = useRef<HTMLDivElement>(null);
   // Swipe a message to the right to reply to it, as on WhatsApp.
   const swipe = useSwipeToReply(() => onReply(message));
 
@@ -103,13 +135,21 @@ const ChatBubble = ({
   if (message.deleted_at) {
     return (
       <div className={cn("flex", isCurrentUser ? "justify-end" : "justify-start")}>
-        <div className="px-2.5 py-1.5 rounded-lg bg-chat-surface/80 italic text-muted-foreground text-sm shadow-sm">
-          This message was unsent
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-chat-surface/80 italic text-muted-foreground text-sm shadow-sm">
+          <Ban className="h-3.5 w-3.5" aria-hidden="true" />
+          {isCurrentUser ? "You deleted this message" : "This message was deleted"}
         </div>
       </div>
     );
   }
 
+  const file = readFile(message.file);
+  const poll = readPoll(message.poll);
+  const event = readEvent(message.event);
+  const quote = readQuote(message.quote);
+  const card = !!(file || poll || event);
+  // A reply or reaction to a story: the story's picture as a small quote beside it.
+  const story = storyReplyOf(message);
   const isVoice = message.image_url && message.content?.startsWith("🎤");
   // A sticker stands on its own: big, with no bubble around it. One of Ember's 3D ones, or an
   // animated one from GIPHY (its address is the message's image).
@@ -118,11 +158,18 @@ const ChatBubble = ({
     ? stickerUrl(ownSticker)
     : message.content === GIPHY_STICKER && isGiphyMedia(message.image_url) ? message.image_url : null;
   const stickerAlt = ownSticker ? `${stickerName(ownSticker)} sticker` : "Sticker";
-  const isMedia = message.image_url && !stickerSrc && !message.content?.startsWith("🎤");
-  const isVideo = isMedia && (message.image_url?.includes('.mp4') || message.image_url?.includes('.mov') || message.image_url?.includes('.webm'));
+  const isMedia = !story && message.image_url && !stickerSrc && !message.content?.startsWith("🎤");
+  const isVideo = isMedia && (!!message._video || message.image_url?.includes('.mp4') || message.image_url?.includes('.mov') || message.image_url?.includes('.webm'));
   const isGif = isMedia && (message.image_url?.includes('giphy.com') || message.image_url?.includes('tenor.com'));
   const once = isViewOnce(message);
-  const hasText = !once && !stickerSrc && !!message.content && message.content !== "Sent an image" && !(isMedia && message.content === "Sent a video") && !message.content.startsWith("🎤");
+  // What's on screen: the photo from this phone while (and after) it uploads.
+  const src = message._preview ?? message.image_url ?? undefined;
+  const size = mediaSize(message.image_url);
+  // Room for the photo before it loads: up to 260 wide and 340 tall.
+  const box = size ? { width: Math.round(Math.min(260, (340 * size.w) / size.h)), aspectRatio: `${size.w} / ${size.h}` } : undefined;
+  const sending = message._status === "sending";
+  const failed = message._status === "failed";
+  const hasText = !card && !once && !stickerSrc && !!message.content && message.content !== "Sent an image" && !(isMedia && message.content === "Sent a video") && !message.content.startsWith("🎤");
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(message) },
@@ -130,11 +177,20 @@ const ChatBubble = ({
     ...(onToggleStar ? [{ label: starred ? "Unstar" : "Star", icon: starred ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />, onSelect: () => onToggleStar(message) }] : []),
     ...(hasText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(message.content) }] : []),
     ...(isCurrentUser && !isMedia && !isVoice && !stickerSrc ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(message) }] : []),
-    ...(isCurrentUser ? [{ label: "Unsend", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onUnsend(message.id), destructive: true }] : []),
+    ...(failed && onRetry ? [{ label: "Try again", icon: <RotateCcw className="mr-2 h-4 w-4" />, onSelect: () => onRetry(message) }] : []),
+    ...(onSelect && !message.id.startsWith("temp-") ? [{ label: "Select", icon: <CheckCircle2 className="mr-2 h-4 w-4" />, onSelect: () => onSelect(message) }] : []),
+    ...(onPin && !message.id.startsWith("temp-") ? [{ label: pinned ? "Unpin" : "Pin", icon: pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />, onSelect: () => onPin(message) }] : []),
+    ...(onInfo && isCurrentUser && !message.id.startsWith("temp-") ? [{ label: "Info", icon: <Info className="mr-2 h-4 w-4" />, onSelect: () => onInfo(message) }] : []),
+    ...(onDelete
+      ? [{ label: "Delete", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onDelete(message), destructive: true }]
+      : isCurrentUser ? [{ label: "Unsend", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onUnsend(message.id), destructive: true }] : []),
   ];
 
   // The first link in the message, shown as a card under it.
   const chatLink = hasText ? firstLink(message.content) : null;
+  // One to three emoji and nothing else: shown big, with no bubble (as on WhatsApp).
+  const bigEmoji = hasText && !isMedia && !story && !replyMessage && !message.forwarded ? emojiOnlyCount(message.content) : 0;
+  const bare = !!stickerSrc || bigEmoji > 0;
   const sentAt = new Date(message.created_at);
   const time = format(sentAt, "HH:mm");
   const fullTime = isToday(sentAt) ? `Today ${time}` : isYesterday(sentAt) ? `Yesterday ${time}` : format(sentAt, "d MMM yyyy, HH:mm");
@@ -144,7 +200,7 @@ const ChatBubble = ({
     <span
       className={cn(
         "inline-flex items-center gap-0.5 text-[10px] leading-none whitespace-nowrap select-none",
-        stickerSrc
+        stickerSrc || bigEmoji
           ? "absolute bottom-1 right-1 rounded-full bg-black/55 text-white px-1.5 py-1"
           : isMedia && !hasText
           ? "absolute bottom-2 right-2 rounded-full bg-black/55 text-white px-1.5 py-1"
@@ -155,11 +211,13 @@ const ChatBubble = ({
       {starred && <Star className="mr-0.5 h-3 w-3 fill-current" aria-label="Starred" />}
       {message.edited && <span className="mr-0.5">edited</span>}
       {time}
-      {isCurrentUser &&
+      {isCurrentUser && sending ? (
+        <Clock className="h-3 w-3 ml-0.5 opacity-60" aria-label="Sending" />
+      ) : isCurrentUser && failed ? null : isCurrentUser &&
         // One grey tick: sent. Two grey: delivered to their app. Two blue: read (as on WhatsApp).
-        (message.read ? (
+        (message.read && showRead ? (
           <CheckCheck className="h-3.5 w-3.5 ml-0.5 text-sky-400" strokeWidth={2.5} aria-label="Read" />
-        ) : message.delivered_at ? (
+        ) : message.delivered_at || message.read ? (
           <CheckCheck className="h-3.5 w-3.5 ml-0.5 opacity-60" strokeWidth={2.5} aria-label="Delivered" />
         ) : (
           <Check className="h-3.5 w-3.5 ml-0.5 opacity-60" aria-label="Sent" />
@@ -223,18 +281,26 @@ const ChatBubble = ({
         </button>
       </div>
 
+      {/* Couldn't send: a red "!" beside it; tap to try again. */}
+      {failed && (
+        <button type="button" onClick={() => onRetry?.(message)} aria-label="Couldn't send. Tap to try again" title="Tap to try again"
+          className="order-first mr-1.5 flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full text-destructive active:scale-90">
+          <AlertCircle className="h-6 w-6" />
+        </button>
+      )}
       <div
         className={cn("flex flex-col gap-0.5 min-w-0", isCurrentUser ? "items-end" : "items-start", !swipe.swiping && "transition-transform duration-200 ease-out")}
         style={swipe.offset ? { transform: `translateX(${swipe.offset}px)` } : undefined}
       >
         {/* Message bubble (tap to show actions on touch screens) */}
         <div
+          ref={bubbleRef}
           className={cn(
             "max-w-[80vw] sm:max-w-[420px] relative",
-            stickerSrc ? "rounded-2xl" : cn("shadow-sm rounded-lg", isCurrentUser ? colors.sent : colors.received),
+            bare ? "rounded-2xl" : cn("shadow-sm rounded-lg", isCurrentUser ? colors.sent : colors.received),
             // The tail sits at the top corner of the first message in a run.
-            !stickerSrc && isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
-            stickerSrc ? "p-0" : isMedia ? "p-1" : "px-2.5 py-1.5",
+            !bare && isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
+            stickerSrc ? "p-0" : bigEmoji ? "px-1 pb-7" : isMedia ? "p-1" : "px-2.5 py-1.5",
             "[@media(hover:none)]:select-none [-webkit-touch-callout:none]",
             menuOpen && "ring-2 ring-primary/40"
           )}
@@ -252,8 +318,9 @@ const ChatBubble = ({
             onReact={(type) => void react(type)}
             actions={actions}
             align={isCurrentUser ? "end" : "start"}
+            anchorRef={bubbleRef}
           />
-          {isFirstInGroup && !stickerSrc && (
+          {isFirstInGroup && !bare && (
             <span
               aria-hidden="true"
               className={cn(
@@ -284,6 +351,29 @@ const ChatBubble = ({
               </p>
             </div>
           )}
+          {quote && <QuoteBlock quote={quote} mine={isCurrentUser} />}
+          {file && <FileCard file={file} mine={isCurrentUser} />}
+          {poll && <PollCard messageId={message.id} poll={poll} mine={isCurrentUser} currentUserId={currentUserId} />}
+          {event && <EventCard messageId={message.id} event={event} mine={isCurrentUser} currentUserId={currentUserId} otherName={otherName} />}
+          {card && <div className="flex justify-end">{meta}</div>}
+          {story && (
+            <div className={cn(
+              "mb-1 flex min-w-[180px] items-stretch overflow-hidden rounded-md border-l-4",
+              isCurrentUser ? "bg-black/15 border-white/70" : "bg-black/5 dark:bg-white/5 border-primary",
+            )}>
+              <div className="min-w-0 flex-1 px-2 py-1.5">
+                <p className={cn("text-xs font-semibold", isCurrentUser ? "opacity-90" : "text-primary")}>
+                  {isCurrentUser ? `${otherName || "Their"} · Story` : "You · Story"}
+                </p>
+                <p className="text-[13px] opacity-80">{story.reaction ? "Reacted to the story" : "Replied to the story"}</p>
+              </div>
+              {story.image && (story.video ? (
+                <video src={`${story.image}#t=0.1`} muted playsInline preload="metadata" className="h-14 w-11 shrink-0 object-cover" aria-hidden="true" />
+              ) : (
+                <img src={story.image} alt="" loading="lazy" className="h-14 w-11 shrink-0 object-cover" />
+              ))}
+            </div>
+          )}
           {/* Sticker */}
           {stickerSrc && (
             <img loading="lazy" decoding="async"
@@ -298,35 +388,56 @@ const ChatBubble = ({
             <VoiceMessagePlayer audioUrl={message.image_url} duration={voiceSeconds(message.content)} isOwnMessage={isCurrentUser} />
           )}
           {/* Video */}
-          {isVideo && message.image_url && (
-            <video src={message.image_url} controls className="rounded-md max-w-full max-h-64" />
+          {isVideo && src && (
+            <video src={src} controls={!sending} playsInline className="rounded-md max-w-full max-h-64" />
           )}
           {/* GIF */}
           {isGif && message.image_url && (
             <img loading="lazy" decoding="async" src={message.image_url} alt="GIF" className="rounded-md max-w-full max-h-52" />
           )}
           {/* Image */}
-          {isMedia && !isVideo && !isGif && message.image_url && (
+          {isMedia && !isVideo && !isGif && src && (
             <img loading="lazy" decoding="async"
-              src={message.image_url}
+              src={src}
               alt="Shared"
-              className="rounded-md max-w-full cursor-pointer hover:opacity-90 transition-opacity"
-              onClick={() => setViewing(0)}
+              style={box}
+              className={cn("block rounded-md max-w-full cursor-pointer bg-black/10 object-cover transition-opacity hover:opacity-90", !box && "min-h-24 min-w-24")}
+              onClick={() => { if (!sending && !failed) setViewing(0); }}
             />
           )}
-          {isMedia && !isVideo && !isGif && message.image_url && (
-            <PhotoViewer images={[message.image_url]} index={viewing} onIndexChange={setViewing} />
+          {isMedia && !isVideo && !isGif && src && (
+            <PhotoViewer images={[src]} index={viewing} onIndexChange={setViewing} />
+          )}
+          {/* On its way: the upload ring over the photo; couldn't go: tap to try again. */}
+          {isMedia && (sending || failed) && (
+            <div className="pointer-events-none absolute inset-1 flex items-center justify-center rounded-md bg-black/25">
+              {failed ? (
+                <button type="button" onClick={(e) => { e.stopPropagation(); onRetry?.(message); }}
+                  className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-[13px] font-semibold text-white">
+                  <RotateCcw className="h-4 w-4" /> Retry
+                </button>
+              ) : (
+                <UploadRing progress={message._progress} />
+              )}
+            </div>
           )}
           {once && (
             <ViewOnceBubble messageId={message.id} mine={isCurrentUser} openedAt={message.view_once_opened_at} meta={meta} />
           )}
           {/* Text (time and ticks float at its end, like most messengers) */}
-          {once ? null : hasText ? (
+          {once || card ? null : hasText ? (
             <>
+              {bigEmoji ? (
+                <p className={cn("leading-none", bigEmoji === 1 ? "text-[52px]" : bigEmoji === 2 ? "text-[44px]" : "text-[38px]")}>
+                  {message.content.trim()}
+                  {meta}
+                </p>
+              ) : (
               <p className={cn("text-[15px] leading-snug break-words whitespace-pre-wrap", isMedia && "px-2 pt-1 pb-1")}>
-                <LinkedText text={message.content} className={isCurrentUser ? "underline decoration-current/60" : "text-primary underline decoration-primary/40"} />
+                <LinkedText text={story ? story.text : message.content} className={isCurrentUser ? "underline decoration-current/60" : "text-primary underline decoration-primary/40"} />
                 {meta}
               </p>
+              )}
               {chatLink && !isMedia && <LinkPreview url={chatLink} className="mt-1.5 mb-0.5 max-w-[280px] bg-background/90 text-foreground" />}
             </>
           ) : isVoice ? (

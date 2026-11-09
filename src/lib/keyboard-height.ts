@@ -2,13 +2,17 @@ import { useEffect, useState } from "react";
 
 /**
  * The phone keyboard's height, remembered, so a panel shown in its place (emoji, attach) is
- * exactly as tall and the chat above doesn't jump when you switch, as in WhatsApp. It comes
- * from --keyboard-inset, which the app (lib/native) and the website (use-keyboard-inset) keep.
+ * exactly as tall and the chat above doesn't jump when you switch, as in WhatsApp.
+ *
+ * Whether it's up comes from body.keyboard-open, and its height from --keyboard-height, which
+ * the app (lib/native) and the website (use-keyboard-inset) keep. Not --keyboard-inset: when
+ * Android makes the app shorter for the keyboard that is 0 while the keyboard is up.
  */
 const KEY = "ember:keyboard-height";
 const DEFAULT = 300;
 
-const readInset = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--keyboard-inset")) || 0;
+const readHeight = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--keyboard-height")) || 0;
+const readOpen = () => document.body.classList.contains("keyboard-open");
 
 export function rememberedKeyboardHeight() {
   try {
@@ -20,12 +24,12 @@ export function rememberedKeyboardHeight() {
 
 /** Whether the keyboard is up, and the panel height to use (the keyboard's last height). */
 export function useKeyboard() {
-  const [inset, setInset] = useState(() => (typeof document === "undefined" ? 0 : readInset()));
+  const [open, setOpen] = useState(() => (typeof document === "undefined" ? false : readOpen()));
   const [height, setHeight] = useState(rememberedKeyboardHeight);
   useEffect(() => {
     const update = () => {
-      const now = readInset();
-      setInset(now);
+      setOpen(readOpen());
+      const now = readHeight();
       if (now >= 180 && now <= 520) {
         setHeight(now);
         try { localStorage.setItem(KEY, String(Math.round(now))); } catch { /* blocked */ }
@@ -33,9 +37,10 @@ export function useKeyboard() {
     };
     const observer = new MutationObserver(update);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ["style"] });
+    observer.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     window.addEventListener("resize", update);
     update();
     return () => { observer.disconnect(); window.removeEventListener("resize", update); };
   }, []);
-  return { open: inset > 80, height };
+  return { open, height };
 }

@@ -21,7 +21,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus, Smile, Keyboard, Paperclip, Camera } from "@/components/icons";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus, Smile, Keyboard, Paperclip, Camera, Check, Copy, CornerUpLeft, Forward, Trash2, Lock, LockOpen } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -60,6 +60,17 @@ import { useKeyboard } from "@/lib/keyboard-height";
 import { uploadMedia } from "@/lib/media-upload";
 import { shrinkImage } from "@/lib/image-compress";
 import { shrinkVideo } from "@/lib/video-compress";
+import { imageSize, limiter, settleSent, withMediaSize } from "@/lib/chat-media";
+import { groupAlbums, lastOf } from "@/lib/chat-albums";
+import ChatAlbum from "@/components/chat/ChatAlbum";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { previewText } from "@/lib/stickers";
+import type { ChatEvent, ChatFile, ChatPoll, ChatQuote } from "@/lib/chat-extras";
+import { takePrivateReply } from "@/lib/private-reply";
+import { unlockChats, unlockWithPassword } from "@/lib/chat-lock";
+import { EventComposer, PollComposer } from "@/components/chat/ChatComposers";
+import { DeleteMessageDialog, MessageInfoDialog, PinnedBar } from "@/components/chat/MessageDialogs";
 import { publicUrl } from "@/lib/native/platform";
 
 interface Profile {
@@ -95,11 +106,14 @@ interface TypingPresence {
   userId: string;
   userName: string;
   isTyping: boolean;
+  /** Recording a voice note ("recording audio…", as on WhatsApp). */
+  isRecording?: boolean;
 }
 
 interface TypingUser {
   id: string;
   name: string;
+  recording?: boolean;
 }
 
 const Messages = () => {
@@ -129,10 +143,14 @@ const Messages = () => {
   const openPerson = (profile: Profile) => { setSelectedGroupId(null); setShowAIChat(false); setSelectedConversation(profile); };
   const openGroup = (groupId: string) => { setSelectedConversation(null); setShowAIChat(false); setSelectedGroupId(groupId); };
   // Pinned chats first (then newest first, as loaded); archived ones in their own list.
+  // Locked chats live in their own list, opened with the phone's fingerprint or PIN.
+  const [showLocked, setShowLocked] = useState(false);
+  const [lockPrompt, setLockPrompt] = useState(false);
+  const isLocked = (id: string) => chatPrefs.locked.includes(id);
   const listedConversations = useMemo(() => {
-    const inView = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id) === showArchived);
+    const inView = conversations.filter((c) => (showLocked ? chatPrefs.locked.includes(c.profile.id) : !chatPrefs.locked.includes(c.profile.id) && chatPrefs.archived.includes(c.profile.id) === showArchived));
     return [...inView].sort((a, b) => Number(chatPrefs.pinned.includes(b.profile.id)) - Number(chatPrefs.pinned.includes(a.profile.id)));
-  }, [conversations, chatPrefs, showArchived]);
+  }, [conversations, chatPrefs, showArchived, showLocked]);
   const archivedCount = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id)).length + groupChats.filter((g) => chatPrefs.archived.includes(g.group.id)).length;
   // People and groups together, newest first (pinned people stay on top).
   type ChatRowItem = { kind: "dm"; conv: Conversation } | { kind: "group"; chat: GroupChatSummary };
@@ -140,9 +158,9 @@ const Messages = () => {
   const chatRows: ChatRowItem[] = (() => {
     const q = chatQuery.trim().toLowerCase();
     const matches = (name: string | null | undefined) => !q || (name ?? "").toLowerCase().includes(q);
-    const groupsInView = groupChats.filter((g) => chatPrefs.archived.includes(g.group.id) === showArchived);
-    const people = showArchived ? listedConversations : chatFilter === "groups" ? [] : listedConversations.filter((c) => chatFilter !== "unread" || c.unreadCount > 0);
-    const groups = showArchived ? groupsInView : groupsInView.filter((g) => chatFilter !== "unread" || g.unread > 0);
+    const groupsInView = groupChats.filter((g) => (showLocked ? chatPrefs.locked.includes(g.group.id) : !chatPrefs.locked.includes(g.group.id) && chatPrefs.archived.includes(g.group.id) === showArchived));
+    const people = showArchived || showLocked ? listedConversations : chatFilter === "groups" ? [] : listedConversations.filter((c) => chatFilter !== "unread" || c.unreadCount > 0);
+    const groups = showArchived || showLocked ? groupsInView : groupsInView.filter((g) => chatFilter !== "unread" || g.unread > 0);
     const time = (row: ChatRowItem) => (row.kind === "group" ? groupActivity(row.chat) : row.conv.lastMessage?.created_at ?? "");
     const pinned = (row: ChatRowItem) => chatPrefs.pinned.includes(row.kind === "group" ? row.chat.group.id : row.conv.profile.id);
     return [
@@ -156,7 +174,8 @@ const Messages = () => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [messageContent, setMessageContent] = useState("");
   const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
+  const [isSending] = useState(false);
+  const [unread, setUnread] = useState<{ id: string; count: number } | null>(null);
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   // While a voice note is being recorded/previewed, the recorder takes the whole composer row.
   const [voiceActive, setVoiceActive] = useState(false);
@@ -174,6 +193,7 @@ const Messages = () => {
   // Starring, forwarding, and the media / starred messages panel.
   const { isStarred, toggle: toggleStar, version: starVersion } = useStarred(currentUserId);
   const [forwarding, setForwarding] = useState<ChatMessage | null>(null);
+  const [forwardingMany, setForwardingMany] = useState<ChatMessage[] | null>(null);
   const [gallery, setGallery] = useState<{ scope: GalleryScope; tab: GalleryTab } | null>(null);
   // A message to show once its chat has opened (from Starred messages).
   const [pendingJump, setPendingJump] = useState<{ chatId: string; messageId: string } | null>(null);
@@ -250,10 +270,13 @@ const Messages = () => {
       if (!conversationMap.has(otherUserId)) {
         const { data: profileData } = await supabase.from("profiles").select("*").eq("id", otherUserId).single();
         if (profileData) {
-          const unreadCount = (messagesData || []).filter(
+          const self = otherUserId === currentUserId;
+          const unreadCount = self ? 0 : (messagesData || []).filter(
             (m) => m.sender_id === otherUserId && m.receiver_id === currentUserId && !m.read
           ).length;
-          conversationMap.set(otherUserId, { profile: profileData, lastMessage: message as ChatMessage, unreadCount });
+          // Your chat with yourself (notes to self), as on WhatsApp.
+          const profile = self ? { ...profileData, full_name: `${profileData.full_name || "You"} (You)` } : profileData;
+          conversationMap.set(otherUserId, { profile, lastMessage: message as ChatMessage, unreadCount });
         }
       }
     }
@@ -285,6 +308,9 @@ const Messages = () => {
       // Prepend older messages
       setMessages((prev) => [...fetched, ...prev]);
     } else {
+      // Messages that came while you were away: a line above the first, and the chat opens there.
+      const unreadOnes = fetched.filter((m) => m.sender_id === otherUserId && !m.read);
+      setUnread(unreadOnes.length ? { id: unreadOnes[0].id, count: unreadOnes.length } : null);
       setMessages(fetched);
     }
 
@@ -314,7 +340,7 @@ const Messages = () => {
         const selected = selectedConversationRef.current;
         if (payload.eventType === "UPDATE") {
           const updated = payload.new as ChatMessage;
-          setMessages((prev) => prev.map((m) => (m.id === updated.id ? updated : m)));
+          setMessages((prev) => prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m)));
           // Ticks in the chat list (delivered / read) follow too.
           loadConversations();
           return;
@@ -326,15 +352,9 @@ const Messages = () => {
               (newMessage.sender_id === currentUserId && newMessage.receiver_id === selected.id) ||
               (newMessage.sender_id === selected.id && newMessage.receiver_id === currentUserId)
             ) {
-              setMessages((prev) => {
-                // Your own message coming back replaces its placeholder (only that one: others
-                // may still be sending).
-                const withoutTemp = newMessage.sender_id === currentUserId
-                  ? prev.filter((m) => !(m.id.startsWith("temp-") && m.content === newMessage.content))
-                  : prev;
-                if (withoutTemp.some((m) => m.id === newMessage.id)) return withoutTemp;
-                return [...withoutTemp, newMessage];
-              });
+              // Your own message coming back takes its placeholder's place (only that one: others
+              // may still be sending).
+              setMessages((prev) => settleSent(prev, newMessage));
               // Read only if you're actually looking; otherwise it's marked read when you come back.
               if (newMessage.sender_id === selected.id && document.visibilityState === "visible") {
                 // Query builders are lazy: without then() the update was never sent,
@@ -374,13 +394,12 @@ const Messages = () => {
     if (selectedConversationRef.current?.id !== selected.id) return;
     const updates = new Map((recent ?? []).map((m) => [m.id, m as ChatMessage]));
     setMessages((prev) => {
-      const merged = prev.map((m) => updates.get(m.id) ?? m);
+      const merged = prev.map((m) => { const u = updates.get(m.id); return u ? { ...m, ...u } : m; });
       const have = new Set(merged.map((m) => m.id));
       const added = ((fresh ?? []) as ChatMessage[]).filter((m) => !have.has(m.id));
       if (!added.length) return merged;
-      // A message we just sent arrives here too: drop its placeholder.
-      const sentNow = new Set(added.filter((m) => m.sender_id === currentUserId).map((m) => m.content));
-      return [...merged.filter((m) => !(m.id.startsWith("temp-") && sentNow.has(m.content))), ...added];
+      // A message we just sent arrives here too: it takes its placeholder's place.
+      return added.reduce((list, m) => settleSent(list, m), merged);
     });
     // You're looking at the chat: whatever they sent is read now.
     const unread = [...(fresh ?? []), ...messagesRef.current].some((m) => m.sender_id === selected.id && !m.read);
@@ -407,10 +426,7 @@ const Messages = () => {
       .select("id, full_name, avatar_url")
       .eq("id", userId)
       .maybeSingle();
-    if (profile) {
-      setShowAIChat(false);
-      setSelectedConversation(profile);
-    }
+    if (profile) openPerson(profile);
     // Drop the param so closing the chat or going back doesn't reopen it.
     setSearchParams({}, { replace: true });
   });
@@ -437,7 +453,7 @@ const Messages = () => {
         const typingList: TypingUser[] = [];
         Object.values(state).forEach((presences) => {
           (presences as unknown as TypingPresence[]).forEach((p) => {
-            if (p.userId !== currentUserId && p.isTyping) typingList.push({ id: p.userId, name: p.userName });
+            if (p.userId !== currentUserId && (p.isTyping || p.isRecording)) typingList.push({ id: p.userId, name: p.userName, recording: !!p.isRecording });
           });
         });
         setTypingUsers(typingList);
@@ -449,8 +465,11 @@ const Messages = () => {
       });
   });
 
+  const shownChatRef = useRef<string | null>(null);
   useEffect(() => {
     if (selectedConversation && currentUserId) {
+      // Another chat: start empty, so it opens at its own place (not the last chat's).
+      if (shownChatRef.current !== selectedConversation.id) { shownChatRef.current = selectedConversation.id; setMessages([]); setUnread(null); }
       loadMessages(selectedConversation.id);
       loadChatPrefs(selectedConversation.id);
       setupTypingChannel();
@@ -506,131 +525,145 @@ const Messages = () => {
     const sendKey = `${selectedConversation.id}|${content}|${imageUrl ?? ""}`;
     if (isRepeatSend(lastSendRef.current, sendKey)) return;
     lastSendRef.current = { text: sendKey, at: Date.now() };
-    const tempId = `temp-${Date.now()}`;
-
-    const expiresAt = disappearingMinutes
-      ? new Date(Date.now() + disappearingMinutes * 60000).toISOString()
-      : null;
-
-    const optimisticMessage: ChatMessage = {
-      id: tempId,
-      sender_id: currentUserId,
-      receiver_id: selectedConversation.id,
-      content,
-      image_url: once ? null : imageUrl,
-      view_once: once || undefined,
-      created_at: new Date().toISOString(),
-      read: false,
-      reply_to: replyingTo?.id || null,
-    };
     const sentUrl = imageUrl;
-
-    setMessages((prev) => [...prev, optimisticMessage]);
     // A view-once photo goes on its own; any text typed stays in the box to send next.
     if (!once) setMessageContent("");
     setImageUrl(null);
     setViewOnce(false);
-    setReplyingTo(null);
-    setIsSending(true);
-
-    const insertObj: TablesInsert<"messages"> = {
-      sender_id: currentUserId,
-      receiver_id: selectedConversation.id,
-      content,
-      image_url: once ? null : imageUrl,
-      reply_to: replyingTo?.id || null,
-    };
-    if (once) insertObj.view_once = true;
-    if (expiresAt) insertObj.expires_at = expiresAt;
-
-    const { data, error } = await supabase.from("messages").insert(insertObj).select().single();
-    setIsSending(false);
-
-    if (error) {
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      toast({ title: "Couldn't send message", description: await explainError(error, selectedConversation.id), variant: "destructive" });
-      return;
-    }
-    if (once && data && sentUrl) {
-      const { error: mediaError } = await supabase.from("view_once_media").insert({ message_id: data.id, url: sentUrl });
-      if (mediaError) {
-        // Without its photo the message is empty: take it back.
-        await supabase.from("messages").update({ deleted_at: new Date().toISOString() }).eq("id", data.id);
-        setMessages((prev) => prev.filter((m) => m.id !== tempId));
-        toast({ title: "Couldn't send the photo", description: friendlyError(mediaError), variant: "destructive" });
-        return;
-      }
-    }
-    playSound("send");
-    haptic();
-    if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
+    const quote = quoting;
+    setQuoting(null);
+    if (await sendOne({ content, imageUrl: sentUrl, once, extra: quote ? { quote } : undefined })) { playSound("send"); haptic(); }
   };
 
-  /**
-   * Sends one message straight away (not from the text box): a photo from the picker (with
-   * its caption, or view once), your location, or a friend's profile card. `preview` shows the
-   * photo at once while it uploads.
-   */
-  const sendOne = async (opts: { content: string; imageUrl?: string | null; once?: boolean; upload?: () => Promise<string>; preview?: string }) => {
-    if (!selectedConversation || !currentUserId) return false;
-    const to = selectedConversation.id;
-    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+  // ---- Sending: the message shows at once, then goes; a photo with its upload ring; one that
+  // couldn't go stays with a red "!" to try again (as on WhatsApp). ----
+  const retriesRef = useRef(new Map<string, () => void>());
+  const patchMessage = useCallback((id: string, patch: Partial<ChatMessage>) => {
+    setMessages((prev) => prev.map((m) => (m.id === id ? { ...m, ...patch } : m)));
+  }, []);
+
+  type SendOpts = {
+    content: string;
+    imageUrl?: string | null;
+    once?: boolean;
+    /** Uploads the file and resolves with its address (with its size, lib/chat-media). */
+    upload?: (onProgress: (percent: number) => void) => Promise<string>;
+    /** Shown at once while it uploads. */
+    preview?: string;
+    video?: boolean;
+    /** A document, poll, event or quote riding on the message (lib/chat-extras). */
+    extra?: { poll?: ChatPoll; event?: ChatEvent; quote?: ChatQuote; file?: Omit<ChatFile, "url"> };
+  };
+
+  /** The message as it shows while it's on its way. */
+  const placeholder = (to: string, opts: SendOpts, replyTo: string | null): ChatMessage => {
     const once = !!opts.once && features.viewOnce;
-    const replyTo = replyingTo?.id || null;
-    setReplyingTo(null);
-    setMessages((prev) => [...prev, {
-      id: tempId, sender_id: currentUserId, receiver_id: to, content: once ? VIEW_ONCE : opts.content,
+    return {
+      id: `temp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      sender_id: currentUserId!, receiver_id: to, content: once ? VIEW_ONCE : opts.content,
       image_url: once ? null : opts.preview ?? opts.imageUrl ?? null, view_once: once || undefined,
       created_at: new Date().toISOString(), read: false, reply_to: replyTo,
-    }]);
+      _status: "sending", _preview: opts.preview, _video: opts.video || undefined,
+      _progress: opts.upload ? 0 : undefined,
+      ...(opts.extra?.poll ? { poll: opts.extra.poll } : {}),
+      ...(opts.extra?.event ? { event: opts.extra.event } : {}),
+      ...(opts.extra?.quote ? { quote: opts.extra.quote } : {}),
+      // A document shows at once, opening the file on this phone until it's up.
+      ...(opts.extra?.file ? { file: { ...opts.extra.file, url: opts.preview ?? "" }, image_url: null } : {}),
+    };
+  };
+
+  /** Uploads (if there's a file) and saves the message behind a placeholder. */
+  const deliver = async (temp: ChatMessage, opts: SendOpts, url?: Promise<string | null>): Promise<boolean> => {
+    const to = temp.receiver_id;
+    const once = !!temp.view_once;
+    retriesRef.current.set(temp.id, () => {
+      patchMessage(temp.id, { _status: "sending", _progress: opts.upload ? 0 : undefined });
+      void deliver(temp, opts).then((ok) => { if (ok) { playSound("send"); haptic(); } });
+    });
     try {
-      const url = opts.upload ? await opts.upload() : opts.imageUrl ?? null;
-      const insertObj: TablesInsert<"messages"> = { sender_id: currentUserId, receiver_id: to, content: once ? VIEW_ONCE : opts.content, image_url: once ? null : url, reply_to: replyTo };
+      const address = url ? await url : opts.upload ? await opts.upload((p) => patchMessage(temp.id, { _progress: p })) : opts.imageUrl ?? null;
+      const doc = opts.extra?.file;
+      const insertObj: TablesInsert<"messages"> = { sender_id: temp.sender_id, receiver_id: to, content: temp.content, image_url: once || doc ? null : address, reply_to: temp.reply_to ?? null };
+      if (doc && address) insertObj.file = { ...doc, url: address };
+      if (opts.extra?.poll) insertObj.poll = { ...opts.extra.poll };
+      if (opts.extra?.event) insertObj.event = { ...opts.extra.event };
+      if (opts.extra?.quote) insertObj.quote = { ...opts.extra.quote };
       if (once) insertObj.view_once = true;
       if (disappearingMinutes) insertObj.expires_at = new Date(Date.now() + disappearingMinutes * 60000).toISOString();
       const { data, error } = await supabase.from("messages").insert(insertObj).select().single();
       if (error) throw error;
-      if (once && url) {
-        const { error: mediaError } = await supabase.from("view_once_media").insert({ message_id: data.id, url });
+      if (once && address) {
+        const { error: mediaError } = await supabase.from("view_once_media").insert({ message_id: data.id, url: address });
         if (mediaError) {
+          // Without its photo the message is empty: take it back.
           await supabase.from("messages").update({ deleted_at: new Date().toISOString() }).eq("id", data.id);
           throw mediaError;
         }
       }
-      setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
+      retriesRef.current.delete(temp.id);
+      setMessages((prev) => settleSent(prev, data as ChatMessage, temp.id));
       return true;
     } catch (error) {
-      setMessages((prev) => prev.filter((m) => m.id !== tempId));
-      toast({ title: "Couldn't send", description: friendlyError(error), variant: "destructive" });
+      patchMessage(temp.id, { _status: "failed", _progress: undefined });
+      toast({ title: "Couldn't send", description: error instanceof Error && error.message.startsWith("Couldn't upload") ? error.message : await explainError(error as { message: string; code?: string }, to), variant: "destructive" });
       return false;
     }
   };
 
-  const uploadChatFile = async (file: File, kind: "image" | "video") => {
-    const upload = kind === "image" ? await shrinkImage(file) : await shrinkVideo(file);
-    const ext = upload.name.split(".").pop();
-    return uploadMedia("chat-images", `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`, upload);
+  /**
+   * Sends one message: from the text box, a photo from the picker (with its caption, or view
+   * once), your location, or a friend's profile card.
+   */
+  const sendOne = async (opts: SendOpts) => {
+    if (!selectedConversation || !currentUserId) return false;
+    const replyTo = replyingTo?.id || null;
+    setReplyingTo(null);
+    const temp = placeholder(selectedConversation.id, opts, replyTo);
+    setMessages((prev) => [...prev, temp]);
+    return deliver(temp, opts);
   };
 
-  // Photos from the picker: one message each, the caption on the first, sent in order.
+  /** A photo or video from the phone: made smaller, uploaded, its address with its size. */
+  const uploadChatFile = async (file: File, kind: "image" | "video", onProgress: (percent: number) => void) => {
+    const upload = kind === "image" ? await shrinkImage(file) : await shrinkVideo(file);
+    const ext = upload.name.split(".").pop();
+    const size = kind === "image" ? await imageSize(upload) : null;
+    const url = await uploadMedia("chat-images", `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`, upload, onProgress);
+    return size ? withMediaSize(url, size.w, size.h) : url;
+  };
+
+  // Photos from the picker: all show at once (an album when there are 4 or more, as on
+  // WhatsApp), upload side by side, and are saved in order. The caption goes on the first.
   const sendPhotos = async (files: File[], caption: string, once: boolean) => {
     setPickedPhotos(null);
-    let first = true;
-    let sent = 0;
-    for (const file of files) {
+    if (!selectedConversation || !currentUserId) return;
+    const replyTo = replyingTo?.id || null;
+    setReplyingTo(null);
+    const jobs = files.map((file, i) => {
       const preview = URL.createObjectURL(file);
-      const ok = await sendOne({ content: first && caption ? caption : "Sent an image", once: once && files.length === 1, preview, upload: () => uploadChatFile(file, "image") });
-      if (ok) sent++;
-      first = false;
-      window.setTimeout(() => URL.revokeObjectURL(preview), 60_000);
-    }
+      const opts: SendOpts = {
+        content: i === 0 && caption ? caption : "Sent an image",
+        once: once && files.length === 1,
+        preview,
+        upload: (onProgress) => uploadChatFile(file, "image", onProgress),
+      };
+      return { opts, temp: placeholder(selectedConversation.id, opts, i === 0 ? replyTo : null) };
+    });
+    setMessages((prev) => [...prev, ...jobs.map((j) => j.temp)]);
+    // Up to three uploads at a time; each message is saved once it and those before it are up.
+    const limit = limiter(3);
+    const urls = jobs.map((j) => limit(() => j.opts.upload!((p) => patchMessage(j.temp.id, { _progress: p }))));
+    urls.forEach((u) => u.catch(() => {})); // each one's failure is handled where it's awaited
+    let sent = 0;
+    for (const [i, j] of jobs.entries()) if (await deliver(j.temp, j.opts, urls[i])) sent++;
     if (sent) { playSound("send"); haptic(); }
   };
 
   const sendVideo = async (file: File) => {
     closePanel();
     if (file.size > 200 * 1024 * 1024) { toast({ title: "That video is too big", description: "Up to 200 MB.", variant: "destructive" }); return; }
-    if (await sendOne({ content: "Sent a video", upload: () => uploadChatFile(file, "video") })) { playSound("send"); haptic(); }
+    if (await sendOne({ content: "Sent a video", video: true, preview: URL.createObjectURL(file), upload: (onProgress) => uploadChatFile(file, "video", onProgress) })) { playSound("send"); haptic(); }
   };
 
   const [locating, setLocating] = useState(false);
@@ -689,7 +722,11 @@ const Messages = () => {
     return () => document.removeEventListener("keydown", onKey);
   }, [panel]);
 
+  const retrySend = useCallback((message: ChatMessage) => { haptic(8); retriesRef.current.get(message.id)?.(); }, []);
+
   const handleUnsend = async (messageId: string) => {
+    // One that never went (couldn't send): it's only on this phone.
+    if (messageId.startsWith("temp-")) { retriesRef.current.delete(messageId); setMessages((prev) => prev.filter((m) => m.id !== messageId)); return; }
     await supabase.from("messages").update({ deleted_at: new Date().toISOString() }).eq("id", messageId);
     setMessages((prev) => prev.map((m) => (m.id === messageId ? { ...m, deleted_at: new Date().toISOString() } : m)));
   };
@@ -794,27 +831,185 @@ const Messages = () => {
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
   };
 
+  /** A voice note: shows at once (playable), uploads, then sends, as a photo does. */
+  const sendVoiceNote = async (file: File, duration: number) => {
+    const content = `🎤 Voice message (${Math.floor(duration / 60)}:${(duration % 60).toString().padStart(2, "0")})`;
+    const preview = URL.createObjectURL(file);
+    if (await sendOne({ content, preview, upload: (onProgress) => uploadMedia("voice-messages", file.name, file, onProgress) })) { playSound("send"); haptic(); }
+  };
+
+  /** Tells the other person you're recording a voice note. */
+  const announceRecording = (on: boolean) => {
+    if (!typingChannelRef.current || !currentUserId) return;
+    void typingChannelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: false, isRecording: on });
+  };
+
+  // ---- Part 2 (after the database update, features.messaging2) ----
+  const [quoting, setQuoting] = useState<ChatQuote | null>(null);
+  const [pollOpen, setPollOpen] = useState(false);
+  const [eventOpen, setEventOpen] = useState(false);
+  const [deleting, setDeleting] = useState<ChatMessage | null>(null);
+  const [infoFor, setInfoFor] = useState<ChatMessage | null>(null);
+  const [pins, setPins] = useState<string[]>([]);
+  const [pinIndex, setPinIndex] = useState(0);
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  // Read receipts: off on either side, no blue ticks for either (as on WhatsApp).
+  const [receipts, setReceipts] = useState({ mine: true, theirs: true });
+  const isSelfChat = !!selectedConversation && selectedConversation.id === currentUserId;
+  const pair = selectedConversation && currentUserId ? [currentUserId, selectedConversation.id].sort() : null;
+
+  const loadPins = useEffectEvent(async () => {
+    if (!features.messaging2 || !pair) { setPins([]); return; }
+    const { data } = await supabase.from("chat_pins").select("message_id, pinned_at").eq("user_a", pair[0]).eq("user_b", pair[1]).order("pinned_at", { ascending: false });
+    setPins((data ?? []).map((p) => p.message_id));
+    setPinIndex(0);
+  });
+  useEffect(() => {
+    void loadPins();
+    if (!features.messaging2 || !pair) return;
+    const channel = dbChannel(`chat-pins-${pair.join("-")}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_pins", filter: `user_a=eq.${pair[0]}` }, () => void loadPins())
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the pair is the chat
+  }, [pair?.join("-"), loadPins]);
+
+  useEffect(() => {
+    if (!features.messaging2 || !currentUserId) return;
+    void supabase.from("hidden_messages").select("message_id").eq("user_id", currentUserId).order("created_at", { ascending: false }).limit(2000)
+      .then(({ data }) => setHiddenIds(new Set((data ?? []).map((h) => h.message_id))));
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!features.messaging2 || !selectedConversation || !currentUserId) { setReceipts({ mine: true, theirs: true }); return; }
+    void supabase.from("profiles").select("id, read_receipts").in("id", [currentUserId, selectedConversation.id]).then(({ data }) => {
+      const of = (id: string) => data?.find((p) => p.id === id)?.read_receipts !== false;
+      setReceipts({ mine: of(currentUserId), theirs: of(selectedConversation.id) });
+    });
+  }, [selectedConversation, currentUserId]);
+  const showRead = receipts.mine && receipts.theirs;
+
+  // "Reply privately" from a group chat (GroupConversation) opens here with the quote ready.
+  useEffect(() => {
+    if (!selectedConversation?.id) return;
+    const q = takePrivateReply(selectedConversation.id);
+    setQuoting(q);
+    if (q) requestAnimationFrame(() => messageBoxRef.current?.focus());
+  }, [selectedConversation?.id]);
+
+  const togglePin = useCallback(async (message: ChatMessage) => {
+    if (!pair || !currentUserId) return;
+    haptic(8);
+    if (pins.includes(message.id)) {
+      setPins((p) => p.filter((id) => id !== message.id));
+      await supabase.from("chat_pins").delete().eq("message_id", message.id);
+      return;
+    }
+    if (pins.length >= 3) { toast({ title: "You can pin up to 3 messages", description: "Unpin one first." }); return; }
+    setPins((p) => [message.id, ...p]);
+    setPinIndex(0);
+    const { error } = await supabase.from("chat_pins").insert({ message_id: message.id, user_a: pair[0], user_b: pair[1], pinned_by: currentUserId });
+    if (error) { setPins((p) => p.filter((id) => id !== message.id)); toast({ title: "Couldn't pin the message", description: friendlyError(error), variant: "destructive" }); }
+  }, [pair, pins, currentUserId, toast]);
+
+  const deleteForMe = async (message: ChatMessage) => {
+    if (!currentUserId) return;
+    if (message.id.startsWith("temp-")) return void handleUnsend(message.id);
+    setHiddenIds((prev) => new Set(prev).add(message.id));
+    const { error } = await supabase.from("hidden_messages").insert({ user_id: currentUserId, message_id: message.id });
+    if (error) { setHiddenIds((prev) => { const n = new Set(prev); n.delete(message.id); return n; }); toast({ title: "Couldn't delete it", description: friendlyError(error), variant: "destructive" }); }
+  };
+  const askDelete = useCallback((message: ChatMessage) => setDeleting(message), []);
+  const showInfo = useCallback((message: ChatMessage) => setInfoFor(message), []);
+
+  const sendDocument = async (file: File) => {
+    closePanel();
+    if (file.size > 100 * 1024 * 1024) { toast({ title: "That file is too big", description: "Up to 100 MB.", variant: "destructive" }); return; }
+    const meta = { name: file.name.slice(0, 200), size: file.size, type: file.type || "application/octet-stream" };
+    const ok = await sendOne({
+      content: `📄 ${meta.name}`,
+      preview: URL.createObjectURL(file),
+      upload: (onProgress) => uploadMedia("chat-files", file.name, file, onProgress),
+      extra: { file: meta },
+    });
+    if (ok) { playSound("send"); haptic(); }
+  };
+  const sendPoll = async (poll: ChatPoll) => { if (await sendOne({ content: `📊 Poll: ${poll.question}`, extra: { poll } })) { playSound("send"); haptic(); } };
+  const sendEvent = async (event: ChatEvent) => { if (await sendOne({ content: `📅 ${event.title}`, extra: { event } })) { playSound("send"); haptic(); } };
+
+  /** Opens your chat with yourself. */
+  const messageYourself = async () => {
+    if (!currentUserId) return;
+    const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").eq("id", currentUserId).maybeSingle();
+    if (data) openPerson({ ...data, full_name: `${data.full_name || "You"} (You)` });
+  };
+
+  // Locked chats: the phone's fingerprint or PIN (or your password on the website).
+  const [lockPassword, setLockPassword] = useState("");
+  const [lockError, setLockError] = useState("");
+  const openLocked = async () => {
+    const r = await unlockChats();
+    if (r.ok) { setShowLocked(true); setShowArchived(false); return; }
+    if ("needsPassword" in r) { setLockError(""); setLockPassword(""); setLockPrompt(true); return; }
+    toast({ title: r.message, variant: "destructive" });
+  };
+  const toggleLock = async (id: string) => {
+    // Unlocking (or locking on the website) needs the same check as opening them.
+    if (isLocked(id) && !showLocked) return;
+    toggleChatPref("locked", id);
+    haptic(8);
+    toast({ title: isLocked(id) ? "Chat unlocked" : "Chat locked", description: isLocked(id) ? undefined : "Find it in Locked chats at the top of your chats." });
+    if (!isLocked(id) && selectedConversation?.id === id && !showLocked) setSelectedConversation(null);
+  };
+
   const getReplyMessage = useCallback((replyToId: string | null | undefined) => {
     if (!replyToId) return null;
     return messages.find((m) => m.id === replyToId) || null;
   }, [messages]);
 
   // Filter out expired disappearing messages
-  const visibleMessages = messages.filter((m) => {
-    if (m.expires_at && new Date(m.expires_at) < new Date()) return false;
-    return true;
-  });
+  const visibleMessages = useMemo(() => messages.filter((m) => !hiddenIds.has(m.id) && !(m.expires_at && new Date(m.expires_at) < new Date())), [messages, hiddenIds]);
+
+  // Rows: messages, with 4+ photos sent together as one album (as on WhatsApp).
+  const msgRows = useMemo(() => groupAlbums(visibleMessages), [visibleMessages]);
+  const unreadRow = unread ? msgRows.findIndex((r) => (r.album ?? [r.message]).some((m) => m.id === unread.id)) : -1;
+
+  // ---- Select messages (press and hold → Select, then tap more), as on WhatsApp ----
+  const [selection, setSelection] = useState<string[] | null>(null);
+  useEffect(() => { setSelection(null); }, [selectedConversation?.id]);
+  const toggleSelected = useCallback((ids: string[]) => {
+    haptic(8);
+    setSelection((prev) => {
+      const now = prev ?? [];
+      const on = ids.every((id) => now.includes(id));
+      const next = on ? now.filter((id) => !ids.includes(id)) : [...now, ...ids.filter((id) => !now.includes(id))];
+      return next.length ? next : null;
+    });
+  }, []);
+  const startSelect = useCallback((message: ChatMessage) => toggleSelected([message.id]), [toggleSelected]);
+  useEffect(() => {
+    if (!selection) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setSelection(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [selection]);
+  const selectedMessages = selection ? visibleMessages.filter((m) => selection.includes(m.id)) : [];
 
   const renderMessage = useCallback((index: number): ReactElement | null => {
-    const message = visibleMessages[index];
-    if (!message) return null;
+    const row = msgRows[index];
+    if (!row) return null;
+    const message = row.message;
+    const ids = (row.album ?? [message]).map((m) => m.id);
     const isCurrentUser = message.sender_id === currentUserId;
-    const isLastOwnMessage = isCurrentUser && !visibleMessages.slice(index + 1).some((m) => m.sender_id === currentUserId);
-    const isLastMessage = index === visibleMessages.length - 1;
+    const isLastOwnMessage = isCurrentUser && !msgRows.slice(index + 1).some((r) => r.message.sender_id === currentUserId);
+    const isLastMessage = index === msgRows.length - 1;
     // A new run starts when the sender changes: more space above it, and a tail on its bubble.
     const day = new Date(message.created_at);
-    const newDay = index === 0 || new Date(visibleMessages[index - 1].created_at).toDateString() !== day.toDateString();
-    const isFirstInGroup = newDay || visibleMessages[index - 1].sender_id !== message.sender_id;
+    const prev = index > 0 ? lastOf(msgRows[index - 1]) : null;
+    const newDay = !prev || new Date(prev.created_at).toDateString() !== day.toDateString();
+    const isFirstInGroup = newDay || prev!.sender_id !== message.sender_id;
+    const picked = !!selection && ids.every((id) => selection.includes(id));
+    const sendable = !message.id.startsWith("temp-");
 
     return (
       <>
@@ -825,14 +1020,43 @@ const Messages = () => {
           </span>
         </div>
       )}
+      {index === unreadRow && unread && (
+        <div className="-mx-4 my-2 bg-card/80 py-1 text-center text-xs font-semibold text-muted-foreground shadow-sm backdrop-blur sm:-mx-5 dark:bg-[#1c2530]/80" role="separator">
+          {unread.count} unread {unread.count === 1 ? "message" : "messages"}
+        </div>
+      )}
       <div
         id={`msg-${message.id}`}
         className={cn(
-          "transition-all duration-300",
+          "relative transition-all duration-300",
           isFirstInGroup ? "pt-2" : "pt-0.5",
-          highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1"
+          highlightedMessageId === message.id && "bg-primary/10 rounded-xl -mx-2 px-2 py-1",
+          picked && "before:absolute before:-inset-x-5 before:inset-y-0 before:bg-primary/15",
+          selection && "pl-9"
         )}
+        // While selecting, a tap picks or drops the message instead of opening anything.
+        onClickCapture={selection ? (e) => { e.preventDefault(); e.stopPropagation(); if (sendable) toggleSelected(ids); } : undefined}
+        onPointerDownCapture={selection ? (e) => e.stopPropagation() : undefined}
       >
+        {selection && (
+          <span aria-hidden="true" className={cn(
+            "absolute left-0 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border-2 transition-colors",
+            picked ? "border-primary bg-primary text-primary-foreground" : "border-muted-foreground/50 bg-background/60"
+          )}>
+            {picked && <Check className="h-4 w-4" strokeWidth={3} />}
+          </span>
+        )}
+        {row.album ? (
+          <ChatAlbum
+            photos={row.album}
+            isCurrentUser={isCurrentUser}
+            isFirstInGroup={isFirstInGroup}
+            theme={chatTheme}
+            onReply={handleReply}
+            onUnsend={handleUnsend}
+            onRetry={retrySend}
+          />
+        ) : (
         <ChatBubble
           message={message}
           isCurrentUser={isCurrentUser}
@@ -849,12 +1073,36 @@ const Messages = () => {
           starred={isStarred(message.id)}
           onToggleStar={handleToggleStar}
           onForward={setForwarding}
+          onRetry={retrySend}
+          onSelect={startSelect}
+          onDelete={features.messaging2 ? askDelete : undefined}
+          onPin={features.messaging2 && !isSelfChat ? togglePin : undefined}
+          pinned={pins.includes(message.id)}
+          onInfo={features.messaging2 && !isSelfChat ? showInfo : undefined}
+          showRead={showRead}
         />
+        )}
       </div>
       </>
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps -- starVersion stands for the starred list
-  }, [visibleMessages, currentUserId, highlightedMessageId, chatTheme, getReplyMessage, selectedConversation?.full_name, starVersion, handleToggleStar]);
+  }, [msgRows, unreadRow, unread, selection, currentUserId, highlightedMessageId, chatTheme, getReplyMessage, selectedConversation?.full_name, starVersion, handleToggleStar, retrySend, startSelect, toggleSelected, askDelete, togglePin, pins, showInfo, showRead, isSelfChat]);
+
+  const rowDayLabel = useCallback((index: number) => {
+    const row = msgRows[index];
+    return row ? dayLabel(new Date(row.message.created_at)) : null;
+  }, [msgRows]);
+
+  /** Copies the picked messages as WhatsApp does: "[12:04] Tolu: text", one per line. */
+  const copySelected = () => {
+    const text = selectedMessages
+      .filter((m) => m.content && !m.content.startsWith("🎤") && m.content !== "Sent an image")
+      .map((m) => (selectedMessages.length === 1 ? m.content : `[${format(new Date(m.created_at), "HH:mm")}] ${m.sender_id === currentUserId ? "You" : selectedConversation?.full_name || "Them"}: ${m.content}`))
+      .join("\n");
+    void navigator.clipboard?.writeText(text);
+    toast({ title: selectedMessages.length === 1 ? "Message copied" : `${selectedMessages.length} messages copied` });
+    setSelection(null);
+  };
 
   if (isLoading) return <MessagesSkeleton />;
 
@@ -894,7 +1142,7 @@ const Messages = () => {
                       </ActionMenuItem>
                     </ActionMenuContent>
                   </ActionMenu>
-                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} open={composeOpen} onOpenChange={setComposeOpen} />
+                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} onMessageYourself={features.messaging2 ? () => void messageYourself() : undefined} open={composeOpen} onOpenChange={setComposeOpen} />
                 </div>
                 {!showArchived && (
                   <label className="mt-2.5 flex h-10 items-center gap-2 rounded-full bg-secondary px-3.5 text-muted-foreground focus-within:ring-2 focus-within:ring-ring">
@@ -974,7 +1222,22 @@ const Messages = () => {
                     onAnswered={(groupId, accepted) => { void reloadGroups(); if (accepted) openGroup(groupId); }}
                   />
                 )}
-                {showArchived ? (
+                {showLocked ? (
+                  <button type="button" onClick={() => setShowLocked(false)} className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-primary">
+                    <ArrowLeft className="h-4 w-4" /> Locked chats
+                  </button>
+                ) : !showArchived && chatPrefs.locked.length > 0 && chatFilter === "all" && (
+                  <button
+                    type="button"
+                    onClick={() => void openLocked()}
+                    className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-accent/50"
+                  >
+                    <Lock className="h-5 w-5 text-muted-foreground" />
+                    <span className="flex-1">Locked chats</span>
+                    <span className="text-xs text-muted-foreground">{chatPrefs.locked.length}</span>
+                  </button>
+                )}
+                {showLocked ? null : showArchived ? (
                   <button type="button" onClick={() => setShowArchived(false)} className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-primary">
                     <ArrowLeft className="h-4 w-4" /> Archived chats
                   </button>
@@ -1074,7 +1337,38 @@ const Messages = () => {
                 />
               ) : selectedConversation ? (
                 <>
-                  {/* Chat Header */}
+                  {/* Picking messages: what you can do with them, in the header's place (as on WhatsApp). */}
+                  {selection ? (
+                    <div className="border-b p-2.5 sm:p-4 max-md:pt-[max(0.625rem,env(safe-area-inset-top))] flex items-center gap-1 flex-shrink-0 bg-card" role="toolbar" aria-label="Selected messages">
+                      <Button variant="ghost" size="icon" className="h-10 w-10 -ml-1 [&_svg]:size-6" aria-label="Cancel selecting" onClick={() => setSelection(null)}>
+                        <X />
+                      </Button>
+                      <p className="flex-1 text-lg font-semibold tabular-nums" aria-live="polite">{selection.length}</p>
+                      {selectedMessages.length === 1 && (
+                        <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-[22px]" aria-label="Reply" onClick={() => { handleReply(selectedMessages[0]); setSelection(null); }}>
+                          <CornerUpLeft />
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-[22px]" aria-label="Star" onClick={() => { const anyOff = selectedMessages.some((m) => !isStarred(m.id)); selectedMessages.filter((m) => isStarred(m.id) !== anyOff).forEach((m) => void handleToggleStar(m)); setSelection(null); }}>
+                        <Star />
+                      </Button>
+                      {selectedMessages.some((m) => m.content && !m.content.startsWith("🎤") && m.content !== "Sent an image") && (
+                        <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-[22px]" aria-label="Copy" onClick={copySelected}>
+                          <Copy />
+                        </Button>
+                      )}
+                      {selectedMessages.length > 0 && !selectedMessages.some((m) => m.view_once) && (
+                        <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-[22px]" aria-label="Forward" onClick={() => { setForwardingMany(selectedMessages); setSelection(null); }}>
+                          <Forward />
+                        </Button>
+                      )}
+                      {selectedMessages.length > 0 && selectedMessages.every((m) => m.sender_id === currentUserId) && (
+                        <Button variant="ghost" size="icon" className="h-10 w-10 text-destructive [&_svg]:size-[22px]" aria-label="Unsend" onClick={() => { selectedMessages.forEach((m) => void handleUnsend(m.id)); setSelection(null); haptic(); }}>
+                          <Trash2 />
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
                   <div className="border-b p-2.5 sm:p-4 max-md:pt-[max(0.625rem,env(safe-area-inset-top))] flex items-center gap-2 sm:gap-3 flex-shrink-0 bg-card">
                     <Button variant="ghost" size="icon" className="md:hidden h-10 w-10 -ml-1 touch-target [&_svg]:size-6" aria-label="Back to conversations" onClick={() => { setSelectedConversation(null); setReplyingTo(null); setEditingMessage(null); }}>
                       <ArrowLeft className="h-5 w-5" />
@@ -1091,7 +1385,9 @@ const Messages = () => {
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold truncate">{selectedConversation.full_name || "Anonymous"}</p>
                       {typingUsers.length > 0 ? (
-                        <p className="text-xs font-medium text-primary">typing…</p>
+                        <p className="text-xs font-medium text-primary">{typingUsers[0].recording ? "recording audio…" : "typing…"}</p>
+                      ) : isSelfChat ? (
+                        <p className="text-xs text-muted-foreground">Message yourself</p>
                       ) : (
                         <OnlineStatusIndicator userId={selectedConversation.id} showText currentUserId={currentUserId || undefined} />
                       )}
@@ -1105,12 +1401,16 @@ const Messages = () => {
                     <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowChatSettings(true)} aria-label="Chat settings">
                       <Settings className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
-                      <Video />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-[22px]" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
-                      <Phone />
-                    </Button>
+                    {!isSelfChat && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
+                          <Video />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-[22px]" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
+                          <Phone />
+                        </Button>
+                      </>
+                    )}
                     <ActionMenu>
                       <ActionMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6 sm:[&_svg]:size-5" aria-label="More options">
@@ -1130,10 +1430,29 @@ const Messages = () => {
                         <ActionMenuItem className="sm:hidden" onSelect={() => setShowChatSettings(true)}>
                           <Settings className="h-4 w-4 mr-2" /> Chat settings
                         </ActionMenuItem>
+                        {!isSelfChat && (!isLocked(selectedConversation.id) || showLocked) && (
+                          <ActionMenuItem onSelect={() => void toggleLock(selectedConversation.id)}>
+                            {isLocked(selectedConversation.id) ? <LockOpen className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
+                            {isLocked(selectedConversation.id) ? "Unlock chat" : "Lock chat"}
+                          </ActionMenuItem>
+                        )}
                       </ActionMenuContent>
                     </ActionMenu>
                     </div>
                   </div>
+                  )}
+
+                  {/* Pinned messages (up to 3): tap to go to it, and on to the next. */}
+                  {pins.length > 0 && !selection && (() => {
+                    const id = pins[pinIndex % pins.length];
+                    const m = messages.find((x) => x.id === id);
+                    const preview = m ? (m.deleted_at ? "Deleted message" : m.content?.startsWith("🎤") ? "🎤 Voice message" : m.image_url && (!m.content || m.content === "Sent an image") ? "📷 Photo" : previewText(m.content) || "Message") : "Pinned message";
+                    return (
+                      <PinnedBar pins={pins} index={pinIndex % pins.length} preview={preview}
+                        onOpen={() => { void jumpToMessage(id); setPinIndex((i) => (i + 1) % pins.length); }}
+                        onUnpin={() => { const msg = messages.find((x) => x.id === id); if (msg) void togglePin(msg); else void supabase.from("chat_pins").delete().eq("message_id", id).then(() => setPins((p) => p.filter((x) => x !== id))); }} />
+                    );
+                  })()}
 
                   {/* Message search */}
                   {showMessageSearch && (
@@ -1153,11 +1472,14 @@ const Messages = () => {
 
                   {/* Virtualized Messages */}
                   <VirtualizedChatList
-                    itemCount={visibleMessages.length}
+                    key={selectedConversation.id}
+                    itemCount={msgRows.length}
                     scrollToBottomKey={visibleMessages.length}
                     lastIsMine={visibleMessages[visibleMessages.length - 1]?.sender_id === currentUserId}
-                    firstItemKey={visibleMessages[0]?.id}
-                    scrollToIndex={highlightedMessageId ? visibleMessages.findIndex(m => m.id === highlightedMessageId) : undefined}
+                    firstItemKey={msgRows[0]?.message.id}
+                    scrollToIndex={highlightedMessageId ? msgRows.findIndex((r) => (r.album ?? [r.message]).some((m) => m.id === highlightedMessageId)) : undefined}
+                    startAtIndex={unreadRow > 0 ? unreadRow : undefined}
+                    dayLabelAt={rowDayLabel}
                     estimatedItemSize={80}
                     className={cn("flex-1 overflow-hidden chat-wallpaper transition-colors duration-300", THEME_WASH[chatTheme])}
                     renderItem={renderMessage}
@@ -1165,7 +1487,7 @@ const Messages = () => {
                     isLoadingMore={isLoadingMore}
                     hasMore={hasMoreMessages}
                     footer={
-                      typingUsers.length > 0 ? (
+                      typingUsers.length > 0 && !typingUsers[0].recording ? (
                         <TypingBubble name={typingUsers[0].name} />
                       ) : null
                     }
@@ -1199,6 +1521,18 @@ const Messages = () => {
                             {viewOnce ? "View once" : "View once off"}
                           </button>
                         )}
+                      </div>
+                    )}
+                    {/* Replying privately to a group message. */}
+                    {quoting && !voiceActive && (
+                      <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-chat-surface p-1.5 pl-2 shadow-sm animate-fade-in">
+                        <div className="min-w-0 flex-1 rounded-lg border-l-4 border-primary bg-black/5 dark:bg-white/5 px-2 py-1">
+                          <p className="text-xs font-semibold text-primary">{quoting.name}{quoting.group_name ? ` · ${quoting.group_name}` : ""}</p>
+                          <p className="truncate text-[13px] text-muted-foreground">{quoting.text}</p>
+                        </div>
+                        <button type="button" aria-label="Cancel reply" className="mt-0.5 rounded-full p-1 text-muted-foreground hover:bg-accent" onClick={() => setQuoting(null)}>
+                          <X className="h-4 w-4" />
+                        </button>
                       </div>
                     )}
                     {/* Replying to (or editing) a message: a quote above the box, as in WhatsApp. */}
@@ -1242,7 +1576,8 @@ const Messages = () => {
                             value={messageContent}
                             onChange={handleInputChange}
                             onKeyDown={sendOnEnter}
-                            disabled={isSending}
+                            // Tapping the box while emoji or attach is showing: the keyboard takes its place.
+                            onFocus={() => { if (panel) showKeyboard(); }}
                             enterKeyHint={enterMakesNewLine() ? "enter" : "send"}
                             className="flex-1 min-w-0 resize-none border-0 bg-transparent px-1 py-2 text-[16px] leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-50"
                             aria-label="Message"
@@ -1268,14 +1603,17 @@ const Messages = () => {
                         </div>
                       )}
                       {messageContent.trim() || imageUrl ? (
-                        <Button type="submit" size="icon" variant="accent" disabled={isSending} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5">
+                        <Button type="submit" size="icon" variant="accent" disabled={isSending} aria-label="Send" className="h-12 w-12 shrink-0 rounded-full [&_svg]:size-5"
+                          // Sending keeps the keyboard up, as on WhatsApp: the tap mustn't take focus from the box.
+                          onPointerDown={(e) => e.preventDefault()} onMouseDown={(e) => e.preventDefault()}>
                           {isSending ? <Loader2 className="animate-spin" /> : <Send className="translate-x-px" />}
                         </Button>
                       ) : (
                         <VoiceMessageRecorder
                           onVoiceMessageSent={handleVoiceMessageSent}
+                          onRecorded={sendVoiceNote}
                           disabled={isSending}
-                          onActiveChange={setVoiceActive}
+                          onActiveChange={(on) => { setVoiceActive(on); announceRecording(on); }}
                           buttonClassName="h-12 w-12 shrink-0 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground [&_svg]:size-6"
                         />
                       )}
@@ -1309,6 +1647,9 @@ const Messages = () => {
                           onVideo={(file) => void sendVideo(file)}
                           onLocation={sendLocation}
                           onContact={(p) => void sendContact(p)}
+                          onDocument={features.messaging2 ? (f) => void sendDocument(f) : undefined}
+                          onPoll={features.messaging2 ? () => { closePanel(); setPollOpen(true); } : undefined}
+                          onEvent={features.messaging2 ? () => { closePanel(); setEventOpen(true); } : undefined}
                         />
                       )}
                     </div>
@@ -1358,8 +1699,33 @@ const Messages = () => {
           onSettingsChanged={(theme, mins) => { setChatTheme(theme); setDisappearingMinutes(mins); }}
         />
       )}
+      <DeleteMessageDialog
+        message={deleting}
+        mine={!!deleting && deleting.sender_id === currentUserId && !deleting.deleted_at}
+        onClose={() => setDeleting(null)}
+        onForEveryone={() => { if (deleting) void handleUnsend(deleting.id); }}
+        onForMe={() => { if (deleting) void deleteForMe(deleting); }}
+      />
+      <MessageInfoDialog message={infoFor ? messages.find((m) => m.id === infoFor.id) ?? infoFor : null} showRead={showRead} onClose={() => setInfoFor(null)} />
+      <PollComposer open={pollOpen} onOpenChange={setPollOpen} onSend={(poll) => void sendPoll(poll)} />
+      <EventComposer open={eventOpen} onOpenChange={setEventOpen} onSend={(event) => void sendEvent(event)} />
+      <Dialog open={lockPrompt} onOpenChange={setLockPrompt}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Locked chats</DialogTitle></DialogHeader>
+          <form className="space-y-3" onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await unlockWithPassword(lockPassword);
+            if (r.ok) { setLockPrompt(false); setShowLocked(true); setShowArchived(false); } else setLockError(r.message ?? "");
+          }}>
+            <p className="text-sm text-muted-foreground">Enter your Ember password to see your locked chats. In the app, your fingerprint or phone PIN opens them.</p>
+            <Input type="password" autoComplete="current-password" value={lockPassword} onChange={(e) => setLockPassword(e.target.value)} placeholder="Password" aria-label="Password" autoFocus />
+            {lockError && <p role="alert" className="text-sm text-destructive">{lockError}</p>}
+            <Button type="submit" className="w-full rounded-full" disabled={!lockPassword}>Unlock</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       {currentUserId && (
-        <ForwardDialog message={forwarding} currentUserId={currentUserId} onOpenChange={(open) => { if (!open) setForwarding(null); }} />
+        <ForwardDialog message={forwardingMany ?? forwarding} currentUserId={currentUserId} onOpenChange={(open) => { if (!open) { setForwarding(null); setForwardingMany(null); } }} />
       )}
       {gallery && currentUserId && (
         <ChatMediaPanel

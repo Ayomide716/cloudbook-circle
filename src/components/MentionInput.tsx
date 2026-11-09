@@ -19,6 +19,8 @@ interface MentionInputProps extends Omit<TextareaHTMLAttributes<HTMLTextAreaElem
   onMention?: (mention: Mention) => void;
   /** The people picked so far: highlighted in the text, and removed whole with Backspace. */
   mentions?: Mention[];
+  /** Only these people (a group chat's members), instead of your friends and anyone on Ember. */
+  candidates?: MentionCandidate[];
 }
 
 // Your friends, fetched once (they're the people you mention most), for a few minutes.
@@ -46,7 +48,7 @@ async function loadFriends(): Promise<{ me: string | null; friends: MentionCandi
  * whole. Takes any textarea prop (ref, onKeyDown, rows…).
  */
 const MentionInput = forwardRef<HTMLTextAreaElement, MentionInputProps>(({
-  value, onChange, placeholder, className, disabled, rich, onMention, mentions = [], wrapperClassName, onKeyDown, onScroll, ...rest
+  value, onChange, placeholder, className, disabled, rich, onMention, mentions = [], wrapperClassName, onKeyDown, onScroll, candidates, ...rest
 }, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mirrorRef = useRef<HTMLDivElement>(null);
@@ -75,6 +77,11 @@ const MentionInput = forwardRef<HTMLTextAreaElement, MentionInputProps>(({
     let cancelled = false;
     const q = query.query.trim();
     setLoading(true);
+    if (candidates) {
+      setPeople(rankPeople(candidates, q, 6));
+      setLoading(false);
+      return;
+    }
     const timer = window.setTimeout(async () => {
       const { me, friends } = await loadFriends();
       if (cancelled) return;
@@ -89,7 +96,7 @@ const MentionInput = forwardRef<HTMLTextAreaElement, MentionInputProps>(({
       setLoading(false);
     }, q ? 150 : 0);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [query]);
+  }, [query, candidates]);
   useEffect(() => setActive(0), [query?.query]);
 
   const syncQuery = (text: string, caret: number) => {

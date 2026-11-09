@@ -18,8 +18,17 @@ const nov = import.meta.env.VITE_DB_UPDATES_2026_11 === "true";
  * VITE_DB_UPDATES_2026_11B=true once it's been run.
  */
 const nov2 = import.meta.env.VITE_DB_UPDATES_2026_11B === "true";
+/**
+ * The third (20261109130000_messaging_like_whatsapp.sql): VITE_DB_UPDATES_2026_11C=true.
+ */
+const nov3 = import.meta.env.VITE_DB_UPDATES_2026_11C === "true";
 
 export const features = {
+  /**
+   * Chats like WhatsApp, part 2: pinned messages, message info, documents, polls and events,
+   * delete for me, reply privately, @mentions in group chats, hide last seen, read receipts.
+   */
+  messaging2: nov3,
   /** Polls and mentions you can tap on stories, and posts shared to a story (stories.overlay). */
   storyStickers: nov2,
   /** View-once photos in chats. */

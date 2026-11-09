@@ -1,7 +1,7 @@
 import { memo, useState } from "react";
 import LinkedText from "@/components/LinkedText";
 import { format } from "date-fns";
-import { Copy, CornerUpLeft, Forward, MoreHorizontal, Pencil, SmilePlus, Star, StarOff, Trash2 } from "@/components/icons";
+import { Copy, CornerUpLeft, Forward, MessageCircle, MoreHorizontal, Pencil, SmilePlus, Star, StarOff, Trash2 } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import VoiceMessagePlayer from "@/components/VoiceMessagePlayer";
 import MessageActionSheet, { type MessageAction } from "@/components/chat/MessageActionSheet";
@@ -35,6 +35,8 @@ interface GroupMessageBubbleProps {
   starred?: boolean;
   onToggleStar?: (message: GroupMessage) => void;
   onForward?: (message: GroupMessage) => void;
+  /** Reply to them in your one-to-one chat, quoting this (not on your own messages). */
+  onReplyPrivately?: (message: GroupMessage) => void;
   /** Briefly marks the message (after jumping to it from Starred or the gallery). */
   highlighted?: boolean;
 }
@@ -46,7 +48,7 @@ interface GroupMessageBubbleProps {
  */
 const GroupMessageBubble = ({
   message: m, mine, firstInRun, senderName, senderAvatar, quoted, quotedName, reactions, currentUserId, nameOf,
-  onReact, onReply, onEdit, onDelete, onOpenPhoto, starred = false, onToggleStar, onForward, highlighted = false,
+  onReact, onReply, onEdit, onDelete, onOpenPhoto, starred = false, onToggleStar, onForward, onReplyPrivately, highlighted = false,
 }: GroupMessageBubbleProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pending = m.id.startsWith("temp-");
@@ -69,6 +71,7 @@ const GroupMessageBubble = ({
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(m) },
+    ...(onReplyPrivately && !mine ? [{ label: "Reply privately", icon: <MessageCircle className="mr-2 h-4 w-4" />, onSelect: () => onReplyPrivately(m) }] : []),
     ...(onForward ? [{ label: "Forward", icon: <Forward className="mr-2 h-4 w-4" />, onSelect: () => onForward(m) }] : []),
     ...(onToggleStar ? [{ label: starred ? "Unstar" : "Star", icon: starred ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />, onSelect: () => onToggleStar(m) }] : []),
     ...(showText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(m.content) }] : []),

@@ -96,6 +96,9 @@ async function trackKeyboard() {
   let fullHeight = window.innerHeight;
   const apply = () => {
     root.style.setProperty("--keyboard-inset", `${keyboardLift(keyboardHeight, fullHeight, window.innerHeight)}px`);
+    // The keyboard's full height, however much of it Android already took off the app: the
+    // emoji and attach panels are drawn exactly this tall in its place.
+    root.style.setProperty("--keyboard-height", `${keyboardHeight}px`);
     document.body.classList.toggle("keyboard-open", keyboardHeight > 0);
   };
   // Android may make the app shorter after it has told us the keyboard's height: work it out

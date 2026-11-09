@@ -5,6 +5,7 @@ import { isNative } from "./platform";
 interface EmberWindowPlugin {
   setSecure(options: { secure: boolean }): Promise<void>;
   setPictureInPicture(options: { enabled: boolean; width?: number; height?: number }): Promise<{ supported: boolean }>;
+  authenticate(options: { title: string }): Promise<{ ok: boolean; reason?: string }>;
   addListener(event: "pictureInPicture", fn: (data: { active: boolean }) => void): Promise<PluginListenerHandle>;
 }
 
@@ -32,4 +33,18 @@ export function onPictureInPicture(fn: (active: boolean) => void): () => void {
   let removed = false;
   EmberWindow.addListener("pictureInPicture", (d) => fn(d.active)).then((h) => { if (removed) h.remove(); else handle = h; }).catch(() => {});
   return () => { removed = true; handle?.remove(); };
+}
+
+/**
+ * The phone's own fingerprint, face or screen-lock check (to open locked chats). "no-lock":
+ * the phone has no screen lock; "unavailable": an older app without this.
+ */
+export async function deviceAuthenticate(title: string): Promise<"ok" | "failed" | "no-lock" | "unavailable"> {
+  if (!isNative) return "unavailable";
+  try {
+    const r = await EmberWindow.authenticate({ title });
+    return r.ok ? "ok" : r.reason === "no-lock" ? "no-lock" : "failed";
+  } catch {
+    return "unavailable";
+  }
 }

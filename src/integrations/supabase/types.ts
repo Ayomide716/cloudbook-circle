@@ -752,6 +752,7 @@ export type Database = {
       }
       group_messages: {
         Row: {
+          mentions: string[] | null
           content: string
           created_at: string
           edited_at: string | null
@@ -763,6 +764,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          mentions?: string[] | null
           content: string
           created_at?: string
           edited_at?: string | null
@@ -774,6 +776,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          mentions?: string[] | null
           content?: string
           created_at?: string
           edited_at?: string | null
@@ -1002,6 +1005,24 @@ export type Database = {
           },
         ]
       }
+      message_votes: {
+        Row: { message_id: string; user_id: string; option: number; created_at: string }
+        Insert: { message_id: string; user_id: string; option: number; created_at?: string }
+        Update: { message_id?: string; user_id?: string; option?: number; created_at?: string }
+        Relationships: []
+      }
+      chat_pins: {
+        Row: { message_id: string; user_a: string; user_b: string; pinned_by: string | null; pinned_at: string }
+        Insert: { message_id: string; user_a: string; user_b: string; pinned_by?: string | null; pinned_at?: string }
+        Update: { message_id?: string; user_a?: string; user_b?: string; pinned_by?: string | null; pinned_at?: string }
+        Relationships: []
+      }
+      hidden_messages: {
+        Row: { user_id: string; message_id: string; created_at: string }
+        Insert: { user_id: string; message_id: string; created_at?: string }
+        Update: { user_id?: string; message_id?: string; created_at?: string }
+        Relationships: []
+      }
       message_reactions: {
         Row: {
           created_at: string
@@ -1043,6 +1064,11 @@ export type Database = {
       }
       messages: {
         Row: {
+          read_at: string | null
+          file: Json | null
+          poll: Json | null
+          event: Json | null
+          quote: Json | null
           view_once: boolean
           view_once_opened_at: string | null
           content: string
@@ -1060,6 +1086,11 @@ export type Database = {
           sender_id: string
         }
         Insert: {
+          read_at?: string | null
+          file?: Json | null
+          poll?: Json | null
+          event?: Json | null
+          quote?: Json | null
           view_once?: boolean
           view_once_opened_at?: string | null
           content: string
@@ -1077,6 +1108,11 @@ export type Database = {
           sender_id: string
         }
         Update: {
+          read_at?: string | null
+          file?: Json | null
+          poll?: Json | null
+          event?: Json | null
+          quote?: Json | null
           view_once?: boolean
           view_once_opened_at?: string | null
           content?: string
@@ -1717,6 +1753,8 @@ export type Database = {
       }
       profiles: {
         Row: {
+          hide_last_seen: boolean
+          read_receipts: boolean
           hometown: string | null
           birthday: string | null
           relationship_status: string | null
@@ -1733,6 +1771,8 @@ export type Database = {
           work: string | null
         }
         Insert: {
+          hide_last_seen?: boolean
+          read_receipts?: boolean
           hometown?: string | null
           birthday?: string | null
           relationship_status?: string | null
@@ -1749,6 +1789,8 @@ export type Database = {
           work?: string | null
         }
         Update: {
+          hide_last_seen?: boolean
+          read_receipts?: boolean
           hometown?: string | null
           birthday?: string | null
           relationship_status?: string | null

@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 import { dbChannel } from "@/lib/realtime";
 import { lastSeen } from "@/lib/time";
+import { lastSeenHidden } from "@/lib/last-seen";
 
 interface OnlineStatusIndicatorProps {
   userId: string;
@@ -17,6 +18,7 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
   } | null>(null);
   const [isFriend, setIsFriend] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [hideLastSeen, setHideLastSeen] = useState(false);
 
   const checkFriendshipAndLoadStatus = useEffectEvent(async () => {
     if (!currentUserId) {
@@ -49,12 +51,11 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
   });
 
   const loadStatus = async () => {
-    const { data } = await supabase
-      .from("user_status")
-      .select("is_online, last_seen")
-      .eq("user_id", userId)
-      .maybeSingle();
-
+    const [{ data }, hidden] = await Promise.all([
+      supabase.from("user_status").select("is_online, last_seen").eq("user_id", userId).maybeSingle(),
+      lastSeenHidden(userId, currentUserId),
+    ]);
+    setHideLastSeen(hidden);
     if (data) {
       setStatus(data);
     }
@@ -100,7 +101,7 @@ const OnlineStatusIndicator = ({ userId, showText = false, currentUserId }: Onli
       <span className="block truncate text-xs sm:text-sm text-muted-foreground">
         {isOnline ? (
           <span className="text-green-500">● Active now</span>
-        ) : (
+        ) : hideLastSeen ? null : (
           lastSeen(status.last_seen)
         )}
       </span>
