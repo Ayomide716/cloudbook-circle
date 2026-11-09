@@ -685,6 +685,7 @@ export type Database = {
       }
       group_members: {
         Row: {
+          last_read_at: string | null
           muted_until: string | null
           group_id: string
           id: string
@@ -693,6 +694,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          last_read_at?: string | null
           muted_until?: string | null
           group_id: string
           id?: string
@@ -701,6 +703,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          last_read_at?: string | null
           muted_until?: string | null
           group_id?: string
           id?: string
@@ -752,6 +755,9 @@ export type Database = {
       }
       group_messages: {
         Row: {
+          file: Json | null
+          poll: Json | null
+          event: Json | null
           mentions: string[] | null
           content: string
           created_at: string
@@ -764,6 +770,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          file?: Json | null
+          poll?: Json | null
+          event?: Json | null
           mentions?: string[] | null
           content: string
           created_at?: string
@@ -776,6 +785,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          file?: Json | null
+          poll?: Json | null
+          event?: Json | null
           mentions?: string[] | null
           content?: string
           created_at?: string
@@ -1018,6 +1030,24 @@ export type Database = {
         Relationships: []
       }
       hidden_messages: {
+        Row: { user_id: string; message_id: string; created_at: string }
+        Insert: { user_id: string; message_id: string; created_at?: string }
+        Update: { user_id?: string; message_id?: string; created_at?: string }
+        Relationships: []
+      }
+      group_message_votes: {
+        Row: { message_id: string; user_id: string; option: number; created_at: string }
+        Insert: { message_id: string; user_id: string; option: number; created_at?: string }
+        Update: { message_id?: string; user_id?: string; option?: number; created_at?: string }
+        Relationships: []
+      }
+      group_pins: {
+        Row: { message_id: string; group_id: string; pinned_by: string | null; pinned_at: string }
+        Insert: { message_id: string; group_id: string; pinned_by?: string | null; pinned_at?: string }
+        Update: { message_id?: string; group_id?: string; pinned_by?: string | null; pinned_at?: string }
+        Relationships: []
+      }
+      hidden_group_messages: {
         Row: { user_id: string; message_id: string; created_at: string }
         Insert: { user_id: string; message_id: string; created_at?: string }
         Update: { user_id?: string; message_id?: string; created_at?: string }
@@ -2588,6 +2618,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      mark_group_read: { Args: { _group: string }; Returns: undefined }
       open_view_once: {
         Args: { _message: string }
         Returns: string | null

@@ -1,7 +1,12 @@
-import { memo, useState } from "react";
+import { memo, useRef, useState } from "react";
 import LinkedText from "@/components/LinkedText";
 import { format } from "date-fns";
-import { Copy, CornerUpLeft, Forward, MessageCircle, MoreHorizontal, Pencil, SmilePlus, Star, StarOff, Trash2 } from "@/components/icons";
+import { AlertCircle, CheckCircle2, Clock, Copy, CornerUpLeft, Forward, Info, MessageCircle, MoreHorizontal, Pencil, Pin, PinOff, RotateCcw, SmilePlus, Star, StarOff, Trash2 } from "@/components/icons";
+import UploadRing from "@/components/chat/UploadRing";
+import { EventCard, FileCard, PollCard } from "@/components/chat/MessageExtras";
+import { readEvent, readFile, readPoll } from "@/lib/chat-extras";
+import { mediaSize } from "@/lib/chat-media";
+import { emojiOnlyCount } from "@/lib/emoji-only";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import VoiceMessagePlayer from "@/components/VoiceMessagePlayer";
 import MessageActionSheet, { type MessageAction } from "@/components/chat/MessageActionSheet";
@@ -39,6 +44,17 @@ interface GroupMessageBubbleProps {
   onReplyPrivately?: (message: GroupMessage) => void;
   /** Briefly marks the message (after jumping to it from Starred or the gallery). */
   highlighted?: boolean;
+  /** Try again to send one that couldn't go. */
+  onRetry?: (message: GroupMessage) => void;
+  /** Start picking messages, with this one. */
+  onSelect?: (message: GroupMessage) => void;
+  /** Pin to the top of the chat, or unpin. */
+  onPin?: (message: GroupMessage) => void;
+  pinned?: boolean;
+  /** Message info: who has read it (your own messages). */
+  onInfo?: (message: GroupMessage) => void;
+  /** Delete is offered on everyone's messages (for me), not only yours (for everyone). */
+  deleteForMe?: boolean;
 }
 
 /**
@@ -49,11 +65,23 @@ interface GroupMessageBubbleProps {
 const GroupMessageBubble = ({
   message: m, mine, firstInRun, senderName, senderAvatar, quoted, quotedName, reactions, currentUserId, nameOf,
   onReact, onReply, onEdit, onDelete, onOpenPhoto, starred = false, onToggleStar, onForward, onReplyPrivately, highlighted = false,
+  onRetry, onSelect, onPin, pinned = false, onInfo, deleteForMe = false,
 }: GroupMessageBubbleProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pending = m.id.startsWith("temp-");
+  const sending = m._status === "sending";
+  const failed = m._status === "failed";
   const swipe = useSwipeToReply(() => { if (!pending) onReply(m); });
-  const longPress = useLongPress(() => { if (!pending) setMenuOpen(true); });
+  // A message still sending has no menu; one that couldn't go has Try again and Delete.
+  const longPress = useLongPress(() => { if (!pending || failed) setMenuOpen(true); });
+  const bubbleRef = useRef<HTMLDivElement>(null);
+  const file = readFile(m.file);
+  const poll = readPoll(m.poll);
+  const event = readEvent(m.event);
+  const card = !!(file || poll || event);
+  // The photo or video from this phone while (and after) it uploads; room for it before it loads.
+  const src = m._preview ?? m.image_url ?? undefined;
+  const size = mediaSize(m.image_url);
 
   const voice = isVoiceNote(m);
   // A sticker stands on its own: big, with no bubble around it. One of Ember's 3D ones, or an
@@ -63,20 +91,29 @@ const GroupMessageBubble = ({
     ? stickerUrl(ownSticker)
     : m.content === GIPHY_STICKER && isGiphyMedia(m.image_url) ? m.image_url : null;
   const sticker = !!stickerSrc;
-  const kind = m.image_url && !voice && !sticker ? mediaKind(m.image_url) : null;
-  const showText = !voice && !sticker && !(m.image_url && MEDIA_PLACEHOLDERS.includes(m.content));
+  const kind = m.image_url && !voice && !sticker ? (m._video ? "video" : mediaKind(m.image_url)) : null;
+  const showText = !card && !voice && !sticker && !(m.image_url && MEDIA_PLACEHOLDERS.includes(m.content));
+  // One to three emoji and nothing else: big, with no bubble (as on WhatsApp).
+  const bigEmoji = showText && !m.image_url && !m.reply_to && !m.forwarded ? emojiOnlyCount(m.content) : 0;
+  const bare = sticker || bigEmoji > 0;
   const mineReaction = reactions.find((r) => r.user_id === currentUserId)?.reaction_type ?? null;
   const time = format(new Date(m.created_at), "HH:mm");
   const justArrived = m.id.startsWith("temp-") || (!mine && Date.now() - new Date(m.created_at).getTime() < 3000);
 
-  const actions: MessageAction[] = [
+  const actions: MessageAction[] = failed ? [
+    ...(onRetry ? [{ label: "Try again", icon: <RotateCcw className="mr-2 h-4 w-4" />, onSelect: () => onRetry(m) }] : []),
+    { label: "Delete", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onDelete(m), destructive: true },
+  ] : [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(m) },
     ...(onReplyPrivately && !mine ? [{ label: "Reply privately", icon: <MessageCircle className="mr-2 h-4 w-4" />, onSelect: () => onReplyPrivately(m) }] : []),
     ...(onForward ? [{ label: "Forward", icon: <Forward className="mr-2 h-4 w-4" />, onSelect: () => onForward(m) }] : []),
     ...(onToggleStar ? [{ label: starred ? "Unstar" : "Star", icon: starred ? <StarOff className="mr-2 h-4 w-4" /> : <Star className="mr-2 h-4 w-4" />, onSelect: () => onToggleStar(m) }] : []),
     ...(showText ? [{ label: "Copy", icon: <Copy className="mr-2 h-4 w-4" />, onSelect: () => void navigator.clipboard?.writeText(m.content) }] : []),
     ...(mine && !m.image_url && !sticker ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(m) }] : []),
-    ...(mine ? [{ label: "Delete", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onDelete(m), destructive: true }] : []),
+    ...(onPin ? [{ label: pinned ? "Unpin" : "Pin", icon: pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />, onSelect: () => onPin(m) }] : []),
+    ...(onInfo && mine ? [{ label: "Info", icon: <Info className="mr-2 h-4 w-4" />, onSelect: () => onInfo(m) }] : []),
+    ...(onSelect ? [{ label: "Select", icon: <CheckCircle2 className="mr-2 h-4 w-4" />, onSelect: () => onSelect(m) }] : []),
+    ...(mine || deleteForMe ? [{ label: "Delete", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onDelete(m), destructive: true }] : []),
   ];
 
   return (
@@ -111,6 +148,13 @@ const GroupMessageBubble = ({
         </div>
       )}
 
+      {/* Couldn't send: a red "!" beside it; tap to try again. */}
+      {failed && (
+        <button type="button" onClick={() => onRetry?.(m)} aria-label="Couldn't send. Tap to try again" title="Tap to try again"
+          className="order-first flex h-8 w-8 shrink-0 items-center justify-center self-center rounded-full text-destructive active:scale-90">
+          <AlertCircle className="h-6 w-6" />
+        </button>
+      )}
       {/* With a mouse: react, reply and more, beside the message on hover. */}
       {!pending && (
         <div className={cn(
@@ -135,14 +179,15 @@ const GroupMessageBubble = ({
         style={swipe.offset ? { transform: `translateX(${swipe.offset}px)` } : undefined}
       >
         <div
+          ref={bubbleRef}
           data-message-bubble
           className={cn(
             "relative w-full rounded-lg px-2.5 pb-1.5 pt-1 [-webkit-touch-callout:none] [@media(hover:none)]:select-none",
-            sticker
+            bare
               ? "w-auto bg-transparent px-0 pb-0 text-foreground"
               : cn("shadow-sm", mine ? "bg-chat-sent text-primary-foreground dark:text-white" : "bg-chat-surface text-foreground"),
-            !sticker && firstInRun && (mine ? "rounded-tr-none" : "rounded-tl-none"),
-            pending && "opacity-70",
+            !bare && firstInRun && (mine ? "rounded-tr-none" : "rounded-tl-none"),
+            bigEmoji > 0 && "pb-7",
             (menuOpen || highlighted) && "ring-2 ring-primary/40",
             highlighted && "animate-pulse"
           )}
@@ -160,6 +205,8 @@ const GroupMessageBubble = ({
             onReact={(type) => onReact(m.id, type)}
             actions={actions}
             align={mine ? "end" : "start"}
+            anchorRef={bubbleRef}
+            hideReactions={pending}
           />
           {!mine && firstInRun && <p className={cn("text-[13px] font-semibold", nameColour(m.user_id))}>{senderName}</p>}
           {m.forwarded && (
@@ -181,13 +228,29 @@ const GroupMessageBubble = ({
           ) : voice ? (
             <VoiceMessagePlayer audioUrl={m.image_url!} duration={voiceSeconds(m.content)} isOwnMessage={mine} />
           ) : m.image_url && kind === "video" ? (
-            <video src={m.image_url} controls playsInline preload="metadata" className="mt-1 max-h-72 w-full rounded-md bg-black" />
+            <video src={src} controls={!sending} playsInline preload="metadata" className="mt-1 max-h-72 w-full rounded-md bg-black" />
           ) : m.image_url ? (
-            <button type="button" className="mt-1 block overflow-hidden rounded-md" onClick={() => onOpenPhoto(m.image_url!)} aria-label={kind === "gif" ? "GIF" : "Open photo"}>
-              <img src={m.image_url} alt="" loading="lazy" className="max-h-80 w-full object-cover" />
+            <button type="button" className="relative mt-1 block w-full overflow-hidden rounded-md bg-black/10" onClick={() => { if (!sending && !failed) onOpenPhoto(m.image_url!); }} aria-label={kind === "gif" ? "GIF" : "Open photo"}
+              style={size ? { aspectRatio: `${size.w} / ${size.h}`, maxHeight: 340 } : undefined}>
+              <img src={src} alt="" loading="lazy" className={cn("w-full object-cover", size ? "h-full" : "max-h-80")} />
             </button>
           ) : null}
-          {showText && (
+          {/* On its way: the upload ring; couldn't go: tap to try again. */}
+          {m.image_url && !voice && !sticker && (sending || failed) && (
+            <div className="pointer-events-none absolute inset-x-2.5 bottom-6 top-6 flex items-center justify-center">
+              {failed ? (
+                <button type="button" onClick={(e) => { e.stopPropagation(); onRetry?.(m); }} className="pointer-events-auto flex items-center gap-1.5 rounded-full bg-black/60 px-3 py-2 text-[13px] font-semibold text-white">
+                  <RotateCcw className="h-4 w-4" /> Retry
+                </button>
+              ) : <UploadRing progress={m._progress} />}
+            </div>
+          )}
+          {file && <div className="mt-1"><FileCard file={file} mine={mine} /></div>}
+          {poll && <div className="mt-1"><PollCard messageId={m.id} poll={poll} mine={mine} currentUserId={currentUserId} table="group_message_votes" /></div>}
+          {event && <div className="mt-1"><EventCard messageId={m.id} event={event} mine={mine} currentUserId={currentUserId} table="group_message_votes" /></div>}
+          {bigEmoji > 0 ? (
+            <p className={cn("leading-none", bigEmoji === 1 ? "text-[52px]" : bigEmoji === 2 ? "text-[44px]" : "text-[38px]")}>{m.content.trim()}</p>
+          ) : showText && (
             <p className={cn("whitespace-pre-wrap break-words text-[15px] leading-snug", m.image_url && "mt-1")}>
               <LinkedText text={m.content} className={mine ? "underline decoration-current/60" : "text-primary underline decoration-primary/40"} />
               {/* Room for the time, which sits in the bottom corner. */}
@@ -196,12 +259,14 @@ const GroupMessageBubble = ({
           )}
           <p className={cn(
             "text-right text-[11px] leading-none",
-            sticker ? "absolute bottom-1 right-1 rounded-full bg-black/55 px-1.5 py-1 text-white" : showText ? "-mt-3.5" : "mt-1",
-            !sticker && (mine ? "text-white/70" : "text-muted-foreground")
+            bare ? "absolute bottom-1 right-1 rounded-full bg-black/55 px-1.5 py-1 text-white" : showText ? "-mt-3.5" : "mt-1",
+            !bare && (mine ? "text-white/70" : "text-muted-foreground")
           )}>
+            {pinned && <Pin className="mr-1 inline h-3 w-3 -translate-y-px" aria-label="Pinned" />}
             {starred && <Star className="mr-1 inline h-3 w-3 -translate-y-px fill-current" aria-label="Starred" />}
             {m.edited_at && <span className="mr-1">edited</span>}
             {time}
+            {mine && sending && <Clock className="ml-1 inline h-3 w-3 -translate-y-px" aria-label="Sending" />}
           </p>
         </div>
         <ReactionChips

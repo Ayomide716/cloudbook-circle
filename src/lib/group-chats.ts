@@ -44,6 +44,9 @@ function readSeen(userId: string): Record<string, string> {
   }
 }
 
+/** When you last read a group's chat on this device (null: never). */
+export const groupSeenAt = (userId: string, groupId: string): string | null => readSeen(userId)[groupId] ?? null;
+
 /** Remembers that you've read a group's chat up to now (kept on this device). */
 export function markGroupSeen(userId: string, groupId: string) {
   try {
