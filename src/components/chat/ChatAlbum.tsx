@@ -7,30 +7,46 @@ import { Check, CheckCheck, Clock, CornerUpLeft, RotateCcw, Trash2 } from "@/com
 import { useLongPress } from "@/hooks/use-long-press";
 import { themeColors } from "@/lib/chat-colors";
 import { cn } from "@/lib/utils";
-import type { ChatMessage } from "@/components/ChatBubble";
 
-interface ChatAlbumProps {
-  photos: ChatMessage[];
+/** What an album needs of each photo's message (one-to-one and group messages both have it). */
+export interface AlbumPhoto {
+  id: string;
+  content: string;
+  created_at: string;
+  image_url?: string | null;
+  read?: boolean | null;
+  delivered_at?: string | null;
+  _preview?: string;
+  _status?: "sending" | "failed";
+  _progress?: number;
+}
+
+interface ChatAlbumProps<T extends AlbumPhoto> {
+  photos: T[];
   isCurrentUser: boolean;
   isFirstInGroup?: boolean;
   theme?: string;
-  onReply: (message: ChatMessage) => void;
+  onReply: (message: T) => void;
   onUnsend: (messageId: string) => void;
-  onRetry?: (message: ChatMessage) => void;
+  onRetry?: (message: T) => void;
+  /** Group chats: no read ticks, and the sender's name on top. */
+  group?: boolean;
+  senderName?: string;
+  senderClass?: string;
 }
 
 /**
  * Four or more photos sent together, as one bubble: a 2×2 grid with "+3" on the last tile,
  * tap to see them all (as on WhatsApp). Press and hold for reply and delete.
  */
-const ChatAlbum = ({ photos, isCurrentUser, isFirstInGroup = true, theme = "default", onReply, onUnsend, onRetry }: ChatAlbumProps) => {
+const ChatAlbum = <T extends AlbumPhoto>({ photos, isCurrentUser, isFirstInGroup = true, theme = "default", onReply, onUnsend, onRetry, group = false, senderName, senderClass }: ChatAlbumProps<T>) => {
   const [viewing, setViewing] = useState<number | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
   const longPress = useLongPress(() => setMenuOpen(true));
   const bubbleRef = useRef<HTMLDivElement>(null);
   const colors = themeColors[theme] || themeColors.default;
   const last = photos[photos.length - 1];
-  const caption = photos[0].content !== "Sent an image" ? photos[0].content : "";
+  const caption = !["Sent an image", "📷 Photo"].includes(photos[0].content) ? photos[0].content : "";
   const srcs = photos.map((p) => p._preview ?? p.image_url ?? "");
   const sending = photos.filter((p) => p._status === "sending");
   const failed = photos.filter((p) => p._status === "failed");
@@ -61,6 +77,7 @@ const ChatAlbum = ({ photos, isCurrentUser, isFirstInGroup = true, theme = "defa
         }}
       >
         <MessageActionSheet open={menuOpen} onOpenChange={setMenuOpen} myReaction={null} onReact={() => {}} actions={actions} align={isCurrentUser ? "end" : "start"} anchorRef={bubbleRef} hideReactions />
+        {senderName && <p className={cn("px-1 pb-0.5 text-[13px] font-semibold", senderClass)}>{senderName}</p>}
         <div className="grid grid-cols-2 gap-1">
           {srcs.slice(0, 4).map((src, i) => (
             <button key={photos[i].id} type="button" onClick={() => setViewing(i)} aria-label={`Photo ${i + 1} of ${photos.length}`}
@@ -87,7 +104,7 @@ const ChatAlbum = ({ photos, isCurrentUser, isFirstInGroup = true, theme = "defa
         {caption && <p className="whitespace-pre-wrap break-words px-1.5 pt-1 text-[15px] leading-snug">{caption}</p>}
         <span className={cn("inline-flex items-center gap-0.5 text-[10px] leading-none", caption ? "float-right mx-1 mt-1" : "absolute bottom-2 right-2 rounded-full bg-black/55 px-1.5 py-1 text-white")}>
           {format(new Date(last.created_at), "HH:mm")}
-          {isCurrentUser && (sending.length ? <Clock className="ml-0.5 h-3 w-3 opacity-70" aria-label="Sending" />
+          {isCurrentUser && (group ? (sending.length ? <Clock className="ml-0.5 h-3 w-3 opacity-70" aria-label="Sending" /> : null) : sending.length ? <Clock className="ml-0.5 h-3 w-3 opacity-70" aria-label="Sending" />
             : allRead ? <CheckCheck className="ml-0.5 h-3.5 w-3.5 text-sky-400" strokeWidth={2.5} aria-label="Read" />
             : allDelivered ? <CheckCheck className="ml-0.5 h-3.5 w-3.5 opacity-70" strokeWidth={2.5} aria-label="Delivered" />
             : <Check className="ml-0.5 h-3.5 w-3.5 opacity-70" aria-label="Sent" />)}

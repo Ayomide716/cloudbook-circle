@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import GroupInitials from "@/components/groups/GroupInitials";
 import { useNavigate } from "react-router-dom";
 import { format } from "date-fns";
-import { ArrowLeft, BellOff, ChevronRight, ExternalLink, Image as ImageIcon, LogOut, Pencil, Star, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "@/components/icons";
+import { ArrowLeft, BellOff, ChevronRight, ExternalLink, Image as ImageIcon, ImagePlus, LogOut, Pencil, Star, MoreVertical, Phone, Search, ShieldCheck, ShieldOff, UserMinus, UserPlus, Users, Video } from "@/components/icons";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,13 +38,15 @@ interface GroupInfoPanelProps {
   onGroupUpdated?: () => void;
   /** Opens the group's media, links and voice notes, or its starred messages. */
   onOpenGallery?: (tab: "media" | "starred") => void;
+  /** Your own photo behind this chat. */
+  onWallpaper?: () => void;
 }
 
 const managementError = (error: { message: string }) =>
   /Could not find the function|function .*group_/i.test(error.message) ? "This needs the latest database update." : error.message;
 
 /** The group's info, as on WhatsApp: picture, name, members (admins marked) and the actions. */
-const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onCall, onLeft, muted = false, onToggleMute, onGroupUpdated, onOpenGallery }: GroupInfoPanelProps) => {
+const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onCall, onLeft, muted = false, onToggleMute, onGroupUpdated, onOpenGallery, onWallpaper }: GroupInfoPanelProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [query, setQuery] = useState("");
@@ -137,6 +139,13 @@ const GroupInfoPanel = ({ group, members, currentUserId, onClose, onChanged, onC
               {label}
             </button>
           ))}
+          {onWallpaper && (
+            <button type="button" onClick={onWallpaper} className="flex w-full items-center gap-3 px-5 py-3 text-left hover:bg-secondary">
+              <ImagePlus className="h-5 w-5 text-muted-foreground" />
+              <span className="flex-1 text-[15px] font-medium">Wallpaper</span>
+              <ChevronRight className="h-5 w-5 text-muted-foreground" />
+            </button>
+          )}
         </div>
       </div>
 

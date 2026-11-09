@@ -1,5 +1,6 @@
 import { PageHeader } from "@/components/layout/PageHeader";
 import ChatPrivacy from "@/components/settings/ChatPrivacy";
+import WallpaperDialog from "@/components/chat/ChatWallpaper";
 import { useEffect, useState } from "react";
 import AppVersionCard from "@/components/AppVersionCard";
 import AppearancePicker from "@/components/AppearancePicker";
@@ -16,7 +17,7 @@ import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Loader2, Palette, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge } from "@/components/icons";
+import { Loader2, Palette, Bell, Heart, MessageCircle, UserPlus, Users, Share2, Smartphone, ChevronRight, KeyRound, Mail, Trash2, Volume2, Gauge, ImagePlus } from "@/components/icons";
 import {
   AlertDialog, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
@@ -109,6 +110,7 @@ const Settings = () => {
 
   useSEO({ title: "Settings", description: "Manage your Ember settings." });
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
   const [sounds, setSounds] = useState(soundsEnabled);
   const [prefs, setPrefs] = useState<NotificationPrefs>(defaultPrefs);
   const [isLoading, setIsLoading] = useState(true);
@@ -305,10 +307,21 @@ const Settings = () => {
         </div>
         </Card>
 
-        {features.messaging2 && currentUserId && (
+        {currentUserId && (
           <>
-            <SectionTitle title="Chats" desc="What people can see about you in chats." />
-            <ChatPrivacy userId={currentUserId} />
+            <SectionTitle title="Chats" desc="How your chats look, and what people can see about you in them." />
+            <Card className="mb-3 overflow-hidden rounded-2xl">
+              <button type="button" onClick={() => setWallpaperOpen(true)} className="flex w-full items-center gap-3 p-4 text-left hover:bg-accent/50">
+                <div className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-full bg-secondary"><ImagePlus className="h-4 w-4" /></div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium">Chat wallpaper</p>
+                  <p className="text-xs text-muted-foreground">Your own photo behind all your chats (each chat can have its own too)</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </Card>
+            <WallpaperDialog open={wallpaperOpen} onOpenChange={setWallpaperOpen} userId={currentUserId} chatKey="all" />
+            {features.messaging2 && <ChatPrivacy userId={currentUserId} />}
           </>
         )}
 

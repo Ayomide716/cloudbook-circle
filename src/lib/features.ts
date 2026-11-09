@@ -22,6 +22,8 @@ const nov2 = import.meta.env.VITE_DB_UPDATES_2026_11B === "true";
  * The third (20261109130000_messaging_like_whatsapp.sql): VITE_DB_UPDATES_2026_11C=true.
  */
 const nov3 = import.meta.env.VITE_DB_UPDATES_2026_11C === "true";
+/** The fourth (20261110090000_group_chats_like_dms.sql): VITE_DB_UPDATES_2026_11D=true. */
+const nov4 = import.meta.env.VITE_DB_UPDATES_2026_11D === "true";
 
 export const features = {
   /**
@@ -29,6 +31,8 @@ export const features = {
    * delete for me, reply privately, @mentions in group chats, hide last seen, read receipts.
    */
   messaging2: nov3,
+  /** Group chats get documents, polls, events, pins, delete for me and "read by". */
+  groupChats2: nov4,
   /** Polls and mentions you can tap on stories, and posts shared to a story (stories.overlay). */
   storyStickers: nov2,
   /** View-once photos in chats. */

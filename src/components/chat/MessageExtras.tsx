@@ -22,8 +22,10 @@ export const FileCard = ({ file, mine }: { file: ChatFile; mine: boolean }) => (
 );
 
 /** A poll: tap an option to vote (again to take it back), with live counts as on WhatsApp. */
-export const PollCard = ({ messageId, poll, mine, currentUserId }: { messageId: string; poll: ChatPoll; mine: boolean; currentUserId: string }) => {
-  const { votes, mine: myVotes, vote } = useMessageVotes(messageId, currentUserId);
+type VoteTable = "message_votes" | "group_message_votes";
+
+export const PollCard = ({ messageId, poll, mine, currentUserId, table }: { messageId: string; poll: ChatPoll; mine: boolean; currentUserId: string; table?: VoteTable }) => {
+  const { votes, mine: myVotes, vote } = useMessageVotes(messageId, currentUserId, table);
   const voters = new Set(votes.map((v) => v.user_id)).size;
   const most = Math.max(1, ...poll.options.map((_, i) => votes.filter((v) => v.option === i).length));
   return (
@@ -58,8 +60,9 @@ export const PollCard = ({ messageId, poll, mine, currentUserId }: { messageId: 
 const when = (d: Date) => `${isToday(d) ? "Today" : isTomorrow(d) ? "Tomorrow" : format(d, "EEE d MMM")}, ${format(d, "HH:mm")}`;
 
 /** An event: when and where, going / can't go, and add to calendar. */
-export const EventCard = ({ messageId, event, mine, currentUserId, otherName }: { messageId: string; event: ChatEvent; mine: boolean; currentUserId: string; otherName?: string | null }) => {
-  const { votes, mine: myVotes, vote } = useMessageVotes(messageId, currentUserId);
+export const EventCard = ({ messageId, event, mine, currentUserId, otherName, table }: { messageId: string; event: ChatEvent; mine: boolean; currentUserId: string; otherName?: string | null; table?: VoteTable }) => {
+  const { votes, mine: myVotes, vote } = useMessageVotes(messageId, currentUserId, table);
+  const group = table === "group_message_votes";
   const start = new Date(event.starts_at);
   const theirs = votes.find((v) => v.user_id !== currentUserId);
   return (
@@ -83,7 +86,9 @@ export const EventCard = ({ messageId, event, mine, currentUserId, otherName }: 
           </button>
         ))}
       </div>
-      {theirs && <p className="mt-1.5 text-xs opacity-75">{otherName || "They"}: {theirs.option === 0 ? "going" : "can't go"}</p>}
+      {group ? (
+        votes.length > 0 && <p className="mt-1.5 text-xs opacity-75">{votes.filter((v) => v.option === 0).length} going · {votes.filter((v) => v.option === 1).length} can't go</p>
+      ) : theirs && <p className="mt-1.5 text-xs opacity-75">{otherName || "They"}: {theirs.option === 0 ? "going" : "can't go"}</p>}
       <a href={calendarLink(event)} target="_blank" rel="noopener noreferrer" className="mt-1.5 flex items-center justify-center gap-1 text-[13px] font-semibold underline-offset-2 hover:underline">
         <CalendarPlus className="h-4 w-4" /> Add to calendar
       </a>

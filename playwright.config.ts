@@ -38,6 +38,7 @@ export default defineConfig({
       VITE_DB_UPDATES_2026_11: "true",
       VITE_DB_UPDATES_2026_11B: "true",
       VITE_DB_UPDATES_2026_11C: "true",
+      VITE_DB_UPDATES_2026_11D: "true",
       // Test accounts are brand new: no welcome flow over the pages being tested.
       VITE_E2E: "true",
     },

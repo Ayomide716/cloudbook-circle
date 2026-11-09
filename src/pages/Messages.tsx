@@ -21,7 +21,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus, Smile, Keyboard, Paperclip, Camera, Check, Copy, CornerUpLeft, Forward, Trash2, Lock, LockOpen } from "@/components/icons";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus, Smile, Keyboard, Paperclip, Camera, Check, Copy, CornerUpLeft, Forward, Trash2, Lock, LockOpen, ImagePlus } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -63,6 +63,8 @@ import { shrinkVideo } from "@/lib/video-compress";
 import { imageSize, limiter, settleSent, withMediaSize } from "@/lib/chat-media";
 import { groupAlbums, lastOf } from "@/lib/chat-albums";
 import ChatAlbum from "@/components/chat/ChatAlbum";
+import WallpaperDialog, { WallpaperLayer } from "@/components/chat/ChatWallpaper";
+import { useWallpaper } from "@/lib/chat-wallpaper";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { previewText } from "@/lib/stickers";
@@ -846,6 +848,9 @@ const Messages = () => {
 
   // ---- Part 2 (after the database update, features.messaging2) ----
   const [quoting, setQuoting] = useState<ChatQuote | null>(null);
+  // Your own photo behind this chat (or all chats), as on WhatsApp.
+  const [wallpaperOpen, setWallpaperOpen] = useState(false);
+  const dmWallpaper = useWallpaper(currentUserId, selectedConversation?.id ?? "all");
   const [pollOpen, setPollOpen] = useState(false);
   const [eventOpen, setEventOpen] = useState(false);
   const [deleting, setDeleting] = useState<ChatMessage | null>(null);
@@ -1319,7 +1324,7 @@ const Messages = () => {
             </Card>
 
             {/* Chat Area — AI or regular conversation */}
-            <Card className={cn("min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (!selectedConversation && !showAIChat && !selectedGroup) ? "hidden md:flex" : "flex")}>
+            <Card className={cn("relative isolate min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (!selectedConversation && !showAIChat && !selectedGroup) ? "hidden md:flex" : "flex", selectedConversation && !selectedGroup && dmWallpaper && "photo-wallpaper")}>
               {features.cloudBuddy && showAIChat ? (
                 <AIChatCompanion onBack={() => { setShowAIChat(false); }} />
               ) : selectedGroup && currentUserId ? (
@@ -1337,6 +1342,7 @@ const Messages = () => {
                 />
               ) : selectedConversation ? (
                 <>
+                  <WallpaperLayer wallpaper={dmWallpaper} />
                   {/* Picking messages: what you can do with them, in the header's place (as on WhatsApp). */}
                   {selection ? (
                     <div className="border-b p-2.5 sm:p-4 max-md:pt-[max(0.625rem,env(safe-area-inset-top))] flex items-center gap-1 flex-shrink-0 bg-card" role="toolbar" aria-label="Selected messages">
@@ -1429,6 +1435,9 @@ const Messages = () => {
                         </ActionMenuItem>
                         <ActionMenuItem className="sm:hidden" onSelect={() => setShowChatSettings(true)}>
                           <Settings className="h-4 w-4 mr-2" /> Chat settings
+                        </ActionMenuItem>
+                        <ActionMenuItem onSelect={() => setWallpaperOpen(true)}>
+                          <ImagePlus className="h-4 w-4 mr-2" /> Wallpaper
                         </ActionMenuItem>
                         {!isSelfChat && (!isLocked(selectedConversation.id) || showLocked) && (
                           <ActionMenuItem onSelect={() => void toggleLock(selectedConversation.id)}>
@@ -1698,6 +1707,9 @@ const Messages = () => {
           otherUserId={selectedConversation.id}
           onSettingsChanged={(theme, mins) => { setChatTheme(theme); setDisappearingMinutes(mins); }}
         />
+      )}
+      {currentUserId && selectedConversation && (
+        <WallpaperDialog open={wallpaperOpen} onOpenChange={setWallpaperOpen} userId={currentUserId} chatKey={selectedConversation.id} chatName={selectedConversation.full_name ?? undefined} />
       )}
       <DeleteMessageDialog
         message={deleting}

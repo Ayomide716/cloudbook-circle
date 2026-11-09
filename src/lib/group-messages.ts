@@ -10,6 +10,15 @@ export interface GroupMessage {
   reply_to?: string | null;
   edited_at?: string | null;
   forwarded?: boolean;
+  /** A document, poll or event (lib/chat-extras). */
+  file?: unknown;
+  poll?: unknown;
+  event?: unknown;
+  // Only on this phone, while a message you sent is on its way (as in one-to-one chats):
+  _status?: "sending" | "failed";
+  _progress?: number;
+  _preview?: string;
+  _video?: boolean;
 }
 
 // Text saved with media that has no caption (it's what the chat list shows).
