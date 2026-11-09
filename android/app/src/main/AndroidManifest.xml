@@ -80,6 +80,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Voice and video calls, voice notes, photos and videos from the camera -->
     <uses-permission android:name="android.permission.CAMERA" />
+    <!-- "Location" in a chat's attach menu (asked for only when you tap it). -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Notifications when the app is closed (asked for on Android 13 and later) -->

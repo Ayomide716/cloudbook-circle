@@ -10,7 +10,6 @@ import { useCalls } from "@/hooks/use-calls";
 import Navigation from "@/components/Navigation";
 
 import NewConversation from "@/components/NewConversation";
-import ChatImageUpload from "@/components/ChatImageUpload";
 import OnlineStatusIndicator from "@/components/OnlineStatusIndicator";
 import VoiceMessageRecorder from "@/components/VoiceMessageRecorder";
 import GifPicker from "@/components/GifPicker";
@@ -22,7 +21,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus } from "@/components/icons";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus, Smile, Keyboard, Paperclip, Camera } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -55,6 +54,13 @@ import ActiveNow from "@/components/chat/ActiveNow";
 import { useOnlineFriends } from "@/hooks/use-online-friends";
 import { useInboxTyping } from "@/hooks/use-inbox-typing";
 import TypingBubble from "@/components/chat/TypingBubble";
+import AttachPanel from "@/components/chat/AttachPanel";
+import MediaSendSheet from "@/components/chat/MediaSendSheet";
+import { useKeyboard } from "@/lib/keyboard-height";
+import { uploadMedia } from "@/lib/media-upload";
+import { shrinkImage } from "@/lib/image-compress";
+import { shrinkVideo } from "@/lib/video-compress";
+import { publicUrl } from "@/lib/native/platform";
 
 interface Profile {
   id: string;
@@ -559,6 +565,129 @@ const Messages = () => {
     haptic();
     if (data) setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
   };
+
+  /**
+   * Sends one message straight away (not from the text box): a photo from the picker (with
+   * its caption, or view once), your location, or a friend's profile card. `preview` shows the
+   * photo at once while it uploads.
+   */
+  const sendOne = async (opts: { content: string; imageUrl?: string | null; once?: boolean; upload?: () => Promise<string>; preview?: string }) => {
+    if (!selectedConversation || !currentUserId) return false;
+    const to = selectedConversation.id;
+    const tempId = `temp-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+    const once = !!opts.once && features.viewOnce;
+    const replyTo = replyingTo?.id || null;
+    setReplyingTo(null);
+    setMessages((prev) => [...prev, {
+      id: tempId, sender_id: currentUserId, receiver_id: to, content: once ? VIEW_ONCE : opts.content,
+      image_url: once ? null : opts.preview ?? opts.imageUrl ?? null, view_once: once || undefined,
+      created_at: new Date().toISOString(), read: false, reply_to: replyTo,
+    }]);
+    try {
+      const url = opts.upload ? await opts.upload() : opts.imageUrl ?? null;
+      const insertObj: TablesInsert<"messages"> = { sender_id: currentUserId, receiver_id: to, content: once ? VIEW_ONCE : opts.content, image_url: once ? null : url, reply_to: replyTo };
+      if (once) insertObj.view_once = true;
+      if (disappearingMinutes) insertObj.expires_at = new Date(Date.now() + disappearingMinutes * 60000).toISOString();
+      const { data, error } = await supabase.from("messages").insert(insertObj).select().single();
+      if (error) throw error;
+      if (once && url) {
+        const { error: mediaError } = await supabase.from("view_once_media").insert({ message_id: data.id, url });
+        if (mediaError) {
+          await supabase.from("messages").update({ deleted_at: new Date().toISOString() }).eq("id", data.id);
+          throw mediaError;
+        }
+      }
+      setMessages((prev) => prev.map((m) => (m.id === tempId ? (data as ChatMessage) : m)));
+      return true;
+    } catch (error) {
+      setMessages((prev) => prev.filter((m) => m.id !== tempId));
+      toast({ title: "Couldn't send", description: friendlyError(error), variant: "destructive" });
+      return false;
+    }
+  };
+
+  const uploadChatFile = async (file: File, kind: "image" | "video") => {
+    const upload = kind === "image" ? await shrinkImage(file) : await shrinkVideo(file);
+    const ext = upload.name.split(".").pop();
+    return uploadMedia("chat-images", `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`, upload);
+  };
+
+  // Photos from the picker: one message each, the caption on the first, sent in order.
+  const sendPhotos = async (files: File[], caption: string, once: boolean) => {
+    setPickedPhotos(null);
+    let first = true;
+    let sent = 0;
+    for (const file of files) {
+      const preview = URL.createObjectURL(file);
+      const ok = await sendOne({ content: first && caption ? caption : "Sent an image", once: once && files.length === 1, preview, upload: () => uploadChatFile(file, "image") });
+      if (ok) sent++;
+      first = false;
+      window.setTimeout(() => URL.revokeObjectURL(preview), 60_000);
+    }
+    if (sent) { playSound("send"); haptic(); }
+  };
+
+  const sendVideo = async (file: File) => {
+    closePanel();
+    if (file.size > 200 * 1024 * 1024) { toast({ title: "That video is too big", description: "Up to 200 MB.", variant: "destructive" }); return; }
+    if (await sendOne({ content: "Sent a video", upload: () => uploadChatFile(file, "video") })) { playSound("send"); haptic(); }
+  };
+
+  const [locating, setLocating] = useState(false);
+  const sendLocation = () => {
+    if (!navigator.geolocation) { toast({ title: "Location isn't available on this device", variant: "destructive" }); return; }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setLocating(false);
+        closePanel();
+        const { latitude, longitude } = pos.coords;
+        if (await sendOne({ content: `📍 My location\nhttps://maps.google.com/?q=${latitude.toFixed(6)},${longitude.toFixed(6)}` })) { playSound("send"); haptic(); }
+      },
+      () => {
+        setLocating(false);
+        toast({ title: "Couldn't get your location", description: "Allow Ember to use your location in your phone's settings, then try again.", variant: "destructive" });
+      },
+      { enableHighAccuracy: true, timeout: 15000 },
+    );
+  };
+
+  const sendContact = async (person: { id: string; full_name: string | null }) => {
+    closePanel();
+    if (await sendOne({ content: `👤 ${person.full_name || "A friend"} on Ember\n${publicUrl(`/profile/${person.id}`)}` })) { playSound("send"); haptic(); }
+  };
+
+  // ---- The panel in the keyboard's place: emoji/GIFs/stickers, or attach (as on WhatsApp) ----
+  const [panel, setPanel] = useState<null | "emoji" | "attach">(null);
+  const [pickedPhotos, setPickedPhotos] = useState<File[] | null>(null);
+  const keyboard = useKeyboard();
+  const closingToKeyboard = useRef(false);
+  const closePanel = useCallback(() => setPanel(null), []);
+  // Switching from a panel to typing: the keyboard comes up, then the panel goes (no jump).
+  const showKeyboard = () => {
+    closingToKeyboard.current = true;
+    messageBoxRef.current?.focus();
+    // No on-screen keyboard (a computer): just close the panel.
+    window.setTimeout(() => { if (closingToKeyboard.current) { closingToKeyboard.current = false; setPanel(null); } }, matchMedia("(pointer: coarse)").matches ? 600 : 0);
+  };
+  const togglePanel = (which: "emoji" | "attach") => {
+    if (panel === which) { showKeyboard(); return; }
+    closingToKeyboard.current = false;
+    messageBoxRef.current?.blur();
+    setPanel(which);
+    haptic(8);
+  };
+  useEffect(() => {
+    if (keyboard.open && panel) { closingToKeyboard.current = false; setPanel(null); }
+  }, [keyboard.open]); // eslint-disable-line react-hooks/exhaustive-deps
+  // Changing chats, or Android's back button / Escape, closes it.
+  useEffect(() => { setPanel(null); setPickedPhotos(null); }, [selectedConversation?.id]);
+  useEffect(() => {
+    if (!panel) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setPanel(null); };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [panel]);
 
   const handleUnsend = async (messageId: string) => {
     await supabase.from("messages").update({ deleted_at: new Date().toISOString() }).eq("id", messageId);
@@ -1096,14 +1225,16 @@ const Messages = () => {
                     <div className="flex items-end gap-1.5">
                       {!voiceActive && (
                         <div className="flex-1 min-w-0 flex items-end gap-0.5 rounded-3xl bg-chat-surface shadow-sm px-1 py-1 min-h-12 [&_button]:h-10 [&_button]:w-10 [&_button]:shrink-0 [&_button]:rounded-full [&_button_svg]:!h-[22px] [&_button_svg]:!w-[22px] [&_button_svg]:text-muted-foreground">
-                          <GifPicker
-                            onSelect={(content) => {
-                              if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }
-                              else setMessageContent((prev) => prev + content);
-                            }}
-                            onSticker={editingMessage ? undefined : (id) => void sendSticker(stickerMessage(id))}
-                            onGiphySticker={editingMessage ? undefined : (url) => void sendSticker(GIPHY_STICKER, url)}
-                          />
+                          {/* 😊 opens emoji, GIFs and stickers in the keyboard's place; ⌨️ goes back to typing. */}
+                          <button
+                            type="button"
+                            onClick={() => togglePanel("emoji")}
+                            aria-label={panel === "emoji" ? "Show keyboard" : "Emoji, GIFs and stickers"}
+                            aria-expanded={panel === "emoji"}
+                            className="flex items-center justify-center hover:bg-accent"
+                          >
+                            {panel === "emoji" ? <Keyboard /> : <Smile />}
+                          </button>
                           <textarea
                             ref={messageBoxRef}
                             rows={1}
@@ -1116,14 +1247,24 @@ const Messages = () => {
                             className="flex-1 min-w-0 resize-none border-0 bg-transparent px-1 py-2 text-[16px] leading-6 outline-none placeholder:text-muted-foreground disabled:opacity-50"
                             aria-label="Message"
                           />
-                          <ChatImageUpload
-                            onMediaUploaded={(url, type) => { setImageUrl(url); setMediaType(type); }}
-                            onMediaCleared={() => { setImageUrl(null); setMediaType(null); }}
-                            previewUrl={null}
-                            mediaType={null}
-                            isUploading={isUploadingImage}
-                            setIsUploading={setIsUploadingImage}
-                          />
+                          {!editingMessage && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => togglePanel("attach")}
+                                aria-label={panel === "attach" ? "Show keyboard" : "Attach"}
+                                aria-expanded={panel === "attach"}
+                                className="flex items-center justify-center hover:bg-accent"
+                              >
+                                {isUploadingImage ? <Loader2 className="animate-spin" /> : panel === "attach" ? <Keyboard /> : <Paperclip className="-rotate-45" />}
+                              </button>
+                              {/* The camera, straight away, as on WhatsApp. */}
+                              <label className="flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-full hover:bg-accent [&_svg]:!h-[22px] [&_svg]:!w-[22px] [&_svg]:text-muted-foreground" aria-label="Take a photo">
+                                <Camera />
+                                <input type="file" accept="image/*" capture="environment" hidden onChange={(e) => { const f = Array.from(e.target.files ?? []); e.target.value = ""; if (f.length) { closePanel(); setPickedPhotos(f); } }} />
+                              </label>
+                            </>
+                          )}
                         </div>
                       )}
                       {messageContent.trim() || imageUrl ? (
@@ -1140,6 +1281,46 @@ const Messages = () => {
                       )}
                     </div>
                   </form>
+                  {/* In the keyboard's place, exactly as tall, so the chat doesn't jump when you switch. */}
+                  {panel && (
+                    <div
+                      role="dialog"
+                      data-state="open"
+                      aria-label={panel === "emoji" ? "Emoji, GIFs and stickers" : "Attach"}
+                      className="flex-shrink-0 overflow-hidden border-t border-border bg-background pb-[env(safe-area-inset-bottom)]"
+                      style={{ height: keyboard.height }}
+                    >
+                      {panel === "emoji" ? (
+                        <GifPicker
+                          panel
+                          onDone={closePanel}
+                          onSelect={(content) => {
+                            if (content.startsWith("http")) { setImageUrl(content); setMediaType("image"); }
+                            else setMessageContent((prev) => prev + content);
+                          }}
+                          onSticker={editingMessage ? undefined : (id) => void sendSticker(stickerMessage(id))}
+                          onGiphySticker={editingMessage ? undefined : (url) => void sendSticker(GIPHY_STICKER, url)}
+                        />
+                      ) : (
+                        <AttachPanel
+                          currentUserId={currentUserId!}
+                          locating={locating}
+                          onPhotos={(files) => { closePanel(); setPickedPhotos(files); }}
+                          onVideo={(file) => void sendVideo(file)}
+                          onLocation={sendLocation}
+                          onContact={(p) => void sendContact(p)}
+                        />
+                      )}
+                    </div>
+                  )}
+                  {pickedPhotos && (
+                    <MediaSendSheet
+                      files={pickedPhotos}
+                      toName={selectedConversation.full_name || "them"}
+                      onCancel={() => setPickedPhotos(null)}
+                      onSend={(files, caption, once) => void sendPhotos(files, caption, once)}
+                    />
+                  )}
                 </>
               ) : (
                 <div className="flex items-center justify-center h-full">

@@ -122,7 +122,7 @@ const ChatBubble = ({
   const isVideo = isMedia && (message.image_url?.includes('.mp4') || message.image_url?.includes('.mov') || message.image_url?.includes('.webm'));
   const isGif = isMedia && (message.image_url?.includes('giphy.com') || message.image_url?.includes('tenor.com'));
   const once = isViewOnce(message);
-  const hasText = !once && !stickerSrc && !!message.content && message.content !== "Sent an image" && !message.content.startsWith("🎤");
+  const hasText = !once && !stickerSrc && !!message.content && message.content !== "Sent an image" && !(isMedia && message.content === "Sent a video") && !message.content.startsWith("🎤");
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(message) },

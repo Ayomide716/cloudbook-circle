@@ -16,6 +16,10 @@ interface GifPickerProps {
   onSticker?: (id: string) => void;
   /** Send an animated GIPHY sticker straight away, by its address. */
   onGiphySticker?: (url: string) => void;
+  /** Shown in the keyboard's place (fills its box) instead of as a pop-up from the button. */
+  panel?: boolean;
+  /** Panel: something was picked that ends picking (a GIF). */
+  onDone?: () => void;
 }
 
 // Emoji go into the text you're typing (the Stickers tab sends a big sticker instead).
@@ -43,9 +47,12 @@ type Tab = "stickers" | "emoji" | "gifs";
  * The chat's smiley button: Stickers (Ember's 3D pack, or animated ones from GIPHY), Emoji
  * (into the text) and GIFs (trending as soon as it opens, or search).
  */
-const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
-  const [open, setOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<Tab>(onSticker ? "stickers" : "emoji");
+const GifPicker = ({ onSelect, onSticker, onGiphySticker, panel, onDone }: GifPickerProps) => {
+  const [popoverOpen, setOpen] = useState(false);
+  // As a panel (in the keyboard's place) it's always open; emoji and stickers keep it open,
+  // as in WhatsApp, and a GIF (which goes above the box to send) closes it.
+  const open = panel || popoverOpen;
+  const [activeTab, setActiveTab] = useState<Tab>(onSticker && !panel ? "stickers" : "emoji");
   const [stickerSource, setStickerSource] = useState<"ember" | "giphy">("ember");
   const [pack, setPack] = useState(STICKER_PACKS[0].id);
   const [recent, setRecent] = useState<string[]>(readRecent);
@@ -83,18 +90,19 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
   }, [open, remote, search, attempt]);
 
   const close = () => {
-    setOpen(false);
+    if (!panel) setOpen(false);
     setSearch("");
   };
 
   const pickGif = (url: string) => {
     onSelect(url);
     close();
+    onDone?.();
   };
 
   const pickEmoji = (emoji: string) => {
     onSelect(emoji);
-    setOpen(false);
+    if (!panel) setOpen(false);
   };
 
   const sendSticker = (id: string) => {
@@ -151,14 +159,8 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
       </div>
     );
 
-  return (
-    <Popover open={open} onOpenChange={(o) => (o ? setOpen(true) : close())}>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Stickers, emoji and GIFs">
-          <Smile className="h-5 w-5 text-muted-foreground" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[340px] overflow-hidden rounded-3xl p-0" align="start" side="top" sideOffset={10}>
+  const body = (
+    <>
         {/* Stickers · Emoji · GIFs, with a sliding pill */}
         <div role="tablist" aria-label="Picker" className="m-2 flex rounded-full bg-secondary p-1">
           {tabs.map(([value, label]) => (
@@ -223,7 +225,7 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
           </div>
         )}
 
-        <ScrollArea className="h-72">
+        <ScrollArea className={panel ? "min-h-0 flex-1" : "h-72"}>
           {remote ? (
             <div className="px-2 pb-2">{remoteGrid(remote)}</div>
           ) : activeTab === "stickers" ? (
@@ -280,6 +282,20 @@ const GifPicker = ({ onSelect, onSticker, onGiphySticker }: GifPickerProps) => {
         ) : remote ? (
           <p className="border-t border-border py-1.5 text-center text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Powered by GIPHY</p>
         ) : null}
+    </>
+  );
+
+  if (panel) return <div className="flex h-full flex-col">{body}</div>;
+
+  return (
+    <Popover open={popoverOpen} onOpenChange={(o) => (o ? setOpen(true) : close())}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="h-9 w-9" aria-label="Stickers, emoji and GIFs">
+          <Smile className="h-5 w-5 text-muted-foreground" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[340px] overflow-hidden rounded-3xl p-0" align="start" side="top" sideOffset={10}>
+        {body}
       </PopoverContent>
     </Popover>
   );
