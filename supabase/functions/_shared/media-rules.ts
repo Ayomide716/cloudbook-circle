@@ -20,6 +20,16 @@ export const FOLDERS: Record<string, FolderRule> = {
   "marketplace": { types: ["image/"], maxBytes: 15 * MB },
   "page-images": { types: ["image/"], maxBytes: 15 * MB },
   "watch-videos": { types: ["video/", "image/"], maxBytes: 500 * MB },
+  // Documents sent in chats: office files, PDFs, text and zips. Never web pages or scripts
+  // (text/html, image/svg+xml, application/javascript), which could run from the media address.
+  "chat-files": {
+    types: [
+      "application/pdf", "application/msword", "application/vnd.openxmlformats-officedocument.", "application/vnd.ms-",
+      "application/vnd.oasis.opendocument.", "application/rtf", "application/zip", "application/x-zip-compressed",
+      "application/epub+zip", "text/plain", "text/csv",
+    ],
+    maxBytes: 100 * MB,
+  },
 };
 
 export type UploadCheck =

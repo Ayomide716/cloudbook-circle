@@ -8,9 +8,11 @@ export interface ChatPrefs {
   pinned: string[];
   muted: string[];
   archived: string[];
+  /** Locked chats: hidden in "Locked chats", opened with the phone's fingerprint or PIN. */
+  locked: string[];
 }
 
-const EMPTY: ChatPrefs = { pinned: [], muted: [], archived: [] };
+const EMPTY: ChatPrefs = { pinned: [], muted: [], archived: [], locked: [] };
 export const CHAT_PREFS_EVENT = "cloudbook:chat-prefs";
 const key = (userId: string) => `cloudbook_chat_prefs_${userId}`;
 
@@ -22,6 +24,7 @@ export function readChatPrefs(userId: string | null | undefined): ChatPrefs {
       pinned: Array.isArray(stored?.pinned) ? stored.pinned : [],
       muted: Array.isArray(stored?.muted) ? stored.muted : [],
       archived: Array.isArray(stored?.archived) ? stored.archived : [],
+      locked: Array.isArray(stored?.locked) ? stored.locked : [],
     };
   } catch {
     return EMPTY;

@@ -13,8 +13,8 @@ describe("chat prefs", () => {
   });
 
   it("reads nothing for a signed-out user or broken storage", () => {
-    expect(readChatPrefs(null)).toEqual({ pinned: [], muted: [], archived: [] });
+    expect(readChatPrefs(null)).toEqual({ pinned: [], muted: [], archived: [], locked: [] });
     localStorage.setItem("cloudbook_chat_prefs_me", "{not json");
-    expect(readChatPrefs("me")).toEqual({ pinned: [], muted: [], archived: [] });
+    expect(readChatPrefs("me")).toEqual({ pinned: [], muted: [], archived: [], locked: [] });
   });
 });

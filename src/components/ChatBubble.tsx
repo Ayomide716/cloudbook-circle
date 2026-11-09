@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import PhotoViewer from "@/components/PhotoViewer";
 import { cn } from "@/lib/utils";
 import { SWIPE_REPLY_THRESHOLD, useSwipeToReply } from "@/hooks/use-swipe-to-reply";
-import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus, Forward, Star, StarOff, Clock, AlertCircle, RotateCcw, CheckCircle2 } from "@/components/icons";
+import { Check, CheckCheck, CornerUpLeft, Pencil, Trash2, MoreHorizontal, Copy, SmilePlus, Forward, Star, StarOff, Clock, AlertCircle, RotateCcw, CheckCircle2, Ban, Pin, PinOff, Info } from "@/components/icons";
 import { format, isToday, isYesterday } from "date-fns";
 import VoiceMessagePlayer from "./VoiceMessagePlayer";
 import LinkPreview from "./LinkPreview";
@@ -20,6 +20,8 @@ import { mediaSize } from "@/lib/chat-media";
 import { themeColors } from "@/lib/chat-colors";
 import { emojiOnlyCount } from "@/lib/emoji-only";
 import { storyReplyOf } from "@/lib/story-reply";
+import { readEvent, readFile, readPoll, readQuote } from "@/lib/chat-extras";
+import { EventCard, FileCard, PollCard, QuoteBlock } from "@/components/chat/MessageExtras";
 import UploadRing from "@/components/chat/UploadRing";
 
 /** The length saved in a voice note's text, "🎤 Voice message (1:05)" → 65. */
@@ -53,6 +55,13 @@ interface ChatMessage {
   /** The photo or video from the phone, shown while (and after) it uploads. */
   _preview?: string;
   _video?: boolean;
+  /** When they read it (Message info). */
+  read_at?: string | null;
+  /** A document, a poll, an event, or a quote from a group (lib/chat-extras). */
+  file?: unknown;
+  poll?: unknown;
+  event?: unknown;
+  quote?: unknown;
 }
 
 interface ChatBubbleProps {
@@ -77,6 +86,15 @@ interface ChatBubbleProps {
   onRetry?: (message: ChatMessage) => void;
   /** Start picking messages, with this one (Select in the menu). */
   onSelect?: (message: ChatMessage) => void;
+  /** Delete: for me, or for everyone (asks which). Without it, Unsend deletes for everyone. */
+  onDelete?: (message: ChatMessage) => void;
+  /** Pin to the top of the chat, or unpin. */
+  onPin?: (message: ChatMessage) => void;
+  pinned?: boolean;
+  /** Message info: when it was delivered and read. */
+  onInfo?: (message: ChatMessage) => void;
+  /** Blue ticks: off when either of you turned read receipts off. */
+  showRead?: boolean;
 }
 
 
@@ -96,6 +114,11 @@ const ChatBubble = ({
   onForward,
   onRetry,
   onSelect,
+  onDelete,
+  onPin,
+  pinned = false,
+  onInfo,
+  showRead = true,
 }: ChatBubbleProps) => {
   // WhatsApp's message menu: press and hold on phones, the buttons by the message on computers.
   const [menuOpen, setMenuOpen] = useState(false);
@@ -112,13 +135,19 @@ const ChatBubble = ({
   if (message.deleted_at) {
     return (
       <div className={cn("flex", isCurrentUser ? "justify-end" : "justify-start")}>
-        <div className="px-2.5 py-1.5 rounded-lg bg-chat-surface/80 italic text-muted-foreground text-sm shadow-sm">
-          This message was unsent
+        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-chat-surface/80 italic text-muted-foreground text-sm shadow-sm">
+          <Ban className="h-3.5 w-3.5" aria-hidden="true" />
+          {isCurrentUser ? "You deleted this message" : "This message was deleted"}
         </div>
       </div>
     );
   }
 
+  const file = readFile(message.file);
+  const poll = readPoll(message.poll);
+  const event = readEvent(message.event);
+  const quote = readQuote(message.quote);
+  const card = !!(file || poll || event);
   // A reply or reaction to a story: the story's picture as a small quote beside it.
   const story = storyReplyOf(message);
   const isVoice = message.image_url && message.content?.startsWith("🎤");
@@ -140,7 +169,7 @@ const ChatBubble = ({
   const box = size ? { width: Math.round(Math.min(260, (340 * size.w) / size.h)), aspectRatio: `${size.w} / ${size.h}` } : undefined;
   const sending = message._status === "sending";
   const failed = message._status === "failed";
-  const hasText = !once && !stickerSrc && !!message.content && message.content !== "Sent an image" && !(isMedia && message.content === "Sent a video") && !message.content.startsWith("🎤");
+  const hasText = !card && !once && !stickerSrc && !!message.content && message.content !== "Sent an image" && !(isMedia && message.content === "Sent a video") && !message.content.startsWith("🎤");
 
   const actions: MessageAction[] = [
     { label: "Reply", icon: <CornerUpLeft className="mr-2 h-4 w-4" />, onSelect: () => onReply(message) },
@@ -150,7 +179,11 @@ const ChatBubble = ({
     ...(isCurrentUser && !isMedia && !isVoice && !stickerSrc ? [{ label: "Edit", icon: <Pencil className="mr-2 h-4 w-4" />, onSelect: () => onEdit(message) }] : []),
     ...(failed && onRetry ? [{ label: "Try again", icon: <RotateCcw className="mr-2 h-4 w-4" />, onSelect: () => onRetry(message) }] : []),
     ...(onSelect && !message.id.startsWith("temp-") ? [{ label: "Select", icon: <CheckCircle2 className="mr-2 h-4 w-4" />, onSelect: () => onSelect(message) }] : []),
-    ...(isCurrentUser ? [{ label: "Unsend", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onUnsend(message.id), destructive: true }] : []),
+    ...(onPin && !message.id.startsWith("temp-") ? [{ label: pinned ? "Unpin" : "Pin", icon: pinned ? <PinOff className="mr-2 h-4 w-4" /> : <Pin className="mr-2 h-4 w-4" />, onSelect: () => onPin(message) }] : []),
+    ...(onInfo && isCurrentUser && !message.id.startsWith("temp-") ? [{ label: "Info", icon: <Info className="mr-2 h-4 w-4" />, onSelect: () => onInfo(message) }] : []),
+    ...(onDelete
+      ? [{ label: "Delete", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onDelete(message), destructive: true }]
+      : isCurrentUser ? [{ label: "Unsend", icon: <Trash2 className="mr-2 h-4 w-4" />, onSelect: () => onUnsend(message.id), destructive: true }] : []),
   ];
 
   // The first link in the message, shown as a card under it.
@@ -182,9 +215,9 @@ const ChatBubble = ({
         <Clock className="h-3 w-3 ml-0.5 opacity-60" aria-label="Sending" />
       ) : isCurrentUser && failed ? null : isCurrentUser &&
         // One grey tick: sent. Two grey: delivered to their app. Two blue: read (as on WhatsApp).
-        (message.read ? (
+        (message.read && showRead ? (
           <CheckCheck className="h-3.5 w-3.5 ml-0.5 text-sky-400" strokeWidth={2.5} aria-label="Read" />
-        ) : message.delivered_at ? (
+        ) : message.delivered_at || message.read ? (
           <CheckCheck className="h-3.5 w-3.5 ml-0.5 opacity-60" strokeWidth={2.5} aria-label="Delivered" />
         ) : (
           <Check className="h-3.5 w-3.5 ml-0.5 opacity-60" aria-label="Sent" />
@@ -318,6 +351,11 @@ const ChatBubble = ({
               </p>
             </div>
           )}
+          {quote && <QuoteBlock quote={quote} mine={isCurrentUser} />}
+          {file && <FileCard file={file} mine={isCurrentUser} />}
+          {poll && <PollCard messageId={message.id} poll={poll} mine={isCurrentUser} currentUserId={currentUserId} />}
+          {event && <EventCard messageId={message.id} event={event} mine={isCurrentUser} currentUserId={currentUserId} otherName={otherName} />}
+          {card && <div className="flex justify-end">{meta}</div>}
           {story && (
             <div className={cn(
               "mb-1 flex min-w-[180px] items-stretch overflow-hidden rounded-md border-l-4",
@@ -387,7 +425,7 @@ const ChatBubble = ({
             <ViewOnceBubble messageId={message.id} mine={isCurrentUser} openedAt={message.view_once_opened_at} meta={meta} />
           )}
           {/* Text (time and ticks float at its end, like most messengers) */}
-          {once ? null : hasText ? (
+          {once || card ? null : hasText ? (
             <>
               {bigEmoji ? (
                 <p className={cn("leading-none", bigEmoji === 1 ? "text-[52px]" : bigEmoji === 2 ? "text-[44px]" : "text-[38px]")}>

@@ -1,8 +1,9 @@
 import { useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Camera, Images, Loader2, MapPin, UserRound, Video, ChevronLeft } from "@/components/icons";
+import { Camera, Images, Loader2, MapPin, UserRound, Video, ChevronLeft, FileText, BarChart3, CalendarDays } from "@/components/icons";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { DOCUMENT_ACCEPT } from "@/lib/chat-extras";
 
 interface AttachPanelProps {
   currentUserId: string;
@@ -12,6 +13,10 @@ interface AttachPanelProps {
   onLocation: () => void;
   onContact: (person: { id: string; full_name: string | null }) => void;
   locating?: boolean;
+  /** Document, Poll and Event (after the database update; lib/features messaging2). */
+  onDocument?: (file: File) => void;
+  onPoll?: () => void;
+  onEvent?: () => void;
 }
 
 const OPTIONS = [
@@ -20,16 +25,20 @@ const OPTIONS = [
   { key: "video", label: "Video", icon: Video, color: "text-violet-500" },
   { key: "location", label: "Location", icon: MapPin, color: "text-emerald-500" },
   { key: "contact", label: "Contact", icon: UserRound, color: "text-sky-500" },
+  { key: "document", label: "Document", icon: FileText, color: "text-indigo-500" },
+  { key: "poll", label: "Poll", icon: BarChart3, color: "text-amber-500" },
+  { key: "event", label: "Event", icon: CalendarDays, color: "text-pink-500" },
 ] as const;
 
 /**
  * What the 📎 button opens, in the keyboard's place (as in WhatsApp): Gallery (several photos),
  * Camera, Video, your Location, or a friend's profile as a Contact card.
  */
-const AttachPanel = ({ currentUserId, onPhotos, onVideo, onLocation, onContact, locating }: AttachPanelProps) => {
+const AttachPanel = ({ currentUserId, onPhotos, onVideo, onLocation, onContact, locating, onDocument, onPoll, onEvent }: AttachPanelProps) => {
   const gallery = useRef<HTMLInputElement>(null);
   const camera = useRef<HTMLInputElement>(null);
   const video = useRef<HTMLInputElement>(null);
+  const doc = useRef<HTMLInputElement>(null);
   const [view, setView] = useState<"menu" | "contact">("menu");
   const [friends, setFriends] = useState<{ id: string; full_name: string | null; avatar_url: string | null }[] | null>(null);
   const [search, setSearch] = useState("");
@@ -48,6 +57,9 @@ const AttachPanel = ({ currentUserId, onPhotos, onVideo, onLocation, onContact, 
     else if (key === "camera") camera.current?.click();
     else if (key === "video") video.current?.click();
     else if (key === "location") onLocation();
+    else if (key === "document") doc.current?.click();
+    else if (key === "poll") onPoll?.();
+    else if (key === "event") onEvent?.();
     else void openContacts();
   };
 
@@ -87,7 +99,8 @@ const AttachPanel = ({ currentUserId, onPhotos, onVideo, onLocation, onContact, 
       <input ref={gallery} type="file" accept="image/*" multiple hidden onChange={(e) => { const f = files(e); if (f.length) onPhotos(f.slice(0, 10)); }} />
       <input ref={camera} type="file" accept="image/*" capture="environment" hidden onChange={(e) => { const f = files(e); if (f.length) onPhotos(f); }} />
       <input ref={video} type="file" accept="video/*" hidden onChange={(e) => { const f = files(e); if (f[0]) onVideo(f[0]); }} />
-      {OPTIONS.map(({ key, label, icon: Icon, color }) => (
+      <input ref={doc} type="file" accept={DOCUMENT_ACCEPT} hidden onChange={(e) => { const f = files(e); if (f[0]) onDocument?.(f[0]); }} />
+      {OPTIONS.filter(({ key }) => (key === "document" ? !!onDocument : key === "poll" ? !!onPoll : key === "event" ? !!onEvent : true)).map(({ key, label, icon: Icon, color }) => (
         <button key={key} type="button" onClick={() => pick(key)} className="flex flex-col items-center gap-1.5 text-[13px] font-medium text-muted-foreground">
           <span className="flex h-14 w-16 items-center justify-center rounded-[22px] border border-border bg-card">
             {key === "location" && locating ? <Loader2 className="h-6 w-6 animate-spin" /> : <Icon className={cn("h-7 w-7", color)} />}

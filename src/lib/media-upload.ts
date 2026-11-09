@@ -15,6 +15,7 @@ export type MediaFolder =
   | "post-videos"
   | "avatars"
   | "chat-images"
+  | "chat-files"
   | "voice-messages"
   | "marketplace"
   | "page-images"

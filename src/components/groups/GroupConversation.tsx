@@ -1,4 +1,9 @@
-import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactElement } from "react";
+import MentionInput from "@/components/MentionInput";
+import { features } from "@/lib/features";
+import { plainMentions, type Mention } from "@/lib/mentions";
+import { useNavigate } from "react-router-dom";
+import { setPrivateReply } from "@/lib/private-reply";
 import { isRepeatSend } from "@/hooks/use-single-flight";
 import GroupInitials from "@/components/groups/GroupInitials";
 import { ArrowLeft, BellOff, Loader2, MoreVertical, Phone, Send, Users, Video, X } from "@/components/icons";
@@ -96,6 +101,8 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
   const typingTimer = useRef<number>();
   const amTyping = useRef(false);
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  // People @mentioned in the message being typed (told when it's sent).
+  const [picked, setPicked] = useState<Mention[]>([]);
   // The last message sent, so a double tap on Send doesn't send it twice.
   const lastSendRef = useRef<{ text: string; at: number } | null>(null);
   useAutoGrow(boxRef, text, 150);
@@ -110,6 +117,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
   const memberById = new Map(members.map((m) => [m.id, m]));
   const nameOf = useCallback((id: string) => members.find((m) => m.id === id)?.full_name || "Former member", [members]);
   const myName = members.find((m) => m.id === currentUserId)?.full_name?.split(" ")[0] || "Someone";
+  const mentionable = useMemo(() => members.filter((m) => m.id !== currentUserId).map((m) => ({ id: m.id, full_name: m.full_name, avatar_url: m.avatar_url ?? null })), [members, currentUserId]);
   const messageIds = useRef<Set<string>>(new Set());
   messageIds.current = new Set(messages.map((m) => m.id));
 
@@ -301,6 +309,14 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     requestAnimationFrame(() => boxRef.current?.focus());
   }, []);
 
+  // Reply privately, as on WhatsApp: their one-to-one chat opens with this message quoted.
+  const navigate = useNavigate();
+  const replyPrivately = useCallback((m: GroupMessage) => {
+    const text = m.content?.startsWith("🎤") ? "🎤 Voice message" : m.image_url && (!m.content || /^(📷 Photo|🎥 Video|GIF)$/.test(m.content)) ? "📷 Photo" : m.content;
+    setPrivateReply(m.user_id, { name: nameOf(m.user_id), text: plainMentions(text || "").slice(0, 300), group_id: group.id, group_name: group.name });
+    navigate(`/messages?user=${m.user_id}`);
+  }, [nameOf, group.id, group.name, navigate]);
+
   const startEdit = useCallback((m: GroupMessage) => {
     setReplyingTo(null);
     setMedia(null);
@@ -322,7 +338,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
   };
 
   /** Sends a message (text, a photo / video / GIF with an optional caption, or a voice note). */
-  const post = async (content: string, imageUrl: string | null, restore?: () => void) => {
+  const post = async (content: string, imageUrl: string | null, restore?: () => void, mentioned?: string[]) => {
     const tempId = `temp-${Date.now()}`;
     const replyTo = replyingTo?.id ?? null;
     setReplyingTo(null);
@@ -333,7 +349,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     haptic();
     const { data, error } = await supabase
       .from("group_messages")
-      .insert({ group_id: group.id, user_id: currentUserId, content, image_url: imageUrl, ...(replyTo ? { reply_to: replyTo } : {}) })
+      .insert({ group_id: group.id, user_id: currentUserId, content, image_url: imageUrl, ...(replyTo ? { reply_to: replyTo } : {}), ...(mentioned?.length ? { mentions: mentioned } : {}) })
       .select()
       .single();
     setSending(false);
@@ -369,9 +385,12 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     lastSendRef.current = { text: sendKey, at: Date.now() };
     const attached = media;
     const content = caption || (attached ? (mediaKind(attached.url) === "gif" ? "GIF" : attached.type === "video" ? "🎥 Video" : "📷 Photo") : "");
+    // Who's @mentioned (and still in the text) is told.
+    const mentioned = features.messaging2 ? picked.filter((p) => caption.includes(`@${p.name}`)).map((p) => p.id) : [];
     setText("");
     setMedia(null);
-    await post(content, attached?.url ?? null, () => { setText(caption); setMedia(attached); });
+    setPicked([]);
+    await post(content, attached?.url ?? null, () => { setText(caption); setMedia(attached); }, mentioned);
   };
 
   const sendVoiceNote = (url: string, seconds: number) =>
@@ -411,12 +430,13 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
           starred={isStarred(m.id)}
           onToggleStar={starMessage}
           onForward={setForwarding}
+          onReplyPrivately={features.messaging2 ? replyPrivately : undefined}
           highlighted={highlightId === m.id}
         />
       </>
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps -- memberById is rebuilt from members
-  }, [messages, currentUserId, members, reactions, nameOf, react, startReply, startEdit, starVersion, highlightId]);
+  }, [messages, currentUserId, members, reactions, nameOf, react, startReply, startEdit, starVersion, highlightId, replyPrivately]);
 
   const others = members.filter((m) => m.id !== currentUserId);
   const typingLine = typing.length === 0 ? null
@@ -527,16 +547,22 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
                 onSticker={(id) => void post(stickerMessage(id), null)}
                 onGiphySticker={(url) => void post(GIPHY_STICKER, url)}
               />}
-              <textarea
+              {/* Typing @ suggests the group's members, as on WhatsApp; they're told. */}
+              <MentionInput
                 ref={boxRef}
                 rows={1}
                 value={text}
-                onChange={(e) => { setText(e.target.value); if (e.target.value) noteTyping(); }}
+                onChange={(v) => { setText(v); if (v) noteTyping(); }}
                 onKeyDown={sendOnEnter}
                 enterKeyHint={enterMakesNewLine() ? "enter" : "send"}
                 placeholder={editing ? "Edit message" : media ? "Add a caption" : "Message"}
                 aria-label="Message"
-                className="min-w-0 flex-1 resize-none border-0 bg-transparent px-1 py-2 text-[16px] leading-6 outline-none placeholder:text-muted-foreground"
+                rich={features.messaging2}
+                mentions={picked}
+                onMention={(m) => setPicked((prev) => [...prev.filter((p) => p.id !== m.id), m])}
+                candidates={mentionable}
+                wrapperClassName="min-w-0 flex-1"
+                className="min-h-0 w-full resize-none rounded-none border-0 bg-transparent px-1 py-2 text-[16px] leading-6 shadow-none outline-none placeholder:text-muted-foreground focus-visible:ring-0 focus-visible:ring-offset-0"
               />
               {!editing && <ChatImageUpload
                 onMediaUploaded={(url, type) => setMedia({ url, type })}

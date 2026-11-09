@@ -65,3 +65,26 @@ describe("story replies", () => {
     expect(storyReplyOf({ content: "hello" })).toBeNull();
   });
 });
+
+import { calendarLink, fileSize, readEvent, readFile, readPoll, readQuote } from "./chat-extras";
+import { planUpload } from "../../supabase/functions/_shared/media-rules";
+
+describe("chat extras", () => {
+  it("reads only what makes sense", () => {
+    expect(readPoll({ question: "Lunch?", options: ["Rice", "Beans"] })).toEqual({ question: "Lunch?", options: ["Rice", "Beans"], multiple: false });
+    expect(readPoll({ question: "Lunch?", options: ["Rice"] })).toBeNull();
+    expect(readEvent({ title: "Party", starts_at: "nope" })).toBeNull();
+    expect(readFile({ url: "javascript:alert(1)", name: "x" })).toBeNull();
+    expect(readFile({ url: "https://x/a.pdf", name: "a.pdf", size: 10 })?.name).toBe("a.pdf");
+    expect(readQuote({ name: "Tolu", text: "hi", group_name: "Choir" })?.group_name).toBe("Choir");
+    expect(fileSize(2_400_000)).toBe("2.3 MB");
+    expect(calendarLink({ title: "Call", starts_at: "2026-11-12T17:50:00Z", place: "" })).toContain("dates=20261112T175000Z%2F20261112T185000Z");
+  });
+  it("lets documents into chat-files, never web pages", () => {
+    const base = { folder: "chat-files", size: 1000, ext: "pdf" };
+    expect(planUpload("11111111-1111-4111-8111-111111111111", { ...base, contentType: "application/pdf" }).ok).toBe(true);
+    expect(planUpload("11111111-1111-4111-8111-111111111111", { ...base, contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" }).ok).toBe(true);
+    expect(planUpload("11111111-1111-4111-8111-111111111111", { ...base, contentType: "text/html" }).ok).toBe(false);
+    expect(planUpload("11111111-1111-4111-8111-111111111111", { ...base, contentType: "image/svg+xml" }).ok).toBe(false);
+  });
+});

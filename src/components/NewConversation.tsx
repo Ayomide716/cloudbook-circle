@@ -11,7 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Input } from "@/components/ui/input";
-import { Users, MessageSquarePlus, Loader2 } from "@/components/icons";
+import { Users, MessageSquarePlus, Loader2, StickyNote } from "@/components/icons";
 import { useEffectEvent } from "@/hooks/use-effect-event";
 
 interface Profile {
@@ -25,12 +25,14 @@ interface NewConversationProps {
   onSelectUser: (user: Profile) => void;
   /** "New group chat" at the top of the list, as on WhatsApp. */
   onNewGroup?: () => void;
+  /** "Message yourself": a chat with just you, for notes and links. */
+  onMessageYourself?: () => void;
   /** Open it from elsewhere too (the empty chat list, the floating button on phones). */
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
 }
 
-const NewConversation = ({ currentUserId, onSelectUser, onNewGroup, open: openProp, onOpenChange }: NewConversationProps) => {
+const NewConversation = ({ currentUserId, onSelectUser, onNewGroup, onMessageYourself, open: openProp, onOpenChange }: NewConversationProps) => {
   const [friends, setFriends] = useState<Profile[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -111,6 +113,19 @@ const NewConversation = ({ currentUserId, onSelectUser, onNewGroup, open: openPr
             >
               <span className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground"><Users className="h-5 w-5" /></span>
               <span className="font-semibold">New group chat</span>
+            </button>
+          )}
+          {onMessageYourself && (
+            <button
+              type="button"
+              onClick={() => { setOpen(false); onMessageYourself(); }}
+              className="flex w-full items-center gap-3 rounded-xl px-1 py-1.5 text-left hover:bg-secondary"
+            >
+              <span className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-foreground"><StickyNote className="h-5 w-5" /></span>
+              <span>
+                <span className="block font-semibold">Message yourself</span>
+                <span className="block text-xs text-muted-foreground">Notes, links and photos to keep</span>
+              </span>
             </button>
           )}
           <Input

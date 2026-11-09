@@ -1,4 +1,5 @@
 import { PageHeader } from "@/components/layout/PageHeader";
+import ChatPrivacy from "@/components/settings/ChatPrivacy";
 import { useEffect, useState } from "react";
 import AppVersionCard from "@/components/AppVersionCard";
 import AppearancePicker from "@/components/AppearancePicker";
@@ -303,6 +304,13 @@ const Settings = () => {
           <Switch id="data-saver" checked={dataSaver} onCheckedChange={setDataSaver} />
         </div>
         </Card>
+
+        {features.messaging2 && currentUserId && (
+          <>
+            <SectionTitle title="Chats" desc="What people can see about you in chats." />
+            <ChatPrivacy userId={currentUserId} />
+          </>
+        )}
 
         <SectionTitle title="Notifications" desc="Choose what Ember tells you about." />
 

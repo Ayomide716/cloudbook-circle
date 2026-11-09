@@ -21,7 +21,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus, Smile, Keyboard, Paperclip, Camera, Check, Copy, CornerUpLeft, Forward, Trash2 } from "@/components/icons";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus, Smile, Keyboard, Paperclip, Camera, Check, Copy, CornerUpLeft, Forward, Trash2, Lock, LockOpen } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -63,6 +63,14 @@ import { shrinkVideo } from "@/lib/video-compress";
 import { imageSize, limiter, settleSent, withMediaSize } from "@/lib/chat-media";
 import { groupAlbums, lastOf } from "@/lib/chat-albums";
 import ChatAlbum from "@/components/chat/ChatAlbum";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { previewText } from "@/lib/stickers";
+import type { ChatEvent, ChatFile, ChatPoll, ChatQuote } from "@/lib/chat-extras";
+import { takePrivateReply } from "@/lib/private-reply";
+import { unlockChats, unlockWithPassword } from "@/lib/chat-lock";
+import { EventComposer, PollComposer } from "@/components/chat/ChatComposers";
+import { DeleteMessageDialog, MessageInfoDialog, PinnedBar } from "@/components/chat/MessageDialogs";
 import { publicUrl } from "@/lib/native/platform";
 
 interface Profile {
@@ -135,10 +143,14 @@ const Messages = () => {
   const openPerson = (profile: Profile) => { setSelectedGroupId(null); setShowAIChat(false); setSelectedConversation(profile); };
   const openGroup = (groupId: string) => { setSelectedConversation(null); setShowAIChat(false); setSelectedGroupId(groupId); };
   // Pinned chats first (then newest first, as loaded); archived ones in their own list.
+  // Locked chats live in their own list, opened with the phone's fingerprint or PIN.
+  const [showLocked, setShowLocked] = useState(false);
+  const [lockPrompt, setLockPrompt] = useState(false);
+  const isLocked = (id: string) => chatPrefs.locked.includes(id);
   const listedConversations = useMemo(() => {
-    const inView = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id) === showArchived);
+    const inView = conversations.filter((c) => (showLocked ? chatPrefs.locked.includes(c.profile.id) : !chatPrefs.locked.includes(c.profile.id) && chatPrefs.archived.includes(c.profile.id) === showArchived));
     return [...inView].sort((a, b) => Number(chatPrefs.pinned.includes(b.profile.id)) - Number(chatPrefs.pinned.includes(a.profile.id)));
-  }, [conversations, chatPrefs, showArchived]);
+  }, [conversations, chatPrefs, showArchived, showLocked]);
   const archivedCount = conversations.filter((c) => chatPrefs.archived.includes(c.profile.id)).length + groupChats.filter((g) => chatPrefs.archived.includes(g.group.id)).length;
   // People and groups together, newest first (pinned people stay on top).
   type ChatRowItem = { kind: "dm"; conv: Conversation } | { kind: "group"; chat: GroupChatSummary };
@@ -146,9 +158,9 @@ const Messages = () => {
   const chatRows: ChatRowItem[] = (() => {
     const q = chatQuery.trim().toLowerCase();
     const matches = (name: string | null | undefined) => !q || (name ?? "").toLowerCase().includes(q);
-    const groupsInView = groupChats.filter((g) => chatPrefs.archived.includes(g.group.id) === showArchived);
-    const people = showArchived ? listedConversations : chatFilter === "groups" ? [] : listedConversations.filter((c) => chatFilter !== "unread" || c.unreadCount > 0);
-    const groups = showArchived ? groupsInView : groupsInView.filter((g) => chatFilter !== "unread" || g.unread > 0);
+    const groupsInView = groupChats.filter((g) => (showLocked ? chatPrefs.locked.includes(g.group.id) : !chatPrefs.locked.includes(g.group.id) && chatPrefs.archived.includes(g.group.id) === showArchived));
+    const people = showArchived || showLocked ? listedConversations : chatFilter === "groups" ? [] : listedConversations.filter((c) => chatFilter !== "unread" || c.unreadCount > 0);
+    const groups = showArchived || showLocked ? groupsInView : groupsInView.filter((g) => chatFilter !== "unread" || g.unread > 0);
     const time = (row: ChatRowItem) => (row.kind === "group" ? groupActivity(row.chat) : row.conv.lastMessage?.created_at ?? "");
     const pinned = (row: ChatRowItem) => chatPrefs.pinned.includes(row.kind === "group" ? row.chat.group.id : row.conv.profile.id);
     return [
@@ -258,10 +270,13 @@ const Messages = () => {
       if (!conversationMap.has(otherUserId)) {
         const { data: profileData } = await supabase.from("profiles").select("*").eq("id", otherUserId).single();
         if (profileData) {
-          const unreadCount = (messagesData || []).filter(
+          const self = otherUserId === currentUserId;
+          const unreadCount = self ? 0 : (messagesData || []).filter(
             (m) => m.sender_id === otherUserId && m.receiver_id === currentUserId && !m.read
           ).length;
-          conversationMap.set(otherUserId, { profile: profileData, lastMessage: message as ChatMessage, unreadCount });
+          // Your chat with yourself (notes to self), as on WhatsApp.
+          const profile = self ? { ...profileData, full_name: `${profileData.full_name || "You"} (You)` } : profileData;
+          conversationMap.set(otherUserId, { profile, lastMessage: message as ChatMessage, unreadCount });
         }
       }
     }
@@ -411,10 +426,7 @@ const Messages = () => {
       .select("id, full_name, avatar_url")
       .eq("id", userId)
       .maybeSingle();
-    if (profile) {
-      setShowAIChat(false);
-      setSelectedConversation(profile);
-    }
+    if (profile) openPerson(profile);
     // Drop the param so closing the chat or going back doesn't reopen it.
     setSearchParams({}, { replace: true });
   });
@@ -518,7 +530,9 @@ const Messages = () => {
     if (!once) setMessageContent("");
     setImageUrl(null);
     setViewOnce(false);
-    if (await sendOne({ content, imageUrl: sentUrl, once })) { playSound("send"); haptic(); }
+    const quote = quoting;
+    setQuoting(null);
+    if (await sendOne({ content, imageUrl: sentUrl, once, extra: quote ? { quote } : undefined })) { playSound("send"); haptic(); }
   };
 
   // ---- Sending: the message shows at once, then goes; a photo with its upload ring; one that
@@ -537,6 +551,8 @@ const Messages = () => {
     /** Shown at once while it uploads. */
     preview?: string;
     video?: boolean;
+    /** A document, poll, event or quote riding on the message (lib/chat-extras). */
+    extra?: { poll?: ChatPoll; event?: ChatEvent; quote?: ChatQuote; file?: Omit<ChatFile, "url"> };
   };
 
   /** The message as it shows while it's on its way. */
@@ -549,6 +565,11 @@ const Messages = () => {
       created_at: new Date().toISOString(), read: false, reply_to: replyTo,
       _status: "sending", _preview: opts.preview, _video: opts.video || undefined,
       _progress: opts.upload ? 0 : undefined,
+      ...(opts.extra?.poll ? { poll: opts.extra.poll } : {}),
+      ...(opts.extra?.event ? { event: opts.extra.event } : {}),
+      ...(opts.extra?.quote ? { quote: opts.extra.quote } : {}),
+      // A document shows at once, opening the file on this phone until it's up.
+      ...(opts.extra?.file ? { file: { ...opts.extra.file, url: opts.preview ?? "" }, image_url: null } : {}),
     };
   };
 
@@ -562,7 +583,12 @@ const Messages = () => {
     });
     try {
       const address = url ? await url : opts.upload ? await opts.upload((p) => patchMessage(temp.id, { _progress: p })) : opts.imageUrl ?? null;
-      const insertObj: TablesInsert<"messages"> = { sender_id: temp.sender_id, receiver_id: to, content: temp.content, image_url: once ? null : address, reply_to: temp.reply_to ?? null };
+      const doc = opts.extra?.file;
+      const insertObj: TablesInsert<"messages"> = { sender_id: temp.sender_id, receiver_id: to, content: temp.content, image_url: once || doc ? null : address, reply_to: temp.reply_to ?? null };
+      if (doc && address) insertObj.file = { ...doc, url: address };
+      if (opts.extra?.poll) insertObj.poll = { ...opts.extra.poll };
+      if (opts.extra?.event) insertObj.event = { ...opts.extra.event };
+      if (opts.extra?.quote) insertObj.quote = { ...opts.extra.quote };
       if (once) insertObj.view_once = true;
       if (disappearingMinutes) insertObj.expires_at = new Date(Date.now() + disappearingMinutes * 60000).toISOString();
       const { data, error } = await supabase.from("messages").insert(insertObj).select().single();
@@ -818,13 +844,131 @@ const Messages = () => {
     void typingChannelRef.current.track({ userId: currentUserId, userName: currentUserName, isTyping: false, isRecording: on });
   };
 
+  // ---- Part 2 (after the database update, features.messaging2) ----
+  const [quoting, setQuoting] = useState<ChatQuote | null>(null);
+  const [pollOpen, setPollOpen] = useState(false);
+  const [eventOpen, setEventOpen] = useState(false);
+  const [deleting, setDeleting] = useState<ChatMessage | null>(null);
+  const [infoFor, setInfoFor] = useState<ChatMessage | null>(null);
+  const [pins, setPins] = useState<string[]>([]);
+  const [pinIndex, setPinIndex] = useState(0);
+  const [hiddenIds, setHiddenIds] = useState<Set<string>>(new Set());
+  // Read receipts: off on either side, no blue ticks for either (as on WhatsApp).
+  const [receipts, setReceipts] = useState({ mine: true, theirs: true });
+  const isSelfChat = !!selectedConversation && selectedConversation.id === currentUserId;
+  const pair = selectedConversation && currentUserId ? [currentUserId, selectedConversation.id].sort() : null;
+
+  const loadPins = useEffectEvent(async () => {
+    if (!features.messaging2 || !pair) { setPins([]); return; }
+    const { data } = await supabase.from("chat_pins").select("message_id, pinned_at").eq("user_a", pair[0]).eq("user_b", pair[1]).order("pinned_at", { ascending: false });
+    setPins((data ?? []).map((p) => p.message_id));
+    setPinIndex(0);
+  });
+  useEffect(() => {
+    void loadPins();
+    if (!features.messaging2 || !pair) return;
+    const channel = dbChannel(`chat-pins-${pair.join("-")}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "chat_pins", filter: `user_a=eq.${pair[0]}` }, () => void loadPins())
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the pair is the chat
+  }, [pair?.join("-"), loadPins]);
+
+  useEffect(() => {
+    if (!features.messaging2 || !currentUserId) return;
+    void supabase.from("hidden_messages").select("message_id").eq("user_id", currentUserId).order("created_at", { ascending: false }).limit(2000)
+      .then(({ data }) => setHiddenIds(new Set((data ?? []).map((h) => h.message_id))));
+  }, [currentUserId]);
+
+  useEffect(() => {
+    if (!features.messaging2 || !selectedConversation || !currentUserId) { setReceipts({ mine: true, theirs: true }); return; }
+    void supabase.from("profiles").select("id, read_receipts").in("id", [currentUserId, selectedConversation.id]).then(({ data }) => {
+      const of = (id: string) => data?.find((p) => p.id === id)?.read_receipts !== false;
+      setReceipts({ mine: of(currentUserId), theirs: of(selectedConversation.id) });
+    });
+  }, [selectedConversation, currentUserId]);
+  const showRead = receipts.mine && receipts.theirs;
+
+  // "Reply privately" from a group chat (GroupConversation) opens here with the quote ready.
+  useEffect(() => {
+    if (!selectedConversation?.id) return;
+    const q = takePrivateReply(selectedConversation.id);
+    setQuoting(q);
+    if (q) requestAnimationFrame(() => messageBoxRef.current?.focus());
+  }, [selectedConversation?.id]);
+
+  const togglePin = useCallback(async (message: ChatMessage) => {
+    if (!pair || !currentUserId) return;
+    haptic(8);
+    if (pins.includes(message.id)) {
+      setPins((p) => p.filter((id) => id !== message.id));
+      await supabase.from("chat_pins").delete().eq("message_id", message.id);
+      return;
+    }
+    if (pins.length >= 3) { toast({ title: "You can pin up to 3 messages", description: "Unpin one first." }); return; }
+    setPins((p) => [message.id, ...p]);
+    setPinIndex(0);
+    const { error } = await supabase.from("chat_pins").insert({ message_id: message.id, user_a: pair[0], user_b: pair[1], pinned_by: currentUserId });
+    if (error) { setPins((p) => p.filter((id) => id !== message.id)); toast({ title: "Couldn't pin the message", description: friendlyError(error), variant: "destructive" }); }
+  }, [pair, pins, currentUserId, toast]);
+
+  const deleteForMe = async (message: ChatMessage) => {
+    if (!currentUserId) return;
+    if (message.id.startsWith("temp-")) return void handleUnsend(message.id);
+    setHiddenIds((prev) => new Set(prev).add(message.id));
+    const { error } = await supabase.from("hidden_messages").insert({ user_id: currentUserId, message_id: message.id });
+    if (error) { setHiddenIds((prev) => { const n = new Set(prev); n.delete(message.id); return n; }); toast({ title: "Couldn't delete it", description: friendlyError(error), variant: "destructive" }); }
+  };
+  const askDelete = useCallback((message: ChatMessage) => setDeleting(message), []);
+  const showInfo = useCallback((message: ChatMessage) => setInfoFor(message), []);
+
+  const sendDocument = async (file: File) => {
+    closePanel();
+    if (file.size > 100 * 1024 * 1024) { toast({ title: "That file is too big", description: "Up to 100 MB.", variant: "destructive" }); return; }
+    const meta = { name: file.name.slice(0, 200), size: file.size, type: file.type || "application/octet-stream" };
+    const ok = await sendOne({
+      content: `📄 ${meta.name}`,
+      preview: URL.createObjectURL(file),
+      upload: (onProgress) => uploadMedia("chat-files", file.name, file, onProgress),
+      extra: { file: meta },
+    });
+    if (ok) { playSound("send"); haptic(); }
+  };
+  const sendPoll = async (poll: ChatPoll) => { if (await sendOne({ content: `📊 Poll: ${poll.question}`, extra: { poll } })) { playSound("send"); haptic(); } };
+  const sendEvent = async (event: ChatEvent) => { if (await sendOne({ content: `📅 ${event.title}`, extra: { event } })) { playSound("send"); haptic(); } };
+
+  /** Opens your chat with yourself. */
+  const messageYourself = async () => {
+    if (!currentUserId) return;
+    const { data } = await supabase.from("profiles").select("id, full_name, avatar_url").eq("id", currentUserId).maybeSingle();
+    if (data) openPerson({ ...data, full_name: `${data.full_name || "You"} (You)` });
+  };
+
+  // Locked chats: the phone's fingerprint or PIN (or your password on the website).
+  const [lockPassword, setLockPassword] = useState("");
+  const [lockError, setLockError] = useState("");
+  const openLocked = async () => {
+    const r = await unlockChats();
+    if (r.ok) { setShowLocked(true); setShowArchived(false); return; }
+    if ("needsPassword" in r) { setLockError(""); setLockPassword(""); setLockPrompt(true); return; }
+    toast({ title: r.message, variant: "destructive" });
+  };
+  const toggleLock = async (id: string) => {
+    // Unlocking (or locking on the website) needs the same check as opening them.
+    if (isLocked(id) && !showLocked) return;
+    toggleChatPref("locked", id);
+    haptic(8);
+    toast({ title: isLocked(id) ? "Chat unlocked" : "Chat locked", description: isLocked(id) ? undefined : "Find it in Locked chats at the top of your chats." });
+    if (!isLocked(id) && selectedConversation?.id === id && !showLocked) setSelectedConversation(null);
+  };
+
   const getReplyMessage = useCallback((replyToId: string | null | undefined) => {
     if (!replyToId) return null;
     return messages.find((m) => m.id === replyToId) || null;
   }, [messages]);
 
   // Filter out expired disappearing messages
-  const visibleMessages = useMemo(() => messages.filter((m) => !(m.expires_at && new Date(m.expires_at) < new Date())), [messages]);
+  const visibleMessages = useMemo(() => messages.filter((m) => !hiddenIds.has(m.id) && !(m.expires_at && new Date(m.expires_at) < new Date())), [messages, hiddenIds]);
 
   // Rows: messages, with 4+ photos sent together as one album (as on WhatsApp).
   const msgRows = useMemo(() => groupAlbums(visibleMessages), [visibleMessages]);
@@ -931,13 +1075,18 @@ const Messages = () => {
           onForward={setForwarding}
           onRetry={retrySend}
           onSelect={startSelect}
+          onDelete={features.messaging2 ? askDelete : undefined}
+          onPin={features.messaging2 && !isSelfChat ? togglePin : undefined}
+          pinned={pins.includes(message.id)}
+          onInfo={features.messaging2 && !isSelfChat ? showInfo : undefined}
+          showRead={showRead}
         />
         )}
       </div>
       </>
     );
   // eslint-disable-next-line react-hooks/exhaustive-deps -- starVersion stands for the starred list
-  }, [msgRows, unreadRow, unread, selection, currentUserId, highlightedMessageId, chatTheme, getReplyMessage, selectedConversation?.full_name, starVersion, handleToggleStar, retrySend, startSelect, toggleSelected]);
+  }, [msgRows, unreadRow, unread, selection, currentUserId, highlightedMessageId, chatTheme, getReplyMessage, selectedConversation?.full_name, starVersion, handleToggleStar, retrySend, startSelect, toggleSelected, askDelete, togglePin, pins, showInfo, showRead, isSelfChat]);
 
   const rowDayLabel = useCallback((index: number) => {
     const row = msgRows[index];
@@ -993,7 +1142,7 @@ const Messages = () => {
                       </ActionMenuItem>
                     </ActionMenuContent>
                   </ActionMenu>
-                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} open={composeOpen} onOpenChange={setComposeOpen} />
+                  <NewConversation currentUserId={currentUserId!} onSelectUser={openPerson} onNewGroup={() => setShowNewGroup(true)} onMessageYourself={features.messaging2 ? () => void messageYourself() : undefined} open={composeOpen} onOpenChange={setComposeOpen} />
                 </div>
                 {!showArchived && (
                   <label className="mt-2.5 flex h-10 items-center gap-2 rounded-full bg-secondary px-3.5 text-muted-foreground focus-within:ring-2 focus-within:ring-ring">
@@ -1073,7 +1222,22 @@ const Messages = () => {
                     onAnswered={(groupId, accepted) => { void reloadGroups(); if (accepted) openGroup(groupId); }}
                   />
                 )}
-                {showArchived ? (
+                {showLocked ? (
+                  <button type="button" onClick={() => setShowLocked(false)} className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-primary">
+                    <ArrowLeft className="h-4 w-4" /> Locked chats
+                  </button>
+                ) : !showArchived && chatPrefs.locked.length > 0 && chatFilter === "all" && (
+                  <button
+                    type="button"
+                    onClick={() => void openLocked()}
+                    className="mb-1 flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-semibold hover:bg-accent/50"
+                  >
+                    <Lock className="h-5 w-5 text-muted-foreground" />
+                    <span className="flex-1">Locked chats</span>
+                    <span className="text-xs text-muted-foreground">{chatPrefs.locked.length}</span>
+                  </button>
+                )}
+                {showLocked ? null : showArchived ? (
                   <button type="button" onClick={() => setShowArchived(false)} className="mb-2 flex items-center gap-2 px-1 text-sm font-semibold text-primary">
                     <ArrowLeft className="h-4 w-4" /> Archived chats
                   </button>
@@ -1222,6 +1386,8 @@ const Messages = () => {
                       <p className="font-semibold truncate">{selectedConversation.full_name || "Anonymous"}</p>
                       {typingUsers.length > 0 ? (
                         <p className="text-xs font-medium text-primary">{typingUsers[0].recording ? "recording audio…" : "typing…"}</p>
+                      ) : isSelfChat ? (
+                        <p className="text-xs text-muted-foreground">Message yourself</p>
                       ) : (
                         <OnlineStatusIndicator userId={selectedConversation.id} showText currentUserId={currentUserId || undefined} />
                       )}
@@ -1235,12 +1401,16 @@ const Messages = () => {
                     <Button variant="ghost" size="icon" className="hidden sm:inline-flex h-9 w-9 rounded-full hover:bg-accent" onClick={() => setShowChatSettings(true)} aria-label="Chat settings">
                       <Settings className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
-                      <Video />
-                    </Button>
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-[22px]" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
-                      <Phone />
-                    </Button>
+                    {!isSelfChat && (
+                      <>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
+                          <Video />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-[22px]" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
+                          <Phone />
+                        </Button>
+                      </>
+                    )}
                     <ActionMenu>
                       <ActionMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6 sm:[&_svg]:size-5" aria-label="More options">
@@ -1260,11 +1430,29 @@ const Messages = () => {
                         <ActionMenuItem className="sm:hidden" onSelect={() => setShowChatSettings(true)}>
                           <Settings className="h-4 w-4 mr-2" /> Chat settings
                         </ActionMenuItem>
+                        {!isSelfChat && (!isLocked(selectedConversation.id) || showLocked) && (
+                          <ActionMenuItem onSelect={() => void toggleLock(selectedConversation.id)}>
+                            {isLocked(selectedConversation.id) ? <LockOpen className="h-4 w-4 mr-2" /> : <Lock className="h-4 w-4 mr-2" />}
+                            {isLocked(selectedConversation.id) ? "Unlock chat" : "Lock chat"}
+                          </ActionMenuItem>
+                        )}
                       </ActionMenuContent>
                     </ActionMenu>
                     </div>
                   </div>
                   )}
+
+                  {/* Pinned messages (up to 3): tap to go to it, and on to the next. */}
+                  {pins.length > 0 && !selection && (() => {
+                    const id = pins[pinIndex % pins.length];
+                    const m = messages.find((x) => x.id === id);
+                    const preview = m ? (m.deleted_at ? "Deleted message" : m.content?.startsWith("🎤") ? "🎤 Voice message" : m.image_url && (!m.content || m.content === "Sent an image") ? "📷 Photo" : previewText(m.content) || "Message") : "Pinned message";
+                    return (
+                      <PinnedBar pins={pins} index={pinIndex % pins.length} preview={preview}
+                        onOpen={() => { void jumpToMessage(id); setPinIndex((i) => (i + 1) % pins.length); }}
+                        onUnpin={() => { const msg = messages.find((x) => x.id === id); if (msg) void togglePin(msg); else void supabase.from("chat_pins").delete().eq("message_id", id).then(() => setPins((p) => p.filter((x) => x !== id))); }} />
+                    );
+                  })()}
 
                   {/* Message search */}
                   {showMessageSearch && (
@@ -1333,6 +1521,18 @@ const Messages = () => {
                             {viewOnce ? "View once" : "View once off"}
                           </button>
                         )}
+                      </div>
+                    )}
+                    {/* Replying privately to a group message. */}
+                    {quoting && !voiceActive && (
+                      <div className="mb-1 mr-[54px] flex items-start gap-2 rounded-2xl bg-chat-surface p-1.5 pl-2 shadow-sm animate-fade-in">
+                        <div className="min-w-0 flex-1 rounded-lg border-l-4 border-primary bg-black/5 dark:bg-white/5 px-2 py-1">
+                          <p className="text-xs font-semibold text-primary">{quoting.name}{quoting.group_name ? ` · ${quoting.group_name}` : ""}</p>
+                          <p className="truncate text-[13px] text-muted-foreground">{quoting.text}</p>
+                        </div>
+                        <button type="button" aria-label="Cancel reply" className="mt-0.5 rounded-full p-1 text-muted-foreground hover:bg-accent" onClick={() => setQuoting(null)}>
+                          <X className="h-4 w-4" />
+                        </button>
                       </div>
                     )}
                     {/* Replying to (or editing) a message: a quote above the box, as in WhatsApp. */}
@@ -1447,6 +1647,9 @@ const Messages = () => {
                           onVideo={(file) => void sendVideo(file)}
                           onLocation={sendLocation}
                           onContact={(p) => void sendContact(p)}
+                          onDocument={features.messaging2 ? (f) => void sendDocument(f) : undefined}
+                          onPoll={features.messaging2 ? () => { closePanel(); setPollOpen(true); } : undefined}
+                          onEvent={features.messaging2 ? () => { closePanel(); setEventOpen(true); } : undefined}
                         />
                       )}
                     </div>
@@ -1496,6 +1699,31 @@ const Messages = () => {
           onSettingsChanged={(theme, mins) => { setChatTheme(theme); setDisappearingMinutes(mins); }}
         />
       )}
+      <DeleteMessageDialog
+        message={deleting}
+        mine={!!deleting && deleting.sender_id === currentUserId && !deleting.deleted_at}
+        onClose={() => setDeleting(null)}
+        onForEveryone={() => { if (deleting) void handleUnsend(deleting.id); }}
+        onForMe={() => { if (deleting) void deleteForMe(deleting); }}
+      />
+      <MessageInfoDialog message={infoFor ? messages.find((m) => m.id === infoFor.id) ?? infoFor : null} showRead={showRead} onClose={() => setInfoFor(null)} />
+      <PollComposer open={pollOpen} onOpenChange={setPollOpen} onSend={(poll) => void sendPoll(poll)} />
+      <EventComposer open={eventOpen} onOpenChange={setEventOpen} onSend={(event) => void sendEvent(event)} />
+      <Dialog open={lockPrompt} onOpenChange={setLockPrompt}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader><DialogTitle>Locked chats</DialogTitle></DialogHeader>
+          <form className="space-y-3" onSubmit={async (e) => {
+            e.preventDefault();
+            const r = await unlockWithPassword(lockPassword);
+            if (r.ok) { setLockPrompt(false); setShowLocked(true); setShowArchived(false); } else setLockError(r.message ?? "");
+          }}>
+            <p className="text-sm text-muted-foreground">Enter your Ember password to see your locked chats. In the app, your fingerprint or phone PIN opens them.</p>
+            <Input type="password" autoComplete="current-password" value={lockPassword} onChange={(e) => setLockPassword(e.target.value)} placeholder="Password" aria-label="Password" autoFocus />
+            {lockError && <p role="alert" className="text-sm text-destructive">{lockError}</p>}
+            <Button type="submit" className="w-full rounded-full" disabled={!lockPassword}>Unlock</Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       {currentUserId && (
         <ForwardDialog message={forwardingMany ?? forwarding} currentUserId={currentUserId} onOpenChange={(open) => { if (!open) { setForwarding(null); setForwardingMany(null); } }} />
       )}
