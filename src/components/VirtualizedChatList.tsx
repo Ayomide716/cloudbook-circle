@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState, ReactElement, CSSProperties } from "react";
-import { List, useDynamicRowHeight, useListRef, type RowComponentProps } from "react-window";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, ReactElement, CSSProperties } from "react";
 import { ChevronDown, Loader2 } from "@/components/icons";
 
-interface VirtualizedChatListProps {
+interface ChatListProps {
   itemCount: number;
   renderItem: (index: number) => ReactElement | null;
+  /** A stable key for each row (its message's id), so rows keep their place when older ones load. */
+  itemKey?: (index: number) => string;
+  /** @deprecated rows are measured as they are; kept so callers don't break. */
   estimatedItemSize?: number;
   footer?: ReactElement | null;
   scrollToBottomKey?: number | string;
@@ -15,10 +17,9 @@ interface VirtualizedChatListProps {
   startAtIndex?: number;
   /** The day label for a row ("Today", "12 March"), floated at the top while scrolling. */
   dayLabelAt?: (index: number) => string | null;
-  /** Identity of the first item. If it changes when items are added, older items were prepended
-   *  (keep the reader's position); otherwise new items were appended (scroll to the bottom). */
+  /** Identity of the first item; when it changes as items are added, older ones were added on top. */
   firstItemKey?: string;
-  /** Called when the user scrolls near the top — use for loading older messages */
+  /** Called when the reader nears the top: load older messages. */
   onLoadMore?: () => void;
   isLoadingMore?: boolean;
   hasMore?: boolean;
@@ -26,22 +27,20 @@ interface VirtualizedChatListProps {
   style?: CSSProperties;
 }
 
-interface RowProps {
-  renderItem: (index: number) => ReactElement | null;
-}
-
-const RowComponent = ({ index, style, renderItem }: RowComponentProps<RowProps>) => (
-  <div style={style} data-message-row={index}>
-    <div className="px-4 sm:px-5 py-px">
-      {renderItem(index)}
-    </div>
-  </div>
-);
-
+/**
+ * A chat's messages, scrolling the way WhatsApp's do:
+ * - What you're reading stays exactly where it is: when older messages load above it, photos
+ *   above it finish loading, or new messages arrive below it. (The browser's own scroll
+ *   anchoring, plus a correction when older messages are added.) Every row is a real,
+ *   measured element, so nothing is guessed and nothing jumps while you scroll up.
+ * - At the bottom you stay at the bottom as messages arrive; scrolled up, the ↓ button counts
+ *   what came in instead of pulling you down.
+ * - Older messages load quietly as you near the top, with no banner over the day label.
+ */
 const VirtualizedChatList = ({
   itemCount,
   renderItem,
-  estimatedItemSize = 72,
+  itemKey,
   footer,
   scrollToBottomKey,
   lastIsMine,
@@ -54,309 +53,159 @@ const VirtualizedChatList = ({
   hasMore,
   className,
   style,
-}: VirtualizedChatListProps) => {
-  const listRef = useListRef(null);
-  // react-window hands out its scroll element one render late (listRef.current.element is null
-  // when our effects first run), so the effects below find it in the DOM instead.
-  const containerRef = useRef<HTMLDivElement>(null);
-  const getListEl = useCallback(
-    () => listRef.current?.element ?? containerRef.current?.querySelector<HTMLDivElement>(".chat-scroller") ?? null,
-    [listRef]
-  );
-  const dynamicRowHeight = useDynamicRowHeight({
-    defaultRowHeight: estimatedItemSize,
-    key: itemCount,
-  });
-  const { observeRowElements } = dynamicRowHeight;
-  // Only whether "load more" is enabled matters here; the callback itself is recreated by the parent on every render.
-  const canLoadMore = !!onLoadMore;
-  const prevCountRef = useRef(itemCount);
-  const prevFirstKeyRef = useRef(firstItemKey);
-  const isInitialLoad = useRef(true);
-  // Whether the reader is at (or near) the newest message, and how many arrived while they weren't.
-  const atBottomRef = useRef(true);
-  // While you're touching, wheeling or flinging the list, nothing scrolls it for you.
-  const userScrollingUntilRef = useRef(0);
+}: ChatListProps) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const atBottom = useRef(true);
+  const opened = useRef(false);
+  const prevCount = useRef(itemCount);
+  const prevFirstKey = useRef(firstItemKey);
   const [showJump, setShowJump] = useState(false);
   const [unseen, setUnseen] = useState(0);
-  // The day of the messages at the top, shown while scrolling (as on WhatsApp).
   const [floatingDay, setFloatingDay] = useState<string | null>(null);
   const dayLabelRef = useRef(dayLabelAt);
   dayLabelRef.current = dayLabelAt;
+  const loadMoreRef = useRef(onLoadMore);
+  loadMoreRef.current = onLoadMore;
 
-  // Scroll to bottom on initial load and new messages appended at bottom
-  useEffect(() => {
-    const prevCount = prevCountRef.current;
-    const prevFirstKey = prevFirstKeyRef.current;
-    prevCountRef.current = itemCount;
-    prevFirstKeyRef.current = firstItemKey;
+  const rowEl = (index: number) => scrollRef.current?.querySelector<HTMLElement>(`[data-message-row="${index}"]`) ?? null;
+  const toBottom = useCallback((smooth = false) => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.scrollTo({ top: el.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+    atBottom.current = true;
+    // While it glides down, it still counts as at the bottom (a photo loading meanwhile follows).
+    pinnedUntil.current = Date.now() + 700;
+  }, []);
+  const pinnedUntil = useRef(0);
 
-    if (itemCount > 0 && listRef.current) {
-      // Older items were prepended (the first item changed): keep the reader's position.
-      // A new message at the bottom keeps the same first item and falls through to scroll down.
-      const prepended = firstItemKey !== undefined && prevFirstKey !== undefined && firstItemKey !== prevFirstKey;
-      if (!isInitialLoad.current && itemCount > prevCount && canLoadMore && prepended) {
-        const addedCount = itemCount - prevCount;
-        // Scroll to the first "new-old" message to maintain position
-        requestAnimationFrame(() => {
-          try {
-            listRef.current?.scrollToRow({
-              index: addedCount,
-              align: "start",
-              behavior: "instant",
-            });
-          } catch {
-            // Row may not exist yet if the list re-rendered in between.
-          }
-        });
-        return;
-      }
+  // Older messages added on top: before the change, note where the first row you can see is…
+  const anchor = useRef<{ key: string; top: number } | null>(null);
+  const el = scrollRef.current;
+  if (el && firstItemKey !== prevFirstKey.current && itemCount > prevCount.current) {
+    const rows = Array.from(el.querySelectorAll<HTMLElement>("[data-row-key]"));
+    const box = el.getBoundingClientRect();
+    const first = rows.find((r) => r.getBoundingClientRect().bottom > box.top);
+    anchor.current = first ? { key: first.dataset.rowKey!, top: first.getBoundingClientRect().top } : null;
+  }
 
-      // Scrolled up reading older messages: a new message from them doesn't pull you down
-      // (the ↓ button counts it instead), as in WhatsApp.
-      if (!isInitialLoad.current && !atBottomRef.current && !lastIsMine && itemCount > prevCount) {
-        setUnseen((n) => n + (itemCount - prevCount));
-        return;
-      }
+  // …and after it, put it back there (the browser can't anchor at the very top of the list).
+  useLayoutEffect(() => {
+    const box = scrollRef.current;
+    const prepended = firstItemKey !== prevFirstKey.current && itemCount > prevCount.current && prevCount.current > 0;
+    const appended = itemCount > prevCount.current && !prepended;
+    const added = itemCount - prevCount.current;
+    prevCount.current = itemCount;
+    prevFirstKey.current = firstItemKey;
+    if (!box || itemCount === 0) return;
 
-      const wasInitial = isInitialLoad.current;
-      isInitialLoad.current = false;
-      // Opening with unread messages: start at the first of them (unless they all fit below).
-      if (wasInitial && startAtIndex !== undefined && startAtIndex > 0) {
-        const goTo = () => {
-          try { listRef.current?.scrollToRow({ index: startAtIndex, align: "start", behavior: "instant" }); } catch { /* not there yet */ }
-          const el = getListEl();
-          if (el) atBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
-        };
-        requestAnimationFrame(goTo);
-        const settles = [120, 400].map((ms) => setTimeout(() => { if (Date.now() >= userScrollingUntilRef.current) goTo(); }, ms));
-        return () => settles.forEach(clearTimeout);
-      }
-      const scrollToEnd = () => {
-        try {
-          listRef.current?.scrollToRow({
-            index: itemCount - 1,
-            align: "end",
-            behavior: "instant",
-          });
-        } catch {
-          // Row may not exist yet if the list re-rendered in between.
-        }
-      };
-      atBottomRef.current = true;
-      requestAnimationFrame(scrollToEnd);
-      // Again once new rows have been measured (images/voice players change heights).
-      const settles = [120, 400].map((ms) => setTimeout(() => {
-        if (!atBottomRef.current || Date.now() < userScrollingUntilRef.current) return;
-        scrollToEnd();
-        const el = getListEl();
-        if (el) el.scrollTop = el.scrollHeight;
-      }, ms));
-      return () => settles.forEach(clearTimeout);
+    if (!opened.current) {
+      // Opening the chat: at the first unread message, else at the newest.
+      opened.current = true;
+      const start = startAtIndex !== undefined && startAtIndex > 0 ? rowEl(startAtIndex) : null;
+      if (start) {
+        box.scrollTop = start.offsetTop - 8;
+        atBottom.current = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+      } else toBottom();
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- lastIsMine is read with the new count
-  }, [itemCount, scrollToBottomKey, canLoadMore, firstItemKey, listRef]);
+    if (prepended && anchor.current) {
+      const same = box.querySelector<HTMLElement>(`[data-row-key="${CSS.escape(anchor.current.key)}"]`);
+      if (same) box.scrollTop += same.getBoundingClientRect().top - anchor.current.top;
+      anchor.current = null;
+      return;
+    }
+    if (appended) {
+      if (atBottom.current || lastIsMine) toBottom(true);
+      else setUnseen((n) => n + added);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs as rows come and go
+  }, [itemCount, firstItemKey, scrollToBottomKey]);
 
-  const hasItems = itemCount > 0;
-  // Stay at the bottom while things grow: photos and voice notes taking their real size, a long
-  // message being measured, the keyboard opening. Only while you're at the bottom; if you've
-  // scrolled up to read, nothing moves you.
+  // Stay at the bottom while things there grow (a photo loading, the keyboard opening, the
+  // typing bubble), but only while you're at the bottom.
   useEffect(() => {
-    const listEl = getListEl();
-    if (!listEl || typeof ResizeObserver === "undefined") return;
-    const stick = () => {
-      if (atBottomRef.current && Date.now() >= userScrollingUntilRef.current) listEl.scrollTop = listEl.scrollHeight;
-    };
-    const observer = new ResizeObserver(stick);
-    observer.observe(listEl);
-    for (const child of Array.from(listEl.children)) observer.observe(child);
-    // Rows are added and removed as you scroll; watch the ones on screen too.
-    const rowsObserver = new MutationObserver(() => {
-      for (const row of Array.from(listEl.querySelectorAll("[data-message-row]"))) observer.observe(row);
-    });
-    rowsObserver.observe(listEl, { childList: true, subtree: true });
-    for (const row of Array.from(listEl.querySelectorAll("[data-message-row]"))) observer.observe(row);
-    return () => { observer.disconnect(); rowsObserver.disconnect(); };
-    // hasItems: the list element only exists once there are messages to show.
-  }, [listRef, hasItems, getListEl]);
+    const box = scrollRef.current;
+    const content = box?.firstElementChild;
+    if (!box || !content || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => { if (atBottom.current) box.scrollTop = box.scrollHeight; });
+    ro.observe(box);
+    ro.observe(content);
+    return () => ro.disconnect();
+  }, [itemCount > 0]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Track whether the reader is near the bottom, for the ↓ button.
+  // Scrolling: are you at the bottom; near the top (load older); which day is at the top.
   useEffect(() => {
-    const listEl = getListEl();
-    if (!listEl) return;
-    // Only you scrolling up (touch, wheel, keys) leaves the bottom; the list moving because
-    // photos loaded or rows were measured doesn't. Leaving happens the moment you start, so
-    // rows being measured as they come into view can't pull you back down.
-    let touching = false;
-    let touchY = 0;
-    let lastTop = listEl.scrollTop;
-    const hold = (ms = 900) => {
-      userScrollingUntilRef.current = Math.max(userScrollingUntilRef.current, Date.now() + ms);
-    };
-    const leaveBottom = () => { atBottomRef.current = false; };
-    const onTouchStart = (e: TouchEvent) => {
-      touching = true;
-      touchY = e.touches[0]?.clientY ?? 0;
-      hold(60_000);
-    };
-    const onTouchMove = (e: TouchEvent) => {
-      const y = e.touches[0]?.clientY ?? touchY;
-      // Finger moving down = reading back up.
-      if (y > touchY + 2) leaveBottom();
-      touchY = y;
-    };
-    const onTouchEnd = () => {
-      touching = false;
-      userScrollingUntilRef.current = 0;
-      hold(); // momentum keeps going after the finger lifts
-    };
-    const onWheel = (e: WheelEvent) => {
-      hold();
-      if (e.deltaY < 0) leaveBottom();
-    };
-    // Dragging the scrollbar with a mouse.
-    const onPointerDown = (e: PointerEvent) => {
-      if (e.pointerType === "mouse") { touching = true; hold(60_000); }
-    };
-    const onPointerUp = () => {
-      if (!touching) return;
-      touching = false;
-      userScrollingUntilRef.current = 0;
-      hold(300);
-    };
-    const onKey = (e: KeyboardEvent) => {
-      hold();
-      if (["ArrowUp", "PageUp", "Home"].includes(e.key)) leaveBottom();
-    };
+    const box = scrollRef.current;
+    if (!box) return;
+    let dayTimer: ReturnType<typeof setTimeout> | undefined;
+    let userScrolling = false;
+    const onTouch = () => { userScrolling = true; };
     const onScroll = () => {
-      const top = listEl.scrollTop;
-      const movedUp = top < lastTop - 1;
-      lastTop = top;
-      const active = touching || Date.now() < userScrollingUntilRef.current;
-      // A fling is still you: keep holding until it stops.
-      if (active && !touching) hold(250);
-      const fromBottom = listEl.scrollHeight - top - listEl.clientHeight;
-      if (active && movedUp) leaveBottom();
-      else if (fromBottom < 80) atBottomRef.current = true;
+      const fromBottom = box.scrollHeight - box.scrollTop - box.clientHeight;
+      atBottom.current = fromBottom < 80 || Date.now() < pinnedUntil.current;
       setShowJump(fromBottom > 300);
-      if (atBottomRef.current) setUnseen(0);
-      if (active && dayLabelRef.current) {
-        const listTop = listEl.getBoundingClientRect().top;
-        const rows = Array.from(listEl.querySelectorAll<HTMLElement>("[data-message-row]"));
-        const top = rows.filter((r) => r.getBoundingClientRect().bottom > listTop + 8).sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
-        const label = top ? dayLabelRef.current(Number(top.dataset.messageRow)) : null;
-        setFloatingDay(label);
+      if (atBottom.current) setUnseen(0);
+      if (box.scrollTop < 600 && hasMoreRef.current && !loadingRef.current) loadMoreRef.current?.();
+      if (userScrolling && dayLabelRef.current) {
+        const top = box.getBoundingClientRect().top;
+        const row = Array.from(box.querySelectorAll<HTMLElement>("[data-message-row]")).find((r) => r.getBoundingClientRect().bottom > top + 8);
+        setFloatingDay(row ? dayLabelRef.current(Number(row.dataset.messageRow)) : null);
         clearTimeout(dayTimer);
         dayTimer = setTimeout(() => setFloatingDay(null), 1200);
       }
     };
-    let dayTimer: ReturnType<typeof setTimeout> | undefined;
-    listEl.addEventListener("touchstart", onTouchStart, { passive: true });
-    listEl.addEventListener("touchmove", onTouchMove, { passive: true });
-    listEl.addEventListener("touchend", onTouchEnd, { passive: true });
-    listEl.addEventListener("touchcancel", onTouchEnd, { passive: true });
-    listEl.addEventListener("wheel", onWheel, { passive: true });
-    listEl.addEventListener("keydown", onKey);
-    listEl.addEventListener("pointerdown", onPointerDown);
-    window.addEventListener("pointerup", onPointerUp);
-    listEl.addEventListener("scroll", onScroll, { passive: true });
+    box.addEventListener("scroll", onScroll, { passive: true });
+    box.addEventListener("touchstart", onTouch, { passive: true });
+    box.addEventListener("wheel", onTouch, { passive: true });
     return () => {
-      listEl.removeEventListener("touchstart", onTouchStart);
-      listEl.removeEventListener("touchmove", onTouchMove);
-      listEl.removeEventListener("touchend", onTouchEnd);
-      listEl.removeEventListener("touchcancel", onTouchEnd);
-      listEl.removeEventListener("wheel", onWheel);
-      listEl.removeEventListener("keydown", onKey);
-      listEl.removeEventListener("pointerdown", onPointerDown);
-      window.removeEventListener("pointerup", onPointerUp);
-      listEl.removeEventListener("scroll", onScroll);
       clearTimeout(dayTimer);
+      box.removeEventListener("scroll", onScroll);
+      box.removeEventListener("touchstart", onTouch);
+      box.removeEventListener("wheel", onTouch);
     };
-    // hasItems: the list element only exists once there are messages to show.
-  }, [listRef, hasItems, getListEl]);
+  }, []);
+  const hasMoreRef = useRef(hasMore);
+  hasMoreRef.current = hasMore;
+  const loadingRef = useRef(isLoadingMore);
+  loadingRef.current = isLoadingMore;
 
-  const jumpToBottom = () => {
-    setUnseen(0);
-    try {
-      listRef.current?.scrollToRow({ index: itemCount - 1, align: "end", behavior: "smooth" });
-    } catch {
-      // The list may be re-rendering; the next tap will work.
-    }
-  };
-
-  // Scroll to specific index (for message search highlight)
+  // Going to a message (search, starred, a pinned message, a quote).
   useEffect(() => {
-    if (scrollToIndex !== undefined && scrollToIndex >= 0 && listRef.current) {
-      try {
-        listRef.current.scrollToRow({
-          index: scrollToIndex,
-          align: "center",
-          behavior: "smooth",
-        });
-      } catch {
-        // Ignore out-of-range indexes from stale search results.
-      }
-    }
-  }, [scrollToIndex, listRef]);
+    if (scrollToIndex === undefined || scrollToIndex < 0) return;
+    rowEl(scrollToIndex)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [scrollToIndex]);
 
-  // Detect scroll to top for loading more
-  useEffect(() => {
-    const listEl = getListEl();
-    if (!listEl || !onLoadMore || !hasMore) return;
-
-    const handleScroll = () => {
-      if (listEl.scrollTop < 100 && !isLoadingMore && hasMore) {
-        onLoadMore();
-      }
-    };
-
-    listEl.addEventListener("scroll", handleScroll, { passive: true });
-    return () => listEl.removeEventListener("scroll", handleScroll);
-  }, [onLoadMore, isLoadingMore, hasMore, itemCount, listRef, getListEl]);
-
-  // Observe row elements for dynamic sizing
-  useEffect(() => {
-    const listEl = getListEl();
-    if (!listEl) return;
-
-    const observer = new MutationObserver(() => {
-      const rows = listEl.querySelectorAll("[data-message-row]");
-      if (rows.length > 0) observeRowElements(rows);
-    });
-
-    observer.observe(listEl, { childList: true, subtree: true });
-    const rows = listEl.querySelectorAll("[data-message-row]");
-    if (rows.length > 0) observeRowElements(rows);
-
-    return () => observer.disconnect();
-  }, [itemCount, listRef, observeRowElements, getListEl]);
+  const jumpToBottom = () => { setUnseen(0); toBottom(true); };
 
   return (
-    <div ref={containerRef} className={className} style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", ...style }}>
-      {isLoadingMore && (
-        <div className="absolute top-2 left-1/2 -translate-x-1/2 z-10 bg-card/90 backdrop-blur rounded-full px-3 py-1.5 shadow-md flex items-center gap-2">
-          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-          <span className="text-xs text-muted-foreground">Loading older messages…</span>
-        </div>
-      )}
+    <div className={className} style={{ position: "relative", flex: 1, minHeight: 0, display: "flex", flexDirection: "column", ...style }}>
       {floatingDay && (
         <div aria-hidden="true" className="pointer-events-none absolute inset-x-0 top-2 z-10 flex justify-center animate-in fade-in-0 duration-150">
           <span className="rounded-lg bg-card/95 px-2.5 py-1 text-xs font-medium text-muted-foreground shadow-sm backdrop-blur dark:bg-[#1c2530]/95">{floatingDay}</span>
         </div>
       )}
-      <List
-        listRef={listRef}
-        rowCount={itemCount}
-        rowHeight={dynamicRowHeight}
-        rowComponent={RowComponent}
-        rowProps={{ renderItem }}
-        overscanCount={10}
-        // contain: reaching the top or bottom doesn't drag (bounce) the whole page with it.
-        className="chat-scroller"
-        // flex: the list takes the room left by the footer (the typing dots), instead of all of
-        // it with the footer pushed out of sight.
-        style={{ flex: "1 1 0", minHeight: 0, overflow: "auto", overscrollBehavior: "contain" }}
-      />
+      <div
+        ref={scrollRef}
+        className="chat-scroller min-h-0 flex-1 overflow-y-auto overscroll-contain [overflow-anchor:auto]"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions"
+      >
+        <div className="flex min-h-full flex-col justify-end py-1">
+          {/* Older messages loading: a small spinner in the list, not a banner over the day. */}
+          {hasMore && (
+            <div className="flex h-10 items-center justify-center" aria-label={isLoadingMore ? "Loading older messages" : undefined}>
+              {isLoadingMore && <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />}
+            </div>
+          )}
+          {Array.from({ length: itemCount }, (_, i) => (
+            <div key={itemKey ? itemKey(i) : i} data-message-row={i} data-row-key={itemKey ? itemKey(i) : String(i)} className="px-4 py-px sm:px-5">
+              {renderItem(i)}
+            </div>
+          ))}
+          {footer}
+        </div>
+      </div>
       {(showJump || unseen > 0) && itemCount > 0 && (
         <button
           type="button"
@@ -372,7 +221,6 @@ const VirtualizedChatList = ({
           )}
         </button>
       )}
-      {footer}
     </div>
   );
 };

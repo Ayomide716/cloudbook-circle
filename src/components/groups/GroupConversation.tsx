@@ -838,6 +838,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
       ) : (
         <VirtualizedChatList
           itemCount={rows.length}
+          itemKey={(i) => rows[i]?.message.id ?? String(i)}
           scrollToBottomKey={visible.length}
           firstItemKey={rows[0]?.message.id}
           lastIsMine={visible[visible.length - 1]?.user_id === currentUserId}

@@ -1483,6 +1483,7 @@ const Messages = () => {
                   <VirtualizedChatList
                     key={selectedConversation.id}
                     itemCount={msgRows.length}
+                    itemKey={(i) => msgRows[i]?.message.id ?? String(i)}
                     scrollToBottomKey={visibleMessages.length}
                     lastIsMine={visibleMessages[visibleMessages.length - 1]?.sender_id === currentUserId}
                     firstItemKey={msgRows[0]?.message.id}
