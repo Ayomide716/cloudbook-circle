@@ -51,6 +51,9 @@ interface Reel {
   }>;
 }
 
+const PAGE = 8;
+const REEL_SELECT = `*, profiles (full_name, avatar_url), reel_likes (user_id), reel_comments (*, profiles (full_name, avatar_url))`;
+
 export default function Reels() {
   // Black status bar with light icons over the reels, whatever the theme.
   useDarkStatusBar();
@@ -153,11 +156,14 @@ export default function Reels() {
 
   const loadReels = useEffectEvent(async () => {
     setLoading(true);
+    // A few to start (the first plays sooner), more as you swipe (loadMore). A shared link
+    // loads further back, to find its reel.
     const { data, error } = await supabase
       .from("reels")
-      .select(`*, profiles (full_name, avatar_url), reel_likes (user_id), reel_comments (*, profiles (full_name, avatar_url))`)
+      .select(REEL_SELECT)
       .order("created_at", { ascending: false })
-      .limit(40);
+      .limit(paramReelId ? 40 : PAGE);
+    setHasMore((data?.length ?? 0) >= (paramReelId ? 40 : PAGE));
     if (error) {
       toast({ title: "Couldn't load reels", variant: "destructive" });
     } else {
@@ -188,6 +194,19 @@ export default function Reels() {
   useEffect(() => {
     loadReels();
   }, [paramReelId, loadReels]);
+
+  const [hasMore, setHasMore] = useState(true);
+  const loadingMore = useRef(false);
+  const loadMore = async () => {
+    const last = reels[reels.length - 1];
+    if (!hasMore || loadingMore.current || !last) return;
+    loadingMore.current = true;
+    const { data } = await supabase.from("reels").select(REEL_SELECT).order("created_at", { ascending: false }).lt("created_at", last.created_at).limit(PAGE);
+    loadingMore.current = false;
+    if (!data) return;
+    setHasMore(data.length >= PAGE);
+    setReels((prev) => [...prev, ...data.filter((d) => !prev.some((p) => p.id === d.id))]);
+  };
 
   const handleLike = async (reelId: string) => {
     if (!user) return;
@@ -322,12 +341,32 @@ export default function Reels() {
     });
   };
 
-  const handleScroll = () => {
+  // Which reel is playing changes once a swipe has settled on it, not halfway through (as on
+  // TikTok), so videos don't start and stop under your finger.
+  const settleTimer = useRef<number>();
+  const settle = () => {
+    window.clearTimeout(settleTimer.current);
     if (!containerRef.current) return;
     const { scrollTop, clientHeight } = containerRef.current;
     const index = Math.round(scrollTop / clientHeight);
     if (shown[index] && shown[index].id !== activeReelId) setActiveReelId(shown[index].id);
   };
+  const handleScroll = () => {
+    window.clearTimeout(settleTimer.current);
+    // Browsers without "scrollend": a moment after the last movement.
+    settleTimer.current = window.setTimeout(settle, 120);
+  };
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !("onscrollend" in el)) return;
+    el.addEventListener("scrollend", settle);
+    return () => el.removeEventListener("scrollend", settle);
+  });
+  const activeIndex = Math.max(0, shown.findIndex((r) => r.id === activeReelId));
+  // Near the end: the next few come in quietly.
+  useEffect(() => {
+    if (shown.length && activeIndex >= shown.length - 3) void loadMore();
+  }, [activeIndex, shown.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const scroll = (dir: number) => {
     if (!containerRef.current) return;
@@ -441,7 +480,8 @@ export default function Reels() {
                 key={reel.id}
                 reel={reel}
                 isActive={reel.id === activeReelId}
-                isNext={i > 0 && shown[i - 1].id === activeReelId}
+                isNext={i === activeIndex + 1 || i === activeIndex + 2}
+                mounted={i >= activeIndex - 1 && i <= activeIndex + 2}
                 isMuted={isMuted}
                 currentUserId={user?.id || null}
                 onToggleMute={() => setIsMuted(p => !p)}

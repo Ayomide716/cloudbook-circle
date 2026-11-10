@@ -39,6 +39,9 @@ interface ReelCardProps {
   isActive: boolean;
   /** The reel after the one playing: it starts downloading now, so swiping to it plays at once. */
   isNext?: boolean;
+  /** Near the one playing (the one before and the two after): its video is ready on the page,
+   *  so swiping to it (or back) plays at once, as on TikTok. Others are just their picture. */
+  mounted?: boolean;
   isMuted: boolean;
   currentUserId: string | null;
   onToggleMute: () => void;
@@ -59,7 +62,7 @@ interface ReelCardProps {
 }
 
 export default function ReelCard({
-  reel, isActive, isNext = false, isMuted, currentUserId, autoScroll = false, onToggleAutoScroll, onEnded,
+  reel, isActive, isNext = false, mounted = true, isMuted, currentUserId, autoScroll = false, onToggleAutoScroll, onEnded,
   onToggleMute, onLike, onComment, onShare, onDelete, onShowUpload, onVideoError,
   onNavigateToProfile, onFollow, isFollowing, isPending,
 }: ReelCardProps) {
@@ -74,7 +77,16 @@ export default function ReelCard({
   const [progress, setProgress] = useState(0);
   const [buffered, setBuffered] = useState(0);
   const [heartBurst, setHeartBurst] = useState(0);
-  const [isVisible, setIsVisible] = useState(false);
+  const isVisible = mounted;
+  // Its first picture is ready (until then, the reel's picture or black, never a grey box),
+  // and whether it's waiting for more of the video (a spinner after a moment, as on TikTok).
+  const [ready, setReady] = useState(false);
+  const [buffering, setBuffering] = useState(false);
+  const bufferTimer = useRef<number>();
+  const waiting = () => { window.clearTimeout(bufferTimer.current); bufferTimer.current = window.setTimeout(() => setBuffering(true), 450); };
+  const flowing = () => { window.clearTimeout(bufferTimer.current); setBuffering(false); };
+  useEffect(() => () => window.clearTimeout(bufferTimer.current), []);
+  useEffect(() => { if (!mounted) { setReady(false); flowing(); } }, [mounted]);
   const [reportOpen, setReportOpen] = useState(false);
   const lastTapRef = useRef(0);
   const animFrameRef = useRef<number>(0);
@@ -86,31 +98,22 @@ export default function ReelCard({
   // Uploaded from a phone (Supabase Storage or Cloudflare R2), not a pasted link.
   const canPlayInline = !isTikTokLink && isUploadedMedia(reel.video_url);
 
-  // Lazy load: only set video src when near viewport
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const observer = new IntersectionObserver(
-      ([entry]) => setIsVisible(entry.isIntersecting),
-      // A screen ahead, so the next reel is ready before you swipe to it.
-      { rootMargin: "100% 0px" }
-    );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, []);
-
   // Play/pause based on active state
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
     video.muted = isMuted;
     if (isActive && isVisible) {
+      // Coming to it: from the start, as on TikTok.
+      if (!wasActive.current && video.currentTime > 0.3) video.currentTime = 0;
       video.play().catch(() => {});
       setIsPaused(false);
     } else {
       video.pause();
     }
+    wasActive.current = isActive;
   }, [isActive, isMuted, isVisible]);
+  const wasActive = useRef(false);
 
   // Progress bar update loop (only for the reel on screen)
   useEffect(() => {
@@ -330,10 +333,17 @@ export default function ReelCard({
                 }}
                 playsInline
                 muted={isMuted}
-                // The reel's picture (or black) instead of the phone's grey placeholder while it loads.
-                poster={reel.thumbnail_url || BLANK_POSTER}
+                // No poster: a paused video then shows its first picture (the cover below hides
+                // the phone's grey box until that's ready).
+                poster={reel.thumbnail_url ? undefined : BLANK_POSTER}
+                // The one playing and the next ones download now, so swiping plays at once.
                 // Data saver: only the reel you're watching loads.
-                preload={isActive ? "auto" : isNext && !dataSaver ? "auto" : dataSaver ? "none" : "metadata"}
+                preload={isActive ? "auto" : dataSaver ? "none" : isNext ? "auto" : "metadata"}
+                onLoadedData={() => setReady(true)}
+                onWaiting={waiting}
+                onStalled={waiting}
+                onPlaying={flowing}
+                onCanPlay={flowing}
                 onError={() => onVideoError(reel.id)}
                 onClick={handleTap}
                 onPointerDown={startHold}
@@ -345,7 +355,17 @@ export default function ReelCard({
               </>
             )}
 
-            {!isVisible && <div className="absolute inset-0 bg-black" />}
+            {/* Until its first picture is ready: the reel's picture, or black. */}
+            {(!isVisible || !ready) && (
+              reel.thumbnail_url
+                ? <img src={reel.thumbnail_url} alt="" aria-hidden="true" className={cn("pointer-events-none absolute inset-0 h-full w-full", fit === "cover" ? "object-cover" : "object-contain")} />
+                : <div className="pointer-events-none absolute inset-0 bg-black" />
+            )}
+            {isActive && isVisible && (buffering || !ready) && (
+              <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center" role="status" aria-label="Loading">
+                <span className="h-11 w-11 animate-spin rounded-full border-[3px] border-white/25 border-t-white" />
+              </div>
+            )}
 
             {fast && (
               <div className="pointer-events-none absolute inset-x-0 top-[calc(env(safe-area-inset-top)+4.5rem)] z-30 flex justify-center md:top-6">
