@@ -49,7 +49,19 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
   const markHeard = () => { if (!heard) { setHeard(true); rememberHeard(audioUrl); } };
 
   // The real shape of the recording, once it's downloaded (the placeholder shows until then).
+  // Only for voice notes near the screen, so a long chat doesn't download all of them at once.
+  const [near, setNear] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
+    const el = boxRef.current;
+    if (!el || near) return;
+    if (typeof IntersectionObserver === "undefined") { setNear(true); return; }
+    const io = new IntersectionObserver((entries) => { if (entries.some((e) => e.isIntersecting)) setNear(true); }, { rootMargin: "600px 0px" });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [near]);
+  useEffect(() => {
+    if (!near) return;
     let cancelled = false;
     loadPeaks(audioUrl, BARS).then((result) => {
       if (cancelled || !result) return;
@@ -57,7 +69,7 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
       if (!duration && result.duration) setAudioDuration((d) => (Number.isFinite(d) && d > 0 ? d : result.duration));
     });
     return () => { cancelled = true; };
-  }, [audioUrl, duration]);
+  }, [audioUrl, duration, near]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -134,7 +146,7 @@ const VoiceMessagePlayer = ({ audioUrl, duration, isOwnMessage }: VoiceMessagePl
   ));
 
   return (
-    <div className="flex min-w-[232px] items-center gap-2.5 py-1">
+    <div ref={boxRef} className="flex min-w-[232px] items-center gap-2.5 py-1">
       <audio ref={audioRef} src={audioUrl} preload="metadata" className="hidden" data-voice-note="" />
 
       <button
