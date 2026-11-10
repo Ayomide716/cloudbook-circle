@@ -12,6 +12,7 @@ export async function unlockChats(): Promise<UnlockResult> {
   if (r === "ok") return { ok: true };
   if (r === "no-lock") return { ok: false, message: "Set a screen lock on your phone first (Settings → Security), then try again." };
   if (r === "failed") return { ok: false, message: "Couldn't confirm it's you." };
+  // "unavailable": this phone can't do the check (or an older app): the password instead.
   return { ok: false, needsPassword: true };
 }
 

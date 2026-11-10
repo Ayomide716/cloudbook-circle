@@ -102,16 +102,37 @@ public class EmberWindowPlugin extends Plugin {
             return;
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            activity.runOnUiThread(() -> showBiometricPrompt(call, title));
+            activity.runOnUiThread(() -> {
+                // Never let the check stop the app: if the fingerprint prompt can't be shown on
+                // this phone, ask for the phone's PIN / pattern instead.
+                try {
+                    showBiometricPrompt(call, title);
+                } catch (Exception e) {
+                    askForScreenLock(call, keyguard, title);
+                }
+            });
         } else {
+            askForScreenLock(call, keyguard, title);
+        }
+    }
+
+    /** The phone's own PIN / pattern / password screen. */
+    private void askForScreenLock(PluginCall call, KeyguardManager keyguard, String title) {
+        try {
             Intent intent = keyguard.createConfirmDeviceCredentialIntent(title, null);
             if (intent == null) {
                 JSObject ret = new JSObject();
-                ret.put("ok", true);
+                ret.put("ok", false);
+                ret.put("reason", "no-lock");
                 call.resolve(ret);
                 return;
             }
             startActivityForResult(call, intent, "credentialResult");
+        } catch (Exception e) {
+            JSObject ret = new JSObject();
+            ret.put("ok", false);
+            ret.put("reason", "unavailable");
+            call.resolve(ret);
         }
     }
 
