@@ -165,8 +165,8 @@ const ChatBubble = ({
   // What's on screen: the photo from this phone while (and after) it uploads.
   const src = message._preview ?? message.image_url ?? undefined;
   const size = mediaSize(message.image_url);
-  // Room for the photo before it loads: up to 260 wide and 340 tall.
-  const box = size ? { width: Math.round(Math.min(260, (340 * size.w) / size.h)), aspectRatio: `${size.w} / ${size.h}` } : undefined;
+  // Room for the photo before it loads: up to 220 wide and 280 tall (about WhatsApp's size).
+  const box = size ? { width: Math.round(Math.min(220, (280 * size.w) / size.h)), aspectRatio: `${size.w} / ${size.h}` } : undefined;
   const sending = message._status === "sending";
   const failed = message._status === "failed";
   const hasText = !card && !once && !stickerSrc && !!message.content && message.content !== "Sent an image" && !(isMedia && message.content === "Sent a video") && !message.content.startsWith("🎤");
@@ -401,7 +401,7 @@ const ChatBubble = ({
               src={src}
               alt="Shared"
               style={box}
-              className={cn("block rounded-md max-w-full cursor-pointer bg-black/10 object-cover transition-opacity hover:opacity-90", !box && "min-h-24 min-w-24")}
+              className={cn("block rounded-md max-w-full cursor-pointer bg-black/10 object-cover transition-opacity hover:opacity-90", !box && "min-h-24 min-w-24 max-h-72 max-w-[220px]")}
               onClick={() => { if (!sending && !failed) setViewing(0); }}
             />
           )}

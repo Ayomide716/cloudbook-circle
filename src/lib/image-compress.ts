@@ -13,6 +13,9 @@ export const IMAGE_SIZES = {
   avatar: 512,
 } as const;
 
+/** Photos sent in chats: sharp full screen on any phone, and much less data (WhatsApp sends about this). */
+export const CHAT_PHOTO_SIZE = 1600;
+
 /** One year: files never change once uploaded (every upload gets a new name). */
 export const LONG_CACHE = "31536000";
 

@@ -1,5 +1,4 @@
 import { createRoot } from "react-dom/client";
-import App from "./App.tsx";
 import "@fontsource-variable/figtree";
 import "./index.css";
 import { reloadOnNewVersion, watchForUpdates } from "./lib/app-updates";
@@ -10,6 +9,7 @@ import { installBrokenImageFallback } from "./lib/broken-images";
 import { installTapOrigin } from "./lib/tap-origin";
 import { installRipple } from "./lib/ripple";
 import { installOfflineQueue } from "./lib/offline-queue";
+import { prepareDbUpdates } from "./lib/db-updates";
 
 // Opened from someone's invite link (?ref=…): remember who, for after sign-up.
 captureReferral();
@@ -41,7 +41,10 @@ installRipple();
 // Comments and reactions made offline are sent once you're back online.
 installOfflineQueue();
 
-createRoot(document.getElementById("root")!).render(<App />);
-
-// The installed app's "ember." splash (index.html) fades once the first screen has painted.
-requestAnimationFrame(() => setTimeout(() => (window as Window & { __hideSplash?: () => void }).__hideSplash?.(), 0));
+// Which database updates are there decides which features show (lib/features), so the app
+// loads once that's known (straight away after the first time; see lib/db-updates).
+void prepareDbUpdates().then(() => import("./App.tsx")).then(({ default: App }) => {
+  createRoot(document.getElementById("root")!).render(<App />);
+  // The installed app's "ember." splash (index.html) fades once the first screen has painted.
+  requestAnimationFrame(() => setTimeout(() => (window as Window & { __hideSplash?: () => void }).__hideSplash?.(), 0));
+});

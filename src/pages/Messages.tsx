@@ -58,7 +58,7 @@ import AttachPanel from "@/components/chat/AttachPanel";
 import MediaSendSheet from "@/components/chat/MediaSendSheet";
 import { useKeyboard } from "@/lib/keyboard-height";
 import { uploadMedia } from "@/lib/media-upload";
-import { shrinkImage } from "@/lib/image-compress";
+import { CHAT_PHOTO_SIZE, shrinkImage } from "@/lib/image-compress";
 import { shrinkVideo } from "@/lib/video-compress";
 import { imageSize, limiter, settleSent, withMediaSize } from "@/lib/chat-media";
 import { groupAlbums, lastOf } from "@/lib/chat-albums";
@@ -628,7 +628,7 @@ const Messages = () => {
 
   /** A photo or video from the phone: made smaller, uploaded, its address with its size. */
   const uploadChatFile = async (file: File, kind: "image" | "video", onProgress: (percent: number) => void) => {
-    const upload = kind === "image" ? await shrinkImage(file) : await shrinkVideo(file);
+    const upload = kind === "image" ? await shrinkImage(file, CHAT_PHOTO_SIZE, 0.8) : await shrinkVideo(file);
     const ext = upload.name.split(".").pop();
     const size = kind === "image" ? await imageSize(upload) : null;
     const url = await uploadMedia("chat-images", `${currentUserId}/${Date.now()}-${Math.random().toString(36).slice(2, 6)}.${ext}`, upload, onProgress);
@@ -1634,7 +1634,7 @@ const Messages = () => {
                       role="dialog"
                       data-state="open"
                       aria-label={panel === "emoji" ? "Emoji, GIFs and stickers" : "Attach"}
-                      className="flex-shrink-0 overflow-hidden border-t border-border bg-background pb-[env(safe-area-inset-bottom)]"
+                      className="chat-keyboard-panel flex-shrink-0 overflow-hidden border-t border-border bg-background pb-[env(safe-area-inset-bottom)]"
                       style={{ height: keyboard.height }}
                     >
                       {panel === "emoji" ? (

@@ -52,7 +52,7 @@ const MediaSendSheet = ({ files, toName, onCancel, onSend }: MediaSendSheetProps
 
       {/* Thumbnails, and + to add more (up to 10). */}
       {(list.length > 1 || list.length < 10) && (
-        <div className="flex gap-2 overflow-x-auto px-3 pb-2" data-no-tab-swipe="">
+        <div className="flex gap-2 overflow-x-auto px-3 pb-2 pt-2" data-no-tab-swipe="">
           {urls.map((u, i) => (
             <div key={u} className="relative shrink-0">
               <button type="button" onClick={() => setCurrent(i)} aria-label={`Photo ${i + 1}`}

@@ -43,7 +43,7 @@ export async function deviceAuthenticate(title: string): Promise<"ok" | "failed"
   if (!isNative) return "unavailable";
   try {
     const r = await EmberWindow.authenticate({ title });
-    return r.ok ? "ok" : r.reason === "no-lock" ? "no-lock" : "failed";
+    return r.ok ? "ok" : r.reason === "no-lock" ? "no-lock" : r.reason === "unavailable" ? "unavailable" : "failed";
   } catch {
     return "unavailable";
   }
