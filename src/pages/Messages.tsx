@@ -26,6 +26,7 @@ import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
 import { useChatPrefs } from "@/lib/chat-prefs";
+import { cachedChatList, cachedMessages, saveChatList, saveMessages } from "@/lib/chat-cache";
 import { useChatDrafts, useDraft } from "@/lib/chat-drafts";
 import { useStarred } from "@/lib/starred";
 import ForwardDialog from "@/components/chat/ForwardDialog";
@@ -232,6 +233,9 @@ const Messages = () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { navigate("/auth"); return; }
     setCurrentUserId(session.user.id);
+    // Your chats as they were last time, at once (as on WhatsApp); what's new follows.
+    const cached = cachedChatList<Conversation>(session.user.id);
+    if (cached?.length) { setConversations(cached); setIsLoading(false); }
     const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", session.user.id).single();
     if (profile?.full_name) setCurrentUserName(profile.full_name);
     // Online status is now handled globally in Navigation
@@ -258,33 +262,46 @@ const Messages = () => {
     }
   });
 
-  const loadConversations = useCallback(async () => {
+  // The chat list: the latest messages (not every message ever), and everyone's name and
+  // picture in one request (not one each). Many calls close together (messages arriving) make
+  // one refresh.
+  const refreshConversations = useCallback(async () => {
     if (!currentUserId) return;
     const { data: messagesData } = await supabase
       .from("messages")
       .select("*")
       .or(`sender_id.eq.${currentUserId},receiver_id.eq.${currentUserId}`)
-      .order("created_at", { ascending: false });
-
-    const conversationMap = new Map<string, Conversation>();
-    for (const message of messagesData || []) {
-      const otherUserId = message.sender_id === currentUserId ? message.receiver_id : message.sender_id;
-      if (!conversationMap.has(otherUserId)) {
-        const { data: profileData } = await supabase.from("profiles").select("*").eq("id", otherUserId).single();
-        if (profileData) {
-          const self = otherUserId === currentUserId;
-          const unreadCount = self ? 0 : (messagesData || []).filter(
-            (m) => m.sender_id === otherUserId && m.receiver_id === currentUserId && !m.read
-          ).length;
-          // Your chat with yourself (notes to self), as on WhatsApp.
-          const profile = self ? { ...profileData, full_name: `${profileData.full_name || "You"} (You)` } : profileData;
-          conversationMap.set(otherUserId, { profile, lastMessage: message as ChatMessage, unreadCount });
-        }
-      }
+      .order("created_at", { ascending: false })
+      .limit(1000);
+    const latest = new Map<string, ChatMessage>();
+    const unreadBy = new Map<string, number>();
+    for (const m of (messagesData || []) as ChatMessage[]) {
+      const other = m.sender_id === currentUserId ? m.receiver_id : m.sender_id;
+      if (!latest.has(other)) latest.set(other, m);
+      if (m.receiver_id === currentUserId && m.sender_id !== currentUserId && !m.read) unreadBy.set(other, (unreadBy.get(other) ?? 0) + 1);
     }
-    setConversations(Array.from(conversationMap.values()));
+    const ids = [...latest.keys()];
+    const { data: people } = ids.length ? await supabase.from("profiles").select("*").in("id", ids) : { data: [] };
+    const byId = new Map((people ?? []).map((p) => [p.id, p]));
+    const list: Conversation[] = [];
+    for (const [other, lastMessage] of latest) {
+      const profileData = byId.get(other);
+      if (!profileData) continue;
+      const self = other === currentUserId;
+      // Your chat with yourself (notes to self), as on WhatsApp.
+      const profile = self ? { ...profileData, full_name: `${profileData.full_name || "You"} (You)` } : profileData;
+      list.push({ profile, lastMessage, unreadCount: self ? 0 : unreadBy.get(other) ?? 0 });
+    }
+    setConversations(list);
     setIsLoading(false);
+    saveChatList(currentUserId, list);
   }, [currentUserId]);
+  const refreshTimer = useRef<number>();
+  const loadConversations = useCallback(() => {
+    window.clearTimeout(refreshTimer.current);
+    refreshTimer.current = window.setTimeout(() => void refreshConversations(), 200);
+  }, [refreshConversations]);
+  useEffect(() => () => window.clearTimeout(refreshTimer.current), []);
 
   const PAGE_SIZE = 50;
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
@@ -301,6 +318,10 @@ const Messages = () => {
 
     if (before) {
       query = query.lt("created_at", before);
+    } else {
+      // The chat as it was last time, at once; the server's answer replaces it.
+      const cached = cachedMessages<ChatMessage>(currentUserId, otherUserId);
+      if (cached?.length && selectedConversationRef.current?.id === otherUserId) setMessages((prev) => (prev.length ? prev : cached));
     }
 
     const { data } = await query;
@@ -313,7 +334,9 @@ const Messages = () => {
       // Messages that came while you were away: a line above the first, and the chat opens there.
       const unreadOnes = fetched.filter((m) => m.sender_id === otherUserId && !m.read);
       setUnread(unreadOnes.length ? { id: unreadOnes[0].id, count: unreadOnes.length } : null);
-      setMessages(fetched);
+      if (selectedConversationRef.current?.id !== otherUserId) return; // moved to another chat meanwhile
+      // Keep what's still sending (and any message that arrived meanwhile).
+      setMessages((prev) => [...fetched, ...prev.filter((m) => m.id.startsWith("temp-") || (!fetched.some((f) => f.id === m.id) && m.created_at > (fetched[fetched.length - 1]?.created_at ?? "")))]);
     }
 
     setHasMoreMessages((data || []).length >= PAGE_SIZE);
@@ -480,6 +503,14 @@ const Messages = () => {
       if (typingChannelRef.current) supabase.removeChannel(typingChannelRef.current);
     };
   }, [selectedConversation, currentUserId, loadChatPrefs, loadMessages, setupTypingChannel]);
+
+  // Keep this chat's latest messages on the phone, so it opens instantly next time.
+  useEffect(() => {
+    const chatId = selectedConversation?.id;
+    if (!chatId || !currentUserId || !messages.length || shownChatRef.current !== chatId) return;
+    const t = window.setTimeout(() => saveMessages(currentUserId, chatId, messages), 800);
+    return () => window.clearTimeout(t);
+  }, [messages, selectedConversation?.id, currentUserId]);
 
   // Announce typing only when it starts and stops. Tracking on every keystroke hit the realtime
   // presence rate limit, which closed the channel and broke the indicator for the rest of the session.

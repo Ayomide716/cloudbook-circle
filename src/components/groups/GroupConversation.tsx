@@ -54,6 +54,7 @@ import { uploadMedia } from "@/lib/media-upload";
 import { imageSize, limiter, withMediaSize } from "@/lib/chat-media";
 import { groupAlbums, lastOf } from "@/lib/chat-albums";
 import { publicUrl } from "@/lib/native/platform";
+import { cachedMessages, saveMessages } from "@/lib/chat-cache";
 
 interface GroupConversationProps {
   group: GroupInfo;
@@ -203,7 +204,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     if (before) q = q.lt("created_at", before);
     const { data } = await q;
     const page = (data ?? []).reverse() as GroupMessage[];
-    setMessages((prev) => (before ? [...page, ...prev] : page));
+    setMessages((prev) => (before ? [...page, ...prev] : [...page, ...prev.filter((m) => m.id.startsWith("temp-") || (!page.some((p) => p.id === m.id) && m.created_at > (page[page.length - 1]?.created_at ?? "")))]));
     setHasMore((data ?? []).length >= PAGE);
     setLoading(false);
     void loadReactions(page.map((m) => m.id));
@@ -257,8 +258,10 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
   }, [loading, focusMessageId, jumpTo]);
 
   useEffect(() => {
-    setLoading(true);
-    setMessages([]);
+    // The chat as it was last time, at once; the server's answer replaces it.
+    const cached = cachedMessages<GroupMessage>(currentUserId, `g:${group.id}`);
+    setLoading(!cached?.length);
+    setMessages(cached ?? []);
     setReactions([]);
     void loadMessages();
     void loadMembers();
@@ -296,6 +299,13 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
       .subscribe();
     return () => { void supabase.removeChannel(channel); };
   }, [group.id, currentUserId, loadMessages, loadMembers, loadReactions]);
+
+  // Keep this group's latest messages on the phone, so it opens instantly next time.
+  useEffect(() => {
+    if (!messages.length) return;
+    const t = window.setTimeout(() => saveMessages(currentUserId, `g:${group.id}`, messages), 800);
+    return () => window.clearTimeout(t);
+  }, [messages, group.id, currentUserId]);
 
   // "Ada is typing…": everyone in the chat shares who's typing (nothing is saved).
   useEffect(() => {
