@@ -65,7 +65,7 @@ const ChatAlbum = <T extends AlbumPhoto>({ photos, isCurrentUser, isFirstInGroup
       <div
         ref={bubbleRef}
         className={cn(
-          "relative w-[min(264px,72vw)] rounded-lg p-1 shadow-sm [-webkit-touch-callout:none] [@media(hover:none)]:select-none",
+          "relative w-[min(236px,66vw)] rounded-lg p-1 shadow-sm [-webkit-touch-callout:none] [@media(hover:none)]:select-none",
           isCurrentUser ? colors.sent : colors.received,
           isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
           menuOpen && "ring-2 ring-primary/40",

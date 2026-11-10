@@ -48,7 +48,7 @@ import { useKeyboard } from "@/lib/keyboard-height";
 import { groupSeenAt, nameColour } from "@/lib/group-chats";
 import type { ChatEvent, ChatFile, ChatPoll } from "@/lib/chat-extras";
 import type { TablesInsert } from "@/integrations/supabase/types";
-import { shrinkImage } from "@/lib/image-compress";
+import { CHAT_PHOTO_SIZE, shrinkImage } from "@/lib/image-compress";
 import { shrinkVideo } from "@/lib/video-compress";
 import { uploadMedia } from "@/lib/media-upload";
 import { imageSize, limiter, withMediaSize } from "@/lib/chat-media";
@@ -549,7 +549,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
 
   /** A photo or video from the phone: made smaller, uploaded, its address with its size. */
   const uploadChatFile = async (file: File, kind: "image" | "video", onProgress: (p: number) => void) => {
-    const upload = kind === "image" ? await shrinkImage(file) : await shrinkVideo(file);
+    const upload = kind === "image" ? await shrinkImage(file, CHAT_PHOTO_SIZE, 0.8) : await shrinkVideo(file);
     const size = kind === "image" ? await imageSize(upload) : null;
     const url = await uploadMedia("chat-images", `${currentUserId}/${Date.now()}-${upload.name}`, upload, onProgress);
     return size ? withMediaSize(url, size.w, size.h) : url;

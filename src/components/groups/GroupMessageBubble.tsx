@@ -175,7 +175,7 @@ const GroupMessageBubble = ({
       )}
 
       <div
-        className={cn("flex min-w-0 max-w-[78%] flex-col", (voice || (m.image_url && !sticker)) && "w-[78%] max-w-[300px]", mine ? "items-end" : "items-start", !swipe.swiping && "transition-transform duration-200 ease-out")}
+        className={cn("flex min-w-0 max-w-[78%] flex-col", voice ? "w-[78%] max-w-[300px]" : m.image_url && !sticker && "w-[66%] max-w-[236px]", mine ? "items-end" : "items-start", !swipe.swiping && "transition-transform duration-200 ease-out")}
         style={swipe.offset ? { transform: `translateX(${swipe.offset}px)` } : undefined}
       >
         <div
@@ -231,8 +231,8 @@ const GroupMessageBubble = ({
             <video src={src} controls={!sending} playsInline preload="metadata" className="mt-1 max-h-72 w-full rounded-md bg-black" />
           ) : m.image_url ? (
             <button type="button" className="relative mt-1 block w-full overflow-hidden rounded-md bg-black/10" onClick={() => { if (!sending && !failed) onOpenPhoto(m.image_url!); }} aria-label={kind === "gif" ? "GIF" : "Open photo"}
-              style={size ? { aspectRatio: `${size.w} / ${size.h}`, maxHeight: 340 } : undefined}>
-              <img src={src} alt="" loading="lazy" className={cn("w-full object-cover", size ? "h-full" : "max-h-80")} />
+              style={size ? { aspectRatio: `${size.w} / ${size.h}`, maxHeight: 280 } : undefined}>
+              <img src={src} alt="" loading="lazy" className={cn("w-full object-cover", size ? "h-full" : "max-h-72")} />
             </button>
           ) : null}
           {/* On its way: the upload ring; couldn't go: tap to try again. */}

@@ -7,23 +7,28 @@
  * Turn them on by setting VITE_DB_UPDATES_2026_10=true (in Vercel: Settings → Environment
  * Variables, then redeploy). The tests turn them on, since their database has every update.
  */
-const on = import.meta.env.VITE_DB_UPDATES_2026_10 === "true";
+import { knownDbUpdates } from "@/lib/db-updates";
+
+// Each one is also switched on by itself once the app finds the update in the database
+// (lib/db-updates), so running the SQL is enough.
+const found = knownDbUpdates();
+const on = import.meta.env.VITE_DB_UPDATES_2026_10 === "true" || !!found["2026_10"];
 /**
  * November 2026's database updates (supabase/migrations/2026110*.sql). Same idea: off until
  * they've been run, then VITE_DB_UPDATES_2026_11=true.
  */
-const nov = import.meta.env.VITE_DB_UPDATES_2026_11 === "true";
+const nov = import.meta.env.VITE_DB_UPDATES_2026_11 === "true" || !!found["2026_11"];
 /**
  * The second November update (20261109090000_stories_stickers_view_once_chat_themes.sql):
  * VITE_DB_UPDATES_2026_11B=true once it's been run.
  */
-const nov2 = import.meta.env.VITE_DB_UPDATES_2026_11B === "true";
+const nov2 = import.meta.env.VITE_DB_UPDATES_2026_11B === "true" || !!found["2026_11B"];
 /**
  * The third (20261109130000_messaging_like_whatsapp.sql): VITE_DB_UPDATES_2026_11C=true.
  */
-const nov3 = import.meta.env.VITE_DB_UPDATES_2026_11C === "true";
+const nov3 = import.meta.env.VITE_DB_UPDATES_2026_11C === "true" || !!found["2026_11C"];
 /** The fourth (20261110090000_group_chats_like_dms.sql): VITE_DB_UPDATES_2026_11D=true. */
-const nov4 = import.meta.env.VITE_DB_UPDATES_2026_11D === "true";
+const nov4 = import.meta.env.VITE_DB_UPDATES_2026_11D === "true" || !!found["2026_11D"];
 
 export const features = {
   /**

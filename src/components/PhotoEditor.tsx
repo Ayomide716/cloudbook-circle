@@ -223,7 +223,7 @@ const PhotoEditor = ({ source, onCancel, onDone }: PhotoEditorProps) => {
           </div>
         )}
         {tab === "filter" && img && (
-          <div className="flex gap-3 overflow-x-auto pb-1 scrollbar-hide" data-no-tab-swipe="">
+          <div className="flex gap-3 overflow-x-auto px-1 pb-1 pt-1.5 scrollbar-hide" data-no-tab-swipe="">
             {PHOTO_FILTERS.map((f) => (
               <button key={f.id} type="button" onClick={() => setFilter(f)} aria-pressed={filter.id === f.id} className="flex shrink-0 flex-col items-center gap-1.5">
                 <span className={cn("block h-16 w-16 overflow-hidden rounded-xl ring-2", filter.id === f.id ? "ring-white" : "ring-transparent")}>
