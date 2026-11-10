@@ -946,7 +946,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
       {/* In the keyboard's place, exactly as tall, so the chat doesn't jump when you switch. */}
       {panel && (
         <div role="dialog" data-state="open" aria-label={panel === "emoji" ? "Emoji, GIFs and stickers" : "Attach"}
-          className="flex-shrink-0 overflow-hidden border-t border-border bg-background pb-[env(safe-area-inset-bottom)]" style={{ height: keyboard.height }}>
+          className="chat-keyboard-panel flex-shrink-0 overflow-hidden border-t border-border bg-background pb-[env(safe-area-inset-bottom)]" style={{ height: keyboard.height }}>
           {panel === "emoji" ? (
             <GifPicker
               panel

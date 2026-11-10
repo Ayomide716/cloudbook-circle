@@ -86,40 +86,66 @@ async function handleCallLinks() {
 /**
  * The keyboard's height straight from Android, as --keyboard-inset (what sheets, the chat box
  * and the story reply bar sit on). Inside the app the web view's own viewport numbers aren't
- * reliable for this. If Android already made the app shorter for the keyboard, only the part
- * it didn't cover is added, so nothing is lifted twice.
+ * reliable for this.
+ *
+ * Android tells us the keyboard is coming (keyboardWillShow) before it has made the app shorter
+ * for it. Lifting things then lifted them twice once the app did get shorter (the message box
+ * jumped up, a gap above the keyboard). So nothing is lifted until the keyboard is really up
+ * (keyboardDidShow, or the app getting shorter), and then only by what Android didn't already
+ * take off the app.
+ *
+ * body.keyboard-shown says the keyboard is really taking room. The emoji and attach panels hide
+ * while it's there (index.css), so switching between them and the keyboard never shows both:
+ * the keyboard slides in over the panel, which goes the moment the keyboard has its room.
  */
 async function trackKeyboard() {
   const { Keyboard } = await import("@capacitor/keyboard");
   const root = document.documentElement;
-  let keyboardHeight = 0;
+  let keyboardHeight = 0; // what Android says (0 once it's going away)
+  let up = false; // the keyboard has its room (the app got shorter, or it finished opening)
   let fullHeight = window.innerHeight;
   const apply = () => {
-    root.style.setProperty("--keyboard-inset", `${keyboardLift(keyboardHeight, fullHeight, window.innerHeight)}px`);
+    const lift = up && keyboardHeight > 0 ? keyboardLift(keyboardHeight, fullHeight, window.innerHeight) : 0;
+    root.style.setProperty("--keyboard-inset", `${lift}px`);
     // The keyboard's full height, however much of it Android already took off the app: the
     // emoji and attach panels are drawn exactly this tall in its place.
-    root.style.setProperty("--keyboard-height", `${keyboardHeight}px`);
-    document.body.classList.toggle("keyboard-open", keyboardHeight > 0);
+    if (keyboardHeight > 0) root.style.setProperty("--keyboard-height", `${keyboardHeight}px`);
+    document.body.classList.toggle("keyboard-open", keyboardHeight > 0 || up);
+    document.body.classList.toggle("keyboard-shown", up);
   };
-  // Android may make the app shorter after it has told us the keyboard's height: work it out
-  // again then, so nothing is lifted twice.
+  // Settles over the keyboard's animation: Android reports sizes in a few steps.
+  let settleUntil = 0;
+  const settle = () => {
+    settleUntil = Date.now() + 600;
+    const tick = () => { apply(); if (Date.now() < settleUntil) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
+  };
   window.addEventListener("resize", () => {
-    if (keyboardHeight === 0) fullHeight = window.innerHeight; // rotating, split screen…
+    const shorter = window.innerHeight < fullHeight - 80;
+    if (keyboardHeight > 0 && shorter) up = true; // Android made room for the keyboard
+    if (keyboardHeight === 0 && !shorter) {
+      up = false; // the room is back: the keyboard has gone
+      fullHeight = window.innerHeight; // rotating, split screen…
+    }
     apply();
   });
-  const shown = (height: number) => {
-    keyboardHeight = height;
-    apply();
-    // Once it's settled, bring the field you're typing in into view.
-    requestAnimationFrame(() => { apply(); window.dispatchEvent(new Event(KEYBOARD_SHOWN_EVENT)); });
-  };
   Keyboard.addListener("keyboardWillShow", ({ keyboardHeight: h }) => { keyboardHeight = h; apply(); });
-  Keyboard.addListener("keyboardDidShow", ({ keyboardHeight: h }) => shown(h));
+  Keyboard.addListener("keyboardDidShow", ({ keyboardHeight: h }) => {
+    keyboardHeight = h;
+    up = true;
+    apply();
+    settle();
+    // Once it's settled, bring the field you're typing in into view.
+    requestAnimationFrame(() => window.dispatchEvent(new Event(KEYBOARD_SHOWN_EVENT)));
+  });
+  // Going away: nothing is lifted any more, but the panel waits until the room is back.
   Keyboard.addListener("keyboardWillHide", () => { keyboardHeight = 0; apply(); });
   Keyboard.addListener("keyboardDidHide", () => {
     keyboardHeight = 0;
-    fullHeight = window.innerHeight;
+    up = false;
+    fullHeight = Math.max(fullHeight, window.innerHeight);
     apply();
+    settle();
   });
 }
 

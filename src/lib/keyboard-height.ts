@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
  * The phone keyboard's height, remembered, so a panel shown in its place (emoji, attach) is
  * exactly as tall and the chat above doesn't jump when you switch, as in WhatsApp.
  *
- * Whether it's up comes from body.keyboard-open, and its height from --keyboard-height, which
+ * Whether it's up comes from body.keyboard-shown, and its height from --keyboard-height, which
  * the app (lib/native) and the website (use-keyboard-inset) keep. Not --keyboard-inset: when
  * Android makes the app shorter for the keyboard that is 0 while the keyboard is up.
  */
@@ -12,7 +12,8 @@ const KEY = "ember:keyboard-height";
 const DEFAULT = 300;
 
 const readHeight = () => parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--keyboard-height")) || 0;
-const readOpen = () => document.body.classList.contains("keyboard-open");
+// Really taking room (lib/native, use-keyboard-inset), not just a field being tapped.
+const readOpen = () => document.body.classList.contains("keyboard-shown");
 
 export function rememberedKeyboardHeight() {
   try {

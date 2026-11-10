@@ -561,3 +561,11 @@
 .photo-wallpaper .chat-wallpaper {
   background: transparent !important;
 }
+
+/* The emoji and attach panels sit in the keyboard's place. While the keyboard has the room
+   they hide, in the same frame (lib/native, keyboard-shown), so the two never show at once:
+   switching to the keyboard, it slides in over the panel; switching back, the panel appears
+   when the keyboard has gone. */
+body.keyboard-shown .chat-keyboard-panel {
+  display: none !important;
+}

@@ -33,7 +33,10 @@ export function useKeyboardInset() {
       const inset = vv ? Math.max(0, Math.round(window.innerHeight - vv.height - vv.offsetTop)) : 0;
       root.style.setProperty("--keyboard-inset", `${inset}px`);
       if (!isEditable(document.activeElement) || window.innerHeight > fullHeight) fullHeight = window.innerHeight;
-      root.style.setProperty("--keyboard-height", `${Math.max(inset, fullHeight - window.innerHeight)}px`);
+      const keyboard = Math.max(inset, fullHeight - window.innerHeight);
+      root.style.setProperty("--keyboard-height", `${keyboard}px`);
+      // The keyboard is really taking room (not just a field being tapped): see lib/native.
+      document.body.classList.toggle("keyboard-shown", keyboard > 80);
       const typing = coarse.matches && isEditable(document.activeElement);
       document.body.classList.toggle("keyboard-open", typing || inset > 80);
     };
@@ -74,7 +77,7 @@ export function useKeyboardInset() {
       document.removeEventListener("focusout", onFocusOut);
       root.style.removeProperty("--keyboard-inset");
       root.style.removeProperty("--keyboard-height");
-      document.body.classList.remove("keyboard-open");
+      document.body.classList.remove("keyboard-open", "keyboard-shown");
     };
   }, []);
 }

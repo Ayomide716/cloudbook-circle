@@ -1634,7 +1634,7 @@ const Messages = () => {
                       role="dialog"
                       data-state="open"
                       aria-label={panel === "emoji" ? "Emoji, GIFs and stickers" : "Attach"}
-                      className="flex-shrink-0 overflow-hidden border-t border-border bg-background pb-[env(safe-area-inset-bottom)]"
+                      className="chat-keyboard-panel flex-shrink-0 overflow-hidden border-t border-border bg-background pb-[env(safe-area-inset-bottom)]"
                       style={{ height: keyboard.height }}
                     >
                       {panel === "emoji" ? (
