@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
+import { cachedChatList, saveChatList } from "@/lib/chat-cache";
 
 /**
  * Your groups as chats, for the Messages list (as WhatsApp lists groups with people): each
@@ -60,8 +61,13 @@ export function markGroupSeen(userId: string, groupId: string) {
 export const groupActivity = (g: GroupChatSummary) => g.lastMessage?.created_at ?? g.joinedAt;
 
 export function useGroupChats(userId: string | null) {
-  const [groups, setGroups] = useState<GroupChatSummary[]>([]);
+  // Your groups as they were last time, at once; the server's answer replaces them.
+  const [groups, setGroups] = useState<GroupChatSummary[]>(() => cachedChatList<GroupChatSummary>(userId ? `g:${userId}` : null) ?? []);
   const [invites, setInvites] = useState<GroupInvite[]>([]);
+  useEffect(() => {
+    const cached = cachedChatList<GroupChatSummary>(userId ? `g:${userId}` : null);
+    if (cached?.length) setGroups((prev) => (prev.length ? prev : cached));
+  }, [userId]);
 
   const load = useCallback(async () => {
     if (!userId) return;
@@ -91,8 +97,7 @@ export function useGroupChats(userId: string | null) {
     const names = new Map((senders ?? []).map((p) => [p.id, p.full_name]));
     const seen = readSeen(userId);
 
-    setGroups(
-      mine.map(({ joined_at, groups: group }) => {
+    const list: GroupChatSummary[] = mine.map(({ joined_at, groups: group }) => {
         const msgs = (recent ?? []).filter((m) => m.group_id === group.id);
         const last = msgs[0];
         const since = seen[group.id] ?? joined_at;
@@ -102,8 +107,9 @@ export function useGroupChats(userId: string | null) {
           lastMessage: last ? { ...last, senderName: names.get(last.user_id) ?? null } : null,
           unread: msgs.filter((m) => m.user_id !== userId && m.created_at > since).length,
         };
-      })
-    );
+      });
+    setGroups(list);
+    saveChatList(`g:${userId}`, list);
 
     // Invites waiting for you (the table only exists after the invites database update).
     const { data: inviteRows, error } = await supabase
