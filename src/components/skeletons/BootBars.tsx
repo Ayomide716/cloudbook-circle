@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Bell, Film, Home, PlusCircle, Search, Send, Users } from "@/components/icons";
+import { Bell, Film, Home, MessageCircle, Plus, Search } from "@/components/icons";
 import Wordmark from "@/components/Wordmark";
 import { isSubPage } from "@/lib/sub-pages";
 
@@ -19,28 +19,36 @@ const BootBars = ({ path, children }: { path: string; children: ReactNode }) => 
           <div className="flex h-[var(--nav-height)] items-center justify-between border-b border-border/50 px-3">
             <Wordmark className="text-[28px]" />
             <div className="-mr-2 flex items-center text-foreground">
-              {[Search, Bell, Send].map((Icon, i) => (
+              {[Search, Bell].map((Icon, i) => (
                 <span key={i} className="flex h-11 w-11 items-center justify-center"><Icon className="h-6 w-6" /></span>
               ))}
             </div>
           </div>
         )}
       </div>
-      <div className="max-md:pb-[calc(4.25rem+env(safe-area-inset-bottom,0px))]">{children}</div>
+      <div className="max-md:pb-[calc(3.9rem+env(safe-area-inset-bottom,0px))]">{children}</div>
       <div
         className="fixed inset-x-0 bottom-0 z-50 border-t border-border bg-background pb-[env(safe-area-inset-bottom,0px)] md:hidden"
         aria-hidden="true"
       >
-        <div className="grid h-[58px] grid-cols-5 items-center px-1 text-foreground">
-          {([[Home, "Home"], [Users, "Friends"], [PlusCircle, "Create"], [Film, "Reels"]] as const).map(([Icon, label], i) => (
-            <span key={label} className="flex flex-col items-center gap-0.5">
-              <Icon className="h-[25px] w-[25px]" fill={i === 0 && path === "/" ? "currentColor" : undefined} />
-              <span className={i === 0 && path === "/" ? "text-[11px] font-bold leading-none" : "text-[11px] font-medium leading-none text-muted-foreground"}>{label}</span>
+        {/* The same five as the real tab bar: Home, Reels, Create, Chats, Menu. */}
+        <div className="grid h-[52px] grid-cols-5 items-center px-1">
+          {([[Home, "Home", "/"], [Film, "Reels", "/reels"]] as const).map(([Icon, label, to]) => (
+            <span key={label} className={path === to ? "flex flex-col items-center gap-[3px] text-primary" : "flex flex-col items-center gap-[3px] text-muted-foreground"}>
+              <Icon className="h-[22px] w-[22px]" fill={path === to ? "currentColor" : undefined} />
+              <span className={path === to ? "text-[10px] font-bold leading-none" : "text-[10px] font-medium leading-none"}>{label}</span>
             </span>
           ))}
-          <span className="flex flex-col items-center gap-0.5">
-            <span className="h-[25px] w-[25px] rounded-full bg-secondary" />
-            <span className="text-[11px] font-medium leading-none text-muted-foreground">Menu</span>
+          <span className="flex items-center justify-center">
+            <span className="flex h-[34px] w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground"><Plus className="h-5 w-5" strokeWidth={2.4} /></span>
+          </span>
+          <span className={path === "/messages" ? "flex flex-col items-center gap-[3px] text-primary" : "flex flex-col items-center gap-[3px] text-muted-foreground"}>
+            <MessageCircle className="h-[22px] w-[22px]" fill={path === "/messages" ? "currentColor" : undefined} />
+            <span className={path === "/messages" ? "text-[10px] font-bold leading-none" : "text-[10px] font-medium leading-none"}>Chats</span>
+          </span>
+          <span className="flex flex-col items-center gap-[3px] text-muted-foreground">
+            <span className="h-[22px] w-[22px] rounded-full bg-secondary" />
+            <span className="text-[10px] font-medium leading-none">Menu</span>
           </span>
         </div>
       </div>

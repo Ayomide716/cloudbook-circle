@@ -37,7 +37,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadMessages = 0, avat
   const navigate = useNavigate();
   const location = useLocation();
   // Toasts sit just above the tab bar (phones only; it's hidden on bigger screens).
-  useBottomSpace("--dock-space", typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "4.25rem" : null);
+  useBottomSpace("--dock-space", typeof window !== "undefined" && window.matchMedia("(max-width: 767px)").matches ? "3.9rem" : null);
 
   const tabs = [
     { icon: Home, path: "/", label: "Home", badge: 0 },
@@ -68,10 +68,10 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadMessages = 0, avat
         aria-label={tab.badge > 0 ? `${tab.label}, ${tab.badge} new` : tab.label}
         className={tabClass}
       >
-        <span className={cn("relative flex flex-col items-center gap-1", active ? "text-primary" : "text-muted-foreground")}>
+        <span className={cn("relative flex flex-col items-center gap-[3px]", active ? "text-primary" : "text-muted-foreground")}>
           {/* Outlines, solid and in the brand colour on the tab you're on. */}
-          <tab.icon className="h-6 w-6" fill={active ? "currentColor" : undefined} />
-          <span className={cn("text-[11px] leading-none", active ? "font-bold" : "font-medium")} aria-hidden="true">{tab.label}</span>
+          <tab.icon className="h-[22px] w-[22px]" fill={active ? "currentColor" : undefined} />
+          <span className={cn("text-[10px] leading-none", active ? "font-bold" : "font-medium")} aria-hidden="true">{tab.label}</span>
           {tab.badge > 0 && (
             <span className="absolute -top-1.5 left-1/2 ml-1.5 min-w-[18px] h-[18px] rounded-full bg-badge px-1 text-[10px] font-bold leading-[18px] text-white text-center ring-2 ring-card">
               {tab.badge > 9 ? "9+" : tab.badge}
@@ -93,7 +93,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadMessages = 0, avat
         location.pathname.startsWith("/reels") && "dark"
       )}
     >
-      <div className="grid h-[58px] grid-cols-5 px-1">
+      <div className="grid h-[52px] grid-cols-5 px-1">
         {tabs.slice(0, 2).map(renderTab)}
 
         {/* Create, in the middle: a post, a story or a reel. */}
@@ -103,11 +103,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadMessages = 0, avat
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 aria-label="Create"
-                className="flex min-h-12 min-w-14 items-center justify-center"
+                // No outline: closing the menu hands focus back here, which drew a box around the button.
+                className="flex min-h-11 min-w-14 items-center justify-center outline-none"
               >
                 {/* The one filled button in the bar. */}
-                <span className="flex h-10 w-[50px] items-center justify-center rounded-[14px] bg-primary text-primary-foreground">
-                  <Plus className="h-6 w-6" strokeWidth={2.4} />
+                <span className="flex h-[34px] w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+                  <Plus className="h-5 w-5" strokeWidth={2.4} />
                 </span>
               </motion.button>
             </DropdownMenuTrigger>
@@ -136,12 +137,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, unreadMessages = 0, avat
           aria-label={friendRequests > 0 ? `Menu, ${friendRequests} friend ${friendRequests === 1 ? "request" : "requests"}` : "Menu"}
           className={tabClass}
         >
-          <span className={cn("relative flex flex-col items-center gap-1", menuActive ? "text-primary" : "text-muted-foreground")}>
-            <Avatar className={cn("h-6 w-6 transition-shadow", menuActive ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "ring-1 ring-border")}>
+          <span className={cn("relative flex flex-col items-center gap-[3px]", menuActive ? "text-primary" : "text-muted-foreground")}>
+            <Avatar className={cn("h-[22px] w-[22px] transition-shadow", menuActive ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "ring-1 ring-border")}>
               <AvatarImage src={avatarUrl || undefined} alt="" />
               <AvatarFallback className="text-[10px] font-bold">{name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
-            <span className={cn("text-[11px] leading-none", menuActive ? "font-bold" : "font-medium")} aria-hidden="true">Menu</span>
+            <span className={cn("text-[10px] leading-none", menuActive ? "font-bold" : "font-medium")} aria-hidden="true">Menu</span>
             {friendRequests > 0 && (
               <span className="absolute -top-1.5 left-1/2 ml-1.5 min-w-[18px] h-[18px] rounded-full bg-badge px-1 text-[10px] font-bold leading-[18px] text-white text-center ring-2 ring-card">
                 {friendRequests > 9 ? "9+" : friendRequests}
