@@ -110,7 +110,7 @@ const PostContent = ({ content }: PostContentProps) => {
     <div className="mt-2.5">
       <p
         ref={textRef}
-        className="text-[14px] leading-snug sm:text-base whitespace-pre-wrap break-words"
+        className="text-[15px] leading-[1.45] sm:text-base whitespace-pre-wrap break-words"
         // Long posts start folded at 6 lines, as on Facebook.
         style={expanded ? undefined : { display: "-webkit-box", WebkitLineClamp: 6, WebkitBoxOrient: "vertical", overflow: "hidden" }}
       >
@@ -120,7 +120,7 @@ const PostContent = ({ content }: PostContentProps) => {
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); setExpanded((x) => !x); }}
-          className="mt-0.5 text-[14px] font-semibold text-muted-foreground hover:underline sm:text-base"
+          className="mt-0.5 text-[15px] font-semibold text-muted-foreground hover:underline sm:text-base"
         >
           {expanded ? "See less" : "See more"}
         </button>

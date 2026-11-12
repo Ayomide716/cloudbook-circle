@@ -585,7 +585,7 @@ const PostCard = ({
       <div className="px-4 pb-2.5 pt-3 sm:p-4">
         <div className="flex items-start gap-2.5 sm:gap-3">
           <Link to={`/profile/${post.profiles.id}`} aria-label={post.profiles.full_name || "Profile"}>
-            <Avatar className="h-9 w-9 sm:h-10 sm:w-10">
+            <Avatar className="h-10 w-10">
               <AvatarImage src={post.profiles.avatar_url || undefined} />
               <AvatarFallback className="bg-secondary">
                 {post.profiles.full_name?.[0]?.toUpperCase() || "U"}
@@ -596,7 +596,7 @@ const PostCard = ({
           <div className="flex-1 min-w-0">
             <Link to={`/profile/${post.profiles.id}`} className="flex max-w-full">
               {/* A long name shortens with "…" instead of pushing the menu button off the card. */}
-              <p className="flex min-w-0 items-center gap-1 text-[15px] font-semibold leading-tight hover:underline">
+              <p className="flex min-w-0 items-center gap-1 text-[15px] font-bold leading-tight hover:underline">
                 <span className="truncate">{post.profiles.full_name || "Anonymous"}</span>
                 {post.profiles.is_verified && <span className="shrink-0"><VerifiedBadge size="sm" /></span>}
               </p>
