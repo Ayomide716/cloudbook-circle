@@ -190,7 +190,9 @@ const ChatBubble = ({
   const chatLink = hasText ? firstLink(message.content) : null;
   // One to three emoji and nothing else: shown big, with no bubble (as on WhatsApp).
   const bigEmoji = hasText && !isMedia && !story && !replyMessage && !message.forwarded ? emojiOnlyCount(message.content) : 0;
-  const bare = !!stickerSrc || bigEmoji > 0;
+  // A photo or video on its own is just the rounded picture, with no coloured frame around it.
+  const photoOnly = !!isMedia && !hasText && !replyMessage && !message.forwarded;
+  const bare = !!stickerSrc || bigEmoji > 0 || photoOnly;
   const sentAt = new Date(message.created_at);
   const time = format(sentAt, "HH:mm");
   const fullTime = isToday(sentAt) ? `Today ${time}` : isYesterday(sentAt) ? `Yesterday ${time}` : format(sentAt, "d MMM yyyy, HH:mm");
@@ -300,7 +302,8 @@ const ChatBubble = ({
             bare ? "rounded-2xl" : cn("shadow-sm rounded-lg", isCurrentUser ? colors.sent : colors.received),
             // The tail sits at the top corner of the first message in a run.
             !bare && isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
-            stickerSrc ? "p-0" : bigEmoji ? "px-1 pb-7" : isMedia ? "p-1" : "px-2.5 py-1.5",
+            stickerSrc || photoOnly ? "p-0" : bigEmoji ? "px-1 pb-7" : isMedia ? "p-1" : "px-2.5 py-1.5",
+            photoOnly && "overflow-hidden",
             "[@media(hover:none)]:select-none [-webkit-touch-callout:none]",
             menuOpen && "ring-2 ring-primary/40"
           )}
