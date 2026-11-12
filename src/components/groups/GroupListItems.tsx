@@ -32,6 +32,7 @@ export const GroupChatRow = ({
     <ConversationRow
       profile={{ id: chat.group.id, full_name: chat.group.name, avatar_url: chat.group.image_url }}
       fallback={<GroupInitials id={chat.group.id} name={chat.group.name} className="text-[15px]" />}
+      square
       preview={last ? `${who}: ${previewText(last.content)}` : "Group created · say hello"}
       unreadCount={chat.unread}
       currentUserId={currentUserId}

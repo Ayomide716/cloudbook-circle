@@ -2040,20 +2040,29 @@ export type Database = {
           },
         ]
       }
+      saved_collections: {
+        Row: { id: string; user_id: string; name: string; created_at: string }
+        Insert: { id?: string; user_id: string; name: string; created_at?: string }
+        Update: { id?: string; user_id?: string; name?: string; created_at?: string }
+        Relationships: []
+      }
       saved_posts: {
         Row: {
+          collection_id: string | null
           created_at: string
           id: string
           post_id: string
           user_id: string
         }
         Insert: {
+          collection_id?: string | null
           created_at?: string
           id?: string
           post_id: string
           user_id: string
         }
         Update: {
+          collection_id?: string | null
           created_at?: string
           id?: string
           post_id?: string

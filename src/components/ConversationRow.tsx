@@ -25,6 +25,8 @@ interface ConversationRowProps {
   preview?: string;
   /** In the picture's place when there's no picture (a group icon for groups). */
   fallback?: ReactNode;
+  /** Groups: a rounded square instead of a circle, so they stand out from people. */
+  square?: boolean;
   /** A green dot on the picture: they're active now. */
   online?: boolean;
   /** They're typing to you right now: "typing…" instead of the last message. */
@@ -40,7 +42,7 @@ const SWIPE_ACTION_WIDTH = 76;
  * are unread messages. Press and hold (or the ⌄ button on bigger screens) to pin, mute or archive.
  */
 const ConversationRow = ({
-  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback, online, typing, onMarkRead,
+  profile, lastMessage, unreadCount, currentUserId, selected, pinned, muted, archived, time, onOpen, onToggle, draft, preview, fallback, square, online, typing, onMarkRead,
 }: ConversationRowProps) => {
   const [menuOpen, setMenuOpen] = useState(false);
   const pressTimer = useRef<number>();
@@ -138,9 +140,9 @@ const ConversationRow = ({
       onContextMenu={(e) => { e.preventDefault(); setMenuOpen(true); }}
     >
       <span className="relative flex-shrink-0">
-        <Avatar className="h-12 w-12">
+        <Avatar className={cn("h-12 w-12", square && "rounded-2xl")}>
           <AvatarImage src={profile.avatar_url || undefined} className="object-cover" />
-          <AvatarFallback>{fallback ?? (profile.full_name?.[0]?.toUpperCase() || "U")}</AvatarFallback>
+          <AvatarFallback className={square ? "rounded-2xl" : undefined}>{fallback ?? (profile.full_name?.[0]?.toUpperCase() || "U")}</AvatarFallback>
         </Avatar>
         {online && <span className="absolute bottom-0 right-0 h-3.5 w-3.5 rounded-full border-2 border-background bg-green-500" aria-label="Active now" />}
       </span>

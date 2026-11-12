@@ -7,7 +7,7 @@
  * is an error; asking for one it has is fine even when you may not read any rows. The answer
  * is kept on the device, so the app starts straight away next time and checks again quietly.
  */
-export type DbUpdate = "2026_10" | "2026_11" | "2026_11B" | "2026_11C" | "2026_11D";
+export type DbUpdate = "2026_10" | "2026_11" | "2026_11B" | "2026_11C" | "2026_11D" | "2026_11E";
 
 const PROBES: Record<DbUpdate, string[]> = {
   "2026_10": ["profiles?select=hometown", "blocks?select=blocker_id"],
@@ -15,6 +15,7 @@ const PROBES: Record<DbUpdate, string[]> = {
   "2026_11B": ["messages?select=view_once", "chat_themes?select=theme"],
   "2026_11C": ["messages?select=poll", "hidden_messages?select=message_id"],
   "2026_11D": ["group_messages?select=poll", "group_pins?select=message_id"],
+  "2026_11E": ["saved_collections?select=id", "saved_posts?select=collection_id"],
 };
 
 const KEY = "ember:db-updates";

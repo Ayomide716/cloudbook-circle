@@ -29,6 +29,8 @@ const nov2 = import.meta.env.VITE_DB_UPDATES_2026_11B === "true" || !!found["202
 const nov3 = import.meta.env.VITE_DB_UPDATES_2026_11C === "true" || !!found["2026_11C"];
 /** The fourth (20261110090000_group_chats_like_dms.sql): VITE_DB_UPDATES_2026_11D=true. */
 const nov4 = import.meta.env.VITE_DB_UPDATES_2026_11D === "true" || !!found["2026_11D"];
+/** The fifth (20261113090000_saved_collections.sql): VITE_DB_UPDATES_2026_11E=true. */
+const nov5 = import.meta.env.VITE_DB_UPDATES_2026_11E === "true" || !!found["2026_11E"];
 
 export const features = {
   /**
@@ -38,6 +40,8 @@ export const features = {
   messaging2: nov3,
   /** Group chats get documents, polls, events, pins, delete for me and "read by". */
   groupChats2: nov4,
+  /** Saved posts sorted into collections ("Recipes", "Ideas"). */
+  savedCollections: nov5,
   /** Polls and mentions you can tap on stories, and posts shared to a story (stories.overlay). */
   storyStickers: nov2,
   /** View-once photos in chats. */

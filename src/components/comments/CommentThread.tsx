@@ -10,7 +10,7 @@ import { cn, toDate } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { ToastAction } from "@/components/ui/toast";
 import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
-import { Heart, ThumbsUp } from "@/components/icons";
+import { ChevronDown, Heart, ThumbsUp } from "@/components/icons";
 import type { CommentLikes } from "@/lib/comment-likes";
 
 export interface ThreadComment {
@@ -41,6 +41,8 @@ interface CommentThreadProps<T extends ThreadComment> {
   latest?: boolean;
   /** Post comments: "Like" under each comment with its count (lib/comment-likes). */
   likes?: CommentLikes | null;
+  /** A "Top comments / Newest" switch above the list (post comments, as on Facebook). */
+  sortable?: boolean;
   className?: string;
 }
 
@@ -71,8 +73,11 @@ export function CommentThread<T extends ThreadComment>({
   openThreadId,
   latest = false,
   likes,
+  sortable = false,
   className,
 }: CommentThreadProps<T>) {
+  // Top: most liked and replied-to first. Newest: the latest first.
+  const [sortMode, setSortMode] = useState<"top" | "newest">("top");
   // Deleting a comment hides it at once with "Comment deleted · Undo" (and its replies with it);
   // it's really deleted 5 seconds later, or as the app closes.
   const [hidden, setHidden] = useState<Set<string>>(() => new Set());
@@ -118,8 +123,16 @@ export function CommentThread<T extends ThreadComment>({
         top.push(c);
       }
     }
+    if (sortable) {
+      const time = (c: T) => (c.created_at ? Date.parse(c.created_at) : 0);
+      const score = (c: T) => (likes?.count(c.id) ?? 0) + (replies.get(c.id)?.length ?? 0);
+      // Array.sort is stable, so ties keep their order (oldest first for Top).
+      top.sort(sortMode === "newest" ? (a, b) => time(b) - time(a) : (a, b) => score(b) - score(a));
+    }
     return { topLevel: top, repliesOf: replies };
-  }, [visible]);
+  }, [visible, sortable, sortMode, likes]);
+  // Sorted lists read from the top; otherwise the latest stay at the bottom, as in a chat.
+  const fromEnd = latest && !sortable;
 
   const [shownTop, setShownTop] = useState(initialCount);
   // How many replies are showing for each thread (missing = folded).
@@ -132,7 +145,7 @@ export function CommentThread<T extends ThreadComment>({
   }, [openThreadId, repliesOf]);
 
   const shownCount = Math.max(shownTop, 0);
-  const visibleTop = latest ? topLevel.slice(Math.max(topLevel.length - shownCount, 0)) : topLevel.slice(0, shownCount);
+  const visibleTop = fromEnd ? topLevel.slice(Math.max(topLevel.length - shownCount, 0)) : topLevel.slice(0, shownCount);
   const hiddenTop = topLevel.length - visibleTop.length;
   const moreButton = hiddenTop > 0 && (
     <button
@@ -140,7 +153,7 @@ export function CommentThread<T extends ThreadComment>({
       className="text-sm font-semibold text-muted-foreground hover:text-foreground"
       onClick={() => setShownTop((n) => n + 10)}
     >
-      {latest
+      {fromEnd
         ? "View previous comments"
         : `View ${Math.min(hiddenTop, 10) === hiddenTop ? hiddenTop : 10} more ${hiddenTop === 1 ? "comment" : "comments"}`}
     </button>
@@ -247,7 +260,18 @@ export function CommentThread<T extends ThreadComment>({
 
   return (
     <div className={cn("space-y-3", className)}>
-      {latest && moreButton}
+      {sortable && topLevel.length > 1 && (
+        <button
+          type="button"
+          onClick={() => setSortMode((m) => (m === "top" ? "newest" : "top"))}
+          aria-label={sortMode === "top" ? "Sorted by top comments. Show newest first" : "Sorted by newest. Show top comments"}
+          className="flex h-8 items-center gap-1 text-[13px] font-bold"
+        >
+          {sortMode === "top" ? "Top comments" : "Newest"}
+          <ChevronDown className="h-4 w-4" aria-hidden="true" />
+        </button>
+      )}
+      {fromEnd && moreButton}
       {visibleTop.map((c) => {
         const replies = repliesOf.get(c.id) ?? [];
         const shown = shownReplies[c.id] ?? 0;
@@ -286,7 +310,7 @@ export function CommentThread<T extends ThreadComment>({
           </div>
         );
       })}
-      {!latest && moreButton}
+      {!fromEnd && moreButton}
     </div>
   );
 }
