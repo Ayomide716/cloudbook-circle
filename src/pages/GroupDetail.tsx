@@ -681,8 +681,8 @@ const GroupDetail = () => {
                   <Button variant="accent" className="flex-1 rounded-xl sm:flex-none" onClick={() => setShowAddPeople(true)}>
                     <UserPlus className="mr-2 h-4 w-4" /> Invite
                   </Button>
-                  <HeaderAction icon={Phone} label="Start group voice call" onClick={() => startGroupCall(true)} />
-                  <HeaderAction icon={Video} label="Start group video call" onClick={() => startGroupCall(false)} />
+                  <HeaderAction filled icon={Phone} label="Start group voice call" onClick={() => startGroupCall(true)} />
+                  <HeaderAction filled icon={Video} label="Start group video call" onClick={() => startGroupCall(false)} />
                 </>
               ) : myRequest ? (
                 <Button variant="secondary" className="flex-1 rounded-xl sm:flex-none" onClick={cancelRequest} aria-label="Requested. Cancel request?">

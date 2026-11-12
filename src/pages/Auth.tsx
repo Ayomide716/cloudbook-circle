@@ -13,7 +13,8 @@ import AuthField from "@/components/auth/AuthField";
 import { nameProblem, tidyName } from "@/lib/name-check";
 
 const Auth = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  // "/auth?mode=signup" opens straight on the new-account form.
+  const [isLogin, setIsLogin] = useState(() => new URLSearchParams(window.location.search).get("mode") !== "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -79,26 +80,6 @@ const Auth = () => {
       <p className="mt-1 text-[15px] text-muted-foreground">
         {isLogin ? "Log in to see what your people are up to." : "It takes a minute, and it's free."}
       </p>
-
-      {/* Log in / Sign up, with a sliding pill */}
-      <div role="tablist" aria-label="Log in or sign up" className="mt-6 flex rounded-full bg-secondary p-1">
-        {([["login", "Log in"], ["signup", "Sign up"]] as const).map(([value, label]) => {
-          const active = (value === "login") === isLogin;
-          return (
-            <button
-              key={value}
-              type="button"
-              role="tab"
-              aria-selected={active}
-              onClick={() => setIsLogin(value === "login")}
-              className={cn("relative h-10 flex-1 rounded-full text-[14px] font-semibold transition-colors", active ? "text-foreground" : "text-muted-foreground hover:text-foreground")}
-            >
-              {active && <motion.span layoutId="auth-tab" className="absolute inset-0 rounded-full bg-background shadow-sm" transition={{ type: "spring", stiffness: 500, damping: 38 }} />}
-              <span className="relative">{label}</span>
-            </button>
-          );
-        })}
-      </div>
 
       <form onSubmit={handleSubmit} className="mt-6 space-y-4">
         <AnimatePresence initial={false}>
@@ -245,6 +226,18 @@ const Auth = () => {
         </Button>
       </motion.div>
       </>
+      )}
+
+      {/* As on Facebook: logging in is the main path; a new account is one clear button below it. */}
+      {isLogin ? (
+        <Button type="button" variant="outline" onClick={() => setIsLogin(false)} className="mt-4 h-[52px] w-full rounded-full border-primary/40 text-[15px] font-semibold text-primary hover:bg-primary/5 hover:text-primary">
+          Create new account
+        </Button>
+      ) : (
+        <p className="mt-5 text-center text-[15px] text-muted-foreground">
+          Already have an account?{" "}
+          <button type="button" onClick={() => setIsLogin(true)} className="font-semibold text-primary hover:underline">Log in</button>
+        </p>
       )}
 
       <p className="mt-8 text-center text-xs leading-relaxed text-muted-foreground">
