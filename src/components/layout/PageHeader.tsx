@@ -131,7 +131,7 @@ export function Chips<T extends string>({ options, value, onChange, label }: Chi
             onClick={() => onChange(o.value)}
             aria-pressed={active}
             className={cn(
-              "inline-flex h-[34px] shrink-0 items-center gap-1.5 rounded-full px-3.5 text-[14px] font-semibold transition-colors [&_svg]:h-3.5 [&_svg]:w-3.5",
+              "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold transition-colors [&_svg]:h-3.5 [&_svg]:w-3.5",
               active
                 ? "bg-foreground text-background"
                 : "bg-secondary text-foreground hover:bg-secondary/80"

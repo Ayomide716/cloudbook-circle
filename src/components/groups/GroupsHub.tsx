@@ -82,9 +82,9 @@ const GroupsHub = ({ groups, userId, onDiscover }: { groups: HubGroup[]; userId:
               <button key={g.id} type="button" onClick={() => navigate(`/groups/${g.id}`)} className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 text-center">
                 <span className="relative">
                   {g.image_url ? (
-                    <img src={g.image_url} alt="" loading="lazy" className={`h-[64px] w-[64px] rounded-full object-cover ${n > 0 ? "ring-2 ring-brand ring-offset-2 ring-offset-card" : ""}`} />
+                    <img src={g.image_url} alt="" loading="lazy" className={`h-16 w-16 rounded-2xl object-cover ${n > 0 ? "ring-2 ring-brand ring-offset-2 ring-offset-card" : ""}`} />
                   ) : (
-                    <GroupInitials id={g.id} name={g.name} className={`h-[64px] w-[64px] rounded-full text-lg ${n > 0 ? "ring-2 ring-brand ring-offset-2 ring-offset-card" : ""}`} />
+                    <GroupInitials id={g.id} name={g.name} className={`h-16 w-16 rounded-2xl text-lg ${n > 0 ? "ring-2 ring-brand ring-offset-2 ring-offset-card" : ""}`} />
                   )}
                   {n > 0 && (
                     <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border-2 border-card bg-badge px-1 text-[10px] font-bold text-white" aria-label={`${n} new posts`}>

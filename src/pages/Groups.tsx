@@ -102,8 +102,9 @@ const Groups = () => {
     }
     setLoadFailed(false);
 
-    // Group chats (made in Messages) aren't communities, so they don't show here.
-    const list = (groupsData || []).filter((g) => (g as { is_chat?: boolean }).is_chat !== true);
+    // Group chats (made in Messages) are groups too: they show under Your groups. They're
+    // private, so only their members ever see them, and they're never in Discover.
+    const list = groupsData || [];
     const ids = list.map((g) => g.id);
     // Two queries for the whole list instead of two per group. Only members can
     // see a group's member rows, so counts come from a server function when it's installed.
@@ -145,7 +146,7 @@ const Groups = () => {
       return groups.filter((group) => group.name.toLowerCase().includes(query) || group.description?.toLowerCase().includes(query));
     }
     return groups.filter((g) =>
-      view === "mine" ? g.is_member : !g.is_member && (category === "all" || g.category === category)
+      view === "mine" ? g.is_member : !g.is_member && (g as { is_chat?: boolean }).is_chat !== true && (category === "all" || g.category === category)
     );
   }, [groups, searchQuery, view, category]);
   const myCount = groups.filter((g) => g.is_member).length;
@@ -329,7 +330,7 @@ const Groups = () => {
             value={view}
             onChange={setView}
             options={[
-              { value: "feed", label: "Feed" },
+              { value: "feed", label: "For you" },
               { value: "mine", label: `Your groups${myCount ? ` · ${myCount}` : ""}` },
               { value: "discover", label: "Discover" },
             ]}

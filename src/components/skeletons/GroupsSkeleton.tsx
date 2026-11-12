@@ -8,7 +8,7 @@ const GroupsSkeleton = () => (
   <div className="page-flush max-w-[1200px] mx-auto px-0 sm:px-4 lg:px-6 pb-6 sm:py-6 space-y-2 sm:space-y-0" aria-busy="true" aria-label="Loading groups">
     <PageHeader title="Groups" actions={<StaticAction />}>
       <StaticSearch placeholder="Search groups" />
-      <StaticChips labels={["Feed", "Your groups", "Discover"]} />
+      <StaticChips labels={["For you", "Your groups", "Discover"]} />
     </PageHeader>
     <div className="mx-auto max-w-2xl space-y-2 sm:space-y-3">
       <div className="feed-section border-y border-border/60 bg-card py-2 sm:rounded-2xl sm:border">

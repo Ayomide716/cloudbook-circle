@@ -76,9 +76,9 @@ export function useGroupChats(userId: string | null) {
       // Every column, so this still works before the group-chats database update adds is_chat.
       .select("joined_at, groups (*)")
       .eq("user_id", userId);
-    // Only group chats belong in Messages; community groups stay on the Groups tab.
-    const mine = ((memberships ?? []).filter((m) => m.groups) as unknown as { joined_at: string; groups: GroupInfo }[])
-      .filter((m) => m.groups.is_chat === true);
+    // Every group you're in has a chat. Chats lists group chats (made in Messages) and any
+    // other group of yours where people have chatted (see the filter at the end).
+    const mine = (memberships ?? []).filter((m) => m.groups) as unknown as { joined_at: string; groups: GroupInfo }[];
     const ids = mine.map((m) => m.groups.id);
 
     // Recent messages across your groups: enough to find each one's latest and count new ones.
@@ -108,8 +108,10 @@ export function useGroupChats(userId: string | null) {
           unread: msgs.filter((m) => m.user_id !== userId && m.created_at > since).length,
         };
       });
-    setGroups(list);
-    saveChatList(`g:${userId}`, list);
+    // Community groups with no chat yet stay off the Chats list (they're on the Groups tab).
+    const chats = list.filter((c) => c.group.is_chat === true || c.lastMessage);
+    setGroups(chats);
+    saveChatList(`g:${userId}`, chats);
 
     // Invites waiting for you (the table only exists after the invites database update).
     const { data: inviteRows, error } = await supabase
