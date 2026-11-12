@@ -21,7 +21,7 @@ test.describe("profiles and friends", () => {
     await expect(page).toHaveURL(new RegExp(`/profile/${ids().alice}$`));
     await expect(bar.getByRole("button", { name: "Menu" })).toHaveAttribute("aria-current", "page");
     await expect(page.getByRole("heading", { level: 1, name: "Alice Johnson" })).toBeVisible();
-    await expect(page.getByText(/1\s+friend\s+·\s+\d+\s+posts?/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "1 friend, see all" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Add to story" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Edit profile" })).toBeVisible();
     const chips = page.getByRole("navigation", { name: "Profile sections" });

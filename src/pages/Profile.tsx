@@ -25,6 +25,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import {
+  ChevronRight,
   Edit,
   MessageCircle,
   MapPin,
@@ -706,25 +707,31 @@ const Profile = () => {
                 {profile.full_name || "Anonymous User"}
                 {profile.is_verified && <span className="ml-1.5 inline-flex align-[-2px]"><VerifiedBadge size="md" /></span>}
               </h1>
-              {/* "245 friends · 10 mutual · 153 posts" */}
-              <p className="mt-0.5 text-[15px] text-muted-foreground">
-                {isOwnProfile ?
-                <button onClick={() => navigate("/friends")} className="hover:underline"><strong className="font-semibold text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}</button> :
-                <span><strong className="font-semibold text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}</span>
-                }
-                {!isOwnProfile && mutualFriends.length > 0 && <> · <strong className="font-semibold text-foreground">{mutualFriends.length}</strong> mutual</>}
-                {" · "}<strong className="font-semibold text-foreground">{posts.length}</strong> {posts.length === 1 ? "post" : "posts"}
-              </p>
-              {isOwnProfile && friendFaces.length > 0 &&
-              <button type="button" onClick={() => navigate("/friends")} className="mt-1.5 flex -space-x-1.5" aria-label="See your friends">
-                  {friendFaces.map((f) =>
-                <Avatar key={f.id} className="h-7 w-7 ring-2 ring-card">
-                      <AvatarImage src={f.avatar_url || undefined} alt="" />
-                      <AvatarFallback className="text-[10px]">{f.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                    </Avatar>
+              {/* One line, as in the redesign: friends' faces and the count (yours opens your
+                  friends), then mutual friends on someone else's profile. */}
+              <button
+                type="button"
+                onClick={() => isOwnProfile && navigate("/friends")}
+                disabled={!isOwnProfile}
+                aria-label={isOwnProfile ? `${friendCount ?? 0} ${friendCount === 1 ? "friend" : "friends"}, see all` : undefined}
+                className="mt-1.5 flex min-h-8 items-center gap-2 text-[15px] text-muted-foreground disabled:cursor-default"
+              >
+                {isOwnProfile && friendFaces.length > 0 && (
+                  <span className="flex -space-x-1.5" aria-hidden="true">
+                    {friendFaces.slice(0, 3).map((f) => (
+                      <Avatar key={f.id} className="h-7 w-7 ring-2 ring-card">
+                        <AvatarImage src={f.avatar_url || undefined} alt="" />
+                        <AvatarFallback className="text-[10px]">{f.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                      </Avatar>
+                    ))}
+                  </span>
                 )}
-                </button>
-              }
+                <span>
+                  <strong className="font-semibold text-foreground">{friendCount ?? "–"}</strong> {friendCount === 1 ? "friend" : "friends"}
+                  {!isOwnProfile && mutualFriends.length > 0 && <> · <strong className="font-semibold text-foreground">{mutualFriends.length}</strong> mutual</>}
+                </span>
+                {isOwnProfile && <ChevronRight className="h-4 w-4" aria-hidden="true" />}
+              </button>
             </div>
           </div>
 
