@@ -49,7 +49,7 @@ export const PageHeader = ({ title, subtitle, actions, children, back, className
     <div className="flex items-center gap-2">
       {back && <BackButton />}
       <div className="min-w-0 flex-1">
-        <h1 className="font-display text-[28px] font-extrabold tracking-tight truncate">{title}</h1>
+        <h1 className="font-display text-2xl font-extrabold tracking-tight truncate">{title}</h1>
         {subtitle && <p className="text-sm text-muted-foreground mt-0.5">{subtitle}</p>}
       </div>
       {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
