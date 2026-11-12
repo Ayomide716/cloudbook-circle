@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { haptic } from "@/lib/haptics";
 
-/** The main tabs, in the tab bar's order. Reels has its own swipes, so it's only ever a target. */
-const SWIPE_TABS = ["/", "/friends", "/reels", "/menu"];
+/** The main tabs, in the tab bar's order. Reels and Chats have their own swipes, so they're only ever targets. */
+const SWIPE_TABS = ["/", "/reels", "/messages", "/menu"];
 const EDGE = 28; // px: swipes from the very edge are Android's (and EdgeSwipeBack's)
 
 /** Something under the finger that scrolls sideways itself (chips, stories, carousels). */
@@ -26,7 +26,7 @@ const TabSwipe = () => {
 
   useEffect(() => {
     const index = SWIPE_TABS.indexOf(pathname);
-    if (index < 0 || pathname === "/reels") return;
+    if (index < 0 || pathname === "/reels" || pathname === "/messages") return;
     let start: { x: number; y: number; t: number } | null = null;
     const down = (e: TouchEvent) => {
       const t = e.touches[0];

@@ -1,4 +1,4 @@
-import { Camera, Film, Home, Pencil, PlusCircle, Users } from "@/components/icons";
+import { Camera, Film, Home, MessageCircle, Pencil, Plus } from "@/components/icons";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -18,20 +18,22 @@ export const TAB_RESELECT_EVENT = "cloudbook:tab-reselect";
 
 interface BottomNavProps {
   currentUserId?: string;
-  /** Pending friend requests, shown on the Friends tab. */
+  /** Pending friend requests, shown on the Menu tab (Friends is the first thing in the menu). */
   friendRequests?: number;
+  /** Unread chats, shown on the Chats tab. */
+  unreadMessages?: number;
   /** Your photo for the Menu tab, as Facebook shows it. */
   avatarUrl?: string | null;
   name?: string | null;
 }
 
 /**
- * The tab bar, docked to the bottom edge: Home, Friends, Create (a post, story or reel), Reels
- * and Menu (your photo; your profile, Groups and the rest are in the menu). Icons in ink with a
- * small label under each, as on Facebook (people arrive from there); the tab you're on turns
- * solid and its label bold. Notifications are the bell in the top bar.
+ * The tab bar, docked to the bottom edge: Home, Reels, Create (a post, story or reel), Chats
+ * and Menu (your photo; your profile, Friends, Groups and the rest are in the menu). A small
+ * label under each icon; the tab you're on turns solid, in the brand colour, with a bold label.
+ * Notifications are the bell in the top bar.
  */
-const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: BottomNavProps) => {
+const BottomNav = ({ currentUserId, friendRequests = 0, unreadMessages = 0, avatarUrl, name }: BottomNavProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   // Toasts sit just above the tab bar (phones only; it's hidden on bigger screens).
@@ -39,8 +41,8 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
 
   const tabs = [
     { icon: Home, path: "/", label: "Home", badge: 0 },
-    { icon: Users, path: "/friends", label: "Friends", badge: friendRequests },
     { icon: Film, path: "/reels", label: "Reels", badge: 0 },
+    { icon: MessageCircle, path: "/messages", label: "Chats", badge: unreadMessages },
   ];
   const isActive = (path: string) => (path === "/" ? location.pathname === "/" : location.pathname.startsWith(path));
   // The Menu tab also stands for your own profile, which you open from the menu.
@@ -52,7 +54,7 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
     else window.dispatchEvent(new CustomEvent(TAB_RESELECT_EVENT, { detail: location.pathname }));
   };
 
-  const tabClass = "relative flex min-w-0 items-center justify-center text-foreground";
+  const tabClass = "relative flex min-w-0 items-center justify-center";
 
   const renderTab = (tab: (typeof tabs)[number]) => {
     const active = isActive(tab.path);
@@ -66,10 +68,10 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
         aria-label={tab.badge > 0 ? `${tab.label}, ${tab.badge} new` : tab.label}
         className={tabClass}
       >
-        <span className="relative flex flex-col items-center gap-0.5">
-          {/* Outlines, solid on the tab you're on. */}
-          <tab.icon className="h-[25px] w-[25px]" fill={active ? "currentColor" : undefined} />
-          <span className={cn("text-[11px] leading-none", active ? "font-bold" : "font-medium text-muted-foreground")} aria-hidden="true">{tab.label}</span>
+        <span className={cn("relative flex flex-col items-center gap-1", active ? "text-primary" : "text-muted-foreground")}>
+          {/* Outlines, solid and in the brand colour on the tab you're on. */}
+          <tab.icon className="h-6 w-6" fill={active ? "currentColor" : undefined} />
+          <span className={cn("text-[11px] leading-none", active ? "font-bold" : "font-medium")} aria-hidden="true">{tab.label}</span>
           {tab.badge > 0 && (
             <span className="absolute -top-1.5 left-1/2 ml-1.5 min-w-[18px] h-[18px] rounded-full bg-badge px-1 text-[10px] font-bold leading-[18px] text-white text-center ring-2 ring-card">
               {tab.badge > 9 ? "9+" : tab.badge}
@@ -101,10 +103,12 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
               <motion.button
                 whileTap={{ scale: 0.9 }}
                 aria-label="Create"
-                className="flex min-h-12 min-w-14 flex-col items-center justify-center gap-0.5 rounded-xl text-foreground"
+                className="flex min-h-12 min-w-14 items-center justify-center"
               >
-                <PlusCircle className="h-[25px] w-[25px]" />
-                <span className="text-[11px] font-medium leading-none text-muted-foreground" aria-hidden="true">Create</span>
+                {/* The one filled button in the bar. */}
+                <span className="flex h-10 w-[50px] items-center justify-center rounded-[14px] bg-primary text-primary-foreground">
+                  <Plus className="h-6 w-6" strokeWidth={2.4} />
+                </span>
               </motion.button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="top" align="center" sideOffset={10} className="w-48 rounded-2xl p-1.5">
@@ -129,15 +133,20 @@ const BottomNav = ({ currentUserId, friendRequests = 0, avatarUrl, name }: Botto
           onTouchStart={() => prefetchRoute("/menu")}
           whileTap={{ scale: 0.9 }}
           aria-current={menuActive ? "page" : undefined}
-          aria-label="Menu"
+          aria-label={friendRequests > 0 ? `Menu, ${friendRequests} friend ${friendRequests === 1 ? "request" : "requests"}` : "Menu"}
           className={tabClass}
         >
-          <span className="relative flex flex-col items-center gap-0.5">
-            <Avatar className={cn("h-[25px] w-[25px] transition-shadow", menuActive ? "ring-2 ring-foreground ring-offset-1 ring-offset-background" : "ring-1 ring-border")}>
+          <span className={cn("relative flex flex-col items-center gap-1", menuActive ? "text-primary" : "text-muted-foreground")}>
+            <Avatar className={cn("h-6 w-6 transition-shadow", menuActive ? "ring-2 ring-primary ring-offset-1 ring-offset-background" : "ring-1 ring-border")}>
               <AvatarImage src={avatarUrl || undefined} alt="" />
               <AvatarFallback className="text-[10px] font-bold">{name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
             </Avatar>
-            <span className={cn("text-[11px] leading-none", menuActive ? "font-bold" : "font-medium text-muted-foreground")} aria-hidden="true">Menu</span>
+            <span className={cn("text-[11px] leading-none", menuActive ? "font-bold" : "font-medium")} aria-hidden="true">Menu</span>
+            {friendRequests > 0 && (
+              <span className="absolute -top-1.5 left-1/2 ml-1.5 min-w-[18px] h-[18px] rounded-full bg-badge px-1 text-[10px] font-bold leading-[18px] text-white text-center ring-2 ring-card">
+                {friendRequests > 9 ? "9+" : friendRequests}
+              </span>
+            )}
           </span>
         </motion.button>
       </div>
