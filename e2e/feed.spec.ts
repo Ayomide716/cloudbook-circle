@@ -5,16 +5,16 @@ test.describe("feed", () => {
   test("has the redesign's layout on a phone", async ({ page }) => {
     await signIn(page, "alice");
 
-    // Bottom bar: Home, Friends, Create in the middle, Reels and Menu.
+    // Bottom bar: Home, Reels, Create in the middle, Chats and Menu.
     const bar = page.getByRole("navigation", { name: "Main" }).last();
     const tabs = bar.getByRole("button");
     await expect(tabs).toHaveCount(5);
-    for (const [i, name] of [/^Home$/, /^Friends/, /^Create$/, /^Reels$/, /^Menu$/].entries()) {
+    for (const [i, name] of [/^Home$/, /^Reels$/, /^Create$/, /^Chats/, /^Menu/].entries()) {
       await expect(tabs.nth(i)).toHaveAccessibleName(name);
     }
     await expect(bar.getByRole("button", { name: "Home" })).toHaveAttribute("aria-current", "page");
-    // Dave's request shows on the Friends tab.
-    await expect(bar.getByRole("button", { name: "Friends, 1 new" })).toBeVisible();
+    // Dave's request shows on the Menu tab (Friends is the first thing in the menu).
+    await expect(bar.getByRole("button", { name: "Menu, 1 friend request" })).toBeVisible();
     // The bar slides in when the page opens; measure once it has settled.
     const viewport = page.viewportSize()!;
     // Docked to the bottom edge, full width.
@@ -26,11 +26,11 @@ test.describe("feed", () => {
     expect(Math.round(box.x)).toBe(0);
     expect(Math.round(box.width)).toBe(viewport.width);
 
-    // Top bar: search, notifications and Messenger; Menu is the last tab.
-    await expect(page.getByRole("button", { name: "Menu" })).toBeVisible();
+    // Top bar: search and notifications; Chats and Menu are tabs.
+    await expect(bar.getByRole("button", { name: /^Menu/ })).toBeVisible();
     await expect(page.getByRole("button", { name: /^Notifications/ })).toBeVisible();
     await expect(page.getByRole("button", { name: "Search" })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^Messages/ })).toBeVisible();
+    await expect(bar.getByRole("button", { name: /^Chats/ })).toBeVisible();
 
     // Bob's post is in the feed and nothing scrolls sideways.
     await expect(page.getByText("Saturday at Lekki Conservation Centre")).toBeVisible();
@@ -95,7 +95,7 @@ test.describe("feed", () => {
 
   test("the Menu tab is a full page with shortcuts, and Create → Post opens the composer", async ({ page }) => {
     await signIn(page, "alice");
-    await page.getByRole("button", { name: "Menu", exact: true }).click();
+    await page.getByRole("navigation", { name: "Main" }).last().getByRole("button", { name: /^Menu/ }).click();
     await expect(page).toHaveURL(/\/menu$/);
     await expect(page.getByRole("heading", { level: 1, name: "Menu" })).toBeVisible();
     await expect(page.getByText("Alice Johnson")).toBeVisible();

@@ -7,20 +7,20 @@ vi.mock("@/lib/prefetch", () => ({ prefetchRoute: () => {} }));
 const { default: BottomNav } = await import("./BottomNav");
 
 const Where = () => <span data-testid="path">{useLocation().pathname}</span>;
-const renderAt = (path: string, friendRequests = 0) =>
+const renderAt = (path: string, friendRequests = 0, unreadMessages = 0) =>
   render(
     <MemoryRouter initialEntries={[path]}>
       <Routes>
-        <Route path="*" element={<><BottomNav currentUserId="me" friendRequests={friendRequests} name="Alice" /><Where /></>} />
+        <Route path="*" element={<><BottomNav currentUserId="me" friendRequests={friendRequests} unreadMessages={unreadMessages} name="Alice" /><Where /></>} />
       </Routes>
     </MemoryRouter>
   );
 
 describe("BottomNav", () => {
-  it("has Home, Friends, Create, Reels and Menu in order", () => {
+  it("has Home, Reels, Create, Chats and Menu in order", () => {
     renderAt("/");
     const names = screen.getAllByRole("button").map((b) => b.getAttribute("aria-label"));
-    expect(names).toEqual(["Home", "Friends", "Create", "Reels", "Menu"]);
+    expect(names).toEqual(["Home", "Reels", "Create", "Chats", "Menu"]);
   });
 
   it("marks only the current tab", () => {
@@ -29,9 +29,15 @@ describe("BottomNav", () => {
     expect(screen.getByRole("button", { name: "Home" })).not.toHaveAttribute("aria-current");
   });
 
-  it("shows friend requests on the Friends tab", () => {
+  it("shows friend requests on the Menu tab", () => {
     renderAt("/", 12);
-    expect(screen.getByRole("button", { name: "Friends, 12 new" })).toHaveTextContent("9+");
+    expect(screen.getByRole("button", { name: "Menu, 12 friend requests" })).toHaveTextContent("9+");
+  });
+
+  it("shows unread chats on the Chats tab and opens Messages", async () => {
+    renderAt("/", 0, 3);
+    await userEvent.click(screen.getByRole("button", { name: "Chats, 3 new" }));
+    expect(screen.getByTestId("path")).toHaveTextContent("/messages");
   });
 
   it("opens the menu from the Menu tab and marks it current there", async () => {

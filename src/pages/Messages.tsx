@@ -1158,10 +1158,8 @@ const Messages = () => {
             <Card className={cn("relative min-w-0 flex flex-col overflow-hidden max-md:border-0 max-md:!bg-transparent max-md:!bg-none max-md:!shadow-none", (selectedConversation || showAIChat || selectedGroup) ? "hidden md:flex" : "flex")}>
               <div className="px-3 pt-3 pb-2.5 sm:p-4 md:border-b flex-shrink-0">
                 <div className="flex items-center gap-1.5">
-                  <Button variant="ghost" size="icon" className="md:hidden h-8 w-8 -ml-1 [&_svg]:size-5" onClick={() => navigate("/")} aria-label="Back">
-                    <ArrowLeft />
-                  </Button>
-                  <h2 className="flex-1 font-display text-[22px] sm:text-xl font-bold tracking-tight">Messages</h2>
+                  {/* Chats is a tab in the bottom bar now, so there's nowhere to go "back" to. */}
+                  <h2 className="flex-1 pl-1 font-display text-2xl sm:text-xl font-extrabold tracking-tight md:pl-0 md:font-bold">Chats</h2>
                   {/* Less-used places live in ⋯, as on WhatsApp, so the header stays clear. */}
                   <ActionMenu>
                     <ActionMenuTrigger asChild>
@@ -1347,7 +1345,7 @@ const Messages = () => {
                   onClick={() => setComposeOpen(true)}
                   size="icon"
                   aria-label="New message"
-                  className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom,0px))] right-4 h-14 w-14 rounded-2xl shadow-lg md:hidden [&_svg]:size-6"
+                  className="absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-4 h-14 w-14 rounded-2xl shadow-lg md:hidden [&_svg]:size-6"
                 >
                   <MessageSquarePlus />
                 </Button>

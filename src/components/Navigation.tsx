@@ -284,8 +284,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
 
             {/* Right - Action Icons */}
             <div className="flex items-center gap-1.5">
-              {/* Mobile top bar, as in Facebook's app: plain create, search and Messenger icons.
-                  Notifications and everything else live in the bottom tab bar. */}
+              {/* Mobile top bar: plain search and notifications icons. Chats is a tab in the bottom bar. */}
               {currentUserId && (
                 <div className="-mr-2 flex md:hidden items-center">
                   {/* Plain ink icons, no circles behind them (style A). */}
@@ -298,12 +297,6 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       onClick: () => navigate("/notifications"),
                       count: unreadNotifications,
                     },
-                    {
-                      label: unreadMessages > 0 ? `Messages, ${unreadMessages} unread` : "Messages",
-                      icon: <Send className="h-6 w-6" />,
-                      onClick: () => navigate("/messages"),
-                      dot: unreadMessages > 0,
-                    },
                   ].map((b) => (
                     <button
                       key={b.label}
@@ -313,7 +306,6 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
                       className="relative flex h-11 w-11 items-center justify-center rounded-full text-foreground transition-colors active:bg-secondary"
                     >
                       {b.icon}
-                      {b.dot && <span className="absolute right-2 top-2 h-2.5 w-2.5 rounded-full bg-destructive ring-2 ring-background" aria-hidden="true" />}
                       {!!b.count && (
                         <span className="absolute right-0.5 top-0.5 min-w-[18px] h-[18px] rounded-full bg-badge px-1 text-center text-[10px] font-bold leading-[18px] text-white ring-2 ring-background" aria-hidden="true">
                           {b.count > 9 ? "9+" : b.count}
@@ -492,7 +484,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
       <MobileSearchOverlay open={mobileSearchOpen} onClose={() => setMobileSearchOpen(false)} />
 
       {/* Mobile Bottom Navigation */}
-      {currentUserId && location.pathname !== "/messages" && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} avatarUrl={userProfile?.avatar_url} name={userProfile?.full_name} />}
+      {currentUserId && (location.pathname !== "/messages" || !hideMobileTopBar) && <BottomNav currentUserId={currentUserId} friendRequests={pendingRequests} unreadMessages={unreadMessages} avatarUrl={userProfile?.avatar_url} name={userProfile?.full_name} />}
     </>
   );
 };

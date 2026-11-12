@@ -13,8 +13,8 @@ import {
   Settings,
   Shield,
   ShoppingBag,
-  Pencil,
   Users,
+  UsersRound,
   type LucideIcon,
   Download,
   History,
@@ -42,20 +42,26 @@ interface Shortcut {
   adminOnly?: boolean;
   /** Muted for now (see features.extras). */
   extra?: boolean;
+  group: "discover" | "yours";
 }
 
-// Everything that isn't a bottom tab (Home, Friends, Reels) or in the top bar (notifications, Messenger).
+/** The four at the top of the menu: one tap to the things you open most. */
+const QUICK: { icon: LucideIcon; label: string; path: string; tint: string }[] = [
+  { icon: Users, label: "Friends", path: "/friends", tint: "bg-primary/10 text-primary" },
+  { icon: UsersRound, label: "Groups", path: "/groups", tint: "bg-sky-500/10 text-sky-700 dark:text-sky-400" },
+  { icon: Bookmark, label: "Saved", path: "/saved", tint: "bg-violet-500/10 text-violet-700 dark:text-violet-400" },
+  { icon: CalendarDays, label: "Events", path: "/events", tint: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400" },
+];
+
+// The rest, in two short lists. (Home, Reels and Chats are tabs; notifications are the bell.)
 const SHORTCUTS: Shortcut[] = [
-  { icon: Users, label: "Groups", path: "/groups" },
-  { icon: CalendarDays, label: "Events", path: "/events" },
-  { icon: Bookmark, label: "Saved", path: "/saved" },
-  { icon: Compass, label: "Explore", path: "/explore" },
-  { icon: History, label: "Story archive", path: "/story-archive" },
-  { icon: Download, label: "Offline videos", path: "/offline-videos" },
-  { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", extra: true },
-  { icon: MonitorPlay, label: "Watch", path: "/watch", extra: true },
-  { icon: FileText, label: "Pages", path: "/pages", extra: true },
-  { icon: Megaphone, label: "Ad Manager", path: "/ads", extra: true },
+  { icon: Compass, label: "Explore", path: "/explore", group: "discover" },
+  { icon: MonitorPlay, label: "Watch", path: "/watch", extra: true, group: "discover" },
+  { icon: ShoppingBag, label: "Marketplace", path: "/marketplace", extra: true, group: "discover" },
+  { icon: FileText, label: "Pages", path: "/pages", extra: true, group: "discover" },
+  { icon: History, label: "Story archive", path: "/story-archive", group: "yours" },
+  { icon: Download, label: "Offline videos", path: "/offline-videos", group: "yours" },
+  { icon: Megaphone, label: "Ad Manager", path: "/ads", extra: true, group: "yours" },
 ];
 
 /** One row of the menu: an icon, its name and a chevron. */
@@ -63,15 +69,15 @@ const MenuRow = ({ icon: Icon, label, onClick }: { icon: LucideIcon; label: stri
   <button
     type="button"
     onClick={onClick}
-    className="flex w-full items-center gap-3.5 px-4 py-3 text-left transition-colors first:rounded-t-2xl last:rounded-b-2xl hover:bg-accent/60 active:bg-accent"
+    className="flex h-[54px] w-full items-center gap-3.5 pl-4 pr-3 text-left transition-colors first:rounded-t-[20px] last:rounded-b-[20px] hover:bg-accent/60 active:bg-accent"
   >
     <Icon className="h-6 w-6 shrink-0 text-foreground" />
-    <span className="flex-1 text-[15px] font-medium">{label}</span>
+    <span className="flex-1 text-base font-medium">{label}</span>
     <ChevronRight className="h-5 w-5 shrink-0 text-muted-foreground/70" />
   </button>
 );
 
-/** The rows under the shortcuts. Messages isn't here: it's the Messenger button in the top bar. */
+/** Settings, the legal pages and (for admins) the admin page. */
 const ROWS: { icon: LucideIcon; label: string; path: string; adminOnly?: boolean }[] = [
   { icon: Settings, label: "Settings & privacy", path: "/settings" },
   { icon: FileText, label: "Terms of service", path: "/terms" },
@@ -162,59 +168,47 @@ const Menu = () => {
 
   const initial = profile?.full_name?.[0]?.toUpperCase() || "U";
 
+  const card = "rounded-[20px] bg-card dark:border dark:border-border";
+  const sectionLabel = "px-1 pb-2 pt-3 text-[13px] font-bold uppercase tracking-wide text-muted-foreground";
+  const visible = (s: Shortcut) => (!s.adminOnly || isAdmin) && (!s.extra || features.extras);
+
   return (
-    <div className="min-h-screen bg-background">
+    // A soft grey page with white cards on it, so each group of things reads as one block.
+    <div className="min-h-screen bg-secondary dark:bg-background">
       <Navigation currentUserId={userId || undefined} />
 
-      <div className="page-flush max-w-2xl mx-auto px-0 sm:px-4 pb-6 sm:py-6 space-y-2 sm:space-y-4">
-        {/* The tab bar already says where you are; the title is for screen readers only. */}
-        <h1 className="sr-only">Menu</h1>
+      <div className="mx-auto max-w-2xl px-4 pb-6 sm:py-4">
+        <div className="flex h-12 items-center justify-between">
+          <h1 className="text-2xl font-extrabold tracking-tight">Menu</h1>
+          <button type="button" onClick={() => navigate("/settings")} aria-label="Settings and privacy" className="-mr-2.5 flex h-11 w-11 items-center justify-center rounded-full text-foreground active:bg-card">
+            <Settings className="h-6 w-6" />
+          </button>
+        </div>
 
-        {/* You: cover, avatar, name and counts, with Edit profile */}
-        <section className="feed-section overflow-hidden rounded-2xl border border-border bg-card">
-          <button
-            type="button"
-            onClick={() => userId && navigate(`/profile/${userId}`)}
-            aria-label="View your profile"
-            className="block h-24 w-full bg-secondary bg-cover bg-center"
-            style={profile?.cover_url ? { backgroundImage: `url(${profile.cover_url})` } : undefined}
-          />
-          <div className="flex items-end gap-3 px-4 pb-4">
-            <button type="button" onClick={() => userId && navigate(`/profile/${userId}`)} className="-mt-8 shrink-0 rounded-full" aria-label="Your profile">
-              <Avatar className="h-[72px] w-[72px] ring-4 ring-card">
+        {/* You: photo and name open your profile; the square on the right scans a friend's code. */}
+        <section className={cn(card, "overflow-hidden")}>
+          <div className="flex items-center gap-3 p-3.5">
+            <button type="button" onClick={() => userId && navigate(`/profile/${userId}`)} aria-label="View your profile" className="flex min-w-0 flex-1 items-center gap-3 text-left">
+              <Avatar className="h-14 w-14 shrink-0">
                 <AvatarImage src={profile?.avatar_url || undefined} alt="" />
-                <AvatarFallback className={cn("text-xl font-bold", profile ? "bg-secondary text-foreground" : "animate-pulse bg-muted text-transparent")}>{initial}</AvatarFallback>
+                <AvatarFallback className={cn("text-lg font-bold", profile ? "bg-secondary text-foreground" : "animate-pulse bg-muted text-transparent")}>{initial}</AvatarFallback>
               </Avatar>
+              <span className="min-w-0 flex-1">
+                {profile || loadFailed ? (
+                  <span className="block truncate text-[18px] font-bold leading-6">{profile?.full_name || "Your profile"}</span>
+                ) : (
+                  <Skeleton className="mb-1 h-5 w-32" />
+                )}
+                {friendCount === null && loadFailed ? (
+                  <span className="block truncate text-sm text-muted-foreground">Couldn't load. Check your connection.</span>
+                ) : (
+                  <span className="block truncate text-sm text-muted-foreground">View your profile</span>
+                )}
+              </span>
             </button>
-            <button type="button" onClick={() => userId && navigate(`/profile/${userId}`)} className="min-w-0 flex-1 pt-2 text-left">
-              {profile ? (
-                <span className="block truncate text-[17px] font-semibold">{profile.full_name || "Your profile"}</span>
-              ) : loadFailed ? (
-                <span className="block truncate text-[17px] font-semibold">Your profile</span>
-              ) : (
-                <Skeleton className="mb-1 h-5 w-32" />
-              )}
-              {friendCount === null && loadFailed ? (
-                <span className="block truncate text-[13px] text-muted-foreground">Couldn't load. Check your connection.</span>
-              ) : friendCount === null ? (
-                <Skeleton className="h-4 w-24" />
-              ) : (
-                <span className="block truncate text-[13px] text-muted-foreground">
-                  {friendCount} {friendCount === 1 ? "friend" : "friends"}
-                  {requestCount > 0 && <span className="text-primary"> · {requestCount} {requestCount === 1 ? "request" : "requests"}</span>}
-                </span>
-              )}
+            <button type="button" onClick={() => setScanning(true)} aria-label="Scan a QR code" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground active:bg-muted">
+              <ScanLine className="h-[22px] w-[22px]" />
             </button>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => userId && navigate(`/profile/${userId}`, { state: { edit: true } })}
-              aria-label="Edit profile"
-              className="h-8 shrink-0 rounded-lg px-3 text-[13px] font-semibold"
-            >
-              <Pencil className="mr-1 h-3.5 w-3.5" />
-              Edit
-            </Button>
           </div>
           {loadFailed && (
             <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-2.5">
@@ -225,34 +219,72 @@ const Menu = () => {
             </div>
           )}
         </section>
-
-        {userId && <GroupShortcuts userId={userId} />}
-
-        {/* Shortcuts: one simple list, an icon, a name and a chevron per row. */}
-        <nav aria-label="Shortcuts" className="feed-section divide-y divide-border/60 rounded-2xl border border-border bg-card">
-          {SHORTCUTS.filter((s) => (!s.adminOnly || isAdmin) && (!s.extra || features.extras)).map((s) => (
-            <MenuRow key={s.path} icon={s.icon} label={s.label} onClick={() => navigate(s.path)} />
-          ))}
-          {/* Point the camera at a friend's Ember QR code to open their profile. */}
-          <MenuRow icon={ScanLine} label="Scan a QR code" onClick={() => setScanning(true)} />
-        </nav>
         <QrScanner open={scanning} onClose={closeScanner} />
 
-        {userId && <InviteFriends userId={userId} className="feed-section" />}
+        {/* The four you open most, one tap each. Friends shows how many requests are waiting. */}
+        <nav aria-label="Shortcuts" className={cn(card, "mt-3 grid grid-cols-4 px-1 pb-3 pt-3.5")}>
+          {QUICK.map((q) => {
+            const count = q.path === "/friends" ? requestCount : 0;
+            return (
+              <button
+                key={q.path}
+                type="button"
+                onClick={() => navigate(q.path)}
+                aria-label={count > 0 ? `${q.label}, ${count} ${count === 1 ? "request" : "requests"}` : q.label}
+                className="relative flex flex-col items-center gap-1.5 rounded-xl py-0.5 text-[13px] font-semibold active:opacity-70"
+              >
+                <span className={cn("flex h-[46px] w-[46px] items-center justify-center rounded-[15px]", q.tint)}>
+                  <q.icon className="h-6 w-6" />
+                </span>
+                {q.label}
+                {count > 0 && (
+                  <span className="absolute -top-1 left-1/2 ml-3 h-[18px] min-w-[18px] rounded-full bg-badge px-1 text-center text-[11px] font-bold leading-[18px] text-white ring-2 ring-card">
+                    {count > 9 ? "9+" : count}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </nav>
+
+        {userId && <div className="mt-3 empty:hidden [&>section]:rounded-[20px] [&>section]:border-0 dark:[&>section]:border">
+          <GroupShortcuts userId={userId} />
+        </div>}
+
+        {SHORTCUTS.some((s) => s.group === "discover" && visible(s)) && (
+          <>
+            <h2 className={sectionLabel}>Discover</h2>
+            <section className={cn(card, "divide-y divide-border/60")}>
+              {SHORTCUTS.filter((s) => s.group === "discover" && visible(s)).map((s) => (
+                <MenuRow key={s.path} icon={s.icon} label={s.label} onClick={() => navigate(s.path)} />
+              ))}
+            </section>
+          </>
+        )}
+
+        <h2 className={sectionLabel}>Your stuff</h2>
+        <section className={cn(card, "divide-y divide-border/60")}>
+          {SHORTCUTS.filter((s) => s.group === "yours" && visible(s)).map((s) => (
+            <MenuRow key={s.path} icon={s.icon} label={s.label} onClick={() => navigate(s.path)} />
+          ))}
+        </section>
+
+        {userId && <div className="mt-3 [&>*]:rounded-[20px] [&>*]:border-0 dark:[&>*]:border">
+          <InviteFriends userId={userId} />
+        </div>}
 
         {/* Settings and help (appearance is in Settings) */}
-        <section className="feed-section divide-y divide-border/60 rounded-2xl border border-border bg-card">
+        <h2 className={sectionLabel}>Settings and help</h2>
+        <section className={cn(card, "divide-y divide-border/60")}>
           {ROWS.filter((r) => !r.adminOnly || isAdmin).map((r) => (
             <MenuRow key={r.path} icon={r.icon} label={r.label} onClick={() => navigate(r.path)} />
           ))}
         </section>
 
-        <div className="px-3 sm:px-0">
-          <Button variant="secondary" onClick={handleLogout} className="h-11 w-full rounded-xl font-semibold">
-            <LogOut className="mr-2 h-4 w-4" />
-            Log out
-          </Button>
-        </div>
+        <Button variant="ghost" onClick={handleLogout} className={cn(card, "mt-3 h-[52px] w-full text-base font-semibold text-destructive hover:bg-card hover:text-destructive")}>
+          <LogOut className="mr-2 h-4 w-4" />
+          Log out
+        </Button>
       </div>
     </div>
   );
