@@ -68,7 +68,8 @@ scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.
 3. **Done:** Home is one feed with the stories row always on top; the Friends screen has a
    Posts pill with friends' posts, newest first. Post cards have 15px text, a 40px picture and
    bold names.
-4. Friends: restyle the rest of the screen (requests, suggestions, all friends) to the mockup.
+4. **Done:** Friends: orange Confirm and Add friend, grey Delete and ⋯, all 40px with rounded
+   corners, as in the mockup.
 5. **Done:** groups are one kind. Every group already had a Chat tab, so no database update was
    needed: group chats show under Your groups and have a page (opening on Chat), and any group
    where people chat shows in the Chats list. The admin switch for chat is not built; chat
