@@ -15,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Loader2, UserPlus, Users, ArrowLeft, MessageCircle, Pencil, Video, Phone, Radio, Check, Globe, Lock, Clock, MoreHorizontal, ShieldCheck, ShieldOff, UserMinus, VolumeX, Volume2, CalendarDays, MapPin } from "@/components/icons";
-import { HeaderAction, Chips } from "@/components/layout/PageHeader";
+import { HeaderAction } from "@/components/layout/PageHeader";
 import { format, formatDistanceToNow } from "date-fns";
 import ImageUpload from "@/components/ImageUpload";
 import { useEffectEvent } from "@/hooks/use-effect-event";
@@ -26,10 +26,10 @@ import AddGroupMembersDialog from "@/components/AddGroupMembersDialog";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuSeparator, ActionMenuTrigger } from "@/components/ui/action-menu";
 import { dbChannel } from "@/lib/realtime";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RowSkeleton, StaticChips } from "@/components/skeletons/parts";
+import { RowSkeleton } from "@/components/skeletons/parts";
 import { PostSkeleton } from "@/components/skeletons/FeedSkeleton";
 import { recordGroupVisit } from "@/lib/recent-groups";
-import { friendlyError } from "@/lib/utils";
+import { cn, friendlyError } from "@/lib/utils";
 import { features } from "@/lib/features";
 import { categoryLabel } from "@/lib/group-categories";
 import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
@@ -527,19 +527,21 @@ const GroupDetail = () => {
         {/* The group's shape in grey while it loads, instead of a spinner. */}
         <div className="mx-auto max-w-2xl" aria-busy="true" aria-label="Loading group">
           <Skeleton className="h-44 w-full rounded-none sm:h-60 sm:rounded-2xl" />
-          <div className="px-4 pb-3 pt-4">
+          <div className="relative -mt-5 rounded-t-[22px] bg-background px-4 pb-3 pt-4 sm:mt-0">
             <Skeleton className="h-7 w-2/3" />
             <Skeleton className="mt-2.5 h-4 w-1/2" />
             <div className="mt-3 flex -space-x-2">
-              {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-8 w-8 rounded-full border-2 border-background" />)}
+              {[0, 1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-[30px] w-[30px] rounded-full border-2 border-background" />)}
             </div>
             <div className="mt-3 flex gap-2">
               <Skeleton className="h-10 flex-1 rounded-xl" />
               <Skeleton className="h-10 flex-1 rounded-xl" />
             </div>
-            <div className="mt-3">
-              <StaticChips labels={["Discussion", "Chat", "Members", "Events"]} />
-            </div>
+          </div>
+          <div className="flex gap-5 border-b border-border px-4" aria-hidden="true">
+            {["Discussion", "Chat", "Members", "Events"].map((l, i) => (
+              <span key={l} className={cn("flex h-11 items-center text-[15px] font-semibold text-muted-foreground/60", i === 0 && "text-primary/60 shadow-[inset_0_-3px_0_hsl(var(--primary)/0.4)]")}>{l}</span>
+            ))}
           </div>
           <PostSkeleton photo={false} />
         </div>
@@ -568,6 +570,17 @@ const GroupDetail = () => {
   const faces = isMember ? members.map((m) => m.profiles) : preview;
   const count = isMember ? members.length : memberCount;
   const privacy = group.is_private ? "Private group" : "Public group";
+  // "Tunde, Amara and 246 others are members" beside the faces.
+  const memberLine = (people: { id: string; full_name: string | null }[]) => {
+    const meFirst = [...people].sort((a, b) => Number(b.id === currentUserId) - Number(a.id === currentUserId));
+    const names = meFirst.slice(0, 2).map((p) => (p.id === currentUserId ? "You" : p.full_name?.split(" ")[0])).filter(Boolean) as string[];
+    const total = count ?? people.length;
+    const others = Math.max(0, total - names.length);
+    if (names.length === 0) return `${total.toLocaleString()} ${total === 1 ? "member" : "members"}`;
+    const who = others > 0 ? `${names.join(", ")} and ${others.toLocaleString()} ${others === 1 ? "other" : "others"}` : names.join(" and ");
+    if (names.length + others === 1) return names[0] === "You" ? "You're the only member" : `${who} is a member`;
+    return `${who} are members`;
+  };
   const meMuted = isMuted({ muted_until: mutedUntil });
   // A private group's posts, members and chat are for members only.
   const lockedOut = !isMember;
@@ -603,12 +616,12 @@ const GroupDetail = () => {
             {group.image_url ? (
               <img src={group.image_url} alt="" className="h-44 w-full object-cover sm:h-60" />
             ) : (
-              <div className="h-24 w-full bg-secondary sm:h-32" />
+              <div className="h-32 w-full bg-gradient-to-br from-primary/25 via-primary/10 to-secondary sm:h-40" />
             )}
             <button
               type="button"
               onClick={() => navigate("/groups")}
-              className="absolute left-3 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] flex h-10 w-10 items-center justify-center rounded-full bg-black/45 text-white backdrop-blur-sm transition-colors hover:bg-black/60 md:top-3"
+              className="absolute left-3 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] flex h-10 w-10 items-center justify-center rounded-full bg-card/95 text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-card md:top-3"
               aria-label="Back to groups"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -617,7 +630,7 @@ const GroupDetail = () => {
               <button
                 type="button"
                 onClick={() => setShowEditModal(true)}
-                className="absolute right-3 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] flex h-10 items-center gap-1.5 rounded-full bg-black/45 px-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-black/60 md:top-3"
+                className="absolute right-3 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] flex h-10 items-center gap-1.5 rounded-full bg-card/95 px-3.5 text-sm font-semibold text-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-card md:top-3"
                 aria-label="Edit group"
               >
                 <Pencil className="h-4 w-4" /> Edit
@@ -625,9 +638,9 @@ const GroupDetail = () => {
             )}
           </div>
 
-          <div className="space-y-3 px-4 pb-4 pt-3 sm:px-5">
+          <div className="relative -mt-5 space-y-3 rounded-t-[22px] bg-card px-4 pb-3 pt-4 sm:mt-0 sm:rounded-none sm:px-5 sm:pt-3">
             <div>
-              <h1 className="font-display text-[26px] font-extrabold leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-3xl">{group.name}</h1>
+              <h1 className="font-display text-2xl font-extrabold leading-tight tracking-tight [overflow-wrap:anywhere] sm:text-3xl">{group.name}</h1>
               <p className="mt-1 flex flex-wrap items-center gap-x-1.5 text-sm text-muted-foreground">
                 {group.is_private ? <Lock className="h-4 w-4" /> : <Globe className="h-4 w-4" />}
                 <span>{privacy}</span>
@@ -637,13 +650,16 @@ const GroupDetail = () => {
             </div>
 
             {faces.length > 0 && (
-              <button type="button" onClick={() => setSection("members")} className="flex -space-x-2" aria-label="See members">
-                {faces.slice(0, 8).map((p) => (
-                  <Avatar key={p.id} className="h-8 w-8 ring-2 ring-card">
-                    <AvatarImage src={p.avatar_url || undefined} alt="" />
-                    <AvatarFallback className="text-[10px]">{p.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
-                  </Avatar>
-                ))}
+              <button type="button" onClick={() => setSection("members")} className="flex min-w-0 items-center gap-2.5 text-left" aria-label="See members">
+                <span className="flex shrink-0 -space-x-2.5">
+                  {faces.slice(0, 5).map((p) => (
+                    <Avatar key={p.id} className="h-[30px] w-[30px] ring-2 ring-card">
+                      <AvatarImage src={p.avatar_url || undefined} alt="" />
+                      <AvatarFallback className="text-[10px]">{p.full_name?.[0]?.toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                  ))}
+                </span>
+                <span className="truncate text-[13px] text-muted-foreground">{memberLine(faces)}</span>
               </button>
             )}
 
@@ -681,8 +697,24 @@ const GroupDetail = () => {
             </div>
           </div>
 
-          <div className="px-4 pb-3 sm:px-5">
-            <Chips label="Group sections" value={section} onChange={setSection} options={sections} />
+          <div role="group" aria-label="Group sections" className="flex gap-5 overflow-x-auto border-b border-border px-4 scrollbar-hide sm:px-5">
+            {sections.map((o) => {
+              const active = o.value === section;
+              return (
+                <button
+                  key={o.value}
+                  type="button"
+                  onClick={() => setSection(o.value)}
+                  aria-pressed={active}
+                  className={cn(
+                    "h-11 shrink-0 whitespace-nowrap text-[15px] transition-colors",
+                    active ? "font-bold text-primary shadow-[inset_0_-3px_0_hsl(var(--primary))]" : "font-semibold text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
           </div>
         </section>
 
