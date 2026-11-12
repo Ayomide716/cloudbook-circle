@@ -35,10 +35,11 @@ import EmptyState from "@/components/EmptyState";
 import InviteFriends from "@/components/InviteFriends";
 import { cancelDelete, deleteLater } from "@/lib/pending-deletes";
 import PersonRow from "@/components/PersonRow";
+import FriendsPosts from "@/components/feed/FriendsPosts";
 
 /** The Requests / Sent / Friends / Suggested tabs as round chips. */
 const FRIEND_CHIP =
-  "h-[34px] rounded-full border-0 bg-secondary px-2 py-0 text-[14px] font-semibold text-foreground hover:bg-secondary/80 data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none sm:h-9 sm:text-sm";
+  "h-8 shrink-0 rounded-full border-0 bg-secondary px-3 py-0 text-[13px] font-semibold text-foreground hover:bg-secondary/80 data-[state=active]:bg-foreground data-[state=active]:text-background data-[state=active]:shadow-none sm:h-9 sm:text-sm";
 
 
 interface Profile {
@@ -136,7 +137,7 @@ const Friends = () => {
       loadSuggestions(),
     ]);
     // Open on requests only when there are some; otherwise show your friends.
-    setActiveTab((tab) => tab ?? (pending.length ? "requests" : "friends"));
+    setActiveTab((tab) => tab ?? (pending.length ? "requests" : "posts"));
     setIsLoading(false);
   });
 
@@ -591,9 +592,10 @@ const Friends = () => {
           </Card>
         )}
 
-        <Tabs value={activeTab ?? "friends"} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab ?? "posts"} onValueChange={setActiveTab} className="w-full">
           {/* Round chips, the same as Groups, Messages and Notifications, all on screen. */}
-          <TabsList className="mb-2 flex w-full gap-1.5 border-0 px-3 py-0.5 sm:mb-4 sm:gap-2 sm:px-0">
+          <TabsList className="mb-2 flex w-full justify-start gap-1.5 overflow-x-auto border-0 px-4 py-0.5 scrollbar-hide sm:mb-4 sm:gap-2 sm:px-0">
+            <TabsTrigger value="posts" className={FRIEND_CHIP}>Posts</TabsTrigger>
             <TabsTrigger value="requests" className={FRIEND_CHIP}>
               Requests
               {pendingRequests.length > 0 && (
@@ -609,6 +611,10 @@ const Friends = () => {
               <span className="hidden sm:inline">People You May Know</span>
             </TabsTrigger>
           </TabsList>
+
+          <TabsContent value="posts">
+            {currentUserId && activeTab === "posts" && <FriendsPosts currentUserId={currentUserId} />}
+          </TabsContent>
 
           <TabsContent value="requests" className="space-y-2 sm:space-y-4">
             {shownRequests.length === 0 ? (

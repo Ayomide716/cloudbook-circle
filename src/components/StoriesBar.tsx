@@ -85,7 +85,6 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
   const myProfile = useMyProfile();
   const [storyGroups, setStoryGroups] = useState<UserStoryGroup[]>([]);
   const myGroup = storyGroups.find((g) => g.userId === currentUserId);
-  const othersHaveStories = storyGroups.some((g) => g.userId !== currentUserId);
   // Your photo by "What's on your mind?" glows while your story is up, and opens it from there.
   useEffect(() => {
     setMyStory({ has: !!myGroup, closeFriends: !!myGroup?.closeFriends });
@@ -499,14 +498,7 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
     <>
       {/* Stories as round bubbles, as on Instagram: yours first (tap + to add one), a coloured
           ring on anything you haven't watched, and the name underneath. */}
-      {/* Only when friends have stories: with none, the row would just repeat your own photo
-          (which is by "What's on your mind?" anyway, with your story's ring and a +). Live
-          voice rooms still show on their own. */}
-      {!othersHaveStories ? (
-        <div className="flex gap-3.5 overflow-x-auto px-3 py-2 scrollbar-hide empty:hidden sm:px-1">
-          <LiveRoomStories currentUserId={currentUserId} />
-        </div>
-      ) : (
+      {/* Always there, as in the redesign: "Your story" first (tap to add one), then friends'. */}
       <div className="feed-stories sm:mb-4">
         <div className="flex gap-3.5 overflow-x-auto px-3 py-2 scrollbar-hide sm:px-1">
           {!myGroup && (
@@ -541,7 +533,6 @@ const StoriesBar = ({ currentUserId }: StoriesBarProps) => {
           })}
         </div>
       </div>
-      )}
 
       {/* Create Story Dialog */}
       <Dialog open={isCreating} onOpenChange={setIsCreating}>

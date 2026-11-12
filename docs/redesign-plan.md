@@ -65,9 +65,10 @@ scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.
 
 1. **Done:** tab bar, Menu, Chats as a tab (PR #157), then a smaller bar (PR #158).
 2. **Done:** top bar behaviour.
-3. Home: single feed, stories on top, new post cards. Check it with real photos, long names
-   and long posts before going further.
-4. Friends: the four pills, with friends' posts.
+3. **Done (feed and stories):** Home is one feed with the stories row always on top; the
+   Friends screen has a Posts pill with friends' posts, newest first. Still to do on Home: the
+   new post card style, checked with real photos, long names and long posts.
+4. Friends: restyle the rest of the screen (requests, suggestions, all friends) to the mockup.
 5. Groups hub and group page, with the merge and its database update.
 6. Chats list and the open chat.
 7. Profile, Notifications, Post with comments, Create post.
