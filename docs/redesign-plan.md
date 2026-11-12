@@ -55,9 +55,9 @@ scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.
 
 | Feature | Decision | Database update |
 |---|---|---|
-| Comment sorting ("Top comments") | Build | No |
-| "Friends" tab in Reels | Build | No |
-| Live numbers on the Admin screen | Build | No |
+| Comment sorting ("Top comments") | Done | No |
+| "Friends" tab in Reels | Already there (For you / Friends switch) | No |
+| Live numbers on the Admin screen | Done: new users, active and posts today, open reports | No |
 | Saved collections | Build | Yes, small |
 | Scheduling a post | Later, after the redesign. Leave it off the Create post screen until then. | Yes |
 
@@ -74,8 +74,11 @@ scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.
    Chat), and any group where people chat shows in the Chats list. The admin switch for
    chat is not built; chat stays on for every group, as before. Groups hub: "For you" pill,
    square 64px group tiles. Still to do: restyle the group page to the mockup.
-6. Chats list and the open chat.
-7. Profile, Notifications, Post with comments, Create post.
+6. **Done:** Chats list and open chat. Photos sent on their own have no coloured frame;
+   group chats have rounded-square pictures.
+7. **Partly done:** Profile has one friends row (faces, count, arrow) instead of a stats
+   line. Post comments have a Top comments / Newest switch. Notifications already match the
+   mockup (New and Earlier, type badges). Create post: scheduling stays off for now.
 8. Reels, story viewer, story editor, photo editor, calls.
 9. Search, Explore, Events, Saved (with collections), Story archive, Offline videos.
 10. Marketplace, Watch, Pages, Settings, Admin.
