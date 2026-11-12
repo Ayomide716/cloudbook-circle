@@ -41,18 +41,14 @@ and this file disagree, this file wins.
 | Splash | Pure black, only the "e." mark. The orange dot glows in alone, pulses twice, slides right as the white "e" rises, and settles as the full stop. Plays once. Needs a new APK. |
 | Calls | Do not show an "End-to-end encrypted" label. It has not been verified. |
 
-## Top bar behaviour (to settle first)
+## Top bar behaviour (done, PR after #159)
 
-The owner asked for the top bar's behaviour to be fixed: it is not clear on which screens it
-stays. Today the "ember." bar shows on Home and on Menu (where it sits above the "Menu" title,
-so there are two headers), and not on Chats.
+The "ember." bar shows only on Home, where it hides while scrolling down and comes back on
+scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.ts`):
 
-Proposed rule, to confirm with the owner before building:
-
-- **Home:** the "ember." bar with search and the bell. It hides when scrolling down and comes
-  back when scrolling up.
-- **Other tabs (Chats, Menu):** no "ember." bar. The screen's own title row is the header.
-- **Inner screens:** a back arrow and the screen's title, fixed at the top.
+- **Chats and Menu (tabs):** the screen's title row, no back arrow.
+- **Friends, Groups, Notifications and other inner screens:** a back arrow and the title
+  (`PageHeader back`).
 - **Full-screen views (Reels, stories, an open chat, calls, editors):** no top bar.
 
 ## Features the mockups show that do not exist yet
@@ -68,10 +64,11 @@ Proposed rule, to confirm with the owner before building:
 ## Build order
 
 1. **Done:** tab bar, Menu, Chats as a tab (PR #157), then a smaller bar (PR #158).
-2. Top bar behaviour, once the rule above is confirmed.
-3. Home: single feed, stories on top, new post cards. Check it with real photos, long names
-   and long posts before going further.
-4. Friends: the four pills, with friends' posts.
+2. **Done:** top bar behaviour.
+3. **Done (feed and stories):** Home is one feed with the stories row always on top; the
+   Friends screen has a Posts pill with friends' posts, newest first. Still to do on Home: the
+   new post card style, checked with real photos, long names and long posts.
+4. Friends: restyle the rest of the screen (requests, suggestions, all friends) to the mockup.
 5. Groups hub and group page, with the merge and its database update.
 6. Chats list and the open chat.
 7. Profile, Notifications, Post with comments, Create post.

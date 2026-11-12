@@ -319,6 +319,7 @@ const Groups = () => {
       <PullToRefresh onRefresh={async () => { await loadGroups(); setHubKey((k) => k + 1); }}>
       <div className="page-flush max-w-[1200px] mx-auto px-0 sm:px-4 lg:px-6 pb-6 sm:py-6 space-y-2 sm:space-y-0">
         <PageHeader
+          back
           title="Groups"
           actions={<HeaderAction icon={Plus} label="Create group" primary onClick={() => setIsCreating(true)} />}
         >

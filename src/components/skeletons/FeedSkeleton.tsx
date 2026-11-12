@@ -25,23 +25,26 @@ export const PostSkeleton = ({ photo = true }: { photo?: boolean }) => (
 );
 
 /**
- * Same layout as Home (under the app's header): the "What's on your mind?" row (your photo is
- * also your story), the For you · Friends chips, then posts, so nothing jumps when the feed
- * arrives. No story bubbles: the stories row only appears once friends' stories have loaded.
+ * Same layout as Home (under the app's header): the stories row, the "What's on your mind?"
+ * row, then posts, so nothing jumps when the feed arrives.
  */
 const FeedSkeleton = () => (
   <div className="max-w-[1400px] mx-auto px-0 sm:px-4 lg:px-6 pt-0 pb-4 sm:py-6" aria-busy="true" aria-label="Loading feed">
     <div className="feed-flush w-full max-w-[680px] mx-auto space-y-5 max-sm:space-y-2">
+      <div className="flex gap-3.5 overflow-hidden px-3 py-2 sm:px-1" aria-hidden="true">
+        {Array.from({ length: 5 }, (_, i) => (
+          <div key={i} className="flex w-[66px] shrink-0 flex-col items-center gap-1.5">
+            <Skeleton className="h-[62px] w-[62px] rounded-full" />
+            <Skeleton className="h-2.5 w-11 rounded-full" />
+          </div>
+        ))}
+      </div>
       <div className="feed-section flex items-center gap-3 rounded-2xl border border-border bg-card p-3 px-4 sm:p-4">
         <Skeleton className="h-10 w-10 shrink-0 rounded-full" />
         <span className="flex h-10 min-w-0 flex-1 items-center truncate rounded-full bg-secondary px-4 text-[15px] text-muted-foreground" aria-hidden="true">What's on your mind?</span>
         {/* Photo and video, as on the real row. */}
         <Skeleton className="h-6 w-6 shrink-0 rounded-md" />
         <Skeleton className="h-6 w-6 shrink-0 rounded-md" />
-      </div>
-      <div className="flex gap-2 px-4 py-3 sm:px-0" aria-hidden="true">
-        <span className="inline-flex h-[34px] items-center rounded-full bg-foreground px-4 text-[14px] font-semibold text-background">For you</span>
-        <span className="inline-flex h-[34px] items-center rounded-full bg-secondary px-4 text-[14px] font-semibold">Friends</span>
       </div>
       <PostSkeleton photo={false} />
       <PostSkeleton />

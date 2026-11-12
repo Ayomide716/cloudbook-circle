@@ -338,6 +338,7 @@ const Notifications = () => {
       <PullToRefresh onRefresh={async () => { await loadNotifications(); }}>
       <div className="page-flush max-w-[800px] mx-auto px-0 sm:px-4 pb-6 sm:py-6">
         <PageHeader
+          back
           title="Notifications"
           subtitle={unreadCount > 0 ? `${unreadCount} unread` : undefined}
           actions={unreadCount > 0 ? (

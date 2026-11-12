@@ -1,8 +1,9 @@
 /**
- * Pages you open from somewhere (the menu, a post, a chat) rather than a tab. On phones they
- * show only their own header with a back arrow, as on Facebook, not the ember bar above it.
+ * Pages with their own header on phones, so no "ember." bar above it. Only Home keeps that bar.
+ * Most are opened from somewhere (the menu, the bell, a post) and their header has a back
+ * arrow; Chats and Menu are tabs, and their header is just the title.
  */
-const SUB_PAGES = ["/messages", "/explore", "/settings", "/saved", "/story-archive", "/offline-videos", "/admin", "/events", "/marketplace", "/watch", "/pages", "/ads"];
+const SUB_PAGES = ["/messages", "/menu", "/friends", "/groups", "/notifications", "/explore", "/settings", "/saved", "/story-archive", "/offline-videos", "/admin", "/events", "/marketplace", "/watch", "/pages", "/ads"];
 
 export function isSubPage(pathname: string): boolean {
   if (SUB_PAGES.includes(pathname)) return true;
