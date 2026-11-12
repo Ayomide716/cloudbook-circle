@@ -85,7 +85,7 @@ test.describe("feed", () => {
     await page.locator("header").first().evaluate((el) => el.setAttribute("data-kept", "1"));
     await bar.evaluate((el) => el.setAttribute("data-kept", "1"));
 
-    for (const tab of ["Friends", "Menu", "Home"]) {
+    for (const tab of ["Chats", "Menu", "Home"]) {
       await bar.getByRole("button", { name: new RegExp(`^${tab}`) }).click();
       await expect(bar.getByRole("button", { name: new RegExp(`^${tab}`) })).toHaveAttribute("aria-current", "page");
       await expect(page.locator("header[data-kept]")).toHaveCount(1);
