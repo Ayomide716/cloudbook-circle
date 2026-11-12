@@ -48,7 +48,7 @@ const AdminDashboard = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [stats, setStats] = useState({ totalUsers: 0, totalPosts: 0, totalReports: 0, pendingReports: 0 });
+  const [stats, setStats] = useState({ totalUsers: 0, totalPosts: 0, newUsersToday: 0, activeToday: 0, postsToday: 0 });
 
   const checkAuth = useEffectEvent(async () => {
     const { data: { session } } = await supabase.auth.getSession();
@@ -97,15 +97,23 @@ const AdminDashboard = () => {
   };
 
   const fetchStats = async () => {
-    const [usersRes, postsRes] = await Promise.all([
+    // Today, from midnight on this phone's clock.
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const since = today.toISOString();
+    const [usersRes, postsRes, newUsersRes, activeRes, postsTodayRes] = await Promise.all([
       supabase.from("profiles").select("id", { count: "exact", head: true }),
       supabase.from("posts").select("id", { count: "exact", head: true }),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("created_at", since),
+      supabase.from("profiles").select("id", { count: "exact", head: true }).gte("last_seen", since),
+      supabase.from("posts").select("id", { count: "exact", head: true }).gte("created_at", since),
     ]);
     setStats({
       totalUsers: usersRes.count || 0,
       totalPosts: postsRes.count || 0,
-      totalReports: 0,
-      pendingReports: 0,
+      newUsersToday: newUsersRes.count || 0,
+      activeToday: activeRes.count || 0,
+      postsToday: postsTodayRes.count || 0,
     });
   };
 
@@ -171,28 +179,20 @@ const AdminDashboard = () => {
         <PushTestCard />
         <MoveMediaCard />
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="p-4 text-center">
-            <Users className="h-5 w-5 mx-auto mb-1 text-primary" />
-            <p className="text-2xl font-bold">{stats.totalUsers}</p>
-            <p className="text-xs text-muted-foreground">Total Users</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <FileText className="h-5 w-5 mx-auto mb-1 text-blue-500" />
-            <p className="text-2xl font-bold">{stats.totalPosts}</p>
-            <p className="text-xs text-muted-foreground">Total Posts</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <Flag className="h-5 w-5 mx-auto mb-1 text-orange-500" />
-            <p className="text-2xl font-bold">{reports.length}</p>
-            <p className="text-xs text-muted-foreground">Reports</p>
-          </Card>
-          <Card className="p-4 text-center">
-            <AlertTriangle className="h-5 w-5 mx-auto mb-1 text-destructive" />
-            <p className="text-2xl font-bold">{reports.filter(r => r.status === 'pending').length}</p>
-            <p className="text-xs text-muted-foreground">Pending</p>
-          </Card>
+        {/* Today at a glance (totals underneath), as in the redesign. */}
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+          {[
+            { label: "New users today", value: stats.newUsersToday, note: `${stats.totalUsers.toLocaleString()} in total`, icon: Users, tint: "text-primary" },
+            { label: "Active today", value: stats.activeToday, note: "Opened Ember today", icon: Users, tint: "text-emerald-600" },
+            { label: "Posts today", value: stats.postsToday, note: `${stats.totalPosts.toLocaleString()} in total`, icon: FileText, tint: "text-blue-500" },
+            { label: "Open reports", value: reports.filter((r) => r.status === "pending").length, note: `${reports.length} in total`, icon: Flag, tint: "text-orange-500" },
+          ].map((s) => (
+            <Card key={s.label} className="rounded-2xl p-3.5">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"><s.icon className={`h-4 w-4 ${s.tint}`} aria-hidden="true" />{s.label}</p>
+              <p className="mt-1 text-2xl font-extrabold tabular-nums tracking-tight">{s.value.toLocaleString()}</p>
+              <p className="text-xs text-muted-foreground">{s.note}</p>
+            </Card>
+          ))}
         </div>
 
         <Tabs defaultValue="reports">
