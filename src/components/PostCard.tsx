@@ -487,6 +487,7 @@ const PostCard = ({
   const commentList = (initialCount: number) => (
     <CommentThread
       latest
+      sortable
       comments={shownComments}
       currentUserId={currentUserId}
       onReply={startReply}
