@@ -190,6 +190,8 @@ const GroupDetail = () => {
     }
 
     setGroup(data);
+    // A group made as a chat in Messages opens on its Chat; it has Discussion and the rest too.
+    if ((data as { is_chat?: boolean }).is_chat) setSection((s) => (s === "discussion" ? "chat" : s));
   };
 
   // One query for every author or member instead of one each.
@@ -759,7 +761,7 @@ const GroupDetail = () => {
 
         {section === "chat" && (
           lockedOut ? joinPrompt("the chat") : (
-            // The community's own chat, in the same style as Messages (it doesn't go in your chat list).
+            // The group's chat, in the same style as Messages (it shows in Chats once people use it).
             <div className="feed-section h-[calc(100dvh-10rem-env(safe-area-inset-bottom,0px))] min-h-[380px] overflow-hidden rounded-[1.125rem] border bg-card md:h-[calc(100dvh-22rem)] md:min-h-[420px]">
               <GroupConversation
                 embedded

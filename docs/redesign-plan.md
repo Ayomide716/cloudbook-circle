@@ -69,7 +69,11 @@ scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.
    Friends screen has a Posts pill with friends' posts, newest first. Still to do on Home: the
    new post card style, checked with real photos, long names and long posts.
 4. Friends: restyle the rest of the screen (requests, suggestions, all friends) to the mockup.
-5. Groups hub and group page, with the merge and its database update.
+5. **Done (merge):** groups are one kind. Every group already had a Chat tab, so no database
+   update was needed: group chats now show under Your groups and have a page (opening on
+   Chat), and any group where people chat shows in the Chats list. The admin switch for
+   chat is not built; chat stays on for every group, as before. Groups hub: "For you" pill,
+   square 64px group tiles. Still to do: restyle the group page to the mockup.
 6. Chats list and the open chat.
 7. Profile, Notifications, Post with comments, Create post.
 8. Reels, story viewer, story editor, photo editor, calls.

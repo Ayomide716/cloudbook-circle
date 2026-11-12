@@ -604,12 +604,8 @@ const Friends = () => {
                 </span>
               )}
             </TabsTrigger>
-            <TabsTrigger value="sent" className={FRIEND_CHIP}>Sent</TabsTrigger>
-            <TabsTrigger value="friends" className={FRIEND_CHIP}>Friends</TabsTrigger>
-            <TabsTrigger value="suggestions" className={FRIEND_CHIP}>
-              <span className="sm:hidden">Suggested</span>
-              <span className="hidden sm:inline">People You May Know</span>
-            </TabsTrigger>
+            <TabsTrigger value="suggestions" className={FRIEND_CHIP}>Suggestions</TabsTrigger>
+            <TabsTrigger value="friends" className={FRIEND_CHIP}>All friends</TabsTrigger>
           </TabsList>
 
           <TabsContent value="posts">
@@ -673,7 +669,7 @@ const Friends = () => {
                             className="h-9 gap-1 rounded-lg font-semibold"
                           >
                             <Check className="h-4 w-4" />
-                            Accept
+                            Confirm
                           </Button>
                           <Button
                             size="sm"
@@ -699,32 +695,33 @@ const Friends = () => {
                 <div className="divide-y">{visibleSuggestions.slice(0, 3).map(suggestionRow)}</div>
               </Section>
             )}
+            {/* Requests you sent, until they're answered (was its own pill). */}
+            {sentRequests.length > 0 && (
+              <Section title="Requests you sent" count={sentRequests.length}>
+                <Card className="feed-section flat-list">
+                {(
+                  <div className="divide-y">
+                    {sentRequests.map((request) => (
+                      <PersonRow
+                        key={request.id}
+                        id={request.profiles.id}
+                        name={request.profiles.full_name}
+                        avatarUrl={request.profiles.avatar_url}
+                        subtitle={`Request sent ${formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}`}
+                        actions={
+                          <Button size="sm" variant="secondary" onClick={() => handleCancelRequest(request.id)} className="h-9 rounded-full px-3.5 font-semibold">
+                            Cancel
+                          </Button>
+                        }
+                      />
+                    ))}
+                  </div>
+                )}
+              </Card>
+              </Section>
+            )}
           </TabsContent>
 
-          <TabsContent value="sent">
-            <Card className="feed-section flat-list">
-              {sentRequests.length === 0 ? (
-                <EmptyState emoji="mailbox" title="No sent requests" text="Requests you send will wait here until they're answered." action={<Button onClick={() => setActiveTab("suggestions")} className="rounded-full px-5">Find people</Button>} />
-              ) : (
-                <div className="divide-y">
-                  {sentRequests.map((request) => (
-                    <PersonRow
-                      key={request.id}
-                      id={request.profiles.id}
-                      name={request.profiles.full_name}
-                      avatarUrl={request.profiles.avatar_url}
-                      subtitle={`Request sent ${formatDistanceToNow(new Date(request.created_at), { addSuffix: true })}`}
-                      actions={
-                        <Button size="sm" variant="secondary" onClick={() => handleCancelRequest(request.id)} className="h-9 rounded-full px-3.5 font-semibold">
-                          Cancel
-                        </Button>
-                      }
-                    />
-                  ))}
-                </div>
-              )}
-            </Card>
-          </TabsContent>
 
           <TabsContent value="friends">
             <Card className="feed-section flat-list">
