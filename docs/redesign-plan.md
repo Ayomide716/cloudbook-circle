@@ -58,7 +58,7 @@ scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.
 | Comment sorting ("Top comments") | Done | No |
 | "Friends" tab in Reels | Already there (For you / Friends switch) | No |
 | Live numbers on the Admin screen | Done: new users, active and posts today, open reports | No |
-| Saved collections | Build | Yes, small |
+| Saved collections | Done; turns on once `supabase/setup/ember-update-saved-collections.sql` is run | Yes, small |
 | Scheduling a post | Later, after the redesign. Leave it off the Create post screen until then. | Yes |
 
 ## Build order
