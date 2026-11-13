@@ -745,14 +745,14 @@ const PostCard = ({
 
       {/* Media */}
       {post.video_url && (
-        <div className="relative overflow-hidden bg-black sm:mx-2.5 sm:rounded-2xl">
+        <div className="relative mx-3 overflow-hidden rounded-[18px] bg-black sm:mx-2.5">
           <FeedVideo src={post.video_url} onDoubleTap={likeWithHeart} />
           {heartBurst > 0 && <HeartBurst key={heartBurst} />}
         </div>
       )}
       {!post.video_url && photos.length > 0 && (
         <>
-          <div className="relative overflow-hidden sm:mx-2.5 sm:rounded-2xl">
+          <div className="relative mx-3 overflow-hidden rounded-[18px] sm:mx-2.5">
             <PhotoCollage
               images={photos}
               previews={post.image_previews}

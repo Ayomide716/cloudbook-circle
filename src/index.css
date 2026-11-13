@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    /* Ember: warm off-white paper, near-black ink, one tangerine accent. */
-    --background: 0 0% 100%;
-    --foreground: 0 0% 7%;
+    /* Ember: warm ivory page, white cards, dark-brown ink, one tangerine accent. */
+    --background: 30 100% 97%;
+    --foreground: 20 37% 9%;
 
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 7%;
+    --card-foreground: 20 37% 9%;
 
     /* Chat: other people's bubbles and the composer, and your own bubbles. */
     --chat-surface: 0 0% 100%;
     --chat-sent: 16 86% 44%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 7%;
+    --popover-foreground: 20 37% 9%;
 
     /* Deep enough tangerine for white text on it and for orange text on white (4.65:1, AA). */
     --primary: 16 86% 44%;
@@ -25,15 +25,17 @@
     /* The bright signature orange, for marks with no text on them: the logo dot, story rings. */
     --brand: 16 89% 53%;
 
-    --secondary: 60 5% 96%;
-    --secondary-foreground: 0 0% 7%;
+    /* Warm sand for fields, pills and grey buttons. */
+    --secondary: 28 55% 93%;
+    --secondary-foreground: 20 37% 9%;
 
-    --muted: 60 5% 96%;
-    --muted-foreground: 0 0% 42%;
+    --muted: 28 55% 93%;
+    /* Warm grey for times and details: 4.8:1 on the ivory page. */
+    --muted-foreground: 22 9% 43%;
 
     /* Hover/selected surfaces (menus, ghost buttons, list rows). */
-    --accent: 60 5% 96%;
-    --accent-foreground: 0 0% 7%;
+    --accent: 28 55% 93%;
+    --accent-foreground: 20 37% 9%;
 
     /* Circle colours and highlights. */
     --gold: 40 100% 52%;
@@ -44,8 +46,8 @@
     --destructive: 0 78% 52%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 93%;
-    --input: 0 0% 86%;
+    --border: 27 41% 89%;
+    --input: 27 30% 84%;
     --ring: 0 0% 55%;
 
     /* Softer, rounder corners everywhere, as in Android's own apps (cards 16px, fields 14px). */
