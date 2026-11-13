@@ -468,7 +468,7 @@ export default function Reels() {
           </Button>
         </div>
       ) : (
-        <div className="flex-1 flex items-center justify-center relative">
+        <div className="flex-1 flex items-start md:items-center justify-center relative">
           <div
             ref={containerRef}
             onScroll={handleScroll}
