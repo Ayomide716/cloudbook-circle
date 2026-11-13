@@ -94,9 +94,8 @@ scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.
 
 ## Open points
 
-- Menu has a settings icon at the top and also a "Settings & privacy" row. The mockup only has
-  the icon. Ask whether to remove the row.
-- Chats has two new-chat buttons (top right and a floating one). Ask whether to remove one.
+- **Decided:** Menu has no "Settings & privacy" row (the settings icon at the top is enough);
+  Chats has one new-chat button, top right (the floating one is gone).
 - The friend-request badge on the Menu tab and the unread badge on Chats use the same style.
 
 ## Earlier list, still wanted after the redesign

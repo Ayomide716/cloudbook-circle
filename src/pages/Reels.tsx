@@ -84,12 +84,13 @@ export default function Reels() {
   const [uploadCaption, setUploadCaption] = useState("");
   const [uploadVideoUrl, setUploadVideoUrl] = useState("");
   const [isMuted, setIsMuted] = useState(true);
-  // Auto scroll, as on Facebook: when a reel ends, the next one comes up. On unless you turn it off.
+  // Auto scroll: when a reel ends, the next one comes up. Off unless you turn it on (⋯ → Auto scroll);
+  // until then a reel plays again when it ends.
   const [autoScroll, setAutoScroll] = useState(() => {
     try {
-      return localStorage.getItem("ember:reels-autoscroll") !== "off";
+      return localStorage.getItem("ember:reels-autoscroll") === "on";
     } catch {
-      return true;
+      return false;
     }
   });
   const toggleAutoScroll = () => {
@@ -396,19 +397,20 @@ export default function Reels() {
     containerRef.current?.scrollTo({ top: 0 });
   };
 
-  // Drawn twice (phone and desktop bars), so each copy gets its own sliding pill.
+  // As in the redesign: two bold words, the open one underlined. Drawn twice (phone and desktop
+  // bars), so each copy gets its own sliding underline.
   const tabSwitch = (where: string) => (
-    <div role="tablist" aria-label="Which reels" className="relative flex rounded-full border border-white/15 bg-black/25 p-1 backdrop-blur-md">
+    <div role="tablist" aria-label="Which reels" className="flex gap-5">
       {(["for-you", "friends"] as const).map((t) => (
         <button
           key={t}
           role="tab"
           aria-selected={tab === t}
           onClick={() => pickTab(t)}
-          className={cn("relative z-[1] rounded-full px-4 py-1.5 text-[13px] font-semibold transition-colors", tab === t ? "text-black" : "text-white/80")}
+          className={cn("relative h-11 text-[18px] transition-colors [text-shadow:0_1px_3px_rgb(0_0_0/0.45)]", tab === t ? "font-extrabold text-white" : "font-semibold text-white/70 hover:text-white")}
         >
-          {tab === t && <motion.span layoutId={`reels-tab-${where}`} className="absolute inset-0 -z-[1] rounded-full bg-white" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
           {t === "for-you" ? "For you" : "Friends"}
+          {tab === t && <motion.span layoutId={`reels-tab-${where}`} className="absolute inset-x-0 bottom-0 h-[3px] rounded-full bg-white" transition={{ type: "spring", stiffness: 500, damping: 36 }} />}
         </button>
       ))}
     </div>
@@ -446,14 +448,11 @@ export default function Reels() {
         </div>
       </div>
 
-      {/* Phones: glass back and create buttons either side of the For you / Friends switch. */}
-      <div className="md:hidden absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-3 pt-[calc(env(safe-area-inset-top)+0.6rem)]">
-        <button onClick={() => navigate("/")} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur-md" aria-label="Back to home">
-          <ArrowLeft className="h-5 w-5" />
-        </button>
+      {/* Phones: For you / Friends on the left, create on the right. Reels is a tab, so no back arrow. */}
+      <div className="md:hidden absolute top-0 left-0 right-0 z-20 flex items-center justify-between pl-4 pr-2 pt-[calc(env(safe-area-inset-top)+0.4rem)]">
         {tabSwitch("phone")}
-        <button onClick={() => setShowUpload(true)} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/25 text-white backdrop-blur-md" aria-label="Create reel">
-          <Plus className="h-5 w-5" />
+        <button onClick={() => setShowUpload(true)} className="flex h-11 w-11 items-center justify-center text-white [filter:drop-shadow(0_1px_3px_rgb(0_0_0/0.45))]" aria-label="Create reel">
+          <Plus className="h-7 w-7" />
         </button>
       </div>
 

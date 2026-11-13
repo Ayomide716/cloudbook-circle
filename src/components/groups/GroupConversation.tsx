@@ -816,10 +816,10 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
             <span className={cn("block truncate text-xs", typingLine ? "font-medium text-primary" : "text-muted-foreground")}>{subtitle}</span>
           </span>
         </button>
-        <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-[22px]" aria-label="Group video call" onClick={() => startGroupCall({ id: group.id, name: group.name }, false, members.map((m) => m.id))}>
+        <Button variant="ghost" size="icon" className="h-10 w-10 text-primary hover:text-primary [&_svg]:size-[22px]" aria-label="Group video call" onClick={() => startGroupCall({ id: group.id, name: group.name }, false, members.map((m) => m.id))}>
           <Video />
         </Button>
-        <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-[21px]" aria-label="Group voice call" onClick={() => startGroupCall({ id: group.id, name: group.name }, true, members.map((m) => m.id))}>
+        <Button variant="ghost" size="icon" className="h-10 w-10 text-primary hover:text-primary [&_svg]:size-[21px]" aria-label="Group voice call" onClick={() => startGroupCall({ id: group.id, name: group.name }, true, members.map((m) => m.id))}>
           <Phone />
         </Button>
         <Button variant="ghost" size="icon" className="h-10 w-10 [&_svg]:size-[22px]" aria-label="Group info" onClick={() => setShowInfo(true)}>

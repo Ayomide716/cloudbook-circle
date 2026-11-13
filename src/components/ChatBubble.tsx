@@ -75,7 +75,7 @@ interface ChatBubbleProps {
   onEdit: (message: ChatMessage) => void;
   onUnsend: (messageId: string) => void;
   theme?: string;
-  /** First of a run of messages from the same person: gets the little tail, as in WhatsApp. */
+  /** First of a run of messages from the same person: keeps all four corners round. */
   isFirstInGroup?: boolean;
   /** The other person's name, shown on quotes of their messages. */
   otherName?: string | null;
@@ -299,10 +299,11 @@ const ChatBubble = ({
           ref={bubbleRef}
           className={cn(
             "max-w-[80vw] sm:max-w-[420px] relative",
-            bare ? "rounded-2xl" : cn("shadow-sm rounded-lg", isCurrentUser ? colors.sent : colors.received),
-            // The tail sits at the top corner of the first message in a run.
-            !bare && isFirstInGroup && (isCurrentUser ? "rounded-tr-none" : "rounded-tl-none"),
-            stickerSrc || photoOnly ? "p-0" : bigEmoji ? "px-1 pb-7" : isMedia ? "p-1" : "px-2.5 py-1.5",
+            bare ? "rounded-2xl" : cn("shadow-sm rounded-[18px]", isCurrentUser ? colors.sent : colors.received),
+            // As in the redesign: round bubbles, no tail. Later messages in a run get a small top
+            // corner on the sender's side, so a run reads as one block.
+            !bare && !isFirstInGroup && (isCurrentUser ? "rounded-tr-md" : "rounded-tl-md"),
+            stickerSrc || photoOnly ? "p-0" : bigEmoji ? "px-1 pb-7" : isMedia ? "p-1" : "px-3 py-1.5",
             photoOnly && "overflow-hidden",
             "[@media(hover:none)]:select-none [-webkit-touch-callout:none]",
             menuOpen && "ring-2 ring-primary/40"
@@ -323,17 +324,6 @@ const ChatBubble = ({
             align={isCurrentUser ? "end" : "start"}
             anchorRef={bubbleRef}
           />
-          {isFirstInGroup && !bare && (
-            <span
-              aria-hidden="true"
-              className={cn(
-                "absolute top-0 h-3 w-2",
-                isCurrentUser
-                  ? cn(colors.sent, "-right-2 [clip-path:polygon(0_0,100%_0,0_100%)]")
-                  : cn(colors.received, "-left-2 [clip-path:polygon(0_0,100%_0,100%_100%)]")
-              )}
-            />
-          )}
           {message.forwarded && (
             <p className={cn("flex items-center gap-1 text-[12px] italic opacity-75", isMedia && "px-1.5 pt-0.5")}>
               <Forward className="h-3 w-3" /> Forwarded
@@ -342,7 +332,7 @@ const ChatBubble = ({
           {/* The message being replied to, quoted inside the bubble with a coloured bar (as in WhatsApp). */}
           {replyMessage && (
             <div className={cn(
-              "mb-1 rounded-md border-l-4 px-2 py-1 text-[13px] leading-snug min-w-[160px]",
+              "mb-1 rounded-xl border-l-4 px-2 py-1 text-[13px] leading-snug min-w-[160px]",
               isCurrentUser ? "bg-black/15 border-white/70" : "bg-black/5 dark:bg-white/5 border-primary",
               isMedia && "mx-1 mt-1"
             )}>
