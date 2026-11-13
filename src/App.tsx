@@ -134,6 +134,9 @@ const PageFallback = () => {
 
 // Pages that never show the app's bars: sign-in screens and full-screen Reels.
 const withoutBars = (path: string) => path === "/auth" || path === "/forgot-password" || path === "/reset-password" || path.startsWith("/reels");
+// Pages with no app frame at all: the sign-in screens. (Reels keeps the bottom bar, dark, as in the
+// redesign, so you can always leave it; it has its own top bar.)
+const withoutShell = (path: string) => path === "/auth" || path === "/forgot-password" || path === "/reset-password";
 
 /**
  * One header and bottom bar for every signed-in page, kept on screen across page changes
@@ -163,7 +166,7 @@ const AppShell = ({ children }: { children: ReactNode }) => {
   const { pathname } = useLocation();
   const [hideMobileTopBar, setHideMobileTopBar] = useState(false);
   const shell = useMemo(() => ({ setHideMobileTopBar }), []);
-  const active = !!session && !withoutBars(pathname);
+  const active = !!session && !withoutShell(pathname);
 
   return (
     <NavShellContext.Provider value={active ? shell : null}>

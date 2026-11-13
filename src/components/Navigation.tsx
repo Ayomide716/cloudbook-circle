@@ -202,7 +202,7 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
   const isActive = (path: string) => location.pathname === path;
 
   // Messages has its own full-height layout, and Reels plays full-screen behind the dock.
-  const showDock = !!currentUserId && location.pathname !== "/messages" && location.pathname !== "/reels";
+  const showDock = !!currentUserId && location.pathname !== "/messages" && !location.pathname.startsWith("/reels");
   useEffect(() => {
     document.body.classList.toggle("has-dock", showDock);
     return () => document.body.classList.remove("has-dock");
@@ -230,6 +230,8 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
         "sticky top-0 z-50 safe-area-top glass-strong border-b border-border/50 max-md:bg-background max-md:border-x-0 max-md:border-t-0",
         "transition-transform duration-200 ease-out",
         noMobileTopBar && "max-md:hidden",
+        // Reels draws its own top bar (For you / Friends on phones, a full bar on bigger screens).
+        location.pathname.startsWith("/reels") && "hidden",
         topBarHidden && "max-md:-translate-y-full"
       )}>
         <div className="max-w-[1400px] mx-auto px-3 sm:px-4 lg:px-6">
@@ -438,10 +440,10 @@ export const AppNavigation = ({ currentUserId, hideMobileTopBar = false }: Navig
       {/* Phones: a solid strip behind the status bar, so posts never scroll up under the clock
           and battery once the top bar slides away (as on Facebook). Not on the profile, whose
           cover photo runs up behind the status bar, or Reels, which is full-screen video. */}
-      {!hideMobileTopBar && location.pathname !== "/reels" && <div className="fixed inset-x-0 top-0 z-50 h-[env(safe-area-inset-top,0px)] bg-background md:hidden" aria-hidden="true" />}
+      {!hideMobileTopBar && !location.pathname.startsWith("/reels") && <div className="fixed inset-x-0 top-0 z-50 h-[env(safe-area-inset-top,0px)] bg-background md:hidden" aria-hidden="true" />}
 
       {/* Tablet Floating Dock - centered bottom (hidden on Reels; wide screens use the top-bar tabs) */}
-      {currentUserId && location.pathname !== "/reels" && location.pathname !== "/messages" && (
+      {currentUserId && !location.pathname.startsWith("/reels") && location.pathname !== "/messages" && (
         <div className="app-dock hidden md:flex lg:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
           <motion.nav
             initial={{ y: 100, opacity: 0 }}
