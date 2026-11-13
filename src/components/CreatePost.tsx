@@ -357,10 +357,15 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
 
       {/* Full Create Post Dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
-        {/* Phones: a full page, like Facebook's "New post" (✕ on the left, title in the middle);
+        {/* Phones: a full page, like Facebook's "New post" (✕ and the title on the left, Post on the right);
             bigger screens: a centred window. */}
         <DialogContent
           hideHandle
+          // Straight into writing, as on Facebook: the cursor goes in the text box, not on ✕.
+          onOpenAutoFocus={(e) => {
+            const box = (e.currentTarget as HTMLElement | null)?.querySelector<HTMLElement>('textarea, [contenteditable="true"]');
+            if (box) { e.preventDefault(); box.focus(); }
+          }}
           // The photo editor opens over this: its taps aren't "outside" the composer.
           onPointerDownOutside={(e) => { if (editing) e.preventDefault(); }}
           onInteractOutside={(e) => { if (editing) e.preventDefault(); }}
@@ -372,7 +377,7 @@ const CreatePost = ({ currentUser, onPostCreated }: CreatePostProps) => {
                 <X className="h-6 w-6" />
               </button>
             </DialogClose>
-            <DialogTitle className="max-sm:flex-1 max-sm:text-center max-sm:text-[17px]">Create post</DialogTitle>
+            <DialogTitle className="max-sm:ml-1 max-sm:flex-1 max-sm:text-left max-sm:text-[18px] max-sm:font-bold">Create post</DialogTitle>
             {/* Phones: Post sits top-right, as on Facebook, so the keyboard never hides it. */}
             <Button
               type="submit"

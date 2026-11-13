@@ -503,16 +503,16 @@ const Friends = () => {
         <div className="mt-2 flex max-w-sm items-center gap-2">
       <Button
         size="sm"
-        variant="outline"
+        variant="accent"
         onClick={() => handleSendRequest(profile.id)}
-        className="h-9 flex-1 gap-1 rounded-lg border-primary/60 font-semibold text-primary hover:bg-primary/10 hover:text-primary"
+        className="h-10 flex-1 gap-1 rounded-xl font-semibold"
       >
         <UserPlus className="h-4 w-4" />
         Add friend
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button type="button" aria-label={`More options for ${profile.full_name || "this person"}`} className="flex h-9 w-10 shrink-0 items-center justify-center rounded-lg bg-secondary text-foreground hover:bg-secondary/80">
+          <button type="button" aria-label={`More options for ${profile.full_name || "this person"}`} className="flex h-10 w-11 shrink-0 items-center justify-center rounded-xl bg-secondary text-foreground hover:bg-secondary/80">
             <MoreHorizontal className="h-5 w-5" />
           </button>
         </DropdownMenuTrigger>
@@ -647,7 +647,7 @@ const Friends = () => {
                             initial={{ opacity: 0, y: 4 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.25, ease: [0.23, 1, 0.32, 1] }}
-                            className="mt-2 flex h-9 items-center gap-1.5 text-sm font-semibold"
+                            className="mt-2 flex h-10 items-center gap-1.5 text-sm font-semibold"
                             role="status"
                           >
                             <motion.span
@@ -666,7 +666,7 @@ const Friends = () => {
                             size="sm"
                             variant="accent"
                             onClick={() => handleAccept(request.id)}
-                            className="h-9 gap-1 rounded-lg font-semibold"
+                            className="h-10 gap-1 rounded-xl font-semibold"
                           >
                             <Check className="h-4 w-4" />
                             Confirm
@@ -676,7 +676,7 @@ const Friends = () => {
                             variant="secondary"
                             onClick={() => handleDecline(request.id)}
                             aria-label="Decline request"
-                            className="h-9 rounded-lg font-semibold"
+                            className="h-10 rounded-xl font-semibold"
                           >
                             Delete
                           </Button>

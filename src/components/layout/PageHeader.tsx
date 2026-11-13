@@ -46,7 +46,7 @@ export const PageHeader = ({ title, subtitle, actions, children, back, className
       className
     )}
   >
-    <div className="flex items-center gap-2">
+    <div className={cn("flex gap-2", subtitle ? "items-start" : "items-center")}>
       {back && <BackButton />}
       <div className="min-w-0 flex-1">
         <h1 className="font-display text-2xl font-extrabold tracking-tight truncate">{title}</h1>
@@ -65,17 +65,20 @@ interface HeaderActionProps {
   /** The page's main action: tangerine with its label on bigger screens. */
   primary?: boolean;
   badge?: number;
+  /** A grey circle behind the icon, for buttons that sit beside other buttons (not in a header). */
+  filled?: boolean;
 }
 
-/** A round grey button on phones; on bigger screens the main action also shows its label. */
-export const HeaderAction = ({ icon: Icon, label, onClick, primary, badge }: HeaderActionProps) => (
+/** A plain header icon on phones, as in the redesign; on bigger screens the main action also shows its label. */
+export const HeaderAction = ({ icon: Icon, label, onClick, primary, badge, filled }: HeaderActionProps) => (
   <Button
     type="button"
     onClick={onClick}
     aria-label={label}
     title={label}
     className={cn(
-      "relative h-10 w-10 shrink-0 rounded-full p-0 bg-secondary text-foreground hover:bg-secondary/70 [&_svg]:size-5 sm:[&_svg]:size-4",
+      "relative h-10 w-10 shrink-0 rounded-full p-0 text-foreground [&_svg]:size-5 sm:bg-secondary sm:hover:bg-secondary/70 sm:[&_svg]:size-4",
+      filled ? "bg-secondary hover:bg-secondary/70" : "bg-transparent hover:bg-secondary max-sm:[&_svg]:size-6",
       primary && "sm:w-auto sm:px-4 sm:bg-foreground sm:text-background sm:hover:bg-foreground/90"
     )}
   >

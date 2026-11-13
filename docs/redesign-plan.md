@@ -65,25 +65,32 @@ scrolling up. Every other screen has its own header instead (`src/lib/sub-pages.
 
 1. **Done:** tab bar, Menu, Chats as a tab (PR #157), then a smaller bar (PR #158).
 2. **Done:** top bar behaviour.
-3. **Done (feed and stories):** Home is one feed with the stories row always on top; the
-   Friends screen has a Posts pill with friends' posts, newest first. Still to do on Home: the
-   new post card style, checked with real photos, long names and long posts.
-4. Friends: restyle the rest of the screen (requests, suggestions, all friends) to the mockup.
-5. **Done (merge):** groups are one kind. Every group already had a Chat tab, so no database
-   update was needed: group chats now show under Your groups and have a page (opening on
-   Chat), and any group where people chat shows in the Chats list. The admin switch for
-   chat is not built; chat stays on for every group, as before. Groups hub: "For you" pill,
-   square 64px group tiles. Still to do: restyle the group page to the mockup.
-6. **Done:** Chats list and open chat. Photos sent on their own have no coloured frame;
-   group chats have rounded-square pictures.
-7. **Partly done:** Profile has one friends row (faces, count, arrow) instead of a stats
-   line. Post comments have a Top comments / Newest switch. Notifications already match the
-   mockup (New and Earlier, type badges). Create post: scheduling stays off for now.
-8. Reels, story viewer, story editor, photo editor, calls.
-9. Search, Explore, Events, Saved (with collections), Story archive, Offline videos.
-10. Marketplace, Watch, Pages, Settings, Admin.
-11. Log in, sign up, reset password, welcome flow.
-12. Splash, then a new APK.
+3. **Done:** Home is one feed with the stories row always on top; the Friends screen has a
+   Posts pill with friends' posts, newest first. Post cards have 15px text, a 40px picture and
+   bold names.
+4. **Done:** Friends: orange Confirm and Add friend, grey Delete and ⋯, all 40px with rounded
+   corners, as in the mockup.
+5. **Done:** groups are one kind. Every group already had a Chat tab, so no database update was
+   needed: group chats show under Your groups and have a page (opening on Chat), and any group
+   where people chat shows in the Chats list. The admin switch for chat is not built; chat
+   stays on for every group. Groups hub: "For you" pill, square 64px tiles. Group page: the
+   info card overlaps the cover, white round buttons on the cover, underlined section tabs, and
+   "You, Tolu and 4 others are members" beside the faces.
+6. **Done:** Chats list and open chat. Photos sent on their own have no coloured frame; group
+   chats have rounded-square pictures.
+7. **Done:** Profile has one friends row (faces, count, arrow). Post comments have a Top
+   comments / Newest switch. Notifications already matched. Create post: the cursor starts in
+   the text box, the title sits beside the close button; scheduling stays off for now.
+8. **Checked, no change needed:** Reels, story viewer and editor, photo editor, calls (no
+   "end-to-end encrypted" label anywhere).
+9. **Done:** Search, Explore, Events, Saved (with collections), Story archive, Offline videos
+   all use the shared header with a back arrow. Header icons are plain on phones (no grey
+   circle); `HeaderAction filled` keeps the circle for buttons beside other buttons.
+10. **Done:** Marketplace, Watch, Pages, Settings, Admin.
+11. **Done:** Log in has no Log in / Sign up switch; "Create new account" is a button under Log
+    in, and sign up ends with "Already have an account? Log in". `/auth?mode=signup` opens on
+    sign up. Reset password and the welcome flow already matched.
+12. Splash, then a new APK. **On hold at the owner's request.**
 
 ## Open points
 
