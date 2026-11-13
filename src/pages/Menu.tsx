@@ -77,9 +77,8 @@ const MenuRow = ({ icon: Icon, label, onClick }: { icon: LucideIcon; label: stri
   </button>
 );
 
-/** Settings, the legal pages and (for admins) the admin page. */
+/** The legal pages and (for admins) the admin page. Settings is the icon at the top. */
 const ROWS: { icon: LucideIcon; label: string; path: string; adminOnly?: boolean }[] = [
-  { icon: Settings, label: "Settings & privacy", path: "/settings" },
   { icon: FileText, label: "Terms of service", path: "/terms" },
   { icon: Shield, label: "Privacy policy", path: "/privacy" },
   { icon: LayoutDashboard, label: "Admin", path: "/admin", adminOnly: true },
@@ -273,8 +272,8 @@ const Menu = () => {
           <InviteFriends userId={userId} />
         </div>}
 
-        {/* Settings and help (appearance is in Settings) */}
-        <h2 className={sectionLabel}>Settings and help</h2>
+        {/* Terms, privacy and (for admins) the admin page; Settings is the icon at the top */}
+        <h2 className={sectionLabel}>Legal</h2>
         <section className={cn(card, "divide-y divide-border/60")}>
           {ROWS.filter((r) => !r.adminOnly || isAdmin).map((r) => (
             <MenuRow key={r.path} icon={r.icon} label={r.label} onClick={() => navigate(r.path)} />

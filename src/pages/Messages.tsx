@@ -21,7 +21,7 @@ import AIChatCompanion from "@/components/AIChatCompanion";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, MessageSquarePlus, Smile, Keyboard, Paperclip, Camera, Check, Copy, CornerUpLeft, Forward, Trash2, Lock, LockOpen, ImagePlus } from "@/components/icons";
+import { Loader2, Send, ArrowLeft, Video, Phone, Search, Settings, X, Bot, Sparkles, MoreVertical, MoreHorizontal, Archive, Image as ImageIcon, Star, Timer, Smile, Keyboard, Paperclip, Camera, Check, Copy, CornerUpLeft, Forward, Trash2, Lock, LockOpen, ImagePlus } from "@/components/icons";
 import { ActionMenu, ActionMenuContent, ActionMenuItem, ActionMenuTrigger } from "@/components/ui/action-menu";
 import VirtualizedChatList from "@/components/VirtualizedChatList";
 import ConversationRow from "@/components/ConversationRow";
@@ -1339,17 +1339,6 @@ const Messages = () => {
                   </div>
                 )}
               </div>
-              {/* New message within thumb reach on phones, as on WhatsApp. */}
-              {!showArchived && (
-                <Button
-                  onClick={() => setComposeOpen(true)}
-                  size="icon"
-                  aria-label="New message"
-                  className="absolute bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] right-4 h-14 w-14 rounded-2xl shadow-lg md:hidden [&_svg]:size-6"
-                >
-                  <MessageSquarePlus />
-                </Button>
-              )}
             </Card>
 
             {/* Chat Area — AI or regular conversation */}
