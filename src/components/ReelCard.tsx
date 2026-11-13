@@ -311,7 +311,7 @@ export default function ReelCard({
   const railButton = "flex h-12 w-12 items-center justify-center rounded-full border border-white/15 bg-white/10 text-white backdrop-blur-md transition-colors hover:bg-white/20";
 
   return (
-    <div ref={containerRef} className="h-[100dvh] md:h-[calc(100dvh-57px)] snap-start snap-always flex items-center justify-center relative">
+    <div ref={containerRef} className="h-[calc(100dvh-3.25rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-57px)] snap-start snap-always flex items-center justify-center relative">
       <div className="relative h-full w-full overflow-hidden bg-black md:w-[420px] md:max-h-[calc(100dvh-80px)] md:rounded-[28px] md:mx-auto md:ring-1 md:ring-white/10">
         {canPlayInline ? (
           <>

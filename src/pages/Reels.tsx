@@ -472,7 +472,7 @@ export default function Reels() {
           <div
             ref={containerRef}
             onScroll={handleScroll}
-            className="h-[100dvh] md:h-[calc(100dvh-57px)] w-full md:w-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-contain"
+            className="h-[calc(100dvh-3.25rem-env(safe-area-inset-bottom,0px))] md:h-[calc(100dvh-57px)] w-full md:w-auto overflow-y-scroll snap-y snap-mandatory scrollbar-hide overscroll-contain"
           >
             {shown.map((reel, i) => (
               <ReelCard

@@ -41,6 +41,10 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
   const userPaused = useRef(false);
   const [current, setCurrent] = useState(0);
   const [duration, setDuration] = useState(0);
+  // The video's own shape (width ÷ height), once known: the box follows it, so an upright phone
+  // video fills the width instead of sitting between black bars. Very tall ones stop at 4:5 and
+  // are trimmed a little top and bottom, as Facebook and Instagram do in the feed.
+  const [shape, setShape] = useState<number | null>(null);
   const dataSaver = useDataSaver();
   const [showBar, setShowBar] = useState(true);
 
@@ -157,11 +161,18 @@ const FeedVideo = ({ src, onDoubleTap, className }: FeedVideoProps) => {
         onPlay={() => { setPlaying(true); pokeBar(); }}
         onPause={() => { setPlaying(false); setShowBar(true); }}
         onTimeUpdate={(e) => setCurrent(e.currentTarget.currentTime)}
-        onLoadedMetadata={(e) => setDuration(e.currentTarget.duration)}
+        onLoadedMetadata={(e) => {
+          const v = e.currentTarget;
+          setDuration(v.duration);
+          if (v.videoWidth && v.videoHeight) setShape(v.videoWidth / v.videoHeight);
+        }}
         onDurationChange={(e) => Number.isFinite(e.currentTarget.duration) && setDuration(e.currentTarget.duration)}
         onEnded={() => setShowBar(true)}
-        className={cn("block w-full object-contain", inPip ? "h-full" : "max-h-[600px]")}
-        style={inPip ? undefined : { aspectRatio: "16/9" }}
+        className={cn(
+          "block w-full",
+          inPip ? "h-full object-contain" : cn("sm:max-h-[600px]", shape !== null && shape < 0.8 ? "object-cover sm:object-contain" : "object-contain")
+        )}
+        style={inPip ? undefined : { aspectRatio: shape ? String(Math.max(shape, 0.8)) : "16/9" }}
       />
 
       {/* The whole picture is the tap target (play / pause, or like on a double tap). */}
