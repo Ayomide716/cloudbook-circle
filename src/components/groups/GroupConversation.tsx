@@ -34,6 +34,7 @@ import { haptic } from "@/lib/haptics";
 import { cn, friendlyError } from "@/lib/utils";
 import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
+import { useLiveHealth } from "@/hooks/use-live-health";
 import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
 import TypingBubble from "@/components/chat/TypingBubble";
 import AttachPanel from "@/components/chat/AttachPanel";
@@ -214,6 +215,8 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
   // messages that arrived meanwhile, plus edits and reactions on the latest ones.
   const messagesRef = useRef<GroupMessage[]>([]);
   messagesRef.current = messages;
+  // Set the live connection up again if it fails; while it's down, check every 4 seconds.
+  const { live: liveOk, attempt: liveAttempt, watch: watchLive } = useLiveHealth();
   useResync(() => {
     void (async () => {
       const saved = messagesRef.current.filter((m) => !m.id.startsWith("temp-"));
@@ -233,7 +236,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
       }
       void loadReactions(saved.slice(-40).map((m) => m.id).concat(fresh.map((m) => m.id)));
     })();
-  }, 15000);
+  }, liveOk ? 15000 : 4000);
 
   /** Scrolls to a message and marks it for a moment, loading back to it if it's older. */
   const jumpTo = useCallback(async (id: string) => {
@@ -266,6 +269,7 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
     void loadMessages();
     void loadMembers();
     seenRef.current();
+    const watch = watchLive();
     const channel = dbChannel(`group-conversation-${group.id}`)
       .on("postgres_changes", { event: "INSERT", schema: "public", table: "group_messages", filter: `group_id=eq.${group.id}` }, (payload) => {
         const m = payload.new as GroupMessage;
@@ -296,9 +300,9 @@ const GroupConversation = ({ group, currentUserId, onBack, onSeen, onLeft, embed
         void loadReactions();
       })
       .on("postgres_changes", { event: "*", schema: "public", table: "group_members", filter: `group_id=eq.${group.id}` }, () => void loadMembers())
-      .subscribe();
-    return () => { void supabase.removeChannel(channel); };
-  }, [group.id, currentUserId, loadMessages, loadMembers, loadReactions]);
+      .subscribe(watch.onStatus);
+    return () => { watch.stop(); void supabase.removeChannel(channel); };
+  }, [group.id, currentUserId, loadMessages, loadMembers, loadReactions, watchLive, liveAttempt]);
 
   // Keep this group's latest messages on the phone, so it opens instantly next time.
   useEffect(() => {
