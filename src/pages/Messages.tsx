@@ -1427,10 +1427,10 @@ const Messages = () => {
                     </Button>
                     {!isSelfChat && (
                       <>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-6" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-primary hover:bg-accent hover:text-primary [&_svg]:size-6" onClick={() => callPeer && startCall(callPeer, false)} aria-label="Video call">
                           <Video />
                         </Button>
-                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-accent [&_svg]:size-[22px]" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
+                        <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full text-primary hover:bg-accent hover:text-primary [&_svg]:size-[22px]" onClick={() => callPeer && startCall(callPeer, true)} aria-label="Voice call">
                           <Phone />
                         </Button>
                       </>
