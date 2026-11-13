@@ -45,6 +45,7 @@ import { haptic } from "@/lib/haptics";
 import { enterMakesNewLine, sendOnEnter, useAutoGrow } from "@/lib/enter-key";
 import { dbChannel } from "@/lib/realtime";
 import { useResync } from "@/hooks/use-resync";
+import { useLiveHealth } from "@/hooks/use-live-health";
 import EnablePushBanner from "@/components/EnablePushBanner";
 import { GIPHY_STICKER, stickerMessage } from "@/lib/stickers";
 import { VIEW_ONCE } from "@/lib/view-once";
@@ -358,7 +359,7 @@ const Messages = () => {
   const selectedConversationRef = useRef<Profile | null>(null);
   selectedConversationRef.current = selectedConversation;
 
-  const setupRealtimeSubscription = useCallback(() => {
+  const setupRealtimeSubscription = useCallback((onStatus?: (status: string) => void) => {
     if (!currentUserId) return null;
     const channel = dbChannel("messages-changes")
       .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, (payload) => {
@@ -392,7 +393,7 @@ const Messages = () => {
           loadConversations();
         }
       })
-      .subscribe();
+      .subscribe((status) => onStatus?.(status));
     return channel;
   }, [currentUserId, loadConversations]);
 
@@ -432,15 +433,19 @@ const Messages = () => {
       await supabase.from("messages").update({ read: true }).eq("sender_id", selected.id).eq("receiver_id", currentUserId).eq("read", false);
     }
   }, [currentUserId, loadConversations]);
-  useResync(() => void catchUp(), selectedConversation ? 15000 : undefined, !!currentUserId);
+  // The live connection: set up again if it fails, and while it's down check every 4 seconds
+  // (instead of 15) so new messages still show up quickly.
+  const { live: liveOk, attempt: liveAttempt, watch: watchLive } = useLiveHealth();
+  useResync(() => void catchUp(), liveOk ? (selectedConversation ? 15000 : undefined) : 4000, !!currentUserId);
 
   useEffect(() => {
     if (currentUserId) {
       loadConversations();
-      const channel = setupRealtimeSubscription();
-      return () => { if (channel) supabase.removeChannel(channel); };
+      const watch = watchLive();
+      const channel = setupRealtimeSubscription(watch.onStatus);
+      return () => { watch.stop(); if (channel) supabase.removeChannel(channel); };
     }
-  }, [currentUserId, loadConversations, setupRealtimeSubscription]);
+  }, [currentUserId, loadConversations, setupRealtimeSubscription, watchLive, liveAttempt]);
 
   // Open a specific chat from links like /messages?user=<id> (contacts, profiles, online friends).
   const [searchParams, setSearchParams] = useSearchParams();
